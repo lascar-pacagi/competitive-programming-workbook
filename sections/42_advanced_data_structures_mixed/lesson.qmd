@@ -1,0 +1,175 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 42: Advanced Data Structures Mixed Contest"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Choosing the right query structure
+
+This contest block mixes three common advanced query reductions: ranks with
+Fenwick binary lifting, range-add/range-sum with two Fenwick trees, and
+offline two-dimensional counting with coordinate compression. The common
+habit is to rewrite every query as a prefix query.
+
+## Dynamic order statistics
+
+A multiset over values `1..m` can be represented by a frequency array:
+
+```text
+freq[x] = how many copies of value x are currently present
+```
+
+A Fenwick tree over `freq` supports:
+
+- insert `x`: add `+1` at index `x`;
+- erase one `x`: add `-1` at index `x`;
+- count values `<= x`: prefix sum `sum(x)`;
+- find the k-th smallest: find the first position whose prefix sum is at
+  least `k`.
+
+The k-th operation is Fenwick binary lifting. Instead of binary searching and
+calling `sum(mid)` repeatedly, we walk down powers of two inside the Fenwick
+tree:
+
+```text
+pos = 0
+for step = largest power of two down to 1:
+    if pos + step <= n and bit[pos + step] < k:
+        k -= bit[pos + step]
+        pos += step
+answer = pos + 1
+```
+
+The invariant is: after considering a step, all indices up to `pos` are known
+to have prefix sum strictly less than the original `k`.
+
+## Range add and range sum with two Fenwick trees
+
+One Fenwick tree can store a difference array and answer point queries after
+range updates. For range-sum queries after range updates, store two trees.
+
+If we add `x` to every position in `[l, r]`, update:
+
+```text
+B1[l] += x, B1[r+1] -= x
+B2[l] += x*(l-1), B2[r+1] -= x*r
+```
+
+Then the prefix sum of the actual array up to `p` is:
+
+```text
+prefix(p) = p * sum(B1, p) - sum(B2, p)
+```
+
+So:
+
+```text
+range_sum(l, r) = prefix(r) - prefix(l-1)
+```
+
+This formula is just summing a difference array algebraically. `B1` controls
+the slope of the prefix sum, and `B2` cancels the extra offset introduced when
+an update starts later than position `1`.
+
+## Static rectangle counting
+
+For points `(x, y)` and rectangle queries `[x1, x2] * [y1, y2]`, reduce each
+rectangle to four prefix queries:
+
+```text
+count(x <= X, y <= Y)
+```
+
+Then:
+
+```text
+rect = F(x2,y2) - F(x1-1,y2) - F(x2,y1-1) + F(x1-1,y1-1)
+```
+
+Sort points by `x`. Sort prefix queries by `X`. Sweep from left to right and
+activate each point's compressed `y` coordinate in a Fenwick tree. Each prefix
+query becomes one Fenwick prefix sum over `y`.
+
+This is the same offline pattern as Section 13: sort by the threshold, add
+objects that now qualify, and answer each query from a dynamic prefix data
+structure.
+
+## Recognition table
+
+| Statement wording | Model |
+|---|---|
+| "k-th smallest under updates" | Fenwick frequencies plus binary lifting |
+| "add on interval, sum on interval" | two Fenwick trees |
+| "static points inside many rectangles" | offline sweep plus compressed Fenwick |
+| "arbitrary online min/max on intervals" | segment tree |
+
+## Full rectangle-count example
+
+Points:
+
+```text
+(1,2), (3,1), (4,4), (6,2)
+```
+
+Query rectangle:
+
+```text
+2 <= x <= 5, 1 <= y <= 3
+```
+
+Use four prefix dominance counts:
+
+```text
+F(5,3) - F(1,3) - F(5,0) + F(1,0)
+```
+
+`F(5,3)` counts points with `x <= 5` and `y <= 3`: `(1,2), (3,1)`.
+`F(1,3)` removes points left of the rectangle: `(1,2)`.
+The other two terms are zero. Final answer is `1`, namely `(3,1)`.
+
+This example is worth doing by hand because most bugs in offline rectangle
+queries are sign mistakes in the four-prefix formula.
+
+## Fenwick k-th implementation detail
+
+The binary lifting search assumes all frequencies are nonnegative. That is true
+for multisets and alive-position arrays, but not for arbitrary prefix sums.
+
+Pseudo-code:
+
+```text
+pos = 0
+for step from highest_power down to 1:
+    if pos+step <= n and bit[pos+step] < k:
+        k -= bit[pos+step]
+        pos += step
+return pos+1
+```
+
+This searches directly inside the Fenwick representation. It is faster than
+external binary search and avoids an extra logarithmic factor.
+
+# Exercises
+
+- A. Dynamic Order Statistics: Maintain a multiset over values `1..m`: insert, erase one copy, k-th, and count `<=x`.
+- B. Range Add Range Sum: Support range addition and range-sum queries.
+- C. Static Rectangle Count: Given points and rectangle queries, count points inside each rectangle.

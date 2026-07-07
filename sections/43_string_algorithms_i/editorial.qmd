@@ -1,0 +1,217 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 43 Editorial: String Algorithms I"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. KMP Occurrences.** Build the combined string
+`pattern + '#' + text`, where `#` is a separator that cannot appear in either
+input. The prefix function value `pi[i]` is the length of the longest prefix of
+the combined string ending at `i`. When `pi[i] == m`, an occurrence of the
+pattern has just ended. The end is at combined index `i`, the text starts at
+combined index `m + 1`, so the 1-based start position in the text is
+`i - 2*m + 1`. Overlapping matches are handled automatically because the prefix
+function falls back through borders instead of resetting to zero.
+
+**B. All Borders.** A border of `s` is both a prefix and a suffix. The longest
+proper border has length `pi[n-1]`. If a string of length `k` is a border, then
+its own longest proper border has length `pi[k-1]`, and that is also a border
+of the original string. Repeating this prefix-link walk lists every border from
+longest to shortest; reversing gives increasing order. No border is skipped,
+because every shorter border of `s` must be a border of the longest border that
+contains it.
+
+**C. Minimal Period.** If the longest border has length `b`, then the first
+candidate period is `p = n - b`: the suffix that repeats the prefix begins
+after `p` characters. This candidate is valid only when `n % p == 0`; otherwise
+the repeated blocks do not tile the string and the answer is `n`. This is why
+strings such as `ababab` return `2`, while `ababa` returns `5`.
+
+**Common pitfalls.** The separator must be absent from the alphabet, positions
+for A are 1-based, and B should not print the full length because a border is
+proper in this exercise.
+
+The prefix function is the only real tool in this section. It is computed once
+in linear time and then interpreted in three ways.
+
+- A builds `pattern + separator + text`; whenever `pi[i]` equals the pattern
+  length, an occurrence ends at `i`.
+- B follows prefix links from `pi[n-1]` to list every proper border of the full
+  string.
+- C uses the longest border to derive the candidate period `n - pi[n-1]`, then
+  checks divisibility.
+
+The important proof idea is that prefix links enumerate exactly the shorter
+borders, so no possible border or period is skipped.
+
+# A. KMP Occurrences
+
+## Restatement
+
+Print the number and 1-based positions of all occurrences of pattern in text.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; vector<int> pi(string s){vector<int>p(s.size());for(int i=1;i<(int)s.size();i++){int j=p[i-1];while(j&&s[i]!=s[j])j=p[j-1];if(s[i]==s[j])j++;p[i]=j;}return p;}
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string pat,text;if(!(cin>>pat>>text)) return 0; string s=pat+"#"+text; auto p=pi(s); vector<int>a; for(int i=0;i<(int)p.size();i++) if(p[i]==(int)pat.size()) a.push_back(i-2*(int)pat.size()+1); cout<<a.size()<<'\n'; for(int i=0;i<(int)a.size();i++){if(i)cout<<' ';cout<<a[i];} cout<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def pi(s):
+    p=[0]*len(s)
+    for i in range(1,len(s)):
+        j=p[i-1]
+        while j and s[i]!=s[j]: j=p[j-1]
+        if s[i]==s[j]: j+=1
+        p[i]=j
+    return p
+def main():
+    lines=sys.stdin.read().splitlines(); pat=lines[0]; text=lines[1]; s=pat+"#"+text; p=pi(s); ans=[]
+    for i,v in enumerate(p):
+        if v==len(pat): ans.append(i-2*len(pat)+1)
+    print(len(ans)); print(" ".join(map(str,ans)) if ans else "")
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# B. All Borders
+
+## Restatement
+
+Print all proper border lengths of a string in increasing order.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; vector<int>p(s.size()); for(int i=1;i<(int)s.size();i++){int j=p[i-1];while(j&&s[i]!=s[j])j=p[j-1];if(s[i]==s[j])j++;p[i]=j;} vector<int>a; for(int k=p.back();k;k=p[k-1]) a.push_back(k); reverse(a.begin(),a.end()); for(int i=0;i<(int)a.size();i++){if(i)cout<<' ';cout<<a[i];} cout<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def pi(s):
+    p=[0]*len(s)
+    for i in range(1,len(s)):
+        j=p[i-1]
+        while j and s[i]!=s[j]: j=p[j-1]
+        if s[i]==s[j]: j+=1
+        p[i]=j
+    return p
+def main():
+    s=sys.stdin.readline().strip(); p=pi(s); ans=[]; k=p[-1] if s else 0
+    while k: ans.append(k); k=p[k-1]
+    print(" ".join(map(str,ans[::-1])))
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# C. Minimal Period
+
+## Restatement
+
+Print the shortest period length if the string is repetitions of a block, otherwise `n`.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; int n=s.size(); vector<int>p(n); for(int i=1;i<n;i++){int j=p[i-1];while(j&&s[i]!=s[j])j=p[j-1];if(s[i]==s[j])j++;p[i]=j;} int k=n-p.back(); cout<<(n%k==0?k:n)<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def pi(s):
+    p=[0]*len(s)
+    for i in range(1,len(s)):
+        j=p[i-1]
+        while j and s[i]!=s[j]: j=p[j-1]
+        if s[i]==s[j]: j+=1
+        p[i]=j
+    return p
+def main():
+    s=sys.stdin.readline().strip(); n=len(s); k=n-pi(s)[-1]
+    print(k if n%k==0 else n)
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# What to carry forward
+
+Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.

@@ -1,0 +1,212 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 32: Combinatorics Under Modulo"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why combinatorics needs preprocessing
+
+Counting problems often ask for answers modulo `1,000,000,007`. A direct
+formula such as:
+
+```text
+C(n,k) = n! / (k!(n-k)!)
+```
+
+is mathematically correct, but not directly implementable with ordinary
+division under a modulus. Section 29 taught modular inverses; this section turns
+that into a reusable combinatorics engine.
+
+# Factorials modulo a prime
+
+For a prime modulus `MOD`, precompute:
+
+```text
+fact[i] = i! mod MOD
+```
+
+with:
+
+```text
+fact[0] = 1
+fact[i] = fact[i-1] * i mod MOD
+```
+
+This takes `O(N)` time for all `i <= N`.
+
+# Inverse factorials
+
+To compute combinations quickly, also precompute:
+
+```text
+invfact[i] = inverse(i!) mod MOD
+```
+
+Because `MOD` is prime and `i < MOD` in this section, `i!` is not divisible by
+`MOD`, so the inverse exists.
+
+First compute:
+
+```text
+invfact[N] = fact[N]^(MOD-2) mod MOD
+```
+
+Then walk backward:
+
+```text
+invfact[i-1] = invfact[i] * i mod MOD
+```
+
+Why? Since:
+
+```text
+i! = i * (i-1)!
+```
+
+we have:
+
+```text
+inverse((i-1)!) = inverse(i!) * i
+```
+
+# Binomial coefficients
+
+The number of ways to choose `k` objects from `n` is:
+
+```text
+C(n,k) = n! / (k!(n-k)!)
+```
+
+Under the modulus:
+
+```text
+C(n,k) = fact[n] * invfact[k] * invfact[n-k] mod MOD
+```
+
+This gives `O(1)` per query after preprocessing.
+
+# Duplicate permutations
+
+If all `n` objects are distinct, there are `n!` permutations.
+
+If some objects are equal, swapping equal objects does not create a new
+arrangement. For letter counts:
+
+```text
+count[a], count[b], ...
+```
+
+the number of distinct rearrangements is:
+
+```text
+n! / (count[a]! count[b]! ...)
+```
+
+Modulo prime:
+
+```text
+fact[n] * product(inverse(fact[count[ch]])) mod MOD
+```
+
+Example:
+
+```text
+"aab" has 3! / 2! = 3 arrangements:
+aab, aba, baa
+```
+
+# Stars and bars
+
+Count nonnegative solutions:
+
+```text
+x1 + x2 + ... + xn = s
+```
+
+Think of `s` stars and `n-1` separators.
+
+Example for `n = 3`, `s = 4`:
+
+```text
+**|*|*
+```
+
+means:
+
+```text
+x1 = 2, x2 = 1, x3 = 1
+```
+
+There are `s` stars and `n-1` bars, so `s+n-1` total positions. Choose which
+`n-1` positions hold bars:
+
+```text
+C(s+n-1, n-1)
+```
+
+# Recognition table
+
+| Statement phrase | Formula |
+|---|---|
+| choose `k` from `n` | `C(n,k)` |
+| rearrange letters with repeats | `n! / prod(count!)` |
+| distribute identical objects among distinct boxes, zero allowed | `C(s+n-1,n-1)` |
+| distribute positive objects among distinct boxes | `C(s-1,n-1)` if `s >= n` |
+| path with only right/down moves on a grid | `C(right+down, right)` |
+
+# C++ notes
+
+Use `long long` for multiplication:
+
+```cpp
+fact[n] * invfact[k] % MOD * invfact[n-k] % MOD
+```
+
+Precompute up to the maximum value needed by all queries, not always the
+maximum constraint if the input is smaller.
+
+# Python notes
+
+Python's built-in `pow(a, MOD-2, MOD)` is fast modular exponentiation.
+
+Precomputing lists of size `2,000,001` is fine in this section.
+
+# Common mistakes
+
+```text
+Using ordinary division under modulo.
+Forgetting fact[0] = 1.
+Precomputing only to max n when stars-and-bars needs n+s-1.
+Using k instead of n-k in one inverse factorial.
+Treating identical candies as distinct.
+Treating repeated letters as distinct.
+```
+
+# Submission checklist
+
+```text
+1. Is the modulus prime?
+2. What maximum factorial index is needed?
+3. Are all factorials and inverse factorials precomputed?
+4. Does the formula match distinct vs identical objects?
+5. Are zero cases like k=0, s=0, or n=1 handled naturally?
+```

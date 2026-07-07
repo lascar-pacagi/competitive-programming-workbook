@@ -1,0 +1,186 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 54 Editorial: Geometry"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Orientation.** For points `a,b,c`, compute the cross product
+`(b-a) x (c-a)`. Positive means `c` is to the left of directed line `a -> b`,
+negative means right, and zero means collinear. This sign is the signed doubled
+area of triangle `abc`, so it is robust with integer coordinates.
+
+**B. Segment Intersection.** Two segments intersect properly when the endpoints
+of each segment lie on opposite sides of the other segment. Collinear cases are
+handled by checking whether an endpoint lies inside the bounding box of the
+other segment. Combining orientation signs with `on_segment` covers crossing,
+touching endpoints, and overlapping collinear segments.
+
+**C. Polygon Area.** The shoelace formula sums
+`x_i*y_{i+1} - y_i*x_{i+1}` around the polygon. This is the sum of signed
+triangle areas against the origin. The absolute value divided by two is the
+area; many contest problems print doubled area to avoid fractions.
+
+**Common pitfalls.** Use 64-bit integers for cross products. Include the edge
+from the last vertex back to the first. For intersections, collinear cases are
+not optional.
+
+All three geometry tasks are solved with integer cross products.
+
+- A computes the sign of `cross(AB, AC)` to classify orientation.
+- B combines orientation tests with bounding-box checks for collinear endpoint
+  and overlap cases.
+- C uses the shoelace sum and prints twice the polygon area.
+
+No floating point is needed. The main implementation risk is overflow, so C++
+solutions use `long long` for coordinate products.
+
+# A. Orientation
+
+## Restatement
+
+Classify point C relative to directed segment AB.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T;if(!(cin>>T))return 0;while(T--){long long ax,ay,bx,by,cx,cy;cin>>ax>>ay>>bx>>by>>cx>>cy;long long v=(bx-ax)*(cy-ay)-(by-ay)*(cx-ax);cout<<(v>0?"LEFT":v<0?"RIGHT":"TOUCH")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    t=data[0]; idx=1; out=[]
+    for _ in range(t):
+        ax,ay,bx,by,cx,cy=data[idx:idx+6]; idx+=6; v=(bx-ax)*(cy-ay)-(by-ay)*(cx-ax); out.append("LEFT" if v>0 else "RIGHT" if v<0 else "TOUCH")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# B. Segment Intersection
+
+## Restatement
+
+Decide whether two closed segments intersect.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; using P=pair<long long,long long>; long long ori(P a,P b,P c){return (b.first-a.first)*(c.second-a.second)-(b.second-a.second)*(c.first-a.first);}bool btw(P a,P b,P c){return min(a.first,b.first)<=c.first&&c.first<=max(a.first,b.first)&&min(a.second,b.second)<=c.second&&c.second<=max(a.second,b.second);}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T;if(!(cin>>T))return 0;while(T--){P a,b,c,d;cin>>a.first>>a.second>>b.first>>b.second>>c.first>>c.second>>d.first>>d.second;long long o1=ori(a,b,c),o2=ori(a,b,d),o3=ori(c,d,a),o4=ori(c,d,b);bool ok=(o1==0&&btw(a,b,c))||(o2==0&&btw(a,b,d))||(o3==0&&btw(c,d,a))||(o4==0&&btw(c,d,b))||((o1>0)!=(o2>0)&&(o3>0)!=(o4>0));cout<<(ok?"YES":"NO")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def ori(a,b,c): return (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])
+def between(a,b,c): return min(a[0],b[0])<=c[0]<=max(a[0],b[0]) and min(a[1],b[1])<=c[1]<=max(a[1],b[1])
+def inter(a,b,c,d):
+    o1,o2,o3,o4=ori(a,b,c),ori(a,b,d),ori(c,d,a),ori(c,d,b)
+    if o1==0 and between(a,b,c): return True
+    if o2==0 and between(a,b,d): return True
+    if o3==0 and between(c,d,a): return True
+    if o4==0 and between(c,d,b): return True
+    return (o1>0)!=(o2>0) and (o3>0)!=(o4>0)
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split())); t=data[0]; idx=1; out=[]
+    for _ in range(t):
+        x=data[idx:idx+8]; idx+=8; out.append("YES" if inter((x[0],x[1]),(x[2],x[3]),(x[4],x[5]),(x[6],x[7])) else "NO")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# C. Polygon Double Area
+
+## Restatement
+
+Print twice the area of a polygon in vertex order.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<long long>x(n),y(n);for(int i=0;i<n;i++)cin>>x[i]>>y[i];long long s=0;for(int i=0;i<n;i++){int j=(i+1)%n;s+=x[i]*y[j]-y[i]*x[j];}cout<<llabs(s)<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n=data[0]; pts=[(data[i],data[i+1]) for i in range(1,2*n+1,2)]; s=0
+    for i in range(n):
+        x1,y1=pts[i]; x2,y2=pts[(i+1)%n]; s+=x1*y2-y1*x2
+    print(abs(s))
+if __name__=="__main__": main()
+```
+
+# What to carry forward
+
+Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

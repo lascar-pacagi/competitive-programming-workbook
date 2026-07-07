@@ -1,0 +1,2 @@
+#include <bits/stdc++.h>
+using namespace std; const long long MOD=1000000007; long long pw(long long a,long long e){long long r=1;while(e){if(e&1)r=r*a%MOD;a=a*a%MOD;e>>=1;}return r;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T;if(!(cin>>T))return 0;vector<int>q(T);int N=0;for(int&i:q){cin>>i;N=max(N,2*i);}vector<long long>f(N+1,1),iv(N+1,1);for(int i=1;i<=N;i++)f[i]=f[i-1]*i%MOD;iv[N]=pw(f[N],MOD-2);for(int i=N;i;i--)iv[i-1]=iv[i]*i%MOD;auto C=[&](int n,int k){return f[n]*iv[k]%MOD*iv[n-k]%MOD;};for(int n:q)cout<<C(2*n,n)*pw(n+1,MOD-2)%MOD<<'\n';}

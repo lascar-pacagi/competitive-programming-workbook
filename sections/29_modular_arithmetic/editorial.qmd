@@ -1,0 +1,448 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 29 Editorial: Modular Arithmetic"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+| Problem | Tool | Main risk |
+|---|---|---|
+| A. Power Queries | binary exponentiation | large exponent |
+| B. Fraction Queries | Fermat inverse | division only valid when inverse exists |
+| C. Affine Repeater | power plus geometric sum | `a == 1` and negative C++ residues |
+
+# A. Power Queries
+
+## Restatement
+
+For each query, compute `a^b mod m`.
+
+## Constraints and traps
+
+`b` can be as large as `10^18`, so repeated multiplication is impossible. The
+modulus can be `1`, in which case every answer is `0`.
+
+## Algorithm
+
+Use binary exponentiation:
+
+```text
+result = 1 mod m
+a = a mod m
+while b > 0:
+    if b is odd, result = result * a mod m
+    a = a * a mod m
+    b = b / 2
+```
+
+## Correctness proof
+
+At every step, the algorithm has split the original power into two parts: the
+power already multiplied into `result`, and the remaining power represented by
+`base^b`. If the current exponent bit is `1`, multiplying by `base` accounts
+for that bit. Squaring `base` moves to the next binary place, and halving `b`
+discards the processed bit. When `b` becomes zero, every binary bit has been
+accounted for, so `result == a^original_b mod m`. `\square`
+
+## Complexity
+
+```text
+Time:  O(q log b)
+Memory: O(1)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long mod_pow(long long a, long long b, long long mod) {
+    a %= mod;
+    long long result = 1 % mod;
+    while (b > 0) {
+        if (b & 1LL) result = (__int128)result * a % mod;
+        a = (__int128)a * a % mod;
+        b >>= 1LL;
+    }
+    return result;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int q;
+    if (!(cin >> q)) return 0;
+    while (q--) {
+        long long a, b, mod;
+        cin >> a >> b >> mod;
+        cout << mod_pow(a, b, mod) << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def mod_pow(a: int, b: int, mod: int) -> int:
+    a %= mod
+    result = 1 % mod
+    while b:
+        if b & 1:
+            result = result * a % mod
+        a = a * a % mod
+        b >>= 1
+    return result
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    q = data[0]
+    out = []
+    idx = 1
+    for _ in range(q):
+        a, b, mod = data[idx], data[idx + 1], data[idx + 2]
+        idx += 3
+        out.append(str(mod_pow(a, b, mod)))
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers and tests
+
+```text
+O(b) multiplication: fails huge b.
+Initializing result = 1 when mod = 1: should become 0.
+Overflowing multiplication in harder variants.
+```
+
+# B. Fraction Queries
+
+## Restatement
+
+For prime `p`, compute `a / b mod p` for many queries. The input guarantees
+`b mod p != 0`.
+
+## Observations
+
+Division means multiplying by an inverse:
+
+```text
+a / b == a * b^{-1} (mod p)
+```
+
+Since `p` is prime and `b` is not divisible by `p`, Fermat's little theorem
+gives:
+
+```text
+b^{-1} == b^(p-2) (mod p)
+```
+
+## Algorithm
+
+```text
+for each query:
+    inv = pow_mod(b, p-2, p)
+    print (a mod p) * inv mod p
+```
+
+## Correctness proof
+
+Because `p` is prime and `b` is not divisible by `p`, Fermat's little theorem
+states `b^(p-1) == 1 (mod p)`. Multiplying both sides by the formal inverse
+meaning gives `b * b^(p-2) == 1 (mod p)`, so `b^(p-2)` is the modular inverse
+of `b`. Multiplying `a` by this inverse is exactly modular division. `\square`
+
+## Complexity
+
+```text
+Time:  O(q log p)
+Memory: O(1)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long mod_pow(long long a, long long b, long long mod) {
+    a %= mod;
+    long long result = 1 % mod;
+    while (b > 0) {
+        if (b & 1LL) result = (__int128)result * a % mod;
+        a = (__int128)a * a % mod;
+        b >>= 1LL;
+    }
+    return result;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    long long p;
+    int q;
+    if (!(cin >> p >> q)) return 0;
+    while (q--) {
+        long long a, b;
+        cin >> a >> b;
+        long long inv = mod_pow(b, p - 2, p);
+        long long answer = (__int128)(a % p) * inv % p;
+        cout << answer << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    p, q = data[0], data[1]
+    idx = 2
+    out = []
+    for _ in range(q):
+        a, b = data[idx], data[idx + 1]
+        idx += 2
+        out.append(str((a % p) * pow(b % p, p - 2, p) % p))
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers and tests
+
+```text
+Using a / b as floating-point division.
+Using Fermat inverse with composite modulus.
+Forgetting to reduce b before exponentiation.
+Testing p = 2.
+```
+
+# C. Affine Repeater
+
+## Restatement
+
+For each query, repeatedly apply:
+
+```text
+f(x) = a*x + b
+```
+
+exactly `k` times modulo `1,000,000,007`.
+
+## Observations
+
+Expanding the first few applications:
+
+```text
+f^1(x) = a*x + b
+f^2(x) = a^2*x + a*b + b
+f^3(x) = a^3*x + a^2*b + a*b + b
+```
+
+Therefore:
+
+```text
+f^k(x) = a^k*x + b*(1 + a + ... + a^(k-1))
+```
+
+The sum is `k` when `a == 1`. Otherwise:
+
+```text
+1 + a + ... + a^(k-1) = (a^k - 1) / (a - 1)
+```
+
+Modulo a prime, the division is multiplication by inverse.
+
+## Algorithm
+
+```text
+reduce a, b, x modulo MOD
+if k == 0: answer is x
+ak = pow_mod(a, k, MOD)
+if a == 1:
+    geom = k mod MOD
+else:
+    geom = (ak - 1) * inverse(a - 1) mod MOD
+answer = ak*x + b*geom mod MOD
+```
+
+## Correctness proof
+
+The expansion can be proven by induction. For `k = 0`, the value is `x`. Assume
+after `k` applications the formula is true. Applying `f` once more gives:
+
+```text
+a*(a^k*x + b*(1 + a + ... + a^(k-1))) + b
+= a^(k+1)*x + b*(a + a^2 + ... + a^k + 1)
+```
+
+which is the same formula for `k+1`. The geometric sum formula is valid when
+`a != 1`; when `a == 1`, every term is `1`, so the sum is `k`. Therefore the
+algorithm computes exactly the repeated transformation modulo `MOD`. `\square`
+
+## Complexity
+
+```text
+Time:  O(q log k)
+Memory: O(1)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const long long MOD = 1000000007LL;
+
+long long mod_pow(long long a, long long b) {
+    a %= MOD;
+    if (a < 0) a += MOD;
+    long long result = 1;
+    while (b > 0) {
+        if (b & 1LL) result = result * a % MOD;
+        a = a * a % MOD;
+        b >>= 1LL;
+    }
+    return result;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int q;
+    if (!(cin >> q)) return 0;
+    while (q--) {
+        long long a, b, x, k;
+        cin >> a >> b >> x >> k;
+        a %= MOD;
+        b %= MOD;
+        x %= MOD;
+        if (k == 0) {
+            cout << x << '\n';
+            continue;
+        }
+        long long ak = mod_pow(a, k);
+        long long geom;
+        if (a == 1) {
+            geom = k % MOD;
+        } else {
+            geom = (ak - 1 + MOD) % MOD * mod_pow(a - 1, MOD - 2) % MOD;
+        }
+        cout << (ak * x + b * geom) % MOD << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+MOD = 1_000_000_007
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    q = data[0]
+    idx = 1
+    out = []
+    for _ in range(q):
+        a, b, x, k = data[idx], data[idx + 1], data[idx + 2], data[idx + 3]
+        idx += 4
+        a %= MOD
+        b %= MOD
+        x %= MOD
+        if k == 0:
+            out.append(str(x))
+            continue
+        ak = pow(a, k, MOD)
+        if a == 1:
+            geom = k % MOD
+        else:
+            geom = (ak - 1) * pow(a - 1, MOD - 2, MOD) % MOD
+        out.append(str((ak * x + b * geom) % MOD))
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers and tests
+
+```text
+Simulating k times.
+Checking original a == 1 instead of reduced a == 1.
+Forgetting k == 0.
+C++ inverse of a-1 when a = 0 needs negative normalization.
+```
+
+# Testing discussion
+
+The random generator for the affine problem brute-forces small `k` and uses the
+formula for large `k`. When writing your own stress tests, compare:
+
+```text
+slow simulation for k <= 20
+fast formula for the same random cases
+```
+
+# What to carry forward
+
+Modular arithmetic is not just "put `% MOD` everywhere." Carry forward these
+rules:
+
+```text
+fast powers are O(log exponent)
+division requires an inverse
+Fermat inverse requires a prime modulus
+C++ negative residues must be normalized
+special cases are part of the math
+```

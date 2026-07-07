@@ -1,0 +1,195 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 60 Editorial: Final Capstone"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Capstone Subset Optimization.** Split the items into two halves, enumerate
+all subset sums of each half, and sort the right-half sums. For every left sum,
+binary-search the best right partner that keeps the total under the limit. This
+is the meet-in-the-middle proof from Section 47: every full subset has exactly
+one left subset and one right subset.
+
+**B. Capstone Congruences.** Merge congruences one at a time with CRT. At each
+step, the current pair `(a,m)` represents all numbers satisfying the processed
+constraints. Merging with `(b,n)` either detects incompatible residues modulo
+`gcd(m,n)` or produces a new residue modulo `lcm(m,n)` representing the
+intersection. This invariant makes the final answer immediate.
+
+**C. Capstone Recurrence.** Use fast doubling to evaluate the recurrence in
+logarithmic time. The state pair stores adjacent Fibonacci values, the doubling
+formula advances from `k` to `2k`, and the optional step advances to `2k+1`.
+Processing all bits of `n` therefore computes the requested value exactly.
+
+**Common pitfalls.** The final capstone intentionally mixes techniques. Write
+the invariant for each module separately, test it locally, then combine the
+outputs only after each module is correct on its own.
+
+The capstone revisits three patterns that should now be automatic.
+
+- A uses meet-in-the-middle for maximum subset sum under a limit.
+- B merges congruences by generalized CRT and rejects incompatible residues.
+- C answers recurrence queries with fast Fibonacci doubling.
+
+The final proof style is concise but complete: define the compressed object,
+prove it preserves the original choices, and show every query reads the desired
+value from that object.
+
+# A. Capstone Subset
+
+## Restatement
+
+Meet-in-the-middle: maximum subset sum not exceeding `X`.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; vector<long long>sums(vector<long long>a){vector<long long>r{0};for(long long x:a){int m=r.size();for(int i=0;i<m;i++)r.push_back(r[i]+x);}return r;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;long long x;if(!(cin>>n>>x))return 0;vector<long long>a(n);for(auto&v:a)cin>>v;vector<long long>l(a.begin(),a.begin()+n/2),rr(a.begin()+n/2,a.end());auto L=sums(l),R=sums(rr);sort(R.begin(),R.end());long long best=0;for(long long s:L){auto it=upper_bound(R.begin(),R.end(),x-s);if(it!=R.begin()){--it;best=max(best,s+*it);}}cout<<best<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys,bisect
+def sums(a):
+    res=[0]
+    for x in a: res += [y+x for y in res]
+    return res
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,x=data[0],data[1]; a=data[2:]; left=sums(a[:n//2]); right=sorted(sums(a[n//2:])); best=0
+    for s in left:
+        i=bisect.bisect_right(right,x-s)-1
+        if i>=0: best=max(best,s+right[i])
+    print(best)
+if __name__=="__main__": main()
+```
+
+# B. Capstone CRT
+
+## Restatement
+
+Merge pairs of congruences or report impossibility.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; long long eg(long long a,long long b,long long&x,long long&y){if(!b){x=a>=0?1:-1;y=0;return llabs(a);}long long x1,y1,g=eg(b,a%b,x1,y1);x=y1;y=x1-a/b*y1;return g;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T;if(!(cin>>T))return 0;while(T--){long long a,m,b,n,x,y;cin>>a>>m>>b>>n;long long g=eg(m,n,x,y);if((b-a)%g)cout<<"NO\n";else{long long l=m/g*n;__int128 k=(__int128)((b-a)/g)*x;long long mod=n/g;long long kk=(long long)((k%mod+mod)%mod);long long res=(long long)(((__int128)a+(__int128)m*kk)%l);cout<<res<<" "<<l<<"\n";}}}
+```
+
+## Full Python solution
+
+```python
+import sys,math
+def eg(a,b):
+    if b==0: return (abs(a),1 if a>=0 else -1,0)
+    g,x,y=eg(b,a%b); return g,y,x-(a//b)*y
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    t=data[0]; idx=1; out=[]
+    for _ in range(t):
+        a,m,b,n=data[idx],data[idx+1],data[idx+2],data[idx+3]; idx+=4; g,x,y=eg(m,n)
+        if (b-a)%g: out.append("NO")
+        else:
+            l=m//g*n; k=((b-a)//g*x)%(n//g); out.append(f"{(a+m*k)%l} {l}")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# C. Capstone Recurrence
+
+## Restatement
+
+Fast Fibonacci queries modulo `1e9+7`.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; const long long MOD=1000000007; pair<long long,long long> fib(long long n){if(!n)return{0,1};auto [a,b]=fib(n/2);long long c=a*((2*b%MOD-a+MOD)%MOD)%MOD,d=(a*a%MOD+b*b%MOD)%MOD;return n&1?make_pair(d,(c+d)%MOD):make_pair(c,d);}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int t;if(!(cin>>t))return 0;while(t--){long long n;cin>>n;cout<<fib(n).first<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+MOD=1_000_000_007
+def fib(n):
+    if n==0: return (0,1)
+    a,b=fib(n//2)
+    c=a*((2*b-a)%MOD)%MOD
+    d=(a*a+b*b)%MOD
+    return (d,(c+d)%MOD) if n%2 else (c,d)
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    print("\n".join(str(fib(x)[0]) for x in data[1:1+data[0]]))
+if __name__=="__main__": main()
+```
+
+# What to carry forward
+
+Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

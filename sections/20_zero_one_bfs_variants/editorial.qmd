@@ -1,0 +1,414 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 20 Editorial: 0-1 BFS And Shortest Path Variants"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+| Problem | Model |
+|---|---|
+| A. Binary Weight Routes | directed graph with 0/1 edges |
+| B. Conveyor Grid | direction-following costs 0, changing direction costs 1 |
+| C. Warp Maze | walking costs 0, warping costs 1 |
+
+# 0-1 BFS reminder
+
+For every relaxation:
+
+```text
+if edge cost is 0: push_front
+if edge cost is 1: push_back
+```
+
+This preserves the same order that Dijkstra's priority queue would produce for
+distances that only differ by zero or one at each edge.
+
+# A. Binary Weight Routes
+
+## Restatement
+
+Given a directed graph with edge weights `0` or `1`, answer shortest distances
+from a fixed source to several targets.
+
+## Observations
+
+All queries share one source, so one 0-1 BFS computes all answers.
+
+## Algorithm
+
+```text
+dist[s] = 0
+dq = [s]
+while dq not empty:
+    u = pop front
+    for u -> v with weight w:
+        if dist[u] + w < dist[v]:
+            update dist[v]
+            push front if w=0 else back
+```
+
+## Correctness proof
+
+**Lemma.** Whenever a state is relaxed with a smaller distance, inserting it at
+the front for cost `0` and back for cost `1` preserves nondecreasing distance
+order in the deque.
+
+**Proof.** A cost-0 relaxation has the same distance as the currently popped
+state, so it belongs with the current smallest layer. A cost-1 relaxation is
+exactly one layer later, so it belongs after all states of the current layer.
+`\square`
+
+**Theorem.** The algorithm computes shortest distances.
+
+**Proof.** By the lemma, 0-1 BFS processes states in the same distance order as
+Dijkstra would for weights `0` and `1`. Dijkstra's nonnegative-weight
+correctness therefore applies. `\square`
+
+## Complexity
+
+```text
+Time:  O(n + m)
+Memory: O(n + m)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m, s, qn;
+    if (!(cin >> n >> m >> s >> qn)) return 0;
+    --s;
+    vector<vector<pair<int,int>>> adj(n);
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u - 1].push_back({v - 1, w});
+    }
+    vector<int> queries(qn);
+    for (int &x : queries) { cin >> x; --x; }
+
+    const int INF = 1e9;
+    vector<int> dist(n, INF);
+    deque<int> dq;
+    dist[s] = 0;
+    dq.push_back(s);
+    while (!dq.empty()) {
+        int u = dq.front();
+        dq.pop_front();
+        for (auto [v, w] : adj[u]) {
+            int nd = dist[u] + w;
+            if (nd < dist[v]) {
+                dist[v] = nd;
+                if (w == 0) dq.push_front(v);
+                else dq.push_back(v);
+            }
+        }
+    }
+    for (int i = 0; i < qn; i++) {
+        if (i) cout << ' ';
+        cout << (dist[queries[i]] == INF ? -1 : dist[queries[i]]);
+    }
+    cout << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+from collections import deque
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n = next(it); m = next(it); s = next(it) - 1; qn = next(it)
+    adj = [[] for _ in range(n)]
+    for _ in range(m):
+        u = next(it) - 1; v = next(it) - 1; w = next(it)
+        adj[u].append((v, w))
+    queries = [next(it) - 1 for _ in range(qn)]
+    inf = 10**18
+    dist = [inf] * n
+    dist[s] = 0
+    dq = deque([s])
+    while dq:
+        u = dq.popleft()
+        for v, w in adj[u]:
+            nd = dist[u] + w
+            if nd < dist[v]:
+                dist[v] = nd
+                if w == 0:
+                    dq.appendleft(v)
+                else:
+                    dq.append(v)
+    print(" ".join(str(-1 if dist[x] == inf else dist[x]) for x in queries))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+# B. Conveyor Grid
+
+## Restatement
+
+Moving in the direction written in the current cell is free; moving in another
+valid direction costs one. Find the minimum cost from top-left to bottom-right.
+
+## Observations
+
+Each cell has up to four outgoing edges. The edge cost is either `0` or `1`, so
+use 0-1 BFS.
+
+## Correctness
+
+Every grid route corresponds to a path in this 0/1 graph with the same cost,
+and every graph path is a valid route. By 0-1 BFS correctness, the distance to
+the bottom-right cell is the optimum.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    vector<string> grid(n);
+    for (auto &row : grid) cin >> row;
+    const int INF = 1e9;
+    vector<vector<int>> dist(n, vector<int>(m, INF));
+    deque<pair<int,int>> dq;
+    dist[0][0] = 0;
+    dq.push_back({0, 0});
+    int dr[4] = {1, -1, 0, 0};
+    int dc[4] = {0, 0, -1, 1};
+    char ch[4] = {'D', 'U', 'L', 'R'};
+    while (!dq.empty()) {
+        auto [r, c] = dq.front(); dq.pop_front();
+        for (int i = 0; i < 4; i++) {
+            int nr = r + dr[i], nc = c + dc[i];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m) continue;
+            int w = (grid[r][c] == ch[i] ? 0 : 1);
+            int nd = dist[r][c] + w;
+            if (nd < dist[nr][nc]) {
+                dist[nr][nc] = nd;
+                if (w == 0) dq.push_front({nr, nc});
+                else dq.push_back({nr, nc});
+            }
+        }
+    }
+    cout << dist[n - 1][m - 1] << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+from collections import deque
+import sys
+
+
+DIRS = [(1, 0, "D"), (-1, 0, "U"), (0, -1, "L"), (0, 1, "R")]
+
+
+def main() -> None:
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+    grid = [input().strip() for _ in range(n)]
+    inf = 10**9
+    dist = [[inf] * m for _ in range(n)]
+    dist[0][0] = 0
+    dq = deque([(0, 0)])
+    while dq:
+        r, c = dq.popleft()
+        for dr, dc, ch in DIRS:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < n and 0 <= nc < m:
+                w = 0 if grid[r][c] == ch else 1
+                nd = dist[r][c] + w
+                if nd < dist[nr][nc]:
+                    dist[nr][nc] = nd
+                    if w == 0:
+                        dq.appendleft((nr, nc))
+                    else:
+                        dq.append((nr, nc))
+    print(dist[n - 1][m - 1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+# C. Warp Maze
+
+## Restatement
+
+Walking to a four-neighbor open cell costs `0`. Warping to any open cell within
+Chebyshev distance `2` costs `1`. Find the minimum number of warps from `S` to
+`G`.
+
+## Observations
+
+The graph has 0-cost walking edges and 1-cost warp edges. Each cell has at most
+29 outgoing transitions: four walks and 25 warp candidates. This is still
+linear up to a constant.
+
+## Correctness
+
+The modeled graph exactly represents allowed actions and their warp cost. By
+0-1 BFS correctness, the computed distance to `G` is the minimum number of
+warps.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    vector<string> grid(n);
+    pair<int,int> start{-1,-1}, goal{-1,-1};
+    for (int r = 0; r < n; r++) {
+        cin >> grid[r];
+        for (int c = 0; c < m; c++) {
+            if (grid[r][c] == 'S') start = {r,c};
+            if (grid[r][c] == 'G') goal = {r,c};
+        }
+    }
+    const int INF = 1e9;
+    vector<vector<int>> dist(n, vector<int>(m, INF));
+    deque<pair<int,int>> dq;
+    dist[start.first][start.second] = 0;
+    dq.push_back(start);
+    int wr[4] = {1,-1,0,0}, wc[4] = {0,0,1,-1};
+    while (!dq.empty()) {
+        auto [r,c] = dq.front(); dq.pop_front();
+        int d = dist[r][c];
+        for (int i = 0; i < 4; i++) {
+            int nr = r + wr[i], nc = c + wc[i];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m || grid[nr][nc] == '#') continue;
+            if (d < dist[nr][nc]) {
+                dist[nr][nc] = d;
+                dq.push_front({nr,nc});
+            }
+        }
+        for (int dr = -2; dr <= 2; dr++) {
+            for (int dc = -2; dc <= 2; dc++) {
+                int nr = r + dr, nc = c + dc;
+                if (nr < 0 || nr >= n || nc < 0 || nc >= m || grid[nr][nc] == '#') continue;
+                if (d + 1 < dist[nr][nc]) {
+                    dist[nr][nc] = d + 1;
+                    dq.push_back({nr,nc});
+                }
+            }
+        }
+    }
+    int ans = dist[goal.first][goal.second];
+    cout << (ans == INF ? -1 : ans) << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+from collections import deque
+import sys
+
+
+def main() -> None:
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+    grid = [list(input().strip()) for _ in range(n)]
+    start = goal = (-1, -1)
+    for r in range(n):
+        for c in range(m):
+            if grid[r][c] == "S":
+                start = (r, c)
+            elif grid[r][c] == "G":
+                goal = (r, c)
+    inf = 10**9
+    dist = [[inf] * m for _ in range(n)]
+    dist[start[0]][start[1]] = 0
+    dq = deque([start])
+    while dq:
+        r, c = dq.popleft()
+        d = dist[r][c]
+        for dr, dc in ((1,0),(-1,0),(0,1),(0,-1)):
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] != "#" and d < dist[nr][nc]:
+                dist[nr][nc] = d
+                dq.appendleft((nr, nc))
+        for dr in range(-2, 3):
+            for dc in range(-2, 3):
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] != "#" and d + 1 < dist[nr][nc]:
+                    dist[nr][nc] = d + 1
+                    dq.append((nr, nc))
+    ans = dist[goal[0]][goal[1]]
+    print(-1 if ans == inf else ans)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+# Common wrong answers
+
+- Treating all moves as cost `1`.
+- Using normal BFS on a graph with zero-cost edges.
+- Pushing zero-cost edges to the back.
+- Forgetting that warps include diagonal and nearby cells.
+- Counting number of moves instead of number of paid actions.
+
+# Stress testing
+
+For small graphs and grids, compare 0-1 BFS against Dijkstra with a heap. The
+answers must match. Random tests should include disconnected targets, all-zero
+paths, and cases where a longer route in steps is cheaper in cost.
+
+# What to carry forward
+
+0-1 BFS is a specialized shortest-path tool. The hard part is often not the
+deque; it is modeling the state so that every transition has cost exactly `0`
+or `1`.
+

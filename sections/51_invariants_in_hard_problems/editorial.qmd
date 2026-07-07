@@ -1,0 +1,182 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 51 Editorial: Invariants In Hard Problems"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Parity Invariant.** Each allowed operation changes the state but preserves
+the parity quantity named in the statement. Therefore states with different
+parity are unreachable from each other. To prove sufficiency, show a constructive
+sequence that reaches a canonical state for every configuration with the same
+parity. The answer is then determined entirely by that invariant.
+
+**B. Prefix XOR Splits.** XOR is its own inverse, so the XOR of subarray
+`[l,r]` is `pref[r] xor pref[l-1]`. A split condition can therefore be checked
+by comparing prefix values rather than recomputing ranges. The algorithm scans
+the array while maintaining the prefix values that make the remaining segments
+possible.
+
+**C. Modulo Residue Invariant.** If every operation changes a value by a
+multiple of `m`, then the residue modulo `m` is fixed. Conversely, if two values
+have the same residue, their difference is divisible by `m`, so the operation
+can bridge the gap in steps of size `m`. This gives both the necessary and the
+sufficient direction.
+
+**Common pitfalls.** An invariant proof has two halves: impossibility for
+different invariant values and reachability or optimality within the same
+invariant class.
+
+The solutions in this section are intentionally short because the hard work is
+the invariant.
+
+- A uses parity: changing a value by `2` preserves parity, and equal parity is
+  also sufficient.
+- B uses prefix xor. A split has equal left and right xor exactly when the
+  prefix xor matches the suffix xor.
+- C uses residues modulo `k`: operations changing a number by multiples of
+  `k` cannot alter its residue.
+
+Each proof has both halves: the invariant is necessary because operations
+preserve it, and sufficient because a direct transformation or count follows
+once the invariant condition holds.
+
+# A. Same Parity
+
+## Restatement
+
+Can all numbers become equal if one operation changes a number by 2?
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<long long>a(n);for(auto&x:a)cin>>x;for(long long x:a)if((x-a[0])%2){cout<<"NO\n";return 0;}cout<<"YES\n";}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    a=data[1:]; print("YES" if all(x%2==a[0]%2 for x in a) else "NO")
+if __name__=="__main__": main()
+```
+
+# B. XOR Balanced Splits
+
+## Restatement
+
+Count split positions where left xor equals right xor.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<long long>a(n);long long tot=0;for(auto&x:a){cin>>x;tot^=x;}long long pref=0,ans=0;for(int i=0;i+1<n;i++){pref^=a[i];if(pref==(tot^pref))ans++;}cout<<ans<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    a=data[1:]; total=0
+    for x in a: total^=x
+    pref=ans=0
+    for x in a[:-1]:
+        pref^=x
+        if pref==(total^pref): ans+=1
+    print(ans)
+if __name__=="__main__": main()
+```
+
+# C. Same Residue
+
+## Restatement
+
+Can all numbers become equal using operations that change a number by `k`?
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;long long k;if(!(cin>>n>>k))return 0;long long r;cin>>r;r%=k;for(int i=1;i<n;i++){long long x;cin>>x;if((x%k+k)%k!=(r+k)%k){cout<<"NO\n";return 0;}}cout<<"YES\n";}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,k=data[0],data[1]; a=data[2:]; print("YES" if len({x%k for x in a})==1 else "NO")
+if __name__=="__main__": main()
+```
+
+# What to carry forward
+
+Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

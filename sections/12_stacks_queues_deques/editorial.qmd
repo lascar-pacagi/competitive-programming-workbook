@@ -1,0 +1,741 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 12 Editorial: Stacks, Queues, And Deques"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+The section has three problems about maintaining useful candidates.
+
+The main proof idea is dominance:
+
+```text
+If candidate A is always at least as good as candidate B in every future
+situation, candidate B can be deleted permanently.
+```
+
+That is why all three solutions are linear after reading input.
+
+# A. Next Greater
+
+## Restatement
+
+For every position `i`, find the first value to the right that is strictly
+greater than `a[i]`. If no such value exists, output `-1`.
+
+## Constraints and traps
+
+The total `n` is large, so an `O(n^2)` scan is too slow.
+
+Common traps:
+
+- using greater-or-equal instead of strictly greater;
+- scanning left to right without enough information;
+- forgetting duplicate values.
+
+## Observations
+
+Scan from right to left. When processing `a[i]`, the stack contains values to
+the right of `i` that are still possible next-greater answers.
+
+If the stack top is `<= a[i]`, it cannot answer `i`, and it cannot answer any
+earlier position either, because `a[i]` is closer and at least as large.
+
+Therefore pop all values `<= a[i]`.
+
+Then the stack top, if it exists, is the first greater value to the right.
+
+## Sample walk-through
+
+Array:
+
+```text
+2 1 3 2 5
+```
+
+Trace:
+
+```text
+i=4, x=5: stack=[]       ans=-1, push 5
+i=3, x=2: stack=[5]      ans=5,  push 2
+i=2, x=3: pop 2, [5]     ans=5,  push 3
+i=1, x=1: stack=[5,3]    ans=3,  push 1
+i=0, x=2: pop 1, [5,3]   ans=3,  push 2
+```
+
+Answer:
+
+```text
+3 3 5 5 -1
+```
+
+## Algorithm
+
+```text
+answer = [-1] * n
+stack = empty
+
+for i from n-1 down to 0:
+    while stack not empty and stack.top <= a[i]:
+        pop stack
+    if stack not empty:
+        answer[i] = stack.top
+    push a[i]
+```
+
+## Correctness proof
+
+**Lemma 1.** When processing `i`, every value popped from the stack cannot be
+the next greater value for position `i` or any earlier position.
+
+**Proof.** A popped value `y` satisfies `y <= a[i]`. It is not greater than
+`a[i]`, so it cannot answer position `i`. For any earlier position `j < i`,
+`a[i]` is closer to `j` than `y` is, and `a[i] >= y`. If `y` were greater than
+`a[j]`, then `a[i]` would also be greater than `a[j]` and would appear earlier
+to the right, so `y` could not be the first greater value. `\square`
+
+**Lemma 2.** After popping, if the stack is nonempty, its top is the first value
+to the right that is strictly greater than `a[i]`.
+
+**Proof.** All values on top that are not strictly greater have been removed.
+The stack keeps candidates in the order they would be encountered from left to
+right among the surviving right-side elements; the top is the closest surviving
+greater value. By Lemma 1, removed values cannot be valid answers. `\square`
+
+**Theorem.** The algorithm outputs the correct next greater value for every
+position.
+
+**Proof.** By Lemma 2, each position receives the correct stack top if a greater
+value exists. If the stack is empty, all right-side values have been either
+removed as not useful or do not exist, so no greater value exists. `\square`
+
+## Complexity
+
+Each element is pushed once and popped at most once.
+
+```text
+Time:  O(n)
+Memory: O(n)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<long long> solve_case(const vector<long long> &a) {
+    vector<long long> ans(a.size(), -1);
+    vector<long long> st;
+    for (int i = (int)a.size() - 1; i >= 0; --i) {
+        while (!st.empty() && st.back() <= a[i]) {
+            st.pop_back();
+        }
+        if (!st.empty()) {
+            ans[i] = st.back();
+        }
+        st.push_back(a[i]);
+    }
+    return ans;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+    while (T--) {
+        int n;
+        cin >> n;
+        vector<long long> a(n);
+        for (long long &x : a) cin >> x;
+        vector<long long> ans = solve_case(a);
+        for (int i = 0; i < n; ++i) {
+            if (i) cout << ' ';
+            cout << ans[i];
+        }
+        cout << '\n';
+    }
+
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def solve_case(a: list[int]) -> list[int]:
+    ans = [-1] * len(a)
+    stack: list[int] = []
+    for i in range(len(a) - 1, -1, -1):
+        while stack and stack[-1] <= a[i]:
+            stack.pop()
+        if stack:
+            ans[i] = stack[-1]
+        stack.append(a[i])
+    return ans
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    t = data[0]
+    idx = 1
+    out: list[str] = []
+    for _ in range(t):
+        n = data[idx]
+        idx += 1
+        a = data[idx:idx + n]
+        idx += n
+        out.append(" ".join(map(str, solve_case(a))))
+    sys.stdout.write("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Not popping equal values.
+- Returning the maximum greater value rather than the first greater value.
+- Using a nested loop.
+
+## Tests that matter
+
+```text
+all equal:      5 5 5 -> -1 -1 -1
+increasing:     1 2 3 -> 2 3 -1
+decreasing:     3 2 1 -> -1 -1 -1
+```
+
+# B. Sliding Window Maximum
+
+## Restatement
+
+For every contiguous subarray of length `k`, output its maximum value.
+
+## Constraints and traps
+
+The total `n` is large. Recomputing each maximum from scratch costs `O(nk)`,
+which is too slow.
+
+Common traps:
+
+- storing values instead of indices;
+- forgetting to remove expired indices;
+- using `list.pop(0)` in Python.
+
+## Observations
+
+Keep a deque of indices.
+
+The deque stores only useful candidates:
+
+- indices increase from front to back;
+- values decrease from front to back;
+- the front is always the maximum of the current window.
+
+When new index `i` arrives, every index at the back with value `<= a[i]` is
+dominated by `i`: it is older and no larger.
+
+## Sample walk-through
+
+Array:
+
+```text
+1 3 -1 -3 5 3 6 7
+k = 3
+```
+
+The first full window is `[1,3,-1]`, and the deque front points to value `3`.
+
+When `5` arrives, it removes `-3`, `-1`, and `3` from the back because all are
+smaller and older. Then `5` becomes the only useful maximum candidate.
+
+Output:
+
+```text
+3 3 5 5 6 7
+```
+
+## Algorithm
+
+```text
+dq = empty deque of indices
+answer = []
+
+for i in 0..n-1:
+    while dq not empty and dq.front <= i-k:
+        pop front
+    while dq not empty and a[dq.back] <= a[i]:
+        pop back
+    push i
+    if i+1 >= k:
+        answer.append(a[dq.front])
+```
+
+## Correctness proof
+
+**Lemma 1.** The deque contains only indices inside the current window after
+the expiration step.
+
+**Proof.** An index is outside the current window exactly when it is at most
+`i-k`. The algorithm removes such indices from the front. Since indices in the
+deque are increasing, no later index can expire before the front. `\square`
+
+**Lemma 2.** Values in the deque are strictly decreasing after the insertion
+step.
+
+**Proof.** Before inserting `i`, the deque already has decreasing values. The
+algorithm removes every back index whose value is `<= a[i]`, then appends `i`.
+Therefore the previous back, if any, has value greater than `a[i]`. `\square`
+
+**Lemma 3.** The front of the deque is the index of the maximum value in the
+current window.
+
+**Proof.** By Lemma 1, every deque index is inside the window. By Lemma 2, the
+front has value at least every other deque candidate. Any removed index was
+either expired or dominated by a newer index with value at least as large, so no
+removed index can be the maximum of the current or future window. `\square`
+
+**Theorem.** The algorithm outputs every window maximum correctly.
+
+**Proof.** Whenever a full window exists, Lemma 3 says `a[dq.front]` is exactly
+the window maximum. The algorithm appends that value for every window. `\square`
+
+## Complexity
+
+Every index is pushed once and popped at most once from each end.
+
+```text
+Time:  O(n)
+Memory: O(k)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<long long> solve_case(const vector<long long> &a, int k) {
+    deque<int> dq;
+    vector<long long> ans;
+    for (int i = 0; i < (int)a.size(); ++i) {
+        while (!dq.empty() && dq.front() <= i - k) {
+            dq.pop_front();
+        }
+        while (!dq.empty() && a[dq.back()] <= a[i]) {
+            dq.pop_back();
+        }
+        dq.push_back(i);
+        if (i + 1 >= k) {
+            ans.push_back(a[dq.front()]);
+        }
+    }
+    return ans;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+    while (T--) {
+        int n, k;
+        cin >> n >> k;
+        vector<long long> a(n);
+        for (long long &x : a) cin >> x;
+        vector<long long> ans = solve_case(a, k);
+        for (int i = 0; i < (int)ans.size(); ++i) {
+            if (i) cout << ' ';
+            cout << ans[i];
+        }
+        cout << '\n';
+    }
+
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+from collections import deque
+import sys
+
+
+def solve_case(a: list[int], k: int) -> list[int]:
+    dq: deque[int] = deque()
+    ans: list[int] = []
+    for i, x in enumerate(a):
+        while dq and dq[0] <= i - k:
+            dq.popleft()
+        while dq and a[dq[-1]] <= x:
+            dq.pop()
+        dq.append(i)
+        if i + 1 >= k:
+            ans.append(a[dq[0]])
+    return ans
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    t = data[0]
+    idx = 1
+    out: list[str] = []
+    for _ in range(t):
+        n = data[idx]
+        k = data[idx + 1]
+        idx += 2
+        a = data[idx:idx + n]
+        idx += n
+        out.append(" ".join(map(str, solve_case(a, k))))
+    sys.stdout.write("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Not expiring old indices before reading the maximum.
+- Using `<` instead of `<=` and keeping unnecessary duplicate candidates. This
+  can still be correct, but it changes the invariant.
+- Outputting before the first full window exists.
+
+## Tests that matter
+
+```text
+k = 1       -> output the array
+k = n       -> one maximum
+duplicates  -> stable handling of equal values
+```
+
+# C. Shortest Subarray At Least K
+
+## Restatement
+
+The array may contain negative numbers. Find the shortest nonempty contiguous
+subarray with sum at least `K`, or print `-1` if none exists.
+
+## Constraints and traps
+
+Because values can be negative, ordinary two pointers do not work. Extending
+the right endpoint can decrease the sum, and moving the left endpoint can
+increase it.
+
+Use prefix sums:
+
+```text
+sum(l, r-1) = pref[r] - pref[l]
+```
+
+## Observations
+
+For each right prefix index `i`, we need an earlier index `j` with:
+
+```text
+pref[i] - pref[j] >= K
+```
+
+For a fixed `i`, smaller `pref[j]` is better. If two candidate indices
+`j1 < j2` satisfy:
+
+```text
+pref[j1] >= pref[j2]
+```
+
+then `j1` is dominated. It is earlier and has a larger or equal prefix, so it
+produces no larger sum and a longer length than `j2`.
+
+Keep candidate prefix indices in increasing prefix-sum order.
+
+## Sample walk-through
+
+Array:
+
+```text
+2 -1 2 -1 2 4
+K = 5
+```
+
+Prefix sums:
+
+```text
+0 2 1 3 2 4 8
+```
+
+At prefix index `6`, value `8`, a candidate prefix value `2` at index `4`
+gives:
+
+```text
+8 - 2 = 6
+length = 6 - 4 = 2
+```
+
+This is the subarray:
+
+```text
+2 4
+```
+
+Answer:
+
+```text
+2
+```
+
+## Algorithm
+
+```text
+pref[0] = 0
+for each value:
+    append next prefix sum
+
+answer = n + 1
+dq = empty deque of prefix indices
+
+for i from 0 to n:
+    while dq not empty and pref[i] - pref[dq.front] >= K:
+        answer = min(answer, i - dq.front)
+        pop front
+
+    while dq not empty and pref[dq.back] >= pref[i]:
+        pop back
+
+    push i
+
+if answer == n + 1:
+    print -1
+else:
+    print answer
+```
+
+## Correctness proof
+
+**Lemma 1.** If `j1 < j2` and `pref[j1] >= pref[j2]`, then `j1` is never a
+better left endpoint than `j2` for any future right endpoint.
+
+**Proof.** For any future `i > j2`, the sum using `j2` is:
+
+```text
+pref[i] - pref[j2]
+```
+
+which is at least:
+
+```text
+pref[i] - pref[j1]
+```
+
+because `pref[j2] <= pref[j1]`. The length `i-j2` is also shorter than `i-j1`.
+So `j2` is at least as good in sum and better in length. `\square`
+
+**Lemma 2.** The deque stores prefix indices with strictly increasing prefix
+values.
+
+**Proof.** Before pushing `i`, the algorithm removes every back index whose
+prefix value is at least `pref[i]`. Therefore the remaining back, if any, has a
+smaller prefix value than `pref[i]`. `\square`
+
+**Lemma 3.** When the front of the deque forms a valid subarray with current
+index `i`, popping it after updating the answer is safe.
+
+**Proof.** Once `pref[i] - pref[dq.front] >= K`, the subarray ending at `i` is
+valid. For any later right endpoint, using the same front index gives a longer
+subarray. Therefore the best answer involving that front index has already been
+recorded. `\square`
+
+**Theorem.** The algorithm returns the length of the shortest subarray with sum
+at least `K`.
+
+**Proof.** Lemma 1 justifies removing dominated back candidates. Lemma 3
+justifies removing valid front candidates after recording their best possible
+length. Every undominated candidate remains in the deque until it is either
+used or dominated. Therefore every possible optimal left endpoint is considered
+at the first right endpoint where it can give a valid subarray, and the minimum
+recorded length is optimal. `\square`
+
+## Complexity
+
+Each prefix index is pushed once and popped at most once from each side.
+
+```text
+Time:  O(n)
+Memory: O(n)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int solve_case(const vector<long long> &a, long long target) {
+    vector<long long> pref(a.size() + 1, 0);
+    for (int i = 0; i < (int)a.size(); ++i) {
+        pref[i + 1] = pref[i] + a[i];
+    }
+
+    int ans = (int)a.size() + 1;
+    deque<int> dq;
+    for (int i = 0; i < (int)pref.size(); ++i) {
+        while (!dq.empty() && pref[i] - pref[dq.front()] >= target) {
+            ans = min(ans, i - dq.front());
+            dq.pop_front();
+        }
+        while (!dq.empty() && pref[dq.back()] >= pref[i]) {
+            dq.pop_back();
+        }
+        dq.push_back(i);
+    }
+    return ans == (int)a.size() + 1 ? -1 : ans;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+    while (T--) {
+        int n;
+        long long target;
+        cin >> n >> target;
+        vector<long long> a(n);
+        for (long long &x : a) cin >> x;
+        cout << solve_case(a, target) << '\n';
+    }
+
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+from collections import deque
+import sys
+
+
+def solve_case(a: list[int], target: int) -> int:
+    pref = [0]
+    for x in a:
+        pref.append(pref[-1] + x)
+
+    ans = len(a) + 1
+    dq: deque[int] = deque()
+    for i, value in enumerate(pref):
+        while dq and value - pref[dq[0]] >= target:
+            ans = min(ans, i - dq.popleft())
+        while dq and pref[dq[-1]] >= value:
+            dq.pop()
+        dq.append(i)
+    return -1 if ans == len(a) + 1 else ans
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    t = data[0]
+    idx = 1
+    out: list[str] = []
+    for _ in range(t):
+        n = data[idx]
+        target = data[idx + 1]
+        idx += 2
+        a = data[idx:idx + n]
+        idx += n
+        out.append(str(solve_case(a, target)))
+    sys.stdout.write("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Using a positive-only sliding window on arrays with negative numbers.
+- Forgetting the prefix sum at index `0`.
+- Popping the back with the wrong inequality.
+- Using `int` for prefix sums in C++.
+
+## Tests that matter
+
+```text
+negative values only
+K <= 0 with nonempty subarray requirement
+answer is a single element
+answer does not exist
+```
+
+# Stress testing
+
+For next greater:
+
+```text
+For each i, scan j=i+1..n-1 and take the first greater value.
+```
+
+For sliding maximum:
+
+```text
+For each window, compute max directly.
+```
+
+For shortest subarray:
+
+```text
+Try every left endpoint and extend right while summing.
+```
+
+The local generators use these brute-force checks on small arrays.
+
+# What to carry forward
+
+The important habit is to identify dominance.
+
+Ask:
+
+- What makes an older candidate useless?
+- Should equality remove the older candidate?
+- Does the structure need values, indices, or both?
+- When does a candidate expire?
+- Can each candidate be pushed and popped only once?
+
+These questions are the bridge from simple stacks and queues to later graph
+BFS, DP optimization, and advanced monotonic data structures.
+

@@ -1,0 +1,502 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 22: One-Dimensional DP"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why dynamic programming starts here
+
+Many contest problems look like this:
+
+```text
+There is a sequence.
+You make local choices.
+The same suffix/prefix question appears again and again.
+Brute force branches exponentially.
+```
+
+Dynamic programming, or DP, is the habit of naming those repeated subproblems,
+solving them once, and reusing their answers.
+
+One-dimensional DP is the cleanest starting point because the state is usually
+one index:
+
+```text
+dp[i] = answer for the prefix ending at i
+```
+
+or:
+
+```text
+dp[i] = answer when we stand at position i
+```
+
+# The DP checklist
+
+Before writing code, fill this in:
+
+```text
+State:
+    What does dp[i] mean?
+
+Base case:
+    Which dp values are known immediately?
+
+Transition:
+    How do earlier states produce dp[i]?
+
+Order:
+    In what order must states be computed?
+
+Answer:
+    Which state is printed?
+```
+
+If the state sentence is vague, the implementation will usually be wrong.
+
+# Recognition
+
+One-dimensional DP is likely when:
+
+| Statement signal | DP shape |
+|---|---|
+| walk along a line with allowed jumps | `dp[position]` |
+| count ways to reach a target | sum of previous states |
+| minimize energy/cost along ordered positions | min over previous states |
+| maximize reward with local restrictions | max of take/skip states |
+| choice at day `i` depends on recent days | prefix DP |
+
+The key word is not "minimum" or "maximum". Greedy and graph problems also use
+those words. The stronger signal is:
+
+```text
+The problem asks for the best/count over many possible histories, but the
+future only needs a small summary of the past.
+```
+
+# Example 1: counting stairs
+
+You can climb `1` or `2` steps. Count ways to reach step `n`.
+
+State:
+
+```text
+dp[i] = number of ways to land on step i
+```
+
+Base:
+
+```text
+dp[0] = 1
+```
+
+There is one way to be at the start before climbing: do nothing.
+
+Transition:
+
+```text
+dp[i] = dp[i - 1] + dp[i - 2]
+```
+
+because the last jump into `i` came either from `i-1` or from `i-2`.
+
+Trace:
+
+```text
+i:     0  1  2  3  4  5
+dp:    1  1  2  3  5  8
+```
+
+With broken step `3`, set `dp[3] = 0`:
+
+```text
+i:      0  1  2  3  4  5
+broken: .  .  .  X  .  .
+dp:     1  1  2  0  2  2
+```
+
+# Example 2: take or skip days
+
+You have daily scores. You may not take two adjacent days.
+
+State:
+
+```text
+dp[i] = best score using only the first i days
+```
+
+For day `i`, there are two cases:
+
+```text
+skip day i:
+    dp[i - 1]
+
+take day i:
+    dp[i - 2] + score[i]
+```
+
+So:
+
+```text
+dp[i] = max(dp[i - 1], dp[i - 2] + score[i])
+```
+
+This recurrence is valuable because it avoids remembering the whole chosen
+set. The prefix answer `dp[i]` is enough.
+
+Trace for scores:
+
+```text
+day:       1   2   3   4   5   6
+score:     5   1   2  10   6   2
+dp:        5   5   7  15  15  17
+```
+
+Answer: `17`.
+
+# Example 3: minimum energy route
+
+There are platforms in a line. You can jump from `j` to `i` if `i-j <= k`.
+The jump costs `abs(h[j] - h[i])`.
+
+State:
+
+```text
+dp[i] = minimum energy needed to reach platform i
+```
+
+Base:
+
+```text
+dp[0] = 0
+```
+
+Transition:
+
+```text
+dp[i] = min over j in [i-k, i-1] of dp[j] + abs(h[j] - h[i])
+```
+
+ASCII view:
+
+```text
+          can jump to i
+       j  j+1  ...  i-1   i
+       |   |        |     |
+dp[j] + cost(j,i)   candidate answer
+```
+
+Compute `i` from left to right because every candidate `j` is smaller than
+`i`, so `dp[j]` is already known.
+
+# Vocabulary
+
+## State
+
+A state is the information that identifies a subproblem.
+
+Good:
+
+```text
+dp[i] = minimum energy to reach platform i
+```
+
+Bad:
+
+```text
+dp[i] = answer at i
+```
+
+The bad version does not say what "answer" means.
+
+## Base case
+
+A base case is a state known without using the recurrence. It anchors the DP.
+
+Common one-dimensional base cases:
+
+```text
+dp[0] = 0       for minimum cost from the start
+dp[0] = 1       for counting ways to have built nothing
+dp[1] = value   for first-item problems
+```
+
+## Transition
+
+A transition explains how smaller subproblems combine into a larger one.
+
+Typical forms:
+
+```text
+counting:    dp[i] = sum(...)
+minimizing:  dp[i] = min(...)
+maximizing:  dp[i] = max(...)
+```
+
+## Computation order
+
+The order must compute dependencies first.
+
+For this section:
+
+```text
+for i from left to right:
+    compute dp[i] from smaller indices
+```
+
+Later DP sections will use grids, intervals, trees, and bitmasks, where the
+order is less obvious.
+
+# Counting, minimizing, maximizing
+
+The operation in the recurrence follows the output:
+
+| Goal | Transition operation |
+|---|---|
+| count all valid ways | sum |
+| minimum cost | min |
+| maximum score | max |
+| existence | boolean or |
+
+But the operation alone is not enough. You still need the right state.
+
+For example:
+
+```text
+minimum energy to reach i
+```
+
+is different from:
+
+```text
+minimum energy among all paths that have passed through i
+```
+
+The first one is useful because the future only needs the cost to stand at
+`i`. The second is vague and harder to transition.
+
+# Modulo in counting DP
+
+Counting answers can be enormous. Problems often ask for the answer modulo
+`1_000_000_007`.
+
+Rule:
+
+```text
+apply modulo after every addition or multiplication that may grow large
+```
+
+For Broken Stairs:
+
+```python
+dp[i] = (dp[i - 1] + dp[i - 2]) % MOD
+```
+
+Modulo does not change which paths are valid. It only keeps the stored number
+small.
+
+# Rolling arrays
+
+If `dp[i]` only depends on the previous few states, you do not always need the
+whole array.
+
+For Training Score:
+
+```text
+dp[i] depends only on dp[i-1] and dp[i-2]
+```
+
+So we can store:
+
+```text
+prev2 = dp[i-2]
+prev1 = dp[i-1]
+cur   = dp[i]
+```
+
+Update:
+
+```text
+cur = max(prev1, prev2 + score)
+prev2 = prev1
+prev1 = cur
+```
+
+Use rolling arrays only after the recurrence is clear. Compressing too early is
+a common source of off-by-one bugs.
+
+# Local exercises
+
+## A. Broken Stairs
+
+State:
+
+```text
+dp[i] = number of valid ways to reach step i
+```
+
+Transition:
+
+```text
+if i is broken:
+    dp[i] = 0
+else:
+    dp[i] = dp[i-1] + dp[i-2]
+```
+
+This trains counting DP and modulo.
+
+## B. Training Score
+
+State:
+
+```text
+dp[i] = maximum score using the first i days
+```
+
+Transition:
+
+```text
+dp[i] = max(skip day i, take day i)
+      = max(dp[i-1], dp[i-2] + a[i])
+```
+
+This trains maximizing DP and rolling-array compression.
+
+## C. Energy Route
+
+State:
+
+```text
+dp[i] = minimum energy needed to reach platform i
+```
+
+Transition:
+
+```text
+dp[i] = min(dp[j] + abs(h[j] - h[i])) for i-k <= j < i
+```
+
+This trains minimization over several previous states.
+
+# C++ implementation notes
+
+Use `long long` for costs and scores:
+
+```cpp
+vector<long long> dp(n, INF);
+```
+
+For counting modulo:
+
+```cpp
+const long long MOD = 1000000007LL;
+```
+
+For impossible or not-yet-computed minimum states, choose an infinity much
+larger than any possible answer:
+
+```cpp
+const long long INF = (1LL << 62);
+```
+
+# Python implementation notes
+
+Python integers do not overflow, but you still need modulo for required output.
+
+For large inputs:
+
+```python
+data = list(map(int, sys.stdin.buffer.read().split()))
+```
+
+For minimum DP:
+
+```python
+inf = 10**30
+dp = [inf] * n
+```
+
+# Proof habits for DP
+
+Most DP correctness proofs use induction.
+
+Template:
+
+```text
+Claim: dp[i] has the intended meaning after it is computed.
+
+Base: prove the first state(s).
+
+Inductive step:
+    assume all earlier states are correct.
+    show the transition considers every valid final choice.
+    show every candidate produced by the transition is valid.
+```
+
+For one-dimensional DP, the "final choice" is often:
+
+```text
+last jump
+last selected day
+last previous position
+```
+
+# Common mistakes
+
+```text
+Leaving the state meaning implicit.
+Using dp[0] = 0 in a counting problem where empty construction should count as 1.
+Forgetting to handle i-2 when i = 1.
+Taking modulo in max/min DP where it does not belong.
+Using int in C++ for large scores or costs.
+Compressing memory before testing the array version.
+```
+
+# Local judge workflow
+
+Run this section:
+
+```bash
+CP_TARGET=solution python3 sections/22_one_dimensional_dp/check.py
+```
+
+Run everything:
+
+```bash
+CP_TARGET=solution python3 tools/check_all.py
+```
+
+# Submission checklist
+
+Before submitting a DP solution:
+
+```text
+Can I say exactly what dp[i] means?
+Are base cases initialized before transitions?
+Does my loop order compute dependencies first?
+Did I choose sum, min, or max for the correct reason?
+Are impossible states represented safely?
+Do I need modulo, and only for counting?
+Do I need long long in C++?
+```
+

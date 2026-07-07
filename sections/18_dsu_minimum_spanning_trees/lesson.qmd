@@ -1,0 +1,369 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 18: DSU And Minimum Spanning Trees"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why DSU
+
+Many graph problems do not need shortest paths or traversal order. They only
+ask:
+
+```text
+Are these two vertices already connected?
+If I add this edge, do two components merge?
+How many components remain?
+What is the cheapest way to connect everything?
+```
+
+Disjoint set union, usually called DSU or union-find, is built for this.
+
+DSU maintains a partition of vertices into connected components while edges are
+added. It supports two operations:
+
+```text
+find(x)      -> representative of x's current component
+union(a,b)   -> merge the two components if they are different
+```
+
+# Recognition
+
+Look for these signals:
+
+| Statement signal | Likely tool |
+|---|---|
+| edges are added, never deleted | DSU |
+| ask whether two vertices are connected after updates | DSU |
+| maintain number or size of components | DSU |
+| choose cheapest edges connecting all vertices | Kruskal + DSU |
+| split graph into k clusters using cheap edges | Kruskal variant |
+
+If edges are deleted, ordinary DSU is not enough. That requires later offline
+or rollback techniques.
+
+# DSU vocabulary
+
+Each component has one representative, also called its root.
+
+Example components:
+
+```text
+{1,2,5}, {3}, {4,6}
+```
+
+The representative is just an internal label. It does not need to be the
+smallest vertex.
+
+In arrays:
+
+```text
+parent[x] = parent pointer of x
+size[root] = number of vertices in root's component
+```
+
+Initially every vertex is alone:
+
+```text
+parent[x] = x
+size[x] = 1
+```
+
+# The find operation
+
+`find(x)` follows parent pointers until it reaches a root:
+
+```text
+x -> parent[x] -> parent[parent[x]] -> ... -> root
+```
+
+Path compression makes future calls faster by pointing visited vertices closer
+to the root.
+
+Python:
+
+```python
+def find(x):
+    while parent[x] != x:
+        parent[x] = parent[parent[x]]
+        x = parent[x]
+    return x
+```
+
+C++:
+
+```cpp
+int find(int x) {
+    while (parent[x] != x) {
+        parent[x] = parent[parent[x]];
+        x = parent[x];
+    }
+    return x;
+}
+```
+
+# The union operation
+
+To merge components:
+
+```text
+ra = find(a)
+rb = find(b)
+if ra == rb: already connected
+otherwise attach smaller component under larger component
+```
+
+Union by size:
+
+```text
+if size[ra] < size[rb], swap ra and rb
+parent[rb] = ra
+size[ra] += size[rb]
+```
+
+This keeps trees shallow. Combined with path compression, DSU operations are
+effectively constant time for contest purposes.
+
+# Worked example: edge additions
+
+Start with five vertices:
+
+```text
+{1} {2} {3} {4} {5}
+components = 5
+largest = 1
+```
+
+Add edge `1-2`:
+
+```text
+{1,2} {3} {4} {5}
+components = 4
+largest = 2
+```
+
+Add edge `3-4`:
+
+```text
+{1,2} {3,4} {5}
+components = 3
+largest = 2
+```
+
+Add edge `2-3`:
+
+```text
+{1,2,3,4} {5}
+components = 2
+largest = 4
+```
+
+Add edge `1-4`:
+
+```text
+1 and 4 already have the same representative.
+No component changes.
+```
+
+# Minimum spanning tree
+
+For an undirected weighted graph, a spanning tree is a set of edges that:
+
+```text
+connects all vertices
+uses exactly n-1 edges
+has no cycle
+```
+
+A minimum spanning tree, or MST, is a spanning tree with minimum total weight.
+
+If the graph is disconnected, no spanning tree exists.
+
+# Kruskal's algorithm
+
+Kruskal's algorithm is the standard DSU-based MST algorithm:
+
+```text
+sort all edges by weight
+start with no chosen edges
+for each edge in increasing weight:
+    if its endpoints are in different components:
+        choose the edge
+        union the components
+    otherwise skip it
+```
+
+DSU answers the key question:
+
+```text
+Would adding this edge create a cycle?
+```
+
+If both endpoints are already in the same component, adding the edge creates a
+cycle. If they are in different components, adding the edge safely merges two
+parts.
+
+# Why Kruskal is correct
+
+The core idea is the cut property.
+
+Take any split of vertices into two sides:
+
+```text
+S and everything not in S
+```
+
+An edge crossing the split is called a cut edge.
+
+The cut property says:
+
+```text
+The lightest edge crossing any cut is safe to include in some MST.
+```
+
+Kruskal repeatedly chooses the lightest edge that connects two different
+current components. That edge is the lightest edge crossing the cut between one
+component and the rest, so it is safe.
+
+# Worked example: Kruskal
+
+Edges:
+
+```text
+1-3 weight 1
+2-3 weight 2
+1-2 weight 3
+2-4 weight 4
+3-4 weight 5
+```
+
+Sorted order:
+
+```text
+(1-3,1), (2-3,2), (1-2,3), (2-4,4), (3-4,5)
+```
+
+Process:
+
+```text
+take 1-3, cost 1
+take 2-3, cost 3
+skip 1-2 because 1 and 2 are already connected
+take 2-4, cost 7
+```
+
+We used `n-1 = 3` edges, so the MST cost is `7`.
+
+# Clustering by stopping Kruskal
+
+Kruskal also solves a useful clustering variant:
+
+```text
+connect vertices as cheaply as possible until exactly k components remain
+```
+
+Start with `n` components. Each successful union reduces the component count by
+one. Stop when the count is `k`.
+
+This is equivalent to taking the cheapest safe edges that do not reduce the
+number of groups below `k`.
+
+# Complexity
+
+Sorting dominates:
+
+```text
+Kruskal time: O(m log m)
+DSU memory:  O(n)
+Graph memory: O(m)
+```
+
+For pure edge additions without sorting:
+
+```text
+Time:  almost O(m)
+Memory: O(n)
+```
+
+# Implementation notes
+
+## C++
+
+Use `long long` for MST costs:
+
+```cpp
+long long total = 0;
+```
+
+Store weighted edges as tuples:
+
+```cpp
+vector<tuple<long long,int,int>> edges;
+sort(edges.begin(), edges.end());
+```
+
+## Python
+
+Python tuples sort lexicographically, so this works:
+
+```python
+edges.append((w, u, v))
+edges.sort()
+```
+
+Use iterative `find`; recursive `find` is short, but iterative avoids recursion
+concerns.
+
+# Local exercises
+
+## A. Network Growth
+
+Maintain:
+
+```text
+components
+largest component size
+```
+
+after each added edge.
+
+## B. Minimum Network
+
+Run full Kruskal. If fewer than `n-1` edges are chosen, print `IMPOSSIBLE`.
+
+## C. Cluster Split
+
+Run Kruskal until exactly `k` components remain. If the available edges cannot
+merge enough components, print `IMPOSSIBLE`.
+
+# Submission checklist
+
+Before submitting:
+
+```text
+Did I convert vertices to 0-indexed arrays?
+Did find() return the representative after path compression?
+Did union() return false when endpoints were already connected?
+Did I sort edges by weight before Kruskal?
+Did I use long long for total cost in C++?
+Did I check disconnected/impossible cases?
+```
+

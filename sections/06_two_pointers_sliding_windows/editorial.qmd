@@ -1,0 +1,524 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 6 Editorial: Two pointers and sliding windows"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# How to read this editorial
+
+Two-pointer solutions are short, but the proof is the point. Every time a
+pointer moves, ask:
+
+> What candidates did we just discard, and why can none of them be part of a
+> better answer?
+
+For sliding windows, also ask why the left pointer never needs to move
+backward. In this section, the reason is that all array values are
+nonnegative.
+
+# Problem A: Sorted Two Sum
+
+## Restatement
+
+Given a sorted array, determine whether two distinct elements sum to `k`.
+
+## Important constraints and traps
+
+The array is already sorted. You must use two distinct indices, so the loop
+condition is `left < right`.
+
+Values may be negative, but sorted two-sum still works because the array order
+is monotone.
+
+## Observations
+
+Let `sum = a[left] + a[right]`.
+
+- If `sum == k`, a pair exists.
+- If `sum < k`, then `a[left]` is too small even with the largest available
+  partner. Move `left` right.
+- If `sum > k`, then `a[right]` is too large even with the smallest available
+  partner. Move `right` left.
+
+## Sample walk-through
+
+Array:
+
+```text
+1 2 4 7 11
+```
+
+Target `9`.
+
+| left | right | sum | action |
+|---:|---:|---:|:---|
+| 1 | 11 | 12 | move right |
+| 1 | 7 | 8 | move left |
+| 2 | 7 | 9 | found |
+
+## Algorithm
+
+```text
+left = 0
+right = n - 1
+while left < right:
+    total = a[left] + a[right]
+    if total == k: YES
+    if total < k: left += 1
+    else: right -= 1
+NO
+```
+
+## Correctness
+
+At each step, all possible pairs using indices outside `[left, right]` have
+already been safely discarded.
+
+If `a[left] + a[right] < k`, then for every `j <= right`:
+
+$$
+a[left] + a[j] \le a[left] + a[right] < k.
+$$
+
+So `a[left]` cannot form a valid pair with any remaining element. Moving
+`left` discards no solution.
+
+If `a[left] + a[right] > k`, then for every `i >= left`:
+
+$$
+a[i] + a[right] \ge a[left] + a[right] > k.
+$$
+
+So `a[right]` cannot form a valid pair with any remaining element. Moving
+`right` discards no solution.
+
+If a valid pair exists, it remains inside the active range until it is found.
+If the pointers cross, no pair remains. Therefore the algorithm is correct.
+
+## Complexity
+
+Each pointer moves at most `n` times. Time is `O(n)` and memory is `O(1)`.
+
+## C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+    while (T--) {
+        int n;
+        long long target;
+        cin >> n >> target;
+        vector<long long> values(n);
+        for (long long &value : values) cin >> value;
+
+        int left = 0;
+        int right = n - 1;
+        bool ok = false;
+        while (left < right) {
+            long long total = values[left] + values[right];
+            if (total == target) {
+                ok = true;
+                break;
+            }
+            if (total < target) ++left;
+            else --right;
+        }
+        cout << (ok ? "YES" : "NO") << '\n';
+    }
+    return 0;
+}
+```
+
+## Python solution
+
+```python
+import sys
+
+
+def exists_pair(values: list[int], target: int) -> bool:
+    left = 0
+    right = len(values) - 1
+    while left < right:
+        total = values[left] + values[right]
+        if total == target:
+            return True
+        if total < target:
+            left += 1
+        else:
+            right -= 1
+    return False
+
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+t = data[0]
+idx = 1
+out = []
+for _ in range(t):
+    n = data[idx]
+    target = data[idx + 1]
+    idx += 2
+    values = data[idx:idx + n]
+    idx += n
+    out.append("YES" if exists_pair(values, target) else "NO")
+sys.stdout.write("\n".join(out))
+```
+
+## Common wrong answers
+
+- Using `left <= right`, which can use the same element twice.
+- Moving the wrong pointer after comparing the sum.
+- Forgetting duplicate values can form a valid pair if they are at distinct
+  indices.
+
+# Problem B: Longest Bounded Window
+
+## Restatement
+
+Find the maximum length of a contiguous subarray with sum at most `k`. Values
+are nonnegative.
+
+## Important constraints and traps
+
+The empty subarray is allowed, so if every single value is greater than `k`,
+the answer is `0`.
+
+The nonnegative constraint is essential. Without it, this sliding-window
+solution is not valid.
+
+## Observations
+
+Maintain a window `[left, right]` and its sum. Add each new `right` value. If
+the sum becomes too large, move `left` right until the sum is valid again.
+
+Because values are nonnegative, removing values from the left never increases
+the sum.
+
+## Sample walk-through
+
+Array:
+
+```text
+2 1 3 4 2
+```
+
+Limit `7`.
+
+| right | added | after shrinking | sum | best |
+|---:|---:|:---|---:|---:|
+| 0 | 2 | `[0,0]` | 2 | 1 |
+| 1 | 1 | `[0,1]` | 3 | 2 |
+| 2 | 3 | `[0,2]` | 6 | 3 |
+| 3 | 4 | `[2,3]` | 7 | 3 |
+| 4 | 2 | `[3,4]` | 6 | 3 |
+
+## Algorithm
+
+```text
+left = 0
+sum = 0
+best = 0
+for right from 0 to n - 1:
+    sum += a[right]
+    while sum > k:
+        sum -= a[left]
+        left += 1
+    best = max(best, right - left + 1)
+print best
+```
+
+## Correctness
+
+After the shrinking loop finishes for a fixed `right`, the window sum is at
+most `k`, so `[left, right]` is valid. Since values are nonnegative, any start
+position smaller than `left` would include all elements of the current window
+plus some removed nonnegative values; it cannot have smaller sum. Thus no
+valid window ending at `right` starts before `left`.
+
+Therefore `[left, right]` is the longest valid window ending at `right`.
+Taking the maximum of these lengths over all `right` gives the longest valid
+window overall.
+
+## Complexity
+
+Both pointers move only forward. Time is `O(n)` and memory is `O(1)`.
+
+## C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+    while (T--) {
+        int n;
+        long long limit;
+        cin >> n >> limit;
+        vector<long long> values(n);
+        for (long long &value : values) cin >> value;
+
+        int left = 0;
+        long long total = 0;
+        int best = 0;
+        for (int right = 0; right < n; ++right) {
+            total += values[right];
+            while (left <= right && total > limit) {
+                total -= values[left];
+                ++left;
+            }
+            best = max(best, right - left + 1);
+        }
+        cout << best << '\n';
+    }
+    return 0;
+}
+```
+
+## Python solution
+
+```python
+import sys
+
+
+def longest_window(values: list[int], limit: int) -> int:
+    left = 0
+    total = 0
+    best = 0
+    for right, value in enumerate(values):
+        total += value
+        while left <= right and total > limit:
+            total -= values[left]
+            left += 1
+        best = max(best, right - left + 1)
+    return best
+
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+t = data[0]
+idx = 1
+out = []
+for _ in range(t):
+    n = data[idx]
+    limit = data[idx + 1]
+    idx += 2
+    values = data[idx:idx + n]
+    idx += n
+    out.append(str(longest_window(values, limit)))
+sys.stdout.write("\n".join(out))
+```
+
+## Common wrong answers
+
+- Using `if total > k` instead of `while total > k`.
+- Forgetting the answer can be zero.
+- Applying this method to arrays with negative values.
+- Updating `best` before shrinking to a valid window.
+
+# Problem C: Count Subarrays At Most K
+
+## Restatement
+
+Count nonempty contiguous subarrays with sum at most `k`. Values are
+nonnegative.
+
+## Important constraints and traps
+
+The answer may be `n(n+1)/2`, so use 64-bit integers in C++.
+
+The task asks for count, not maximum length. For each right endpoint, many
+subarrays may be valid.
+
+## Observations
+
+Use the same valid window `[left, right]` as in Problem B. After shrinking,
+all starts from `left` through `right` form valid subarrays ending at `right`.
+
+There are:
+
+```text
+right - left + 1
+```
+
+of them.
+
+## Sample walk-through
+
+Array:
+
+```text
+1 2 3
+```
+
+Limit `3`.
+
+| right | valid starts | new subarrays | count |
+|---:|:---|:---|---:|
+| 0 | 0 | `[1]` | 1 |
+| 1 | 0, 1 | `[1,2]`, `[2]` | 3 |
+| 2 | 2 | `[3]` | 4 |
+
+Answer: `4`.
+
+## Algorithm
+
+```text
+left = 0
+sum = 0
+answer = 0
+for right from 0 to n - 1:
+    sum += a[right]
+    while sum > k:
+        sum -= a[left]
+        left += 1
+    answer += right - left + 1
+print answer
+```
+
+## Correctness
+
+After shrinking, `[left, right]` has sum at most `k`, and no window ending at
+`right` with start before `left` is valid. Since values are nonnegative, any
+subarray ending at `right` and starting at a position `s` with `left <= s <=
+right` has sum no greater than the sum of `[left, right]`, so it is valid.
+
+There are exactly `right - left + 1` such starts. The algorithm adds that
+number, so it counts exactly all valid subarrays ending at `right`.
+
+Every nonempty subarray has exactly one right endpoint. Summing the counts over
+all right endpoints counts every valid subarray exactly once.
+
+## Complexity
+
+Each pointer moves at most `n` times. Time is `O(n)`, memory is `O(1)`.
+
+## C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+    while (T--) {
+        int n;
+        long long limit;
+        cin >> n >> limit;
+        vector<long long> values(n);
+        for (long long &value : values) cin >> value;
+
+        int left = 0;
+        long long total = 0;
+        long long answer = 0;
+        for (int right = 0; right < n; ++right) {
+            total += values[right];
+            while (left <= right && total > limit) {
+                total -= values[left];
+                ++left;
+            }
+            answer += right - left + 1;
+        }
+        cout << answer << '\n';
+    }
+    return 0;
+}
+```
+
+## Python solution
+
+```python
+import sys
+
+
+def count_subarrays(values: list[int], limit: int) -> int:
+    left = 0
+    total = 0
+    answer = 0
+    for right, value in enumerate(values):
+        total += value
+        while left <= right and total > limit:
+            total -= values[left]
+            left += 1
+        answer += right - left + 1
+    return answer
+
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+t = data[0]
+idx = 1
+out = []
+for _ in range(t):
+    n = data[idx]
+    limit = data[idx + 1]
+    idx += 2
+    values = data[idx:idx + n]
+    idx += n
+    out.append(str(count_subarrays(values, limit)))
+sys.stdout.write("\n".join(out))
+```
+
+## Common wrong answers
+
+- Adding only `1` for each valid right endpoint.
+- Forgetting zero-valued elements create many valid subarrays.
+- Using 32-bit `int` for the answer.
+- Using this method with negative values.
+
+# Stress testing strategy
+
+All three problems have simple slow oracles:
+
+- sorted two-sum: all pairs;
+- longest bounded window: all subarrays, keep max valid length;
+- count at most `k`: all subarrays, count valid ones.
+
+The local random tests compare against these slow versions on small arrays.
+Good tests include duplicates, zeros, limits of zero, all values too large,
+and arrays where the shrinking loop runs many times.
+
+# What to carry forward
+
+Two-pointer algorithms are about monotonicity. A pointer move is justified only
+when it discards candidates that cannot become useful later.
+
+This idea will reappear in:
+
+- binary search predicates;
+- greedy algorithms;
+- sweep-line active sets;
+- offline query processing;
+- advanced sliding-window counting problems.
+

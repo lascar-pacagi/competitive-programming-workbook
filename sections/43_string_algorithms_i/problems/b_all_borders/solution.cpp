@@ -1,0 +1,2 @@
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; vector<int>p(s.size()); for(int i=1;i<(int)s.size();i++){int j=p[i-1];while(j&&s[i]!=s[j])j=p[j-1];if(s[i]==s[j])j++;p[i]=j;} vector<int>a; for(int k=p.back();k;k=p[k-1]) a.push_back(k); reverse(a.begin(),a.end()); for(int i=0;i<(int)a.size();i++){if(i)cout<<' ';cout<<a[i];} cout<<'\n';}

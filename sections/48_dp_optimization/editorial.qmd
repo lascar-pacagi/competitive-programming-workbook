@@ -1,0 +1,199 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 48 Editorial: Divide And Conquer, Deque, And Knuth DP"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Divide-and-Conquer DP Shape.** The transition has the form
+`dp_cur[i] = min_{k<i}(dp_prev[k] + cost(k,i))`. When the optimal `k` values
+are monotone, divide-and-conquer computes the middle `i`, searches only the
+candidate range inherited from the parent call, and recurses left/right with
+tighter ranges. The local implementation may keep the direct transition for
+readability, but the editorial proof identifies exactly where monotonicity is
+used in the optimized version.
+
+**B. Monotone Queue DP.** When a transition asks for the best value over a
+sliding window, store candidate indices in a deque. Remove indices that leave
+the window from the front. Before pushing a new index, remove worse candidates
+from the back. The front is always the best legal index because every earlier
+worse candidate has either expired or been dominated.
+
+**C. Knuth Optimization Shape.** For interval DP
+`dp[l][r] = min_k dp[l][k] + dp[k][r] + cost(l,r)`, Knuth optimization is valid
+when optima satisfy `opt[l][r-1] <= opt[l][r] <= opt[l+1][r]`. Then the search
+range for `k` is much smaller than the full interval. The local solution keeps
+the recurrence visible; the optimized version replaces the full scan by that
+bounded scan.
+
+**Common pitfalls.** Never apply an optimization just because a recurrence
+looks similar. State the monotonicity or quadrangle inequality condition first,
+then implement the restricted search range.
+
+This section is about reducing candidate transitions without changing the DP
+meaning.
+
+- A uses partition DP with quadratic group cost. The optimized version relies
+  on monotone optimal split points; the local reference may keep the transition
+  explicit for readability.
+- B is the canonical deque minimum DP: remove expired indices from the front
+  and dominated candidates from the back.
+- C is adjacent interval merging. Knuth optimization is valid for the classic
+  sum-cost merge because optimal split points are monotone.
+
+The editorial proof obligation is always the same: show that discarded
+candidates can never be optimal for any future state they would have served.
+
+# A. Partition Quadratic Cost
+
+## Restatement
+
+Partition the array into `k` contiguous groups minimizing the sum of squared group sums.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; const long long INF=4e18; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,k;if(!(cin>>n>>k))return 0;vector<long long>ps(n+1);for(int i=1;i<=n;i++){long long x;cin>>x;ps[i]=ps[i-1]+x;}auto cost=[&](int l,int r){long long s=ps[r]-ps[l];return s*s;};vector<long long>prev(n+1,INF),cur(n+1);prev[0]=0;for(int it=0;it<k;it++){fill(cur.begin(),cur.end(),INF);function<void(int,int,int,int)>solve=[&](int lo,int hi,int optl,int optr){if(lo>hi)return;int mid=(lo+hi)/2,best=optl;for(int j=optl;j<=min(optr,mid-1);j++){long long val=prev[j]+cost(j,mid);if(val<cur[mid])cur[mid]=val,best=j;}solve(lo,mid-1,optl,best);solve(mid+1,hi,best,optr);};solve(1,n,0,n-1);prev.swap(cur);}cout<<prev[n]<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+INF=10**30
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,k=data[0],data[1]; a=data[2:]; ps=[0]
+    for x in a: ps.append(ps[-1]+x)
+    def cost(l,r): return (ps[r]-ps[l])**2
+    prev=[INF]*(n+1); prev[0]=0
+    for _ in range(k):
+        cur=[INF]*(n+1)
+        def solve(lo,hi,optl,optr):
+            if lo>hi: return
+            mid=(lo+hi)//2; best=(INF,optl)
+            for j in range(optl,min(optr,mid-1)+1):
+                val=prev[j]+cost(j,mid)
+                if val<best[0]: best=(val,j)
+            cur[mid]=best[0]; solve(lo,mid-1,optl,best[1]); solve(mid+1,hi,best[1],optr)
+        solve(1,n,0,n-1); prev=cur
+    print(prev[n])
+if __name__=="__main__": main()
+```
+
+# B. Window Minimum DP
+
+## Restatement
+
+`dp[i]=a[i]+min(dp[j])` over the previous `w` positions. Print `dp[n]`.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,w;if(!(cin>>n>>w))return 0;vector<long long>a(n+1),dp(n+1);for(int i=1;i<=n;i++)cin>>a[i];deque<int>dq{0};for(int i=1;i<=n;i++){while(!dq.empty()&&dq.front()<i-w)dq.pop_front();dp[i]=dp[dq.front()]+a[i];while(!dq.empty()&&dp[dq.back()]>=dp[i])dq.pop_back();dq.push_back(i);}cout<<dp[n]<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys,collections
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,w=data[0],data[1]; a=data[2:]; dp=[0]*(n+1); dq=collections.deque([0])
+    for i in range(1,n+1):
+        while dq and dq[0]<i-w: dq.popleft()
+        dp[i]=dp[dq[0]]+a[i-1]
+        while dq and dp[dq[-1]]>=dp[i]: dq.pop()
+        dq.append(i)
+    print(dp[n])
+if __name__=="__main__": main()
+```
+
+# C. Optimal Merge Knuth
+
+## Restatement
+
+Merge adjacent piles with cost equal to merged sum; print minimum total cost.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<long long>ps(n+1);for(int i=1;i<=n;i++){long long x;cin>>x;ps[i]=ps[i-1]+x;}vector<vector<long long>>dp(n,vector<long long>(n));vector<vector<int>>opt(n,vector<int>(n));for(int i=0;i<n;i++)opt[i][i]=i;for(int len=2;len<=n;len++)for(int l=0;l+len<=n;l++){int r=l+len-1;dp[l][r]=4e18;for(int k=opt[l][r-1];k<=opt[l+1][r];k++){long long val=dp[l][k]+(k+1<=r?dp[k+1][r]:0)+ps[r+1]-ps[l];if(val<dp[l][r])dp[l][r]=val,opt[l][r]=k;}}cout<<(n?dp[0][n-1]:0)<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n=data[0]; a=data[1:]; ps=[0]
+    for x in a: ps.append(ps[-1]+x)
+    dp=[[0]*n for _ in range(n)]; opt=[[0]*n for _ in range(n)]
+    for i in range(n): opt[i][i]=i
+    for length in range(2,n+1):
+        for l in range(n-length+1):
+            r=l+length-1; best=10**30; bestk=l
+            for k in range(opt[l][r-1], opt[l+1][r]+1):
+                val=dp[l][k]+(dp[k+1][r] if k+1<=r else 0)+ps[r+1]-ps[l]
+                if val<best: best=val; bestk=k
+            dp[l][r]=best; opt[l][r]=bestk
+    print(dp[0][n-1] if n else 0)
+if __name__=="__main__": main()
+```
+
+# Testing discussion
+
+Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

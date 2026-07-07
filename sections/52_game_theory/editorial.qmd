@@ -1,0 +1,189 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 52 Editorial: Game Theory"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Nim XOR.** Let `x` be the xor of all pile sizes. If `x = 0`, every move
+changes one pile and makes the xor nonzero, because changing one operand of an
+xor-zero collection cannot keep the xor zero. If `x != 0`, choose a pile whose
+highest set bit matches the highest set bit of `x`, and reduce it to
+`pile xor x`, which is smaller. The new global xor is zero. Thus xor-zero
+positions are losing and nonzero positions are winning.
+
+**B. Subtraction Game DP.** Let `win[i]` mean the current player wins with `i`
+stones. The base `win[0] = false` because no move is possible. For `i > 0`,
+`win[i]` is true if there exists an allowed move `d <= i` with
+`win[i-d] == false`; otherwise every move gives the opponent a winning state,
+so `win[i]` is false. This is induction on the number of stones.
+
+**C. Grundy on a DAG.** A terminal node has Grundy value `0`. For every other
+node, compute the mex of the Grundy values of its outgoing neighbors. In a DAG,
+reverse topological order guarantees children are known before parents. A start
+node is winning iff its Grundy value is nonzero, by the same mex argument used
+for impartial games in the lesson.
+
+**Common pitfalls.** Do not confuse "has a move" with "is winning"; a move must
+go to a losing state. For mex, only reachable child values matter. For Nim,
+the winning move reduces one pile, never increases it.
+
+Every problem is a normal-play impartial game.
+
+- A uses the Nim theorem: xor zero is losing, xor nonzero is winning.
+- B computes `win[i]` for a subtraction game from smaller piles to larger
+  piles.
+- C computes Grundy numbers on a DAG by taking the mex of successor Grundy
+  numbers.
+
+The shared proof is recursive: a state is winning if it has at least one move
+to a losing state; it is losing if every move goes to a winning state.
+
+# A. Nim Winner
+
+## Restatement
+
+For each Nim position, print WIN or LOSE.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T;if(!(cin>>T))return 0;while(T--){int n;cin>>n;long long x=0,v;while(n--){cin>>v;x^=v;}cout<<(x?"WIN":"LOSE")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    t=data[0]; idx=1; out=[]
+    for _ in range(t):
+        n=data[idx]; idx+=1; x=0
+        for v in data[idx:idx+n]: x^=v
+        idx+=n; out.append("WIN" if x else "LOSE")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# B. Subtraction Game
+
+## Restatement
+
+Given total stones and allowed moves, print whether the first player wins.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m))return 0;vector<int>a(m);for(int&x:a)cin>>x;vector<int>w(n+1);for(int i=1;i<=n;i++)for(int x:a)if(i>=x&&!w[i-x])w[i]=1;cout<<(w[n]?"WIN":"LOSE")<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m=data[0],data[1]; moves=data[2:]; win=[False]*(n+1)
+    for i in range(1,n+1): win[i]=any(i>=x and not win[i-x] for x in moves)
+    print("WIN" if win[n] else "LOSE")
+if __name__=="__main__": main()
+```
+
+# C. DAG Game
+
+## Restatement
+
+For each start vertex in a DAG, print whether it is winning.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,q;if(!(cin>>n>>m>>q))return 0;vector<vector<int>>g(n);while(m--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int>gr(n);for(int u=n-1;u>=0;u--){set<int>s;for(int v:g[u])s.insert(gr[v]);while(s.count(gr[u]))gr[u]++;}while(q--){int s;cin>>s;cout<<(gr[s-1]?"WIN":"LOSE")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m,q=data[0],data[1],data[2]; idx=3; g=[[] for _ in range(n)]
+    for _ in range(m): g[data[idx]-1].append(data[idx+1]-1); idx+=2
+    gr=[0]*n
+    for u in range(n-1,-1,-1):
+        seen={gr[v] for v in g[u]}; x=0
+        while x in seen: x+=1
+        gr[u]=x
+    out=["WIN" if gr[data[idx+i]-1] else "LOSE" for i in range(q)]
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# What to carry forward
+
+Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

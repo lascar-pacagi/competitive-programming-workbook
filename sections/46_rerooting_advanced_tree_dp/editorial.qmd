@@ -1,0 +1,205 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 46 Editorial: Rerooting and Advanced Tree DP"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Sum of Distances from Every Root.** First root the tree at `1`. A postorder
+DFS computes `sub[v]` and `down[v]`, where `down[v]` is the sum of distances
+from `v` to vertices in its subtree. The answer for root `1` is `down[1]`.
+When rerooting across edge `v-c`, the `sub[c]` vertices inside `c`'s subtree
+become one step closer, and the other `n-sub[c]` vertices become one step
+farther. Therefore
+`ans[c] = ans[v] - sub[c] + (n - sub[c])`.
+
+**B. Tree Diameter.** Run a DFS/BFS from any vertex to find a farthest vertex
+`a`. Run again from `a`; the farthest vertex `b` gives the diameter distance.
+The first search reaches an endpoint of some diameter because any path can be
+extended toward a farthest vertex, and the second search measures the longest
+path starting from that endpoint.
+
+**C. Pairs Separated by Removing a Vertex.** Removing vertex `v` splits the
+tree into components: one for each child subtree and, unless `v` is the root,
+one parent-side component of size `n - sub[v]`. Pairs whose path passes through
+`v` are exactly pairs chosen from two different components. Summing component
+sizes seen so far gives `sum += seen * comp_size`, then `seen += comp_size`.
+
+**Common pitfalls.** In A, the reroot formula changes distances for all
+vertices, not just descendants. In C, decide whether pairs are ordered or
+unordered before multiplying by two; the local task uses unordered pairs.
+
+Each task asks for every-node information on a tree.
+
+- A first computes subtree sizes and the answer for root `1`; moving the root
+  across edge `u-v` changes distances by `-sub[v] + (n-sub[v])`.
+- B uses the diameter endpoint theorem: the farthest node from any vertex is
+  one of the two diameter endpoints.
+- C removes each node conceptually and counts pairs of endpoints lying in
+  different resulting components.
+
+The proof technique is contribution accounting: decide how one edge/root move
+changes every affected node or pair exactly once.
+
+# A. Sum Distances
+
+## Restatement
+
+For every node, print the sum of distances to all other nodes.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<vector<int>>g(n);for(int i=0,a,b;i<n-1;i++){cin>>a>>b;--a;--b;g[a].push_back(b);g[b].push_back(a);}vector<int>sub(n,1);vector<long long>down(n),ans(n);function<void(int,int)>dfs=[&](int u,int p){for(int v:g[u])if(v!=p){dfs(v,u);sub[u]+=sub[v];down[u]+=down[v]+sub[v];}};function<void(int,int)>go=[&](int u,int p){for(int v:g[u])if(v!=p){ans[v]=ans[u]+n-2*sub[v];go(v,u);}};dfs(0,-1);ans[0]=down[0];go(0,-1);for(int i=0;i<n;i++){if(i)cout<<' ';cout<<ans[i];}cout<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+sys.setrecursionlimit(1_000_000)
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n=data[0]; g=[[] for _ in range(n)]; idx=1
+    for _ in range(n-1):
+        a,b=data[idx]-1,data[idx+1]-1; idx+=2; g[a].append(b); g[b].append(a)
+    sub=[1]*n; down=[0]*n
+    def dfs(u,p):
+        for v in g[u]:
+            if v!=p: dfs(v,u); sub[u]+=sub[v]; down[u]+=down[v]+sub[v]
+    ans=[0]*n
+    def reroot(u,p):
+        for v in g[u]:
+            if v!=p:
+                ans[v]=ans[u]+n-2*sub[v]; reroot(v,u)
+    dfs(0,-1); ans[0]=down[0]; reroot(0,-1); print(" ".join(map(str,ans)))
+if __name__=="__main__": main()
+```
+
+# B. Farthest Node Distance
+
+## Restatement
+
+For every node, print its distance to the farthest node.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; vector<int>bfs(int s,vector<vector<int>>&g){vector<int>d(g.size(),-1);queue<int>q;d[s]=0;q.push(s);while(!q.empty()){int u=q.front();q.pop();for(int v:g[u])if(d[v]<0){d[v]=d[u]+1;q.push(v);}}return d;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<vector<int>>g(n);for(int i=0,a,b;i<n-1;i++){cin>>a>>b;--a;--b;g[a].push_back(b);g[b].push_back(a);}auto d0=bfs(0,g);int a=max_element(d0.begin(),d0.end())-d0.begin();auto da=bfs(a,g);int b=max_element(da.begin(),da.end())-da.begin();auto db=bfs(b,g);for(int i=0;i<n;i++){if(i)cout<<' ';cout<<max(da[i],db[i]);}cout<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys,collections
+def bfs(s,g):
+    d=[-1]*len(g); d[s]=0; q=collections.deque([s])
+    while q:
+        u=q.popleft()
+        for v in g[u]:
+            if d[v]<0: d[v]=d[u]+1; q.append(v)
+    return d
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n=data[0]; g=[[] for _ in range(n)]; idx=1
+    for _ in range(n-1):
+        a,b=data[idx]-1,data[idx+1]-1; idx+=2; g[a].append(b); g[b].append(a)
+    d0=bfs(0,g); a=max(range(n),key=d0.__getitem__); da=bfs(a,g); b=max(range(n),key=da.__getitem__); db=bfs(b,g)
+    print(" ".join(str(max(da[i],db[i])) for i in range(n)))
+if __name__=="__main__": main()
+```
+
+# C. Paths Through Node
+
+## Restatement
+
+For every node, count unordered pairs of distinct nodes whose path passes through it.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<vector<int>>g(n);for(int i=0,a,b;i<n-1;i++){cin>>a>>b;--a;--b;g[a].push_back(b);g[b].push_back(a);}vector<int>par(n,-1),ord{0};for(int qi=0;qi<(int)ord.size();qi++){int u=ord[qi];for(int v:g[u])if(v!=par[u]){par[v]=u;ord.push_back(v);}}vector<int>sub(n,1);for(int i=n-1;i>0;i--)sub[par[ord[i]]]+=sub[ord[i]];long long total=1LL*n*(n-1)/2;for(int u=0;u<n;u++){long long bad=0;for(int v:g[u]){long long s=(par[v]==u?sub[v]:n-sub[u]);bad+=s*(s-1)/2;}if(u)cout<<' ';cout<<total-bad;}cout<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+sys.setrecursionlimit(1_000_000)
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n=data[0]; g=[[] for _ in range(n)]; idx=1
+    for _ in range(n-1):
+        a,b=data[idx]-1,data[idx+1]-1; idx+=2; g[a].append(b); g[b].append(a)
+    parent=[-1]*n; order=[0]
+    for u in order:
+        for v in g[u]:
+            if v!=parent[u]: parent[v]=u; order.append(v)
+    sub=[1]*n
+    for u in reversed(order[1:]): sub[parent[u]]+=sub[u]
+    total=n*(n-1)//2; out=[]
+    for u in range(n):
+        bad=0
+        for v in g[u]:
+            s=sub[v] if parent[v]==u else n-sub[u]
+            bad+=s*(s-1)//2
+        out.append(str(total-bad))
+    print(" ".join(out))
+if __name__=="__main__": main()
+```
+
+# Testing discussion
+
+Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

@@ -1,0 +1,2 @@
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,e;if(!(cin>>n>>m>>e)) return 0;vector<vector<int>>g(n);while(e--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int> mt(m,-1);function<bool(int,vector<int>&)> dfs=[&](int u,vector<int>&vis){for(int v:g[u]) if(!vis[v]){vis[v]=1;if(mt[v]==-1||dfs(mt[v],vis)){mt[v]=u;return true;}}return false;};int ans=0;for(int u=0;u<n;u++){vector<int>vis(m);ans+=dfs(u,vis);}cout<<ans<<'\n';}

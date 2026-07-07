@@ -1,0 +1,244 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 30: GCD, LCM, and Diophantine Equations"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why gcd is a contest primitive
+
+The greatest common divisor answers the question:
+
+```text
+What is the largest unit size that divides both numbers?
+```
+
+It appears in fraction reduction, divisibility checks, modular inverses,
+periods, grid-step problems, and equations with integer solutions.
+
+# Euclid's algorithm
+
+The key identity:
+
+```text
+gcd(a, b) = gcd(b, a mod b)
+```
+
+Why? Any number that divides both `a` and `b` also divides `a - q*b`, including
+the remainder `a mod b`. The common divisors are unchanged.
+
+Algorithm:
+
+```text
+while b != 0:
+    a, b = b, a mod b
+answer = a
+```
+
+Complexity is `O(log min(a,b))`.
+
+# LCM
+
+The least common multiple satisfies:
+
+```text
+gcd(a,b) * lcm(a,b) = a * b
+```
+
+Compute it as:
+
+```text
+lcm = a / gcd(a,b) * b
+```
+
+Divide before multiplying to reduce overflow risk.
+
+# Extended Euclid
+
+Extended Euclid finds integers `x` and `y` such that:
+
+```text
+a*x + b*y = gcd(a,b)
+```
+
+This is called Bezout's identity.
+
+Recursive transition:
+
+```text
+If b == 0:
+    gcd = a, x = 1, y = 0
+
+Otherwise:
+    g, x1, y1 solve b*x1 + (a mod b)*y1 = g
+```
+
+Since:
+
+```text
+a mod b = a - floor(a/b)*b
+```
+
+Substitute:
+
+```text
+b*x1 + (a - floor(a/b)*b)*y1
+= a*y1 + b*(x1 - floor(a/b)*y1)
+```
+
+So:
+
+```text
+x = y1
+y = x1 - floor(a/b)*y1
+```
+
+# Modular inverse with any modulus
+
+An inverse of `a` modulo `m` is an `x` such that:
+
+```text
+a*x == 1 (mod m)
+```
+
+This means:
+
+```text
+a*x + m*y = 1
+```
+
+Such integers exist exactly when:
+
+```text
+gcd(a,m) = 1
+```
+
+So extended Euclid gives the inverse directly. This is more general than the
+Fermat inverse from Section 29, which required a prime modulus.
+
+# Linear Diophantine equations
+
+For:
+
+```text
+a*x + b*y = c
+```
+
+integer solutions exist exactly when:
+
+```text
+gcd(a,b) divides c
+```
+
+If extended Euclid gives:
+
+```text
+a*x0 + b*y0 = g
+```
+
+and `c = g * scale`, then:
+
+```text
+a*(x0*scale) + b*(y0*scale) = c
+```
+
+This gives one solution. There are infinitely many others when a solution
+exists, but the local problem only asks for any one.
+
+# Worked example
+
+Solve:
+
+```text
+6x + 10y = 14
+```
+
+`gcd(6,10)=2`, and `2` divides `14`, so a solution exists.
+
+Extended Euclid may produce:
+
+```text
+6*2 + 10*(-1) = 2
+```
+
+Scale by `7`:
+
+```text
+x = 14
+y = -7
+```
+
+Check:
+
+```text
+6*14 + 10*(-7) = 84 - 70 = 14
+```
+
+# C++ notes
+
+C++ has `std::gcd` in `<numeric>`, included by `bits/stdc++.h`.
+
+Normalize modular inverse answers:
+
+```cpp
+x %= m;
+if (x < 0) x += m;
+```
+
+For the local constraints, `long long` is enough. For larger `1e18` versions,
+extended-Euclid coefficient multiplication may require `__int128`.
+
+# Python notes
+
+Python has:
+
+```python
+math.gcd(a, b)
+```
+
+Python's `%` already normalizes negatives:
+
+```python
+x % m
+```
+
+is in `[0, m-1]` when `m > 0`.
+
+# Common mistakes
+
+```text
+Computing lcm as a*b/g before dividing.
+Assuming every number has a modular inverse.
+Using Fermat inverse with composite modulus.
+Forgetting to check c % gcd(a,b) for ax + by = c.
+Expecting the Diophantine solution to be unique.
+Failing to normalize negative inverse coefficients in C++.
+```
+
+# Submission checklist
+
+```text
+1. Did you compute gcd first?
+2. For lcm, did you divide before multiplying?
+3. For inverse, is gcd(a,m) exactly 1?
+4. For ax+by=c, does gcd(a,b) divide c?
+5. Are negative modular answers normalized?
+```

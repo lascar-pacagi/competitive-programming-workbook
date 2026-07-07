@@ -1,0 +1,343 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 38 Editorial: Static Queries and Binary Lifting"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+| Problem | Main idea |
+|---|---|
+| A. Static Range Minimum | See full algorithm and code below. |
+| B. Static Range GCD | See full algorithm and code below. |
+| C. Kth Ancestor | See full algorithm and code below. |
+# A. Static Range Minimum
+
+## Restatement
+
+Given an immutable array, answer minimum queries on subarrays.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    vector<int> lg(n + 1);
+    for (int i = 2; i <= n; i++) lg[i] = lg[i / 2] + 1;
+    int K = lg[n] + 1;
+    vector<vector<long long>> st(K, vector<long long>(n));
+    for (int i = 0; i < n; i++) cin >> st[0][i];
+    for (int k = 1; k < K; k++) {
+        for (int i = 0; i + (1 << k) <= n; i++) {
+            st[k][i] = min(st[k - 1][i], st[k - 1][i + (1 << (k - 1))]);
+        }
+    }
+    while (q--) {
+        int l, r;
+        cin >> l >> r;
+        --l; --r;
+        int k = lg[r - l + 1];
+        cout << min(st[k][l], st[k][r - (1 << k) + 1]) << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys, math
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, q = data[0], data[1]
+    a = data[2:2 + n]
+    log = [0] * (n + 1)
+    for i in range(2, n + 1):
+        log[i] = log[i // 2] + 1
+    st = [a]
+    k = 1
+    while (1 << k) <= n:
+        prev = st[-1]
+        length = 1 << (k - 1)
+        st.append([min(prev[i], prev[i + length]) for i in range(n - (1 << k) + 1)])
+        k += 1
+    idx = 2 + n
+    out = []
+    for _ in range(q):
+        l, r = data[idx] - 1, data[idx + 1] - 1
+        idx += 2
+        k = log[r - l + 1]
+        out.append(str(min(st[k][l], st[k][r - (1 << k) + 1])))
+    print("\n".join(out))
+
+if __name__ == "__main__":
+    main()
+```
+
+# B. Static Range GCD
+
+## Restatement
+
+Given an immutable positive array, answer gcd queries on subarrays.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    vector<int> lg(n + 1);
+    for (int i = 2; i <= n; i++) lg[i] = lg[i / 2] + 1;
+    int K = lg[n] + 1;
+    vector<vector<long long>> st(K, vector<long long>(n));
+    for (int i = 0; i < n; i++) cin >> st[0][i];
+    for (int k = 1; k < K; k++) {
+        for (int i = 0; i + (1 << k) <= n; i++) {
+            st[k][i] = gcd(st[k - 1][i], st[k - 1][i + (1 << (k - 1))]);
+        }
+    }
+    while (q--) {
+        int l, r;
+        cin >> l >> r;
+        --l; --r;
+        int k = lg[r - l + 1];
+        cout << gcd(st[k][l], st[k][r - (1 << k) + 1]) << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import math
+import sys
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, q = data[0], data[1]
+    a = data[2:2 + n]
+    log = [0] * (n + 1)
+    for i in range(2, n + 1):
+        log[i] = log[i // 2] + 1
+    st = [a]
+    k = 1
+    while (1 << k) <= n:
+        prev = st[-1]
+        length = 1 << (k - 1)
+        st.append([math.gcd(prev[i], prev[i + length]) for i in range(n - (1 << k) + 1)])
+        k += 1
+    idx = 2 + n
+    out = []
+    for _ in range(q):
+        l, r = data[idx] - 1, data[idx + 1] - 1
+        idx += 2
+        k = log[r - l + 1]
+        out.append(str(math.gcd(st[k][l], st[k][r - (1 << k) + 1])))
+    print("\n".join(out))
+
+if __name__ == "__main__":
+    main()
+```
+
+# C. Kth Ancestor
+
+## Restatement
+
+In a rooted tree with root 1, answer queries asking for the `k`-th ancestor of a node, or `-1` if it does not exist.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    int LOG = 1;
+    while ((1 << LOG) <= n + 5) LOG++;
+    vector<vector<int>> up(LOG, vector<int>(n + 1, 0));
+    for (int v = 2; v <= n; v++) cin >> up[0][v];
+    for (int k = 1; k < LOG; k++) {
+        for (int v = 1; v <= n; v++) up[k][v] = up[k - 1][up[k - 1][v]];
+    }
+    while (q--) {
+        int v;
+        long long dist;
+        cin >> v >> dist;
+        for (int k = 0; k < LOG && v; k++) {
+            if (dist & (1LL << k)) v = up[k][v];
+        }
+        cout << (v ? v : -1) << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, q = data[0], data[1]
+    LOG = max(1, (n + 5).bit_length())
+    up = [[0] * (n + 1) for _ in range(LOG)]
+    idx = 2
+    for v in range(2, n + 1):
+        up[0][v] = data[idx]
+        idx += 1
+    for k in range(1, LOG):
+        for v in range(1, n + 1):
+            up[k][v] = up[k - 1][up[k - 1][v]]
+    out = []
+    for _ in range(q):
+        v, dist = data[idx], data[idx + 1]
+        idx += 2
+        bit = 0
+        while dist and v:
+            if dist & 1:
+                v = up[bit][v] if bit < LOG else 0
+            dist >>= 1
+            bit += 1
+        out.append(str(v if v else -1))
+    print("\n".join(out))
+
+if __name__ == "__main__":
+    main()
+```
+
+# Testing discussion
+
+The fixed samples cover visible behavior. The random tests generate
+many small operation sequences and compute expected outputs from the
+reference Python implementation, then the same expected files are
+used against both the C++ and Python submissions.

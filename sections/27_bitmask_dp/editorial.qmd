@@ -1,0 +1,667 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 27 Editorial: Bitmask DP"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+All three problems use a mask to represent a subset of small objects.
+
+| Problem | Mask means | Extra state | Goal |
+|---|---|---|---|
+| A. Skill Coverage | skills already covered | none | minimum cost |
+| B. Assignment Profit | jobs already used | none; worker is popcount | maximum profit |
+| C. Inspection Route | locations already visited | current last location | minimum cycle cost |
+
+Reminder of operations:
+
+```text
+test bit i:       (mask >> i) & 1
+add bit i:        mask | (1 << i)
+full mask:        (1 << n) - 1
+number of bits:   popcount(mask)
+```
+
+# A. Skill Coverage
+
+## Restatement
+
+Each candidate has a cost and covers some subset of the required skills. Choose
+some candidates with minimum total cost so every skill is covered. If no choice
+covers all skills, output `-1`.
+
+## Constraints and traps
+
+`n <= 20`, so there are at most `2^20` skill masks. `m` can be much larger than
+`n`, so enumerating candidate subsets would be `2^m` and impossible.
+
+Costs can sum beyond 32-bit integer range. Use `long long` in C++.
+
+The input uses skills numbered from `1`; bits are easier with internal numbers
+from `0`.
+
+## Observations
+
+The exact identities of chosen candidates do not matter after we know:
+
+```text
+which skills are currently covered
+minimum cost paid to reach that covered set
+```
+
+When considering one candidate, we either skip them or take them. If we take
+them, the new covered set is the union of the old set and their skill set:
+
+```text
+new_mask = mask | offer
+```
+
+## Sample walk-through
+
+The sample has four skills. Candidate 4 covers skills `{1,3,4}` with cost `7`,
+and candidate 5 covers skill `{2}` with cost `3`.
+
+Their masks are:
+
+```text
+candidate 4: 1101
+candidate 5: 0010
+union:       1111
+cost:        10
+```
+
+No cheaper combination covers all four skills, so the answer is `10`.
+
+## Algorithm
+
+```text
+full = (1 << n) - 1
+dp[0] = 0
+dp[other masks] = INF
+
+for each candidate with cost c and mask offer:
+    next_dp = copy of dp
+    for mask from 0 to full:
+        merged = mask | offer
+        next_dp[merged] = min(next_dp[merged], dp[mask] + c)
+    dp = next_dp
+
+if dp[full] is INF, print -1
+else print dp[full]
+```
+
+## Correctness proof
+
+**Invariant.** After processing the first `i` candidates, `dp[mask]` is the
+minimum cost to cover exactly the set of skills represented by `mask` using
+only those `i` candidates.
+
+**Base case.** Before processing any candidate, the only reachable covered set
+is the empty set with cost `0`. Every non-empty set is unreachable, so `INF` is
+correct.
+
+**Induction step.** Assume the invariant holds before candidate `i+1`. For any
+mask, a best solution after considering candidate `i+1` either skips that
+candidate or takes that candidate.
+
+If it skips the candidate, the cost and mask remain represented by the copied
+value in `next_dp[mask]`.
+
+If it takes the candidate from an old covered set `mask`, the new covered set is
+`mask | offer`, and the cost is `dp[mask] + c`. The transition tries this for
+every old mask and keeps the minimum.
+
+These two cases cover every possible valid choice involving candidate `i+1`,
+and no transition uses any unprocessed candidate. Therefore the invariant holds
+after candidate `i+1`.
+
+At the end, `dp[full]` is exactly the minimum cost to cover all skills, or
+unreachable if it is still `INF`. `\square`
+
+## Complexity
+
+```text
+Time:  O(m 2^n)
+Memory: O(2^n)
+```
+
+## C++ implementation notes
+
+Convert each candidate to a mask while reading. Use a fresh vector for each
+candidate to preserve the "considered once" invariant.
+
+## Python implementation notes
+
+Copy the list with `dp[:]`. Python integers handle large costs automatically.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    vector<pair<long long, int>> offers;
+    for (int i = 0; i < m; i++) {
+        long long cost;
+        int k;
+        cin >> cost >> k;
+        int mask = 0;
+        for (int j = 0; j < k; j++) {
+            int skill;
+            cin >> skill;
+            mask |= 1 << (skill - 1);
+        }
+        offers.push_back({cost, mask});
+    }
+
+    int total = 1 << n;
+    int full = total - 1;
+    const long long INF = (1LL << 62);
+    vector<long long> dp(total, INF);
+    dp[0] = 0;
+
+    for (auto [cost, offer] : offers) {
+        vector<long long> next_dp = dp;
+        for (int mask = 0; mask < total; mask++) {
+            if (dp[mask] == INF) continue;
+            int merged = mask | offer;
+            next_dp[merged] = min(next_dp[merged], dp[mask] + cost);
+        }
+        dp.swap(next_dp);
+    }
+
+    cout << (dp[full] == INF ? -1 : dp[full]) << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n = next(it)
+    m = next(it)
+    full = (1 << n) - 1
+    offers: list[tuple[int, int]] = []
+    for _ in range(m):
+        cost = next(it)
+        k = next(it)
+        mask = 0
+        for _ in range(k):
+            skill = next(it) - 1
+            mask |= 1 << skill
+        offers.append((cost, mask))
+
+    inf = 10**30
+    dp = [inf] * (1 << n)
+    dp[0] = 0
+    for cost, offer in offers:
+        new_dp = dp[:]
+        for mask in range(1 << n):
+            candidate = dp[mask] + cost
+            merged = mask | offer
+            if candidate < new_dp[merged]:
+                new_dp[merged] = candidate
+        dp = new_dp
+
+    print(-1 if dp[full] >= inf else dp[full])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Using candidate subsets instead of skill masks.
+Forgetting to subtract 1 from skill numbers.
+Printing INF instead of -1 for impossible cases.
+Using int in C++ when costs may be large.
+```
+
+## Tests that matter
+
+```text
+n = 1 with multiple candidates for the same skill.
+Impossible coverage where one skill never appears.
+One candidate covers every skill.
+Many candidates have overlapping skill sets.
+```
+
+# B. Assignment Profit
+
+## Restatement
+
+Assign every worker to a distinct job. Worker `i` assigned to job `j` gives
+profit `a[i][j]`. Maximize the total profit.
+
+## Constraints and traps
+
+`n <= 18`, so `n!` permutations are too many, but `n 2^n` transitions are fine.
+
+The state does not need to store both worker and mask. If `mask` contains `k`
+jobs, then exactly the first `k` workers have already been assigned.
+
+## Observations
+
+For a mask of used jobs:
+
+```text
+worker = popcount(mask)
+```
+
+The next action is to assign this worker to one unused job.
+
+## Sample walk-through
+
+For the sample:
+
+```text
+worker 0 -> job 0 gives 8
+worker 1 -> job 1 gives 9
+worker 2 -> job 2 gives 10
+```
+
+This uses every job once and gives total `27`.
+
+## Algorithm
+
+```text
+dp[0] = 0
+dp[other masks] = -INF
+
+for mask from 0 to full:
+    worker = popcount(mask)
+    for each job not in mask:
+        next = mask | (1 << job)
+        dp[next] = max(dp[next], dp[mask] + profit[worker][job])
+
+print dp[full]
+```
+
+## Correctness proof
+
+**Invariant.** For every mask, once it is processed, `dp[mask]` is the maximum
+profit obtainable by assigning the first `popcount(mask)` workers to exactly
+the jobs in `mask`.
+
+**Base case.** `dp[0] = 0`: no workers assigned and no jobs used. Other states
+start at negative infinity because they have not been reached.
+
+**Induction step.** Suppose the invariant is true for a mask. The next worker
+is determined uniquely as `popcount(mask)`. Any valid assignment extending this
+partial assignment must choose one job not yet in the mask. The transition tries
+every such job, adds the corresponding profit, and updates the new mask.
+
+Conversely, every transition assigns the correct next worker to an unused job,
+so it produces a valid partial assignment. Taking the maximum keeps the best
+profit for each mask.
+
+When `mask = full`, all `n` jobs have been used and all `n` workers have been
+assigned, so `dp[full]` is the optimal answer. `\square`
+
+## Complexity
+
+```text
+Time:  O(n 2^n)
+Memory: O(2^n)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n;
+    if (!(cin >> n)) return 0;
+    vector<vector<long long>> profit(n, vector<long long>(n));
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) cin >> profit[i][j];
+    }
+
+    int total = 1 << n;
+    const long long NEG = -(1LL << 60);
+    vector<long long> dp(total, NEG);
+    dp[0] = 0;
+
+    for (int mask = 0; mask < total; mask++) {
+        int worker = __builtin_popcount((unsigned)mask);
+        if (worker == n || dp[mask] == NEG) continue;
+        for (int job = 0; job < n; job++) {
+            if ((mask & (1 << job)) == 0) {
+                int nxt = mask | (1 << job);
+                dp[nxt] = max(dp[nxt], dp[mask] + profit[worker][job]);
+            }
+        }
+    }
+
+    cout << dp[total - 1] << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n = next(it)
+    profit = [[next(it) for _ in range(n)] for _ in range(n)]
+    total = 1 << n
+    neg = -10**30
+    dp = [neg] * total
+    dp[0] = 0
+
+    for mask in range(total):
+        worker = mask.bit_count()
+        if worker == n or dp[mask] == neg:
+            continue
+        for job in range(n):
+            if not (mask >> job) & 1:
+                nxt = mask | (1 << job)
+                value = dp[mask] + profit[worker][job]
+                if value > dp[nxt]:
+                    dp[nxt] = value
+
+    print(dp[total - 1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Using popcount after adding the job, assigning the wrong worker.
+Allowing the same job twice.
+Trying all permutations for n = 18.
+Using a minimum DP when the statement asks for maximum profit.
+```
+
+## Tests that matter
+
+```text
+n = 1.
+The best solution is not greedy by row maximum.
+Large profits that require 64-bit sums.
+Rows with ties, to ensure the DP handles multiple equivalent choices.
+```
+
+# C. Inspection Route
+
+## Restatement
+
+Start at location `1`, visit every location exactly once, and return to
+location `1`. Moving from `i` to `j` has cost `c[i][j]`, and costs may be
+asymmetric. Find the minimum route cost.
+
+## Constraints and traps
+
+`n <= 16`, which is small enough for `O(n^2 2^n)`.
+
+The route cost depends on the current last location. A one-dimensional
+`dp[mask]` is insufficient.
+
+Do not assume `c[i][j] = c[j][i]`.
+
+Remember to add the final edge back to location `1`.
+
+## Observations
+
+After we know:
+
+```text
+visited set mask
+current last location
+```
+
+the best future route depends only on those two facts. The exact order used to
+reach `last` is already summarized by the minimum cost in the DP state.
+
+## Sample walk-through
+
+One optimal sample route is:
+
+```text
+1 -> 2 -> 4 -> 3 -> 1
+```
+
+Its cost is:
+
+```text
+10 + 10 + 9 + 6 = 35
+```
+
+The DP reaches state `{1,2,4}, last=4` before adding city `3`, then closes the
+cycle by returning to city `1`.
+
+## Algorithm
+
+Use zero-indexed locations internally.
+
+```text
+dp[1 << 0][0] = 0
+all other states = INF
+
+for mask from 0 to full:
+    if start bit is not in mask, continue
+    for last from 0 to n-1:
+        for each nxt not in mask:
+            new_mask = mask | (1 << nxt)
+            dp[new_mask][nxt] =
+                min(dp[new_mask][nxt], dp[mask][last] + cost[last][nxt])
+
+answer = min over last of dp[full][last] + cost[last][0]
+```
+
+## Correctness proof
+
+**Invariant.** `dp[mask][last]` is the minimum cost of any path that starts at
+location `0`, visits exactly the locations in `mask`, and ends at `last`.
+
+**Base case.** The path that starts at `0`, visits only `0`, and ends at `0`
+has cost `0`, so `dp[1][0] = 0`. No other state is initially reachable.
+
+**Induction step.** Assume the invariant is true for all states with `k`
+visited locations. Consider a valid state `(mask, last)` with `k` locations.
+Any path extension that visits one new location must choose a location `nxt`
+not in `mask`, pay `cost[last][nxt]`, and end at `nxt` with visited set
+`mask | (1 << nxt)`. The transition tries every such `nxt`.
+
+Conversely, every transition appends exactly one unvisited location to a valid
+path, so it creates a valid path for the new state. Taking the minimum over all
+ways to reach a state gives the optimal value.
+
+After all locations are visited, a complete tour must return from its final
+location `last` to `0`. Minimizing `dp[full][last] + cost[last][0]` over all
+possible last locations gives the optimal cycle. `\square`
+
+## Complexity
+
+```text
+States: n 2^n
+Transitions per state: up to n
+Time:  O(n^2 2^n)
+Memory: O(n 2^n)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n;
+    if (!(cin >> n)) return 0;
+    vector<vector<long long>> cost(n, vector<long long>(n));
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) cin >> cost[i][j];
+    }
+
+    int total = 1 << n;
+    int full = total - 1;
+    const long long INF = (1LL << 62);
+    vector<vector<long long>> dp(total, vector<long long>(n, INF));
+    dp[1][0] = 0;
+
+    for (int mask = 0; mask < total; mask++) {
+        if ((mask & 1) == 0) continue;
+        for (int last = 0; last < n; last++) {
+            if (dp[mask][last] == INF) continue;
+            for (int nxt = 0; nxt < n; nxt++) {
+                if ((mask & (1 << nxt)) == 0) {
+                    int new_mask = mask | (1 << nxt);
+                    dp[new_mask][nxt] = min(dp[new_mask][nxt], dp[mask][last] + cost[last][nxt]);
+                }
+            }
+        }
+    }
+
+    long long answer = INF;
+    for (int last = 0; last < n; last++) {
+        answer = min(answer, dp[full][last] + cost[last][0]);
+    }
+    cout << answer << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n = next(it)
+    cost = [[next(it) for _ in range(n)] for _ in range(n)]
+    total = 1 << n
+    full = total - 1
+    inf = 10**30
+    dp = [[inf] * n for _ in range(total)]
+    dp[1][0] = 0
+
+    for mask in range(total):
+        if not (mask & 1):
+            continue
+        for last in range(n):
+            cur = dp[mask][last]
+            if cur >= inf:
+                continue
+            for nxt in range(n):
+                if not (mask >> nxt) & 1:
+                    new_mask = mask | (1 << nxt)
+                    value = cur + cost[last][nxt]
+                    if value < dp[new_mask][nxt]:
+                        dp[new_mask][nxt] = value
+
+    answer = min(dp[full][last] + cost[last][0] for last in range(n))
+    print(answer)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Forgetting the last dimension and losing the current location.
+Allowing location 0 to be revisited before the end.
+Forgetting the final return edge to location 0.
+Assuming symmetric costs.
+Starting from every location when the problem fixes location 1.
+```
+
+## Tests that matter
+
+```text
+n = 1 should output 0.
+n = 2 should output c[0][1] + c[1][0].
+Asymmetric matrices where reversing an edge changes the answer.
+Cases where the cheapest outgoing edge greedily gives a bad tour.
+```
+
+# Testing discussion
+
+The random generators intentionally use small `n` so that the expected outputs
+can be checked by brute force for assignment and route problems. This matters:
+bitmask DP bugs often pass samples while failing on a single missing bit test.
+
+For your own stress tests:
+
+```text
+1. Generate small random cases.
+2. Solve them with brute force over subsets or permutations.
+3. Compare against the DP.
+4. Only then trust the optimized constraints.
+```
+
+# What to carry forward
+
+Bitmask DP is a compact way to remember choices over a small set. The three
+most reusable states are:
+
+```text
+dp[mask]             coverage or used-set optimization
+dp[mask] with popcount(mask) deciding the next row
+dp[mask][last]       route/order problems where current position matters
+```
+
+Future advanced sections will add subset iteration tricks, meet-in-the-middle,
+and transforms. The foundation remains the same: define the mask meaning before
+writing the transition.

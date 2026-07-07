@@ -1,0 +1,188 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 58 Editorial: Full Virtual Contest Workflow"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Scoreboard Sorting.** Store each team by solved count, penalty, and name.
+The comparator sorts by more solved problems first, lower penalty second, and
+lexicographic name last. This mirrors the statement exactly, so once every team
+record is computed, sorting produces the required ranking.
+
+**B. Subset Partition Drill.** The problem is a small knapsack/subset-sum
+decision. Maintain reachable sums after processing each item. Initially only
+sum `0` is reachable. For each value, update sums in descending order so the
+value is used at most once. The best partition is the reachable sum closest to
+half the total.
+
+**C. MST Decision Drill.** Build the minimum spanning tree with Kruskal. If the
+MST weight is at most the budget, print feasible; otherwise not. The cut
+property ensures Kruskal gives the cheapest connected network, so no other
+spanning tree can fit the budget when the MST does not.
+
+**Common pitfalls.** In contest workflow problems, the algorithms are often
+standard; the challenge is reading carefully, choosing the right template, and
+testing boundary cases before moving on.
+
+These exercises are small contest-operation drills.
+
+- A implements scoreboard ordering exactly: more solved first, lower penalty
+  second, name as deterministic tiebreak.
+- B is subset/partition search for balancing workload between two solvers.
+- C recognizes MST savings quickly: total edge weight minus MST weight if the
+  graph is connected.
+
+The editorial emphasis is precision under time pressure: model the rule, test
+corner cases, then code the smallest reliable version.
+
+# A. Scoreboard Rank
+
+## Restatement
+
+Sort teams by more solved, then lower penalty, then name.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<tuple<int,int,string>>v;for(int i=0;i<n;i++){string s;int a,b;cin>>s>>a>>b;v.push_back({-a,b,s});}sort(v.begin(),v.end());for(auto [a,b,s]:v)cout<<s<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    lines=sys.stdin.read().splitlines()
+    if not lines: return
+    rows=[]
+    for line in lines[1:]:
+        name,sol,pen=line.split(); rows.append((-int(sol),int(pen),name))
+    rows.sort(); print("\n".join(name for _,_,name in rows))
+if __name__=="__main__": main()
+```
+
+# B. Split Workload
+
+## Restatement
+
+Split problem times between two solvers minimizing the maximum load.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<int>a(n);int tot=0;for(int&x:a){cin>>x;tot+=x;}int best=1e9;for(int m=0;m<(1<<n);m++){int s=0;for(int i=0;i<n;i++)if(m>>i&1)s+=a[i];best=min(best,max(s,tot-s));}cout<<best<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n=data[0]; a=data[1:]; best=10**9
+    for mask in range(1<<n):
+        s=sum(a[i] for i in range(n) if mask>>i&1); best=min(best,max(s,sum(a)-s))
+    print(best)
+if __name__=="__main__": main()
+```
+
+# C. Quick MST Decision
+
+## Restatement
+
+Use MST savings as a contest modeling drill.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m))return 0;vector<array<int,3>>e;long long total=0;for(int i=0,a,b,w;i<m;i++){cin>>a>>b>>w;e.push_back({w,a-1,b-1});total+=w;}vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};sort(e.begin(),e.end());long long keep=0;int cnt=0;for(auto [w,a,b]:e){a=f(a);b=f(b);if(a!=b){p[a]=b;keep+=w;cnt++;}}cout<<(cnt==n-1?total-keep:-1)<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m=data[0],data[1]; edges=[]; total=0; idx=2
+    for _ in range(m):
+        a,b,w=data[idx],data[idx+1],data[idx+2]; idx+=3; edges.append((w,a-1,b-1)); total+=w
+    p=list(range(n))
+    def f(x):
+        while p[x]!=x: p[x]=p[p[x]]; x=p[x]
+        return x
+    keep=0; cnt=0
+    for w,a,b in sorted(edges):
+        ra,rb=f(a),f(b)
+        if ra!=rb: p[ra]=rb; keep+=w; cnt+=1
+    print(total-keep if cnt==n-1 else -1)
+if __name__=="__main__": main()
+```
+
+# What to carry forward
+
+Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

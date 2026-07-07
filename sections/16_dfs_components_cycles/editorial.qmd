@@ -1,0 +1,811 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 16 Editorial: DFS, Components, And Cycles"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+The three local tasks use DFS in three different modes:
+
+| Problem | DFS mode |
+|---|---|
+| A. Subtree Sizes | root a tree and process postorder |
+| B. Undirected Cycle | traversal with parent skipping |
+| C. Directed Cycle | traversal with active/finished colors |
+
+The common theme is state:
+
+```text
+What do we know when entering a vertex?
+What do we know after all children are finished?
+What does an edge to an already seen vertex mean?
+```
+
+# DFS reminder
+
+DFS can be written recursively or iteratively. The reference solutions are
+iterative to avoid recursion-depth failures on long chains.
+
+Basic iterative traversal:
+
+```text
+mark start
+push start
+while stack not empty:
+    pop u
+    for each neighbor v:
+        if v is unvisited:
+            mark v
+            push v
+```
+
+Postorder work requires processing descendants before ancestors. Directed cycle
+detection requires knowing whether a vertex is currently active in the DFS
+stack. Those two needs are why this section uses more than the simplest stack
+template.
+
+# A. Subtree Sizes
+
+## Restatement
+
+Root the given tree at vertex `1`. For every vertex `v`, compute how many
+vertices are in the subtree of `v`, including `v` itself.
+
+## Constraints and traps
+
+`n` can be large, so the solution must be linear.
+
+Traps:
+
+- the input edges are undirected even though the rooted tree has parent-child
+  direction after rooting;
+- the root's parent needs a sentinel value;
+- subtree sizes must be accumulated after children are known;
+- recursive DFS may overflow on a chain.
+
+## Observations
+
+Once the tree is rooted, every non-root vertex has exactly one parent. The
+subtree recurrence is:
+
+```text
+subtree[u] = 1 + sum(subtree[v] for children v of u)
+```
+
+This is a postorder computation. We need children before parent.
+
+The iterative trick:
+
+1. Run a stack traversal from the root, recording `parent` and `order`.
+2. Process `order` in reverse.
+3. Add each vertex's subtree size to its parent.
+
+## Walk-through
+
+Tree:
+
+```text
+        1
+      /   \
+     2     3
+    / \     \
+   4   5     6
+              \
+               7
+```
+
+If a DFS order is:
+
+```text
+1, 3, 6, 7, 2, 5, 4
+```
+
+then reverse order is:
+
+```text
+4, 5, 2, 7, 6, 3, 1
+```
+
+Every child appears before its parent in this reversed list, so adding child
+sizes upward is valid.
+
+## Algorithm
+
+```text
+build undirected adjacency list
+parent[root] = root
+stack = [root]
+order = []
+
+while stack not empty:
+    u = pop
+    append u to order
+    for v in adj[u]:
+        if v == parent[u]:
+            continue
+        parent[v] = u
+        push v
+
+subtree[u] = 1 for all u
+for u in reversed(order):
+    if u is not root:
+        subtree[parent[u]] += subtree[u]
+
+print subtree[1..n]
+```
+
+## Correctness proof
+
+**Lemma 1.** The traversal assigns the correct parent to every non-root vertex.
+
+**Proof.** In a tree there is exactly one simple path from the root to any
+vertex. When traversal first reaches a vertex `v` from `u`, the edge `u-v` lies
+on that root-to-`v` path, so `u` is the rooted parent of `v`. Because a tree has
+no cycles, no vertex can be reached later through a different parent. `\square`
+
+**Lemma 2.** In `reversed(order)`, every vertex appears before its parent.
+
+**Proof.** A vertex is appended to `order` when it is popped from the DFS stack.
+Its children are pushed only after the parent has been popped and appended.
+Therefore every child is appended after its parent in `order`, and before its
+parent in `reversed(order)`. `\square`
+
+**Lemma 3.** When processing a vertex `u` in `reversed(order)`, `subtree[u]`
+equals the true subtree size of `u`.
+
+**Proof.** By Lemma 2, all children of `u` were processed earlier in the
+reversed order. Each child has already added its complete subtree size into
+`u`. Starting from `1` for `u` itself, the value is exactly `1` plus all child
+subtree sizes. `\square`
+
+**Theorem.** The algorithm prints the correct subtree size for every vertex.
+
+**Proof.** Lemma 3 applies to every vertex when it is processed. The algorithm
+prints the resulting values. `\square`
+
+## Complexity
+
+```text
+Time:  O(n)
+Memory: O(n)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n;
+    if (!(cin >> n)) return 0;
+    vector<vector<int>> adj(n);
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        cin >> u >> v;
+        --u;
+        --v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    vector<int> parent(n, -1), order;
+    vector<int> st = {0};
+    parent[0] = 0;
+    while (!st.empty()) {
+        int u = st.back();
+        st.pop_back();
+        order.push_back(u);
+        for (int v : adj[u]) {
+            if (v == parent[u]) continue;
+            parent[v] = u;
+            st.push_back(v);
+        }
+    }
+
+    vector<int> subtree(n, 1);
+    for (int i = (int)order.size() - 1; i >= 0; i--) {
+        int u = order[i];
+        if (u != 0) subtree[parent[u]] += subtree[u];
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (i) cout << ' ';
+        cout << subtree[i];
+    }
+    cout << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n = next(it)
+    adj = [[] for _ in range(n)]
+    for _ in range(n - 1):
+        u = next(it) - 1
+        v = next(it) - 1
+        adj[u].append(v)
+        adj[v].append(u)
+
+    parent = [-1] * n
+    order = []
+    stack = [0]
+    parent[0] = 0
+    while stack:
+        u = stack.pop()
+        order.append(u)
+        for v in adj[u]:
+            if v == parent[u]:
+                continue
+            parent[v] = u
+            stack.append(v)
+
+    size = [1] * n
+    for u in reversed(order):
+        if u != 0:
+            size[parent[u]] += size[u]
+
+    print(" ".join(map(str, size)))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Computing `subtree[u]` before child sizes are ready.
+- Forgetting that input edges are undirected.
+- Treating vertex `1` as index `1` instead of index `0` after conversion.
+- Using recursive DFS without considering a chain of length `200000`.
+
+## Tests that matter
+
+Use:
+
+- one vertex;
+- a chain;
+- a star centered at the root;
+- a balanced tree;
+- a tree where high-numbered vertices are ancestors of lower-numbered vertices.
+
+# B. Undirected Cycle
+
+## Restatement
+
+Given a simple undirected graph, print `CYCLIC` if any connected component
+contains a cycle. Otherwise print `ACYCLIC`.
+
+## Constraints and traps
+
+The graph can be disconnected.
+
+Traps:
+
+- the edge back to the DFS parent is not a cycle;
+- all components must be checked;
+- this problem says the graph is simple, so parallel edges do not need special
+  handling;
+- a component with `k` vertices and `k-1` edges can still be a tree only if it
+  is connected, which is why traversal is natural.
+
+## Observations
+
+In an undirected DFS tree, every scanned edge `u-v` falls into one of these
+cases:
+
+```text
+v is parent[u]      -> the edge we used to enter u; ignore
+v is unseen         -> tree edge; continue DFS
+v is already seen   -> another route to an existing vertex; cycle
+```
+
+The third case means there is a path in the DFS tree from `v` to `u`, plus the
+edge `u-v`, forming a cycle.
+
+## Walk-through
+
+Graph:
+
+```text
+1 -- 2 -- 3
+|         |
+4 --------
+```
+
+DFS may visit:
+
+```text
+1 -> 2 -> 3 -> 4
+```
+
+At `4`, neighbor `1` is already seen and is not the parent of `4`. The path
+`1-2-3-4` plus edge `4-1` is a cycle.
+
+## Algorithm
+
+```text
+build undirected adjacency list
+seen = false for all vertices
+
+for every start:
+    if seen[start]: continue
+    mark start
+    stack = [(start, no_parent)]
+    while stack not empty:
+        u, parent = pop
+        for v in adj[u]:
+            if v == parent:
+                continue
+            if seen[v]:
+                print CYCLIC and stop
+            mark v
+            push (v, u)
+
+print ACYCLIC
+```
+
+## Correctness proof
+
+**Lemma 1.** If the algorithm prints `CYCLIC`, the graph contains a cycle.
+
+**Proof.** The algorithm prints `CYCLIC` only when it sees an edge `u-v` where
+`v` is already seen and `v` is not the parent of `u`. Since `v` was seen in the
+same DFS component, the DFS tree contains a path between `v` and `u`. This path
+does not use the edge `u-v` as the parent edge. Adding edge `u-v` forms a
+cycle. `\square`
+
+**Lemma 2.** If an undirected component contains a cycle, the algorithm will
+print `CYCLIC`.
+
+**Proof.** Consider any cycle in the component. During DFS, let `x` be the
+first vertex of that cycle discovered, and follow DFS tree discoveries until
+the traversal reaches other cycle vertices. Because the cycle has a closing
+edge between two already connected vertices that is not simply a child-parent
+return edge, eventually DFS scans an edge to an already seen non-parent vertex.
+Then the algorithm prints `CYCLIC`. `\square`
+
+**Theorem.** The algorithm prints `CYCLIC` exactly when the graph contains an
+undirected cycle.
+
+**Proof.** Lemma 1 proves no false positives. Lemma 2 proves no false
+negatives. The outer loop checks every component. `\square`
+
+## Complexity
+
+```text
+Time:  O(n + m)
+Memory: O(n + m)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    vector<vector<int>> adj(n);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        --u;
+        --v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    vector<char> seen(n, false);
+    for (int start = 0; start < n; start++) {
+        if (seen[start]) continue;
+        seen[start] = true;
+        vector<pair<int, int>> st = {{start, -1}};
+        while (!st.empty()) {
+            auto [u, parent] = st.back();
+            st.pop_back();
+            for (int v : adj[u]) {
+                if (v == parent) continue;
+                if (seen[v]) {
+                    cout << "CYCLIC\n";
+                    return 0;
+                }
+                seen[v] = true;
+                st.push_back({v, u});
+            }
+        }
+    }
+    cout << "ACYCLIC\n";
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n = next(it)
+    m = next(it)
+    adj = [[] for _ in range(n)]
+    for _ in range(m):
+        u = next(it) - 1
+        v = next(it) - 1
+        adj[u].append(v)
+        adj[v].append(u)
+
+    seen = [False] * n
+    for start in range(n):
+        if seen[start]:
+            continue
+        seen[start] = True
+        stack = [(start, -1)]
+        while stack:
+            u, parent = stack.pop()
+            for v in adj[u]:
+                if v == parent:
+                    continue
+                if seen[v]:
+                    print("CYCLIC")
+                    return
+                seen[v] = True
+                stack.append((v, u))
+    print("ACYCLIC")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Reporting a cycle when seeing the parent edge.
+- Starting DFS only from vertex `1`.
+- Using directed-cycle colors and forgetting that undirected edges appear both
+  ways.
+- Assuming `m >= n` is enough globally; disconnected graphs require component
+  reasoning.
+
+## Tests that matter
+
+Use:
+
+- empty graph;
+- forest with many components;
+- one triangle;
+- cycle in a component not containing vertex `1`;
+- connected tree with `n-1` edges.
+
+# C. Directed Cycle
+
+## Restatement
+
+Given a directed graph, print `CYCLIC` if it contains a directed cycle.
+Otherwise print `ACYCLIC`.
+
+## Constraints and traps
+
+The graph can be disconnected.
+
+Traps:
+
+- directed cycle detection is not the same as undirected cycle detection;
+- an edge to a finished vertex does not prove a cycle;
+- an edge to an active vertex does prove a cycle;
+- repeated directed edges do not change the yes/no answer.
+
+## DFS color reminder
+
+Use:
+
+```text
+0 = unvisited
+1 = active in current DFS stack
+2 = finished
+```
+
+When scanning edge `u -> v`:
+
+```text
+color[v] == 0: enter v
+color[v] == 1: directed cycle found
+color[v] == 2: ignore
+```
+
+## Walk-through
+
+Graph:
+
+```text
+1 -> 2 -> 3 -> 4
+     ^         |
+     +---------+
+```
+
+During DFS:
+
+```text
+active path: 1,2,3,4
+edge 4 -> 2 goes to an active vertex
+```
+
+This gives the directed cycle:
+
+```text
+2 -> 3 -> 4 -> 2
+```
+
+Now compare:
+
+```text
+1 -> 2 -> 4
+1 -> 3 -> 4
+```
+
+When DFS later sees an edge to `4` after `4` is finished, that does not create
+a cycle. It is just another path into already processed work.
+
+## Algorithm
+
+```text
+build directed adjacency list
+color = 0 for every vertex
+
+for every start:
+    if color[start] != 0:
+        continue
+    color[start] = 1
+    stack = [(start, 0)]
+    while stack not empty:
+        u, i = top frame
+        if i == len(adj[u]):
+            color[u] = 2
+            pop frame
+            continue
+
+        v = adj[u][i]
+        increment top frame index
+        if color[v] == 0:
+            color[v] = 1
+            push (v, 0)
+        else if color[v] == 1:
+            print CYCLIC and stop
+
+print ACYCLIC
+```
+
+## Correctness proof
+
+**Lemma 1.** If the algorithm sees an edge to a color-`1` vertex, the graph has
+a directed cycle.
+
+**Proof.** Color `1` means the vertex is currently on the active DFS stack.
+If the current vertex is `u` and the edge is `u -> v`, then the stack contains
+a directed path from `v` down to `u`. Adding edge `u -> v` closes a directed
+cycle. `\square`
+
+**Lemma 2.** If the graph has a directed cycle, DFS will eventually see an edge
+to a color-`1` vertex.
+
+**Proof.** Consider the first vertex of that cycle entered by DFS. Following
+cycle edges from it, DFS either enters the next unvisited cycle vertex or
+encounters a vertex already active. The cycle cannot be fully finished before
+its closing edge is scanned, because finishing the first cycle vertex requires
+finishing all descendants reached through its outgoing edges. Therefore the
+closing edge is eventually scanned while its target is still active. `\square`
+
+**Theorem.** The algorithm prints `CYCLIC` exactly when the directed graph
+contains a directed cycle.
+
+**Proof.** Lemma 1 proves every reported cycle is real. Lemma 2 proves every
+real directed cycle is detected. The outer loop starts DFS from every
+unvisited component. `\square`
+
+## Complexity
+
+Each directed edge is scanned once.
+
+```text
+Time:  O(n + m)
+Memory: O(n + m)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    vector<vector<int>> adj(n);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        --u;
+        --v;
+        adj[u].push_back(v);
+    }
+
+    vector<char> color(n, 0);
+    for (int start = 0; start < n; start++) {
+        if (color[start] != 0) continue;
+        color[start] = 1;
+        vector<pair<int, int>> st = {{start, 0}};
+        while (!st.empty()) {
+            int u = st.back().first;
+            int i = st.back().second;
+            if (i == (int)adj[u].size()) {
+                color[u] = 2;
+                st.pop_back();
+                continue;
+            }
+            int v = adj[u][i];
+            st.back().second++;
+            if (color[v] == 0) {
+                color[v] = 1;
+                st.push_back({v, 0});
+            } else if (color[v] == 1) {
+                cout << "CYCLIC\n";
+                return 0;
+            }
+        }
+    }
+    cout << "ACYCLIC\n";
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n = next(it)
+    m = next(it)
+    adj = [[] for _ in range(n)]
+    for _ in range(m):
+        u = next(it) - 1
+        v = next(it) - 1
+        adj[u].append(v)
+
+    color = [0] * n
+    for start in range(n):
+        if color[start] != 0:
+            continue
+        color[start] = 1
+        stack = [(start, 0)]
+        while stack:
+            u, i = stack[-1]
+            if i == len(adj[u]):
+                color[u] = 2
+                stack.pop()
+                continue
+            v = adj[u][i]
+            stack[-1] = (u, i + 1)
+            if color[v] == 0:
+                color[v] = 1
+                stack.append((v, 0))
+            elif color[v] == 1:
+                print("CYCLIC")
+                return
+    print("ACYCLIC")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Treating any edge to a visited vertex as a directed cycle.
+- Marking a vertex finished too early, before all outgoing edges are scanned.
+- Forgetting disconnected components.
+- Reusing the undirected parent-skip rule for directed graphs.
+
+## Tests that matter
+
+Use:
+
+- directed acyclic graph with converging paths;
+- simple directed cycle;
+- cycle in a component not reachable from vertex `1`;
+- graph with no edges;
+- repeated edge in an acyclic graph.
+
+# Stress testing
+
+Good stress tests for this section compare independent ideas:
+
+Problem A:
+
+```text
+generate a random tree
+compute subtree sizes with the iterative method
+compare with a slow recursive method on small n
+```
+
+Problem B:
+
+```text
+for each connected component, count vertices and edges
+in a simple undirected graph, a connected component is cyclic iff edges >= vertices
+```
+
+Problem C:
+
+```text
+compare DFS colors against Floyd-Warshall reachability on tiny directed graphs:
+there is a cycle iff some edge u->v has v reachable back to u
+```
+
+The local generators use direct reference implementations and include both
+fixed edge cases and randomized cases for C++ and Python.
+
+# What to carry forward
+
+DFS is the tool to reach for when:
+
+```text
+the graph is unweighted but shortest distance is not the point
+the problem asks about descendants or subtrees
+you need to know when a branch is finished
+you need to detect cycles
+```
+
+The next section builds on DFS finishing order and introduces topological
+sorting and dynamic programming on DAGs.
+

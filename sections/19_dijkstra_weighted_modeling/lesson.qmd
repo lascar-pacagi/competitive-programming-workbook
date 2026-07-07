@@ -1,0 +1,234 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 19: Dijkstra And Weighted Modeling"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why Dijkstra
+
+BFS solves shortest paths when every move costs the same. Once edges have
+different nonnegative costs, a path with fewer edges may be more expensive:
+
+```text
+1 -> 2 cost 100
+1 -> 3 cost 1
+3 -> 2 cost 1
+```
+
+BFS would see vertex `2` in one edge. The cheapest route is actually
+`1 -> 3 -> 2` with cost `2`.
+
+Dijkstra's algorithm is the standard tool for shortest paths with nonnegative
+edge weights.
+
+# Recognition
+
+| Statement signal | Likely tool |
+|---|---|
+| shortest path with nonnegative weights | Dijkstra |
+| grid with tolls/costs, not just steps | Dijkstra on cells |
+| one-time option changes cost | Dijkstra on expanded states |
+| all weights are `0` or `1` | next section: 0-1 BFS |
+| negative edge weights | not Dijkstra |
+
+# Priority queue primer
+
+Dijkstra repeatedly expands the not-yet-final vertex with smallest known
+distance. A min-priority queue gives that vertex efficiently.
+
+C++ min-heap:
+
+```cpp
+priority_queue<pair<long long,int>,
+               vector<pair<long long,int>>,
+               greater<pair<long long,int>>> pq;
+```
+
+Python:
+
+```python
+import heapq
+heapq.heappush(heap, (distance, vertex))
+distance, vertex = heapq.heappop(heap)
+```
+
+# Dijkstra template
+
+```text
+dist[start] = 0
+push (0, start)
+
+while heap is not empty:
+    d, u = pop smallest
+    if d is not dist[u]:
+        continue
+    for each edge u -> v with weight w:
+        if d + w < dist[v]:
+            dist[v] = d + w
+            push (dist[v], v)
+```
+
+The `if d is not dist[u]` line skips stale heap entries. We do not decrease a
+key inside the heap; we push a new better pair and ignore the old one later.
+
+# The invariant
+
+When Dijkstra pops a non-stale pair `(dist[u], u)`, `dist[u]` is final: no
+future relaxation can make it smaller.
+
+Why nonnegative weights matter:
+
+```text
+Every future path must first leave the heap through a distance >= dist[u].
+Adding nonnegative edges cannot reduce that distance below dist[u].
+```
+
+With a negative edge, this reasoning breaks.
+
+# Worked example
+
+Graph:
+
+```text
+1 --4--> 2 --7--> 4
+1 --2--> 3 --5--> 4
+3 --1--> 2
+```
+
+Trace:
+
+```text
+dist[1]=0
+pop 1: set dist[2]=4, dist[3]=2
+pop 3: improve dist[2]=3, set dist[4]=7
+pop 2: no improvement to 4 because 3+7=10
+pop stale (4,2): skip
+pop 4: final 7
+```
+
+# Grid Dijkstra
+
+A weighted grid is a graph:
+
+```text
+cell = vertex
+moving into a neighbor adds that neighbor's toll
+```
+
+For a cell `(r,c)`, relax its four neighbors:
+
+```text
+new distance = dist[r][c] + toll[nr][nc]
+```
+
+If the start cell's toll counts, initialize:
+
+```text
+dist[0][0] = toll[0][0]
+```
+
+# State expansion
+
+Sometimes a vertex alone is not enough state. In Discount Route, the important
+state is:
+
+```text
+(vertex, discount_used)
+```
+
+There are two layers:
+
+```text
+layer 0: discount not used yet
+layer 1: discount already used
+```
+
+For an edge `u -> v` with cost `w`:
+
+```text
+(u,0) -> (v,0) cost w
+(u,0) -> (v,1) cost floor(w/2)
+(u,1) -> (v,1) cost w
+```
+
+Then run ordinary Dijkstra on this expanded graph.
+
+# Complexity
+
+For adjacency-list graphs:
+
+```text
+Time:  O((n + m) log n)
+Memory: O(n + m)
+```
+
+For two-layer state graphs, the vertex and edge counts are only multiplied by a
+constant, so the asymptotic complexity stays the same.
+
+# Implementation notes
+
+Use 64-bit integers for distances in C++:
+
+```cpp
+const long long INF = (1LL << 62);
+```
+
+In Python, use a large integer sentinel:
+
+```python
+inf = 10**30
+```
+
+Do not mark a vertex visited when it is pushed. Dijkstra may find a better
+distance before it is popped. The safe moment is when a non-stale pair is
+popped.
+
+# Local exercises
+
+## A. Weighted Route Queries
+
+Run Dijkstra once from the source. Answer each target query from `dist`.
+
+## B. Grid Toll Path
+
+Run Dijkstra over grid cells. The cost includes the start cell and every
+entered cell.
+
+## C. Discount Route
+
+Run Dijkstra over `(vertex, used)` states. The answer is:
+
+```text
+min(dist[n][0], dist[n][1])
+```
+
+# Submission checklist
+
+```text
+Are all edge weights nonnegative?
+Did I use a min-heap?
+Did I skip stale heap entries?
+Did I use long long for distances in C++?
+For grids, did I define whether the start cell cost counts?
+For state graphs, did I include every legal transition?
+```
+

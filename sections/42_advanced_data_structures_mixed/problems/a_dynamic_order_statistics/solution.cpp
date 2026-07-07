@@ -1,0 +1,3 @@
+#include <bits/stdc++.h>
+using namespace std; struct BIT{int n; vector<int> b; BIT(int n):n(n),b(n+1){} void add(int i,int x){for(;i<=n;i+=i&-i)b[i]+=x;} int sum(int i){int s=0;for(;i;i-=i&-i)s+=b[i];return s;} int kth(int k){if(k<1||k>sum(n)) return -1; int pos=0,step=1; while((step<<1)<=n) step<<=1; for(;step;step>>=1){int nx=pos+step; if(nx<=n&&b[nx]<k){pos=nx;k-=b[nx];}} return pos+1;}};
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int m,q;if(!(cin>>m>>q)) return 0; BIT bit(m); vector<int> cnt(m+1); while(q--){int t,x;cin>>t>>x; if(t==1){cnt[x]++;bit.add(x,1);} else if(t==2){if(cnt[x]){cnt[x]--;bit.add(x,-1);}} else if(t==3) cout<<bit.kth(x)<<'\n'; else cout<<bit.sum(x)<<'\n';}}

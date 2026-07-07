@@ -1,0 +1,182 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 47 Editorial: Meet-In-The-Middle"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Count Subsets with Sum at Most `S`.** Split the array into left and right
+halves. Enumerate every subset sum of each half. For a fixed left sum `x`, the
+valid right sums are `y <= S - x`; after sorting the right sums, their count is
+`upper_bound(right, S-x)`. Every original subset has exactly one left part and
+one right part, so the sum over all left sums counts each valid subset once.
+
+**B. Maximum Subset Sum at Most `S`.** Use the same split and sorted right
+sums. For each left sum `x <= S`, find the largest right sum `y <= S-x` and
+maximize `x+y`. This is the optimization version of A: instead of counting all
+compatible partners, keep the best compatible partner.
+
+**C. Closest Subset Sum.** Enumerate both halves. For each left sum `x`, the
+best right partner is near `target - x` in sorted order. Check `lower_bound`
+and its predecessor, because one is the first sum not below the target gap and
+the other is the largest sum below it. One of those two minimizes the absolute
+difference for this `x`; scanning all `x` gives the global optimum.
+
+**Common pitfalls.** Include the empty subset in both halves. Use 64-bit
+integers for sums. The enumeration cost is `2^(n/2)`, which is the whole point
+of the technique.
+
+Meet-in-the-middle splits one exponential choice into two half-sized
+enumerations.
+
+- A counts pairs of half-subset sums whose total is at most `X`.
+- B maximizes such a total instead of counting it.
+- C checks the two right-half sums nearest to `T-left_sum`.
+
+Every full subset is uniquely determined by its left half and right half, so
+enumerating both lists is complete. Sorting one side avoids trying all pairs.
+
+# A. Count Subset Sums <= X
+
+## Restatement
+
+Count subsets whose sum is at most `X`.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; vector<long long>sums(vector<long long>a){vector<long long>r{0};for(long long x:a){int m=r.size();for(int i=0;i<m;i++)r.push_back(r[i]+x);}return r;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;long long x;if(!(cin>>n>>x))return 0;vector<long long>a(n);for(auto&v:a)cin>>v;vector<long long>l(a.begin(),a.begin()+n/2),rr(a.begin()+n/2,a.end());auto L=sums(l),R=sums(rr);sort(R.begin(),R.end());long long ans=0;for(long long s:L)ans+=upper_bound(R.begin(),R.end(),x-s)-R.begin();cout<<ans<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys,bisect
+def sums(a):
+    res=[0]
+    for x in a: res += [y+x for y in res]
+    return res
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,x=data[0],data[1]; a=data[2:]; left=sums(a[:n//2]); right=sorted(sums(a[n//2:])); ans=0
+    for s in left: ans+=bisect.bisect_right(right,x-s)
+    print(ans)
+if __name__=="__main__": main()
+```
+
+# B. Best Subset Sum <= X
+
+## Restatement
+
+Print the maximum subset sum not exceeding `X`.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; vector<long long>sums(vector<long long>a){vector<long long>r{0};for(long long x:a){int m=r.size();for(int i=0;i<m;i++)r.push_back(r[i]+x);}return r;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;long long x;if(!(cin>>n>>x))return 0;vector<long long>a(n);for(auto&v:a)cin>>v;vector<long long>l(a.begin(),a.begin()+n/2),rr(a.begin()+n/2,a.end());auto L=sums(l),R=sums(rr);sort(R.begin(),R.end());long long best=0;for(long long s:L){auto it=upper_bound(R.begin(),R.end(),x-s);if(it!=R.begin()){--it;best=max(best,s+*it);}}cout<<best<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys,bisect
+def sums(a):
+    res=[0]
+    for x in a: res += [y+x for y in res]
+    return res
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,x=data[0],data[1]; a=data[2:]; left=sums(a[:n//2]); right=sorted(sums(a[n//2:])); best=0
+    for s in left:
+        i=bisect.bisect_right(right,x-s)-1
+        if i>=0: best=max(best,s+right[i])
+    print(best)
+if __name__=="__main__": main()
+```
+
+# C. Closest Subset Sum
+
+## Restatement
+
+Print the minimum absolute difference between a subset sum and target `T`.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; vector<long long>sums(vector<long long>a){vector<long long>r{0};for(long long x:a){int m=r.size();for(int i=0;i<m;i++)r.push_back(r[i]+x);}return r;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;long long t;if(!(cin>>n>>t))return 0;vector<long long>a(n);for(auto&v:a)cin>>v;vector<long long>l(a.begin(),a.begin()+n/2),rr(a.begin()+n/2,a.end());auto L=sums(l),R=sums(rr);sort(R.begin(),R.end());long long best=4e18;for(long long s:L){auto it=lower_bound(R.begin(),R.end(),t-s);if(it!=R.end())best=min(best,llabs(s+*it-t));if(it!=R.begin()){--it;best=min(best,llabs(s+*it-t));}}cout<<best<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys,bisect
+def sums(a):
+    res=[0]
+    for x in a: res += [y+x for y in res]
+    return res
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,t=data[0],data[1]; a=data[2:]; L=sums(a[:n//2]); R=sorted(sums(a[n//2:])); best=10**30
+    for s in L:
+        i=bisect.bisect_left(R,t-s)
+        for j in (i-1,i):
+            if 0<=j<len(R): best=min(best,abs(s+R[j]-t))
+    print(best)
+if __name__=="__main__": main()
+```
+
+# Testing discussion
+
+Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

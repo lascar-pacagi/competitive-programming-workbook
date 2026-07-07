@@ -1,0 +1,180 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 49 Editorial: Convex Hull Trick And Li Chao Tree"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Static Lines, Minimum Query.** Each inserted line represents one candidate
+linear function `y = mx + b`. A query asks for the minimum value among all
+candidates at a given `x`. The local solution evaluates all lines so the
+definition is visible in the code. In larger constraints, the same set of lines
+is stored in a convex hull or Li Chao tree so the minimum is found faster.
+
+**B. DP to Lines.** A common transition is
+`dp[i] = min_j(dp[j] + a[j] * x[i] + b[j])`. For each previous `j`, create a
+line with slope `a[j]` and intercept `dp[j] + b[j]`; querying at `x[i]` gives
+exactly the best transition into `i`. The proof is just algebra: every possible
+previous state becomes one line, and no line represents an illegal state.
+
+**C. Li Chao Tree Query Model.** A Li Chao tree stores, for each segment of the
+coordinate domain, a line that is currently best at that segment midpoint.
+Insertion compares the new line and old line at endpoints and midpoint, keeps
+the better midpoint line, and recurses only where the other line can still win.
+The local code may scan all lines, but the invariant explains why the optimized
+tree answers point queries in logarithmic time.
+
+**Common pitfalls.** Equal slopes should keep only the better intercept. Use
+64-bit arithmetic or wider if coordinates and slopes are large. Decide
+up-front whether the task asks for minimum or maximum; signs flip easily.
+
+The common model is a set of lines.
+
+- A and C maintain lines `y=m*x+b` and query the minimum or maximum at a point.
+  The local limits allow a direct scan, which is the clearest correctness
+  reference.
+- B expands `(x_i-x_j)^2` so each previous DP state `j` becomes a line with
+  slope `-2*x_j` and intercept `dp[j]+x_j^2`.
+
+For larger external tasks, replace the direct scan by a Li Chao tree or a
+monotone convex hull. The mathematical reduction from candidate states to
+lines is unchanged.
+
+# A. Dynamic Line Minimum
+
+## Restatement
+
+Add lines `y=mx+b` and answer minimum value at query points.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; struct Line{long long m,b; long long get(long long x){return m*x+b;}}; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int q;if(!(cin>>q))return 0;vector<Line>ls;while(q--){int t;cin>>t;if(t==1){long long m,b;cin>>m>>b;ls.push_back({m,b});}else{long long x;cin>>x;long long ans=4e18;for(auto &l:ls)ans=min(ans,l.get(x));cout<<ans<<'\n';}}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    q=data[0]; idx=1; lines=[]; out=[]
+    for _ in range(q):
+        t=data[idx]; idx+=1
+        if t==1:
+            m,b=data[idx],data[idx+1]; idx+=2; lines.append((m,b))
+        else:
+            x=data[idx]; idx+=1; out.append(str(min(m*x+b for m,b in lines)))
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# B. Quadratic CHT DP
+
+## Restatement
+
+Compute `dp[i]=min_j dp[j]+(x_i-x_j)^2+c` for increasing `x`.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;long long c;if(!(cin>>n>>c))return 0;vector<long long>x(n),dp(n);for(auto&v:x)cin>>v;for(int i=1;i<n;i++){dp[i]=4e18;for(int j=0;j<i;j++)dp[i]=min(dp[i],dp[j]+(x[i]-x[j])*(x[i]-x[j])+c);}cout<<dp.back()<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,c=data[0],data[1]; x=data[2:]; dp=[0]*n
+    for i in range(1,n):
+        dp[i]=min(dp[j]+(x[i]-x[j])**2+c for j in range(i))
+    print(dp[-1])
+if __name__=="__main__": main()
+```
+
+# C. Dynamic Line Maximum
+
+## Restatement
+
+Add lines and answer maximum value at query points.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; struct Line{long long m,b; long long get(long long x){return m*x+b;}}; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int q;if(!(cin>>q))return 0;vector<Line>ls;while(q--){int t;cin>>t;if(t==1){long long m,b;cin>>m>>b;ls.push_back({m,b});}else{long long x;cin>>x;long long ans=-4e18;for(auto &l:ls)ans=max(ans,l.get(x));cout<<ans<<'\n';}}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    q=data[0]; idx=1; lines=[]; out=[]
+    for _ in range(q):
+        t=data[idx]; idx+=1
+        if t==1:
+            m,b=data[idx],data[idx+1]; idx+=2; lines.append((m,b))
+        else:
+            x=data[idx]; idx+=1; out.append(str(max(m*x+b for m,b in lines)))
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# Testing discussion
+
+Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

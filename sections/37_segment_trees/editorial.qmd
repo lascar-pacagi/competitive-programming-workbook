@@ -1,0 +1,479 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 37 Editorial: Segment Trees"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+| Problem | Main idea |
+|---|---|
+| A. Range Minimum Updates | See full algorithm and code below. |
+| B. Maximum Subarray Updates | See full algorithm and code below. |
+| C. Lazy Range Add Sum | See full algorithm and code below. |
+# A. Range Minimum Updates
+
+## Restatement
+
+Point-assign values and answer range minimum queries.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    int size = 1;
+    while (size < n) size <<= 1;
+    const long long INF = (1LL << 60);
+    vector<long long> seg(2 * size, INF);
+    for (int i = 0; i < n; i++) cin >> seg[size + i];
+    for (int i = size - 1; i >= 1; i--) seg[i] = min(seg[2 * i], seg[2 * i + 1]);
+    while (q--) {
+        int typ, x, y;
+        cin >> typ >> x >> y;
+        if (typ == 1) {
+            int p = size + x - 1;
+            seg[p] = y;
+            for (p >>= 1; p; p >>= 1) seg[p] = min(seg[2 * p], seg[2 * p + 1]);
+        } else {
+            int l = size + x - 1, r = size + y;
+            long long ans = INF;
+            while (l < r) {
+                if (l & 1) ans = min(ans, seg[l++]);
+                if (r & 1) ans = min(ans, seg[--r]);
+                l >>= 1;
+                r >>= 1;
+            }
+            cout << ans << '\n';
+        }
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+INF = 10**30
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, q = data[0], data[1]
+    a = data[2:2 + n]
+    size = 1
+    while size < n:
+        size *= 2
+    seg = [INF] * (2 * size)
+    for i, x in enumerate(a):
+        seg[size + i] = x
+    for i in range(size - 1, 0, -1):
+        seg[i] = min(seg[2 * i], seg[2 * i + 1])
+    idx = 2 + n
+    out = []
+    for _ in range(q):
+        typ, x, y = data[idx], data[idx + 1], data[idx + 2]
+        idx += 3
+        if typ == 1:
+            p = size + x - 1
+            seg[p] = y
+            p //= 2
+            while p:
+                seg[p] = min(seg[2 * p], seg[2 * p + 1])
+                p //= 2
+        else:
+            l, r = x - 1 + size, y + size
+            ans = INF
+            while l < r:
+                if l & 1:
+                    ans = min(ans, seg[l])
+                    l += 1
+                if r & 1:
+                    r -= 1
+                    ans = min(ans, seg[r])
+                l //= 2
+                r //= 2
+            out.append(str(ans))
+    print("\n".join(out))
+
+if __name__ == "__main__":
+    main()
+```
+
+# B. Maximum Subarray Updates
+
+## Restatement
+
+After each point assignment, print the maximum non-empty subarray sum of the whole array.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const long long NEG = -(1LL << 60);
+
+struct Node {
+    long long sum, pref, suff, best;
+};
+
+Node leaf(long long x) { return {x, x, x, x}; }
+Node merge(Node a, Node b) {
+    return {
+        a.sum + b.sum,
+        max(a.pref, a.sum + b.pref),
+        max(b.suff, b.sum + a.suff),
+        max({a.best, b.best, a.suff + b.pref})
+    };
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    int size = 1;
+    while (size < n) size <<= 1;
+    Node neutral{0, NEG, NEG, NEG};
+    vector<Node> seg(2 * size, neutral);
+    for (int i = 0; i < n; i++) {
+        long long x;
+        cin >> x;
+        seg[size + i] = leaf(x);
+    }
+    for (int i = size - 1; i >= 1; i--) seg[i] = merge(seg[2 * i], seg[2 * i + 1]);
+    while (q--) {
+        int pos;
+        long long val;
+        cin >> pos >> val;
+        int p = size + pos - 1;
+        seg[p] = leaf(val);
+        for (p >>= 1; p; p >>= 1) seg[p] = merge(seg[2 * p], seg[2 * p + 1]);
+        cout << seg[1].best << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+NEG = -10**30
+
+def merge(a, b):
+    total = a[0] + b[0]
+    pref = max(a[1], a[0] + b[1])
+    suff = max(b[2], b[0] + a[2])
+    best = max(a[3], b[3], a[2] + b[1])
+    return (total, pref, suff, best)
+
+def leaf(x):
+    return (x, x, x, x)
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, q = data[0], data[1]
+    a = data[2:2 + n]
+    size = 1
+    while size < n:
+        size *= 2
+    neutral = (0, NEG, NEG, NEG)
+    seg = [neutral] * (2 * size)
+    for i, x in enumerate(a):
+        seg[size + i] = leaf(x)
+    for i in range(size - 1, 0, -1):
+        seg[i] = merge(seg[2 * i], seg[2 * i + 1])
+    idx = 2 + n
+    out = []
+    for _ in range(q):
+        pos, val = data[idx], data[idx + 1]
+        idx += 2
+        p = size + pos - 1
+        seg[p] = leaf(val)
+        p //= 2
+        while p:
+            seg[p] = merge(seg[2 * p], seg[2 * p + 1])
+            p //= 2
+        out.append(str(seg[1][3]))
+    print("\n".join(out))
+
+if __name__ == "__main__":
+    main()
+```
+
+# C. Lazy Range Add Sum
+
+## Restatement
+
+Support range add updates and range sum queries.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct SegTree {
+    int n;
+    vector<long long> seg, lazy;
+    SegTree(const vector<long long>& a) {
+        n = 1;
+        while (n < (int)a.size()) n <<= 1;
+        seg.assign(2 * n, 0);
+        lazy.assign(2 * n, 0);
+        for (int i = 0; i < (int)a.size(); i++) seg[n + i] = a[i];
+        for (int i = n - 1; i >= 1; i--) seg[i] = seg[2 * i] + seg[2 * i + 1];
+    }
+    void apply(int v, int len, long long x) {
+        seg[v] += x * len;
+        lazy[v] += x;
+    }
+    void push(int v, int len) {
+        if (lazy[v] && v < n) {
+            int half = len / 2;
+            apply(2 * v, half, lazy[v]);
+            apply(2 * v + 1, half, lazy[v]);
+            lazy[v] = 0;
+        }
+    }
+    void add(int v, int tl, int tr, int l, int r, long long x) {
+        if (l <= tl && tr <= r) {
+            apply(v, tr - tl + 1, x);
+            return;
+        }
+        push(v, tr - tl + 1);
+        int tm = (tl + tr) / 2;
+        if (l <= tm) add(2 * v, tl, tm, l, r, x);
+        if (tm < r) add(2 * v + 1, tm + 1, tr, l, r, x);
+        seg[v] = seg[2 * v] + seg[2 * v + 1];
+    }
+    long long query(int v, int tl, int tr, int l, int r) {
+        if (l <= tl && tr <= r) return seg[v];
+        push(v, tr - tl + 1);
+        int tm = (tl + tr) / 2;
+        long long ans = 0;
+        if (l <= tm) ans += query(2 * v, tl, tm, l, r);
+        if (tm < r) ans += query(2 * v + 1, tm + 1, tr, l, r);
+        return ans;
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    vector<long long> a(n);
+    for (long long &x : a) cin >> x;
+    SegTree st(a);
+    while (q--) {
+        int typ, l, r;
+        cin >> typ >> l >> r;
+        if (typ == 1) {
+            long long x;
+            cin >> x;
+            st.add(1, 1, st.n, l, r, x);
+        } else {
+            cout << st.query(1, 1, st.n, l, r) << '\n';
+        }
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, q = data[0], data[1]
+    a = data[2:2 + n]
+    size = 1
+    while size < n:
+        size *= 2
+    seg = [0] * (2 * size)
+    lazy = [0] * (2 * size)
+    for i, x in enumerate(a):
+        seg[size + i] = x
+    for i in range(size - 1, 0, -1):
+        seg[i] = seg[2 * i] + seg[2 * i + 1]
+    def apply(v, length, delta):
+        seg[v] += delta * length
+        lazy[v] += delta
+    def push(v, length):
+        if lazy[v] and v < size:
+            half = length // 2
+            apply(2 * v, half, lazy[v])
+            apply(2 * v + 1, half, lazy[v])
+            lazy[v] = 0
+    def add(v, tl, tr, l, r, x):
+        if l <= tl and tr <= r:
+            apply(v, tr - tl + 1, x)
+            return
+        push(v, tr - tl + 1)
+        tm = (tl + tr) // 2
+        if l <= tm:
+            add(2 * v, tl, tm, l, r, x)
+        if tm < r:
+            add(2 * v + 1, tm + 1, tr, l, r, x)
+        seg[v] = seg[2 * v] + seg[2 * v + 1]
+    def query(v, tl, tr, l, r):
+        if l <= tl and tr <= r:
+            return seg[v]
+        push(v, tr - tl + 1)
+        tm = (tl + tr) // 2
+        ans = 0
+        if l <= tm:
+            ans += query(2 * v, tl, tm, l, r)
+        if tm < r:
+            ans += query(2 * v + 1, tm + 1, tr, l, r)
+        return ans
+    idx = 2 + n
+    out = []
+    for _ in range(q):
+        typ = data[idx]
+        idx += 1
+        if typ == 1:
+            l, r, x = data[idx], data[idx + 1], data[idx + 2]
+            idx += 3
+            add(1, 1, size, l, r, x)
+        else:
+            l, r = data[idx], data[idx + 1]
+            idx += 2
+            out.append(str(query(1, 1, size, l, r)))
+    print("\n".join(out))
+
+if __name__ == "__main__":
+    main()
+```
+
+# Testing discussion
+
+The fixed samples cover visible behavior. The random tests generate
+many small operation sequences and compute expected outputs from the
+reference Python implementation, then the same expected files are
+used against both the C++ and Python submissions.

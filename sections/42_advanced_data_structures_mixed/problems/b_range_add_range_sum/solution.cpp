@@ -1,0 +1,3 @@
+#include <bits/stdc++.h>
+using namespace std; struct BIT{int n; vector<long long>b; BIT(int n):n(n),b(n+2){} void add(int i,long long x){for(;i<=n;i+=i&-i)b[i]+=x;} long long sum(int i){long long s=0;for(;i;i-=i&-i)s+=b[i];return s;}};
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,q;if(!(cin>>n>>q)) return 0; BIT b1(n+1),b2(n+1); auto add=[&](int l,int r,long long x){b1.add(l,x);b1.add(r+1,-x);b2.add(l,x*(l-1));b2.add(r+1,-x*r);}; auto pref=[&](int i){return b1.sum(i)*i-b2.sum(i);}; for(int i=1;i<=n;i++){long long x;cin>>x;add(i,i,x);} while(q--){int t;cin>>t; if(t==1){int l,r;long long x;cin>>l>>r>>x;add(l,r,x);} else {int l,r;cin>>l>>r; cout<<pref(r)-pref(l-1)<<'\n';}}}

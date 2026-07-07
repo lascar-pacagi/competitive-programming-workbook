@@ -1,0 +1,176 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 55: Randomization And Hashing"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Hashing discipline
+
+Hashing is a speed tool, not a proof replacement. Know the collision risk,
+use deterministic checks when constraints allow, and reserve randomized hashes
+for situations where exact comparison is too expensive.
+
+## Polynomial rolling hash
+
+For string `s`, choose base `B` and modulus `M`:
+
+```text
+H[i+1] = H[i] * B + value(s[i])
+```
+
+Then substring hash `[l, r)` is:
+
+```text
+H[r] - H[l] * B^(r-l)
+```
+
+Normalize modulo `M`.
+
+To compare substrings, compare their normalized hashes. To reduce collision
+risk, use two moduli or a 64-bit unsigned hash.
+
+## Palindrome hash
+
+Build hashes for the string and the reversed string. Substring `s[l..r]` is a
+palindrome iff it equals its reverse:
+
+```text
+hash_s(l, r) == hash_rev(n-1-r, n-1-l)
+```
+
+Use half-open intervals carefully. Most bugs in hash problems are index
+conversion bugs, not hash math bugs.
+
+## Anagram substring queries
+
+For lowercase letters, hashing is unnecessary. Maintain 26 prefix counts:
+
+```text
+cnt[c][i+1] = cnt[c][i] + (s[i] == c)
+```
+
+Two substrings are anagrams iff all 26 character counts match. This is exact,
+fast, and deterministic.
+
+## Collision policy
+
+In real contests:
+
+- If exact comparison is cheap enough, do it.
+- If hashing is needed, state that equality of hashes is treated as equality
+  with negligible collision probability.
+- For adversarial platforms, prefer double hashing or deterministic algorithms.
+- Randomize the base when hacks are possible.
+
+Hashing should make an already-correct model fast; it should not be the only
+reason you believe a solution is correct.
+
+## Substring hash indexing example
+
+Use half-open intervals `[l, r)`.
+
+String:
+
+```text
+s = abac
+```
+
+If:
+
+```text
+H[i+1] = H[i] * B + value(s[i])
+```
+
+then the hash of `s[1:3] = "ba"` is:
+
+```text
+H[3] - H[1] * B^2
+```
+
+The exponent is the substring length `r-l`, not `r` and not `l`.
+
+## Exact alternative for anagrams
+
+For anagram substring queries, prefix frequency vectors are better than hashes:
+
+```text
+freq[c][r] - freq[c][l]
+```
+
+This gives the exact count of character `c` in `[l,r)`. Two substrings are
+anagrams iff all counts match. There is no collision risk.
+
+## Double-hash checklist
+
+If you use hashing for adversarial substring equality:
+
+```text
+choose two large prime moduli
+precompute powers for both
+store two prefix arrays
+compare pairs of hashes
+```
+
+A collision would need to collide under both moduli. This still is not a
+mathematical proof of equality, but it is standard in contests when exact
+suffix structures are too expensive to implement.
+
+When the alphabet is small and the query is about multisets, prefer prefix
+counts. They are exact and often simpler.
+
+## Testing hash code
+
+Hash bugs usually come from indexing, so test substrings that touch boundaries:
+
+```text
+whole string
+first character
+last character
+two equal substrings at different positions
+two almost-equal substrings
+```
+
+For palindrome hashes, test odd and even lengths separately. Also test a
+single-character substring; it should always be a palindrome.
+
+## When not to hash
+
+Do not hash if an exact solution is simple enough:
+
+```text
+small substring length -> direct comparison
+small alphabet anagram -> prefix counts
+palindrome around centers -> Manacher
+ordered suffix questions -> suffix array/tree/automaton
+```
+
+Hashing is excellent for speed, but exact structure is better when the problem
+requires a proof with no collision caveat.
+
+# Exercises
+
+- A. Equal Substrings: Answer whether two same-length substrings are equal.
+- B. Palindrome Substrings: For each query, say whether the first substring is a palindrome.
+- C. Anagram Substrings: Answer whether two same-length substrings have the same multiset of letters.
+# Contest checklist
+
+State the invariant, choose the model, prove the operation, then code the smallest reliable version.

@@ -1,0 +1,2 @@
+#include <bits/stdc++.h>
+using namespace std; const long long MOD=1000000007; pair<long long,long long> fib(long long n){if(!n)return{0,1};auto [a,b]=fib(n/2);long long c=a*((2*b%MOD-a+MOD)%MOD)%MOD,d=(a*a%MOD+b*b%MOD)%MOD;return n&1?make_pair(d,(c+d)%MOD):make_pair(c,d);}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int t;if(!(cin>>t))return 0;while(t--){long long n;cin>>n;cout<<fib(n).first<<'\n';}}

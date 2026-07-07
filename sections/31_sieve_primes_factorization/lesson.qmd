@@ -1,0 +1,174 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 31: Sieve, Primes, and Factorization"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why sieves matter
+
+Trial division answers one number at a time. A sieve answers many questions up
+to a fixed limit after preprocessing.
+
+Use a sieve when the statement has:
+
+```text
+many queries
+all numbers <= N
+prime counts, primality, divisor counts, or repeated factorization
+```
+
+# Sieve of Eratosthenes
+
+Start by assuming every number at least `2` is prime. Then for each prime `p`,
+mark multiples of `p` as composite.
+
+Why start at `p*p`?
+
+```text
+2p, 3p, ..., (p-1)p
+```
+
+already have a smaller prime factor and were marked earlier.
+
+Pseudocode:
+
+```text
+is_prime[0] = is_prime[1] = false
+for p in 2..sqrt(n):
+    if is_prime[p]:
+        for x in p*p, p*p+p, ... <= n:
+            is_prime[x] = false
+```
+
+Complexity: `O(n log log n)`.
+
+# Prefix prime counts
+
+After computing `is_prime`, range queries are just prefix sums:
+
+```text
+pref[i] = number of primes <= i
+answer(l,r) = pref[r] - pref[l-1]
+```
+
+# Smallest prime factor table
+
+For factorization queries, store:
+
+```text
+spf[x] = smallest prime factor of x
+```
+
+Initialize `spf[x] = x`. When a prime `p` is found, fill unassigned multiples:
+
+```text
+for x in p*p, p*p+p, ...:
+    if spf[x] == x:
+        spf[x] = p
+```
+
+Then factor a number by repeated division:
+
+```text
+while x > 1:
+    p = spf[x]
+    exponent = 0
+    while x % p == 0:
+        exponent += 1
+        x /= p
+```
+
+This is fast because each division removes a prime factor.
+
+# Divisor count formula
+
+If:
+
+```text
+x = p1^e1 * p2^e2 * ... * pk^ek
+```
+
+then every divisor chooses an exponent from `0..ei` for each prime. Therefore:
+
+```text
+number_of_divisors = (e1+1)(e2+1)...(ek+1)
+```
+
+Example:
+
+```text
+36 = 2^2 * 3^2
+divisors = (2+1)(2+1) = 9
+```
+
+# Worked example
+
+Factor `360`:
+
+```text
+360 = 2^3 * 3^2 * 5^1
+distinct prime factors = 3
+total prime factors with multiplicity = 3 + 2 + 1 = 6
+largest prime factor = 5
+number of divisors = (3+1)(2+1)(1+1) = 24
+```
+
+# C++ notes
+
+`vector<bool>` is compact and fine for primality flags. For `spf`, use
+`vector<int>`.
+
+Use `long long` for `p*p` in loops:
+
+```cpp
+for (long long p = 2; p * p <= n; p++)
+```
+
+This avoids overflow when the limit grows in harder problems.
+
+# Python notes
+
+Python lists are fine up to around `10^6` or a few million.
+
+For large sieves, slice assignment can be faster, but the explicit loop is
+clear and matches C++.
+
+# Common mistakes
+
+```text
+Treating 1 as prime.
+Starting multiples at 2*p and doing extra work.
+Forgetting prefix[l-1] in range counts.
+Using largest prime factor when SPF is required.
+Not handling x = 1 in factorization.
+Computing divisor count as sum of exponents instead of product of exponent+1.
+```
+
+# Submission checklist
+
+```text
+1. What is the maximum number that appears?
+2. Do you need primality only or factorization?
+3. Are 0 and 1 marked non-prime?
+4. Are range queries answered with prefix counts?
+5. Does factorization handle x = 1?
+```

@@ -1,0 +1,174 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 41: Euler Tour, LCA, and Binary Lifting"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Tree paths by powers of two
+
+Lowest common ancestor turns a path query into two root paths. Store
+`up[k][v]`, the `2^k`-th ancestor of `v`, and combine values while lifting.
+This section extends Section 38's ancestor jumps to full path queries.
+
+```text
+distance(u,v) = depth[u] + depth[v] - 2*depth[lca(u,v)]
+```
+
+The preprocessing root can be any fixed node, usually `1`. A DFS/BFS records
+three pieces of information:
+
+- `depth[v]`: number of edges from the root to `v`;
+- `up[0][v]`: the parent of `v`;
+- optional edge aggregate from `v` to `up[0][v]`, such as edge maximum.
+
+Then the jump table is built by doubling:
+
+```text
+up[k][v] = up[k-1][ up[k-1][v] ]
+```
+
+If `best[k][v]` stores the maximum edge on the upward path of length `2^k`
+starting at `v`, then:
+
+```text
+best[k][v] = max(best[k-1][v], best[k-1][up[k-1][v]])
+```
+
+This is the same table shape, with a value carried alongside the ancestor.
+
+## LCA algorithm
+
+To compute `lca(u, v)`:
+
+1. Make `u` the deeper vertex.
+2. Lift `u` upward until `depth[u] == depth[v]`.
+3. If `u == v`, this is the LCA.
+4. From the largest power down to zero, if `up[k][u] != up[k][v]`, lift both.
+5. Now the two vertices are children of the LCA, so return `up[0][u]`.
+
+Diagram:
+
+```text
+        lca
+       /   \
+   ...u'   v'...
+      |     |
+      u     v
+```
+
+The simultaneous lifting step keeps `u` and `v` strictly below the LCA until
+the last move. This is why we compare ancestors before jumping.
+
+## Path aggregates
+
+For maximum edge on path `u-v`, do the same lifting but update an answer
+whenever you jump:
+
+```text
+ans = max(ans, best[k][u])
+u = up[k][u]
+```
+
+You do this while equalizing depths and while lifting both sides. The path is
+partitioned into disjoint upward chunks, so every edge is included exactly once.
+
+For maximum edge on a path, lift the deeper endpoint upward while taking
+maximums from the same jump table. For the k-th node on a path, split the
+path at the LCA: first move upward from `u`, otherwise move upward from `v`
+by the remaining distance from the far end.
+
+## K-th node on a path
+
+Let `w = lca(u, v)`.
+
+```text
+u-side length = depth[u] - depth[w] + 1
+total nodes   = depth[u] + depth[v] - 2*depth[w] + 1
+```
+
+If `k` is inside the `u` side, lift `u` by `k-1`. Otherwise the answer lies on
+the `v` side. Convert it to a distance upward from `v`:
+
+```text
+need_from_v = total_nodes - k
+answer = ancestor(v, need_from_v)
+```
+
+The most common bug is off-by-one: the first node on the path is `u`, so
+queries usually use 1-based `k`.
+
+## Minimal C++ lifting helper
+
+```cpp
+int jump(int v, int d) {
+    for (int k = 0; d; k++, d >>= 1) {
+        if (d & 1) v = up[k][v];
+    }
+    return v;
+}
+```
+
+## Minimal Python lifting helper
+
+```python
+def jump(v, d):
+    k = 0
+    while d:
+        if d & 1:
+            v = up[k][v]
+        d >>= 1
+        k += 1
+    return v
+```
+
+## Worked LCA trace
+
+Consider:
+
+```text
+        1
+      /   \
+     2     3
+    / \     \
+   4   5     6
+```
+
+Query `lca(4,5)`: both depths are equal. Their immediate parents are both `2`,
+so after the simultaneous lifting loop the answer is `2`.
+
+Query `lca(4,6)`: both depths are equal, but parents differ:
+
+```text
+parent(4)=2, parent(6)=3
+```
+
+Lifting both by `1` gives nodes `2` and `3`; their parents match at `1`, so the
+answer is `1`.
+
+When edge weights are present, the same jumps collect maximums along the lifted
+chunks. Always update the aggregate before overwriting the vertex.
+
+# Exercises
+
+- A. Tree Distances: Given a rooted tree and queries `u v`, print the number of edges on the path.
+- B. Max Edge On Path: Each edge to a parent has a weight. For each `u v`, print the maximum edge weight on the path.
+- C. Kth Node On Path: For query `u v k`, print the k-th node on the path from `u` to `v`, or `-1`.

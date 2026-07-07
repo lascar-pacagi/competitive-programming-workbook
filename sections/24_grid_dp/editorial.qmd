@@ -1,0 +1,682 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 24 Editorial: Grid DP"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+| Problem | State | Transition |
+|---|---|---|
+| A. Safe Paths | ways to reach cell | sum from top and left |
+| B. Lowest Toll | minimum cost to reach cell | toll + min(top, left) |
+| C. Limited Turns | cell, turns, last direction | continue or turn |
+
+All three problems rely on the same row-major computation order. The third
+problem adds direction because the number of turns cannot be determined from
+the cell alone.
+
+# A. Safe Paths
+
+## Restatement
+
+Given an `n x m` grid with open and blocked cells, count paths from the
+top-left to the bottom-right using only right and down moves. Paths may not
+enter blocked cells. Print the count modulo `1_000_000_007`.
+
+## Constraints and traps
+
+`n` and `m` can be up to `1000`, so an `O(nm)` DP is intended.
+
+Important traps:
+
+```text
+Blocked cells contribute zero paths.
+If the start or finish is blocked, the answer is zero.
+The answer can be huge, so take modulo after additions.
+Only right/down moves are allowed.
+```
+
+## Observations
+
+Every path reaching `(r,c)` must enter from:
+
+```text
+(r-1,c) above
+(r,c-1) left
+```
+
+No other cell can be the immediate predecessor under right/down movement.
+
+## Sample walkthrough
+
+Grid:
+
+```text
+....
+.#..
+....
+```
+
+DP table:
+
+```text
+1 1 1 1
+1 # 1 2
+1 1 2 4
+```
+
+Answer: `4`.
+
+## Algorithm
+
+```text
+if start is open:
+    dp[0][0] = 1
+
+for r from 0 to n-1:
+    for c from 0 to m-1:
+        if cell is blocked:
+            dp[r][c] = 0
+        else:
+            add dp[r-1][c] if r > 0
+            add dp[r][c-1] if c > 0
+
+print dp[n-1][m-1]
+```
+
+## Correctness proof
+
+**Lemma.** For every open cell `(r,c)`, every valid path ending at `(r,c)` has
+immediate predecessor `(r-1,c)` or `(r,c-1)`, unless `(r,c)` is the start.
+
+**Proof.** The only allowed moves are down and right. Reversing the final move,
+a path into `(r,c)` must have come from one row above or one column left.
+`\square`
+
+**Theorem.** The algorithm computes the number of valid paths to every cell.
+
+**Proof.** Induct over row-major order. The start cell is initialized correctly.
+For any blocked cell, no valid path can stand there, so zero is correct. For an
+open non-start cell, the lemma partitions all paths by their final predecessor.
+Those sets are disjoint, and the predecessor values have already been computed
+in row-major order. The transition adds exactly their counts. `\square`
+
+## Complexity
+
+```text
+Time:  O(nm)
+Memory: O(nm)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    const long long MOD = 1000000007LL;
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    vector<string> grid(n);
+    for (string &row : grid) cin >> row;
+    vector<vector<long long>> dp(n, vector<long long>(m, 0));
+    if (grid[0][0] == '.') dp[0][0] = 1;
+    for (int r = 0; r < n; r++) {
+        for (int c = 0; c < m; c++) {
+            if (grid[r][c] == '#') {
+                dp[r][c] = 0;
+                continue;
+            }
+            if (r) dp[r][c] = (dp[r][c] + dp[r - 1][c]) % MOD;
+            if (c) dp[r][c] = (dp[r][c] + dp[r][c - 1]) % MOD;
+        }
+    }
+    cout << dp[n - 1][m - 1] << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+MOD = 1_000_000_007
+
+
+def main() -> None:
+    input = sys.stdin.readline
+    first = input().split()
+    if not first:
+        return
+    n, m = map(int, first)
+    grid = [input().strip() for _ in range(n)]
+    dp = [[0] * m for _ in range(n)]
+    if grid[0][0] == ".":
+        dp[0][0] = 1
+    for r in range(n):
+        for c in range(m):
+            if grid[r][c] == "#":
+                dp[r][c] = 0
+                continue
+            if r:
+                dp[r][c] = (dp[r][c] + dp[r - 1][c]) % MOD
+            if c:
+                dp[r][c] = (dp[r][c] + dp[r][c - 1]) % MOD
+    print(dp[n - 1][m - 1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Not zeroing blocked cells.
+Letting paths pass through a blocked start or finish.
+Forgetting modulo.
+Using diagonal or upward moves.
+```
+
+## Tests that matter
+
+```text
+1x1 open grid.
+Blocked finish.
+A full open grid with many paths.
+A wall that separates start from finish.
+```
+
+# B. Lowest Toll
+
+## Restatement
+
+Each grid cell has a nonnegative toll. Starting at the top-left and moving only
+right/down, reach the bottom-right with minimum total toll, including both
+start and finish cells.
+
+## Constraints and traps
+
+`n,m <= 1000`, so `O(nm)` is intended.
+
+Important traps:
+
+```text
+The start cell's toll is included.
+The finish cell's toll is included.
+Tolls can be large, so use long long.
+Only the previous row is needed for memory.
+```
+
+## Observations
+
+The best path to `(r,c)` must come from the better of:
+
+```text
+best path to (r-1,c)
+best path to (r,c-1)
+```
+
+Then add the current toll.
+
+## Sample walkthrough
+
+Grid:
+
+```text
+5 9 1
+4 2 7
+6 1 3
+```
+
+DP:
+
+```text
+5 14 15
+9 11 18
+15 12 15
+```
+
+Answer: `15`.
+
+## Algorithm
+
+```text
+prev = INF row
+
+for each row r:
+    cur = INF row
+    for each column c:
+        if start:
+            cur[c] = toll
+        else:
+            cur[c] = toll + min(prev[c], cur[c-1])
+    prev = cur
+
+print prev[m-1]
+```
+
+## Correctness proof
+
+**Lemma.** Any valid path to `(r,c)` must enter from above or left, except for
+the start.
+
+**Proof.** The only moves are right and down. `\square`
+
+**Theorem.** The algorithm computes the minimum cost to each processed cell.
+
+**Proof.** Induct over row-major order. The start is initialized to its own
+toll. For any other cell, by the lemma, the final predecessor is above or left.
+By induction, `prev[c]` and `cur[c-1]` contain the optimal costs to those
+predecessors. Taking their minimum and adding the current toll gives the best
+possible path to `(r,c)`. `\square`
+
+## Complexity
+
+```text
+Time:  O(nm)
+Memory: O(m)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    const long long INF = (1LL << 62);
+    vector<long long> prev(m, INF), cur(m, INF);
+    for (int r = 0; r < n; r++) {
+        fill(cur.begin(), cur.end(), INF);
+        for (int c = 0; c < m; c++) {
+            long long x;
+            cin >> x;
+            if (r == 0 && c == 0) {
+                cur[c] = x;
+            } else {
+                long long best = prev[c];
+                if (c) best = min(best, cur[c - 1]);
+                cur[c] = best + x;
+            }
+        }
+        swap(prev, cur);
+    }
+    cout << prev[m - 1] << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n = next(it)
+    m = next(it)
+    inf = 10**30
+    prev = [inf] * m
+    for r in range(n):
+        cur = [inf] * m
+        for c in range(m):
+            x = next(it)
+            if r == 0 and c == 0:
+                cur[c] = x
+            else:
+                best = prev[c]
+                if c:
+                    best = min(best, cur[c - 1])
+                cur[c] = best + x
+        prev = cur
+    print(prev[-1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Forgetting to include the starting toll.
+Using int for a path of many large tolls.
+Using max instead of min after copying a counting recurrence.
+Incorrect first row or first column initialization.
+```
+
+## Tests that matter
+
+```text
+1x1 grid.
+One row.
+One column.
+Large tolls.
+Best route intentionally avoids a locally cheap cell.
+```
+
+# C. Limited Turns
+
+## Restatement
+
+Count right/down paths through open cells from the top-left to the bottom-right
+that use at most `K` turns. A turn is a change between right and down on two
+consecutive moves. The first move is not a turn.
+
+## Constraints and traps
+
+`n,m <= 80` and `K <= 40`, so a state with cell, turn count, and direction is
+small enough.
+
+Important traps:
+
+```text
+dp[r][c] alone is not enough.
+The first move has no previous direction and uses zero turns.
+The 1x1 grid has one empty path.
+Blocked cells have zero states.
+The answer asks for at most K turns, so sum over 0..K.
+```
+
+## Observations
+
+To decide whether entering `(r,c)` creates a turn, we must know the previous
+last direction. Therefore:
+
+```text
+dp[r][c][t][dir]
+```
+
+where `dir` is the last move direction.
+
+## Sample walkthrough
+
+For a `3x3` open grid with at most one turn, the only valid paths are:
+
+```text
+RRDD
+DDRR
+```
+
+Every other right/down path changes direction at least twice. Answer: `2`.
+
+## Algorithm
+
+```text
+if start or finish is blocked: print 0
+if n = 1 and m = 1: print 1
+
+initialize first right move with 0 turns
+initialize first down move with 0 turns
+
+for every cell in row-major order:
+    for turns from 0 to K:
+        enter from left:
+            continue RIGHT
+            or turn from DOWN to RIGHT
+        enter from above:
+            continue DOWN
+            or turn from RIGHT to DOWN
+
+answer = sum both directions for turns 0..K at finish
+```
+
+## Correctness proof
+
+**Lemma 1.** Every non-empty path ending at a cell has exactly one last move
+direction: right or down.
+
+**Proof.** The allowed moves are right and down. The final move, if it exists,
+is exactly one of them. `\square`
+
+**Lemma 2.** The transition counts every valid path ending at `(r,c)` with
+exactly `t` turns and last direction `dir` once.
+
+**Proof.** Consider `dir = RIGHT`. Such a path must enter from the left. Before
+the final move, it either already ended with `RIGHT`, adding no turn, or ended
+with `DOWN`, adding one turn. The transition includes exactly these two cases.
+They are disjoint by previous last direction. The `DOWN` case is symmetric.
+`\square`
+
+**Theorem.** The algorithm prints the number of valid paths with at most `K`
+turns.
+
+**Proof.** The initialized first moves correctly represent one-move paths with
+zero turns. By induction over row-major order and Lemma 2, every DP state has
+the intended count. Summing the finish states over both last directions and
+turn counts `0..K` gives exactly the requested paths. The `1x1` case is handled
+as the unique empty path. `\square`
+
+## Complexity
+
+```text
+Time:  O(nmK)
+Memory: O(nmK)
+```
+
+The direction factor is constant.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    const int MOD = 1000000007;
+    const int RIGHT = 0, DOWN = 1;
+    int n, m, K;
+    if (!(cin >> n >> m >> K)) return 0;
+    vector<string> grid(n);
+    for (string &row : grid) cin >> row;
+    if (grid[0][0] == '#' || grid[n - 1][m - 1] == '#') {
+        cout << 0 << '\n';
+        return 0;
+    }
+    if (n == 1 && m == 1) {
+        cout << 1 << '\n';
+        return 0;
+    }
+    vector dp(n, vector(m, vector(K + 1, array<int, 2>{0, 0})));
+    if (m > 1 && grid[0][1] == '.') dp[0][1][0][RIGHT] = 1;
+    if (n > 1 && grid[1][0] == '.') dp[1][0][0][DOWN] = 1;
+    for (int r = 0; r < n; r++) {
+        for (int c = 0; c < m; c++) {
+            if (grid[r][c] == '#') continue;
+            for (int turns = 0; turns <= K; turns++) {
+                if (c > 0 && grid[r][c - 1] == '.') {
+                    int val = dp[r][c][turns][RIGHT];
+                    val += dp[r][c - 1][turns][RIGHT];
+                    if (val >= MOD) val -= MOD;
+                    if (turns) {
+                        val += dp[r][c - 1][turns - 1][DOWN];
+                        if (val >= MOD) val -= MOD;
+                    }
+                    dp[r][c][turns][RIGHT] = val;
+                }
+                if (r > 0 && grid[r - 1][c] == '.') {
+                    int val = dp[r][c][turns][DOWN];
+                    val += dp[r - 1][c][turns][DOWN];
+                    if (val >= MOD) val -= MOD;
+                    if (turns) {
+                        val += dp[r - 1][c][turns - 1][RIGHT];
+                        if (val >= MOD) val -= MOD;
+                    }
+                    dp[r][c][turns][DOWN] = val;
+                }
+            }
+        }
+    }
+    int ans = 0;
+    for (int turns = 0; turns <= K; turns++) {
+        ans += dp[n - 1][m - 1][turns][RIGHT];
+        if (ans >= MOD) ans -= MOD;
+        ans += dp[n - 1][m - 1][turns][DOWN];
+        if (ans >= MOD) ans -= MOD;
+    }
+    cout << ans << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+MOD = 1_000_000_007
+RIGHT = 0
+DOWN = 1
+
+
+def main() -> None:
+    input = sys.stdin.readline
+    first = input().split()
+    if not first:
+        return
+    n, m, k = map(int, first)
+    grid = [input().strip() for _ in range(n)]
+    if grid[0][0] == "#" or grid[n - 1][m - 1] == "#":
+        print(0)
+        return
+    dp = [[[[0, 0] for _ in range(k + 1)] for _ in range(m)] for _ in range(n)]
+    if m > 1 and grid[0][1] == ".":
+        dp[0][1][0][RIGHT] = 1
+    if n > 1 and grid[1][0] == ".":
+        dp[1][0][0][DOWN] = 1
+    if n == 1 and m == 1:
+        print(1)
+        return
+    for r in range(n):
+        for c in range(m):
+            if grid[r][c] == "#":
+                continue
+            for turns in range(k + 1):
+                if c > 0 and grid[r][c - 1] == ".":
+                    dp[r][c][turns][RIGHT] = (
+                        dp[r][c][turns][RIGHT] + dp[r][c - 1][turns][RIGHT]
+                    ) % MOD
+                    if turns:
+                        dp[r][c][turns][RIGHT] = (
+                            dp[r][c][turns][RIGHT] + dp[r][c - 1][turns - 1][DOWN]
+                        ) % MOD
+                if r > 0 and grid[r - 1][c] == ".":
+                    dp[r][c][turns][DOWN] = (
+                        dp[r][c][turns][DOWN] + dp[r - 1][c][turns][DOWN]
+                    ) % MOD
+                    if turns:
+                        dp[r][c][turns][DOWN] = (
+                            dp[r][c][turns][DOWN] + dp[r - 1][c][turns - 1][RIGHT]
+                        ) % MOD
+    ans = 0
+    for turns in range(k + 1):
+        ans = (ans + dp[n - 1][m - 1][turns][RIGHT] + dp[n - 1][m - 1][turns][DOWN]) % MOD
+    print(ans)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Counting the first move as a turn.
+Forgetting to sum all turn counts up to K.
+Not storing last direction.
+Allowing paths to leave or enter blocked cells.
+Mishandling the 1x1 grid.
+```
+
+## Tests that matter
+
+```text
+1x1 grid.
+2x2 grid with K = 0 -> no path.
+Open 3x3 with K = 1 -> two paths.
+Blocked first right or first down cell.
+Large K should match ordinary path counting.
+```
+
+# Testing and stress strategy
+
+Run:
+
+```bash
+CP_TARGET=solution python3 sections/24_grid_dp/check.py
+```
+
+The random tests cover:
+
+```text
+Safe Paths:
+  random blocked cells and zero-path grids.
+
+Lowest Toll:
+  one-row, one-column, and random weighted grids.
+
+Limited Turns:
+  small random grids with different K values and obstacles.
+```
+
+For tiny stress tests:
+
+```text
+A: enumerate all right/down move strings for n,m <= 7.
+B: enumerate all right/down paths and take the minimum cost.
+C: enumerate all right/down paths and count turns directly.
+```
+
+# What to carry forward
+
+Grid DP is about dependency direction.
+
+```text
+If movement is acyclic, choose an order and fill a table.
+If a condition depends on history, add exactly the missing state.
+If only the previous row matters, row compression is available.
+```
+
+The next DP sections will use the same habits with intervals, trees, and
+bitmasks, where the correct order is less visually obvious.
+

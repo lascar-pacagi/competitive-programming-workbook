@@ -1,0 +1,412 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 27: Bitmask DP"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why bitmask DP matters
+
+Many contest problems ask you to make decisions about a small set:
+
+```text
+Which skills are already covered?
+Which jobs have already been used?
+Which cities have already been visited?
+Which special vertices have already been collected?
+```
+
+If the number of items is large, a set state is impossible. But when the
+statement says `n <= 16`, `n <= 18`, or `n <= 20`, the intended solution is
+often to store the set as an integer.
+
+This is **bitmask DP**: dynamic programming where a bit pattern represents a
+subset.
+
+The key contest skill is not memorizing a formula. It is deciding:
+
+```text
+What does this mask mean?
+What extra information, if any, must be stored besides the mask?
+How do I add one item while preserving the meaning of the state?
+```
+
+# Vocabulary and bit operations
+
+For `n` items, a mask is an integer from `0` to `2^n - 1`.
+
+Bit `i` is `1` if item `i` is present and `0` otherwise.
+
+For four items:
+
+```text
+mask = 13
+binary = 1101
+
+item:   3 2 1 0
+bit:    1 1 0 1
+set:   {0, 2, 3}
+```
+
+Common operations:
+
+| Operation | C++ | Python | Meaning |
+|---|---|---|---|
+| full mask | `(1 << n) - 1` | `(1 << n) - 1` | all items present |
+| test bit `i` | `(mask >> i) & 1` | `(mask >> i) & 1` | is item `i` present? |
+| add item `i` | `mask \| (1 << i)` | `mask \| (1 << i)` | force bit `i` to 1 |
+| remove item `i` | `mask & ~(1 << i)` | `mask & ~(1 << i)` | force bit `i` to 0 |
+| union masks | `a \| b` | `a \| b` | items in either set |
+| intersection | `a & b` | `a & b` | items in both sets |
+| count bits | `__builtin_popcount(mask)` | `mask.bit_count()` | subset size |
+
+In prose, we usually number items from `0` internally even if input is
+1-indexed.
+
+# Recognizing bitmask DP
+
+Bitmask DP is plausible when:
+
+| Constraint or shape | Typical interpretation |
+|---|---|
+| `n <= 20` | one-dimensional DP over all subsets |
+| `n <= 18` and assignment/permutation | `dp[mask]`, next row from `popcount(mask)` |
+| `n <= 16` and route/order matters | `dp[mask][last]` |
+| all subsets of a small set appear | enumerate masks from `0` to `2^n - 1` |
+| every object is used once | mask marks used objects |
+| shortest route visits special nodes | mask marks visited special nodes, plus current node |
+
+It is often wrong when `n = 10^5`. A `2^n` table is only for small `n`.
+
+# Pattern 1: coverage DP
+
+Suppose each candidate covers some skills and has a cost. We want minimum cost
+to cover all skills.
+
+State:
+
+```text
+dp[mask] = minimum cost after considering some candidates
+           such that the covered skill set is mask
+```
+
+Transition for a candidate with cost `c` and skill mask `offer`:
+
+```text
+new_mask = mask | offer
+dp2[new_mask] = min(dp2[new_mask], dp[mask] + c)
+```
+
+We copy the old table first:
+
+```text
+dp2 = dp
+```
+
+That represents not choosing the candidate. Updating `dp2` represents choosing
+the candidate.
+
+Why not update `dp` in place? For this particular minimum-cost choose-any
+problem, in-place can be made to work because choosing the same candidate twice
+does not improve a positive-cost answer. But the safer habit for "consider each
+item once" DP is to use a fresh table. It keeps the meaning clear: after
+candidate `i`, each candidate among the first `i` has been considered at most
+once.
+
+Worked trace:
+
+```text
+n = 3 skills
+full = 111
+
+Candidate A: cost 5, skills {0,1} -> offer 011
+Candidate B: cost 4, skills {2}   -> offer 100
+Candidate C: cost 7, skills {0,2} -> offer 101
+```
+
+Start:
+
+```text
+dp[000] = 0
+all others = INF
+```
+
+After A:
+
+```text
+dp[000] = 0
+dp[011] = 5
+```
+
+After B:
+
+```text
+from 000 choose B -> 100 cost 4
+from 011 choose B -> 111 cost 9
+```
+
+After C, full coverage remains at cost `9`.
+
+# Pattern 2: assignment DP
+
+There are `n` workers and `n` jobs. Each worker must get one unused job.
+
+A direct state might seem to need both worker index and job set:
+
+```text
+dp[i][mask] = best after assigning first i workers and using jobs in mask
+```
+
+But `i` is already determined by the mask:
+
+```text
+i = number of used jobs = popcount(mask)
+```
+
+So the state can be one-dimensional:
+
+```text
+dp[mask] = best profit after assigning the first popcount(mask) workers
+           to exactly the jobs in mask
+```
+
+Transition:
+
+```text
+i = popcount(mask)
+for each unused job j:
+    next = mask | (1 << j)
+    dp[next] = max(dp[next], dp[mask] + profit[i][j])
+```
+
+Small trace with two workers:
+
+```text
+profit =
+worker 0: job0=3 job1=8
+worker 1: job0=6 job1=4
+```
+
+States:
+
+```text
+dp[00] = 0
+
+mask 00, worker 0:
+  choose job 0 -> dp[01] = 3
+  choose job 1 -> dp[10] = 8
+
+mask 01, worker 1:
+  choose job 1 -> dp[11] = 7
+
+mask 10, worker 1:
+  choose job 0 -> dp[11] = max(7, 14)
+```
+
+Answer: `14`.
+
+# Pattern 3: subset plus last
+
+If the order matters, the mask alone is not enough.
+
+For a route problem:
+
+```text
+dp[mask] = best cost to have visited mask
+```
+
+does not tell us where we are standing, so we do not know the cost of the next
+move. We need:
+
+```text
+dp[mask][last] = minimum cost to start at 0,
+                 visit exactly the vertices in mask,
+                 and finish at last
+```
+
+Initial state:
+
+```text
+dp[001...0][0] = 0
+```
+
+Transition:
+
+```text
+for each unvisited nxt:
+    dp[mask | (1 << nxt)][nxt]
+        = min(dp[...], dp[mask][last] + cost[last][nxt])
+```
+
+Final answer for a cycle returning to start:
+
+```text
+min over last: dp[full][last] + cost[last][0]
+```
+
+Diagram:
+
+```text
+state: mask = {0, 2, 4}, last = 2
+
+visited:   0 ---- 4
+             \    |
+              \   |
+                2  <- current location
+
+unvisited choices can be appended one at a time
+```
+
+# Iteration order
+
+Most beginner bitmask DP tables can be filled by increasing mask:
+
+```cpp
+for (int mask = 0; mask < (1 << n); mask++) {
+    ...
+}
+```
+
+This works when transitions only add bits. Adding a bit always moves to a
+larger mask, so a state never depends on a future state.
+
+For `dp[mask][last]`, use the same outer mask loop, then loop over `last`.
+
+# Complexity intuition
+
+There are `2^n` masks.
+
+| DP shape | States | Transition factor | Typical complexity |
+|---|---:|---:|---:|
+| coverage | `2^n` | candidates | `O(m 2^n)` |
+| assignment | `2^n` | unused jobs | `O(n 2^n)` |
+| route/TSP | `n 2^n` | next vertex | `O(n^2 2^n)` |
+
+Rough limits in C++:
+
+```text
+2^20 ~= 1,048,576      usually fine
+20 * 2^20 ~= 21 million
+20^2 * 2^20 ~= 419 million, often too high
+16^2 * 2^16 ~= 16 million, fine
+```
+
+Python is slower, but these local problems keep sizes within reasonable bounds
+for clean Python.
+
+# C++ implementation notes
+
+Use `long long` for costs and profits.
+
+```cpp
+const long long INF = (1LL << 62);
+vector<long long> dp(1 << n, INF);
+```
+
+For bit counts:
+
+```cpp
+int k = __builtin_popcount((unsigned)mask);
+```
+
+When `n` can be 20 or more, write `1 << n` only if `n` fits in 31 bits. In this
+course section, `n <= 20`, so `int` masks are fine.
+
+# Python implementation notes
+
+Python has arbitrary precision integers, so bit shifts are convenient:
+
+```python
+full = (1 << n) - 1
+if (mask >> i) & 1:
+    ...
+```
+
+Use `mask.bit_count()` for popcount. It is implemented efficiently.
+
+For large DP lists, avoid dictionaries unless the reachable state set is truly
+sparse. Lists are faster:
+
+```python
+dp = [10**30] * (1 << n)
+```
+
+# Proof habits
+
+Bitmask DP proofs usually follow induction on subset size.
+
+Template:
+
+```text
+Base: the empty or start mask has the correct value.
+Induction step: assume all states with k chosen items are correct.
+Every state with k+1 chosen items is reached by adding one valid item to a
+correct k-item state, and the transition takes the best among all such last
+choices.
+Therefore the new state is correct.
+```
+
+For route DP, the proof must mention why `last` is enough. Once the visited set
+and current vertex are known, the future cost does not depend on the exact
+previous order except through the accumulated optimal cost stored in the DP.
+
+# Common mistakes
+
+```text
+Using input skill numbers directly without subtracting 1.
+Forgetting that full mask is (1 << n) - 1, not 1 << n.
+Using dp[mask] for route problems where current position matters.
+Using popcount(mask) after adding the next job instead of before.
+Returning dp[full] in TSP without adding the edge back to the start.
+Allocating O(n 2^n) memory when O(2^n) is enough.
+Using int for answers that can exceed 2^31 - 1.
+```
+
+# Local judge workflow
+
+Run only this section:
+
+```bash
+CP_TARGET=solution python3 sections/27_bitmask_dp/check.py
+```
+
+When solving yourself, omit `CP_TARGET=solution`:
+
+```bash
+python3 sections/27_bitmask_dp/check.py
+```
+
+The randomized tests include edge cases such as one item, asymmetric route
+costs, and impossible coverage.
+
+# Submission checklist
+
+Before submitting a bitmask DP solution:
+
+```text
+1. Write down what each bit means.
+2. Write down what dp[mask] or dp[mask][last] means.
+3. Confirm the start state.
+4. Confirm transitions only use valid missing/present bits.
+5. Confirm the answer state: full mask, maybe plus final return edge.
+6. Estimate states times transition factor.
+7. Use long long / Python int for large sums.
+```

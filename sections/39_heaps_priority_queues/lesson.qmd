@@ -1,0 +1,171 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 39: Heaps and Priority Queues"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Priority queues as frontier managers
+
+A heap maintains the smallest or largest currently available item.
+It is the right tool when the next action is determined by one key,
+but future insertions can change the frontier.
+
+You should be able to say what one heap entry means. Examples:
+
+```text
+(value)                 current candidate number
+(end_time)              room that becomes free at this time
+(sum, i, j)             pair A[i]+B[j] from stream i at position j
+(distance, vertex)      frontier state in Dijkstra
+```
+
+The heap does not prove the algorithm by itself. The proof comes from showing
+that the smallest or largest key is safe to process next.
+
+# Two heaps for medians
+
+Keep the lower half in a max-heap and the upper half in a min-heap:
+
+```text
+max(low) <= min(high)
+len(low) == len(high) or len(low) == len(high)+1
+```
+
+Then the lower median is `max(low)`.
+
+Example insertion sequence:
+
+```text
+insert 5: low=[5], high=[]       median=5
+insert 1: low=[1], high=[5]      median=1
+insert 9: low=[5,1], high=[9]    median=5
+insert 2: low=[2,1], high=[5,9]  median=2
+```
+
+After every insertion:
+
+1. Put the value in the correct side.
+2. Swap tops if order is violated.
+3. Rebalance sizes.
+
+# Sweep with ending times
+
+To count rooms for intervals, process intervals by start time. A
+min-heap stores end times of currently occupied rooms. Before a new
+interval starts, pop all rooms whose end time is at most the start.
+The heap size is the number of simultaneous intervals.
+
+For half-open intervals `[l,r)`, an interval ending at time `t` does not
+overlap an interval starting at `t`. Therefore pop while:
+
+```text
+end_time <= next_start
+```
+
+For closed intervals `[l,r]`, the condition would be different.
+
+# K-way merging
+
+If arrays `A` and `B` are sorted, each fixed `i` gives a sorted
+stream:
+
+```text
+A[i]+B[0], A[i]+B[1], A[i]+B[2], ...
+```
+
+Put the first item of every stream in a heap. Repeatedly pop the
+smallest sum and push the next sum from the same stream. This is the
+same idea as merging many sorted lists.
+
+Worked example:
+
+```text
+A = [1, 4]
+B = [2, 3, 10]
+```
+
+Streams:
+
+```text
+i=0: 3, 4, 11
+i=1: 6, 7, 14
+```
+
+Start heap:
+
+```text
+(3,0,0), (6,1,0)
+```
+
+Pop `(3,0,0)`, then push `(4,0,1)`. This produces sorted pair sums without
+generating every pair in advance.
+
+# Python and C++ heap details
+
+Python's `heapq` is a min-heap. For a max-heap, store negative values:
+
+```python
+import heapq
+low = []
+heapq.heappush(low, -x)
+largest = -low[0]
+```
+
+C++ `priority_queue<int>` is a max-heap by default. For a min-heap:
+
+```cpp
+priority_queue<int, vector<int>, greater<int>> pq;
+```
+
+For pair sums, store all fields needed to generate the next candidate:
+
+```text
+(current_sum, i, j)
+```
+
+If you store only `current_sum`, you cannot know which next pair to push.
+
+# Checklist
+
+```text
+Define exactly what one heap entry represents.
+Make sure stale entries are removed or ignored.
+For two heaps, rebalance after every insertion.
+For interval problems, decide whether touching endpoints overlap.
+```
+# Local exercises
+
+- A. Running Median: After every inserted number, print the lower median of the prefix.
+- B. Course Rooms: Given half-open intervals `[l,r)`, print the minimum number of rooms needed.
+- C. K Smallest Pair Sums: Two arrays are sorted. Print the `k` smallest values of `a[i]+b[j]`.
+
+# How to use the checker
+
+The local checker compiles/runs both languages and compares output tokens
+exactly:
+
+```bash
+CP_TARGET=solution python3 sections/39_heaps_priority_queues/check.py
+```
+
+Replace `CP_TARGET=solution` by your own `solve.cpp` or `solve.py` attempts
+when practicing.

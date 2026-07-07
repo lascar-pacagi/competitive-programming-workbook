@@ -1,0 +1,314 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 5: Sorting as a tool"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why sorting matters
+
+Sorting is not just a way to print things in order. In competitive
+programming, sorting is a transformation that makes hidden structure visible.
+
+After sorting:
+
+- close values become adjacent;
+- equal values form contiguous blocks;
+- intervals can be processed from left to right;
+- tie-breaking rules become explicit keys;
+- greedy choices often become local.
+
+The cost is usually:
+
+$$
+O(n \log n).
+$$
+
+For `n <= 200000`, sorting is usually acceptable. That makes it one of the
+most common first tools to try after direct linear scans.
+
+# What sorting changes
+
+Consider the unsorted values:
+
+```text
+8 1 4 10 6
+```
+
+It is hard to see which two values are closest. After sorting:
+
+```text
+1 4 6 8 10
+```
+
+the closest pair must be adjacent. We only need to check:
+
+```text
+4-1, 6-4, 8-6, 10-8
+```
+
+This is the central sorting pattern:
+
+```text
+global relationship before sorting
+    |
+    v
+local relationship after sorting
+```
+
+# Adjacent after sorting
+
+Why is the minimum absolute difference found among adjacent sorted values?
+
+Suppose the sorted array is:
+
+```text
+b1 <= b2 <= ... <= bn
+```
+
+Take any non-adjacent pair `bi` and `bj` with `i + 1 < j`. There is at least
+one value between them, such as `b{i+1}`. Then:
+
+```text
+bj - bi = (b{i+1} - bi) + ... + (bj - b{j-1})
+```
+
+At least one adjacent gap inside that interval is no larger than the whole
+gap. Therefore a non-adjacent pair cannot be the unique place where the
+minimum is hidden. Checking all adjacent gaps is enough.
+
+This proof style appears often: sorting lets us argue that any skipped object
+has a local witness that is at least as good.
+
+# Sorting keys
+
+Many problems ask for an order that is not plain ascending.
+
+Example:
+
+> Sort contestants by higher score first, then lower penalty, then
+> lexicographically smaller name.
+
+This is a lexicographic key:
+
+```text
+(-score, penalty, name)
+```
+
+In Python:
+
+```python
+rows.sort(key=lambda row: (-row.score, row.penalty, row.name))
+```
+
+In C++, write a comparator:
+
+```cpp
+sort(rows.begin(), rows.end(), [](const Row &a, const Row &b) {
+    if (a.score != b.score) return a.score > b.score;
+    if (a.penalty != b.penalty) return a.penalty < b.penalty;
+    return a.name < b.name;
+});
+```
+
+The comparator is not decoration. It is the formal statement of the ordering.
+
+# Tie-breaking
+
+Tie-breaking must be deterministic. If the statement says:
+
+1. score descending;
+2. penalty ascending;
+3. name ascending;
+
+then all three levels matter.
+
+For:
+
+```text
+alice 300 50
+bob   400 90
+carol 400 70
+dave  300 40
+```
+
+the sorted order is:
+
+```text
+carol bob dave alice
+```
+
+`carol` beats `bob` because both have score `400`, but `70 < 90`.
+`dave` beats `alice` because both have score `300`, but `40 < 50`.
+
+# Comparator discipline in C++
+
+A C++ comparator must define a strict weak ordering. At this level, the
+practical rule is:
+
+- return `true` only when `a` should come before `b`;
+- if all fields are equal, return `false`.
+
+Do not write:
+
+```cpp
+return a.score >= b.score;
+```
+
+This says that equal elements should come before each other, which breaks the
+sort contract.
+
+# Interval merging
+
+Sorting intervals by start point turns a global union problem into a single
+left-to-right scan.
+
+Intervals:
+
+```text
+[5,7], [1,3], [4,4], [10,12], [11,20]
+```
+
+Sort by start:
+
+```text
+[1,3], [4,4], [5,7], [10,12], [11,20]
+```
+
+If intervals that touch should merge, then `[1,3]`, `[4,4]`, and `[5,7]`
+become `[1,7]`. Also `[10,12]` and `[11,20]` become `[10,20]`.
+
+The result is:
+
+```text
+[1,7], [10,20]
+```
+
+# The merge invariant
+
+During a sorted scan, keep a list of merged intervals. The last interval in
+that list is the only one that can overlap or touch the next interval.
+
+Why? Because all later intervals start at least as far right as the current
+one. Earlier merged intervals end before the last merged interval starts, so a
+new interval cannot jump back and overlap them.
+
+The decision is local:
+
+```text
+if next_left <= current_right + 1:
+    merge
+else:
+    start a new merged interval
+```
+
+The `+ 1` appears because this section's interval problem merges touching
+integer intervals. If touching should not merge, the condition would be:
+
+```text
+next_left <= current_right
+```
+
+Always read the statement's interval convention.
+
+# Sorting and stability
+
+A stable sort preserves the input order of equal keys. Python's sort is
+stable; C++ `sort` is not guaranteed stable.
+
+However, in contest problems you usually should not rely on stability unless
+the problem explicitly asks for original order among ties. It is clearer to
+put every tie-breaking field into the key.
+
+If the desired final tie is original index, store the index and sort by it:
+
+```text
+(-score, penalty, original_index)
+```
+
+# Integer sizes
+
+Sorting itself does not change integer size, but comparisons and derived
+quantities can overflow.
+
+For minimum gap:
+
+```text
+1000000000 - (-1000000000) = 2000000000
+```
+
+This still fits in signed 32-bit, but many similar tasks use `10^18`, where
+`long long` is required. When in doubt, use `long long` for numeric keys and
+differences.
+
+# Proof habits
+
+Sorting proofs usually have one of these shapes:
+
+1. **Adjacency proof:** after sorting, any non-adjacent candidate contains an
+   adjacent candidate at least as good.
+2. **Order invariant:** after processing sorted items up to position `i`, the
+   maintained structure correctly summarizes that prefix.
+3. **Tie-key proof:** the comparator exactly matches the statement's priority
+   list.
+
+For interval merging, the invariant is:
+
+> after processing the first `i` sorted intervals, the `merged` list is the
+> correct merged union of those intervals.
+
+# Common mistakes
+
+- Sorting strings lexicographically when the real primary key is numeric.
+- Forgetting to reverse only one key, such as score descending but penalty
+  ascending.
+- Writing an invalid C++ comparator with `<=` or `>=`.
+- Assuming `unordered_map` or unsorted data has meaningful order.
+- Checking all pairs after sorting when adjacent checks are enough.
+- Forgetting that touching intervals may or may not merge depending on the
+  statement.
+- Relying on stable sort instead of writing the tie rule explicitly.
+
+# Before you submit
+
+For sorting problems, ask:
+
+1. What exactly is the sort key?
+2. Which fields are ascending and which are descending?
+3. What happens when all explicit keys tie?
+4. Does the proof rely on adjacency after sorting?
+5. Are intervals closed, half-open, overlapping, or touching?
+6. Is the output expected in sorted order?
+
+# Exercises
+
+The local exercises cover three common sorting uses:
+
+1. `a_min_adjacent_gap`: sort to make closest values adjacent.
+2. `b_rank_table`: sort by a multi-level custom key.
+3. `c_merge_intervals`: sort intervals and merge in one scan.
+
+Run:
+
+```bash
+python3 sections/05_sorting_as_tool/check.py
+```
+

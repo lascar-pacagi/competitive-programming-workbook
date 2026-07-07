@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "competitive-programming-course"
+version = "0.1.0"
+description = "A long-form competitive programming course with local judging"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["sections"]
+addopts = "-ra"
+

@@ -1,0 +1,318 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 26: Tree DP Basics"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why tree DP comes after interval DP
+
+A tree has no cycles. Once you choose a root, every edge points from parent to
+child, and every subtree becomes an independent region after the parent's state
+is fixed.
+
+Tree DP is the habit of asking:
+
+```text
+If I know what happens at node u, what choices remain independently inside each child subtree?
+```
+
+This section stays with one-root, bottom-up DP. Rerooting and LCA appear later.
+
+# Rooting a tree
+
+The input tree is undirected. To do DP, pick any root, usually vertex `1`.
+
+After rooting:
+
+```text
+parent[u] = previous vertex on the path to the root
+children[u] = neighbors except parent[u]
+subtree[u] = u plus all descendants of u
+```
+
+For large trees, avoid recursive DFS unless you deliberately handle stack
+limits. The local solutions build an iterative order:
+
+```text
+order = [root]
+for u in order:
+    for v in adj[u]:
+        if v has no parent:
+            parent[v] = u
+            append v to order
+
+process reversed(order)
+```
+
+`reversed(order)` is postorder: every child is processed before its parent.
+
+# Recognition
+
+Use tree DP when:
+
+| Statement signal | Likely state |
+|---|---|
+| choose vertices with parent-child conflict | include/exclude node |
+| count colorings with adjacent restrictions | state by color of node |
+| choose disjoint edges | matched/unmatched state |
+| combine independent child subtrees | product or sum over children |
+| answer depends on every root choice | future rerooting, not this section |
+
+# Pattern 1: include/exclude node
+
+For maximum independent set on a weighted tree:
+
+```text
+take[u] = best total in subtree[u] if u is chosen
+skip[u] = best total in subtree[u] if u is not chosen
+```
+
+If `u` is chosen, every child must be skipped:
+
+```text
+take[u] = weight[u] + sum(skip[v])
+```
+
+If `u` is skipped, every child may be chosen or skipped:
+
+```text
+skip[u] = sum(max(take[v], skip[v]))
+```
+
+Answer:
+
+```text
+max(take[root], skip[root])
+```
+
+# Pattern 2: counting colorings
+
+For black/white colorings with no black-black edge:
+
+```text
+white[u] = number of valid colorings of subtree[u] if u is white
+black[u] = number of valid colorings of subtree[u] if u is black
+```
+
+If `u` is white, each child can be either color:
+
+```text
+white[u] = product(white[v] + black[v])
+```
+
+If `u` is black, every child must be white:
+
+```text
+black[u] = product(white[v])
+```
+
+Use modulo after each multiplication.
+
+# Pattern 3: matching edges
+
+For maximum matching in a tree, each vertex can be incident to at most one
+chosen edge.
+
+A useful state:
+
+```text
+free[u] = best matching in subtree[u] when u is not matched to any child
+used[u] = best matching in subtree[u] when u may be matched to one child
+```
+
+First compute the base where `u` is not matched to a child:
+
+```text
+base = sum(max(free[v], used[v])) over children v
+free[u] = base
+```
+
+Then try matching `u` to one child `v`:
+
+```text
+candidate = base
+            - max(free[v], used[v])
+            + free[v]
+            + 1
+```
+
+Why `free[v]`? If edge `(u,v)` is chosen, vertex `v` cannot be matched to one
+of its children.
+
+# Worked example: include/exclude
+
+Tree:
+
+```text
+1(5)
+├── 2(1)
+└── 3(4)
+    ├── 4(6)
+    └── 5(3)
+```
+
+Leaves:
+
+```text
+take[2]=1, skip[2]=0
+take[4]=6, skip[4]=0
+take[5]=3, skip[5]=0
+```
+
+Node `3`:
+
+```text
+take[3] = 4 + 0 + 0 = 4
+skip[3] = max(6,0) + max(3,0) = 9
+```
+
+Root `1`:
+
+```text
+take[1] = 5 + skip[2] + skip[3] = 14
+skip[1] = max(1,0) + max(4,9) = 10
+```
+
+Answer: `14`.
+
+# Worked example: colorings
+
+For a path of three vertices:
+
+```text
+1 - 2 - 3
+```
+
+Valid colorings are all `2^3 = 8` colorings except those where adjacent black
+vertices appear:
+
+```text
+BBB, BBW, WBB
+```
+
+So the answer is `5`.
+
+The DP gives the same result at the root.
+
+# C++ implementation notes
+
+Use adjacency lists:
+
+```cpp
+vector<vector<int>> adj(n);
+```
+
+Build an iterative parent/order array. Process `order` backward. Use
+`long long` for weighted sums and modulo products.
+
+# Python implementation notes
+
+Use `sys.stdin.buffer.read()` for large trees. Iterative traversal avoids
+recursion limits:
+
+```python
+parent = [-1] * n
+order = [0]
+parent[0] = 0
+for u in order:
+    ...
+for u in reversed(order):
+    ...
+```
+
+# Proof habits
+
+Tree DP proofs use induction on subtree height.
+
+Template:
+
+```text
+Assume every child state is correct.
+Given u's state, child subtrees are independent.
+The transition combines exactly the allowed choices for children.
+Therefore u's state is correct.
+```
+
+Independence is the key tree property.
+
+# Common mistakes
+
+```text
+Processing parent before children.
+Forgetting to exclude the parent from children.
+Using recursion and crashing on a chain.
+For include/exclude, allowing a chosen child under a chosen parent.
+For matching, matching u to more than one child.
+For coloring counts, adding child choices when they should multiply.
+```
+
+# Local exercises
+
+## A. Festival Invite
+
+Weighted independent set:
+
+```text
+take[u], skip[u]
+```
+
+## B. Road Pairing
+
+Maximum tree matching:
+
+```text
+free[u], used[u]
+```
+
+## C. Tree Colorings
+
+Count valid black/white colorings:
+
+```text
+white[u], black[u]
+```
+
+# Local judge workflow
+
+Run:
+
+```bash
+CP_TARGET=solution python3 sections/26_tree_dp_basics/check.py
+```
+
+Run everything:
+
+```bash
+CP_TARGET=solution python3 tools/check_all.py
+```
+
+# Submission checklist
+
+```text
+Did I root the tree?
+Do I know parent and children for every node?
+Are children processed before parents?
+What exactly does each state mean?
+Do child contributions sum, multiply, or take max?
+Do I need modulo or long long?
+```
+

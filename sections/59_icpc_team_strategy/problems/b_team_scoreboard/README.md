@@ -1,0 +1,15 @@
+# B. Team Scoreboard
+
+Rank teams by contest rules.
+
+## Sample
+
+Input:
+
+```text
+4
+a 2 30
+b 3 100
+c 3 80
+d 1 10
+```

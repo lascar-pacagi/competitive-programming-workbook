@@ -1,0 +1,192 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 33: Inclusion-Exclusion"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why inclusion-exclusion exists
+
+When sets overlap, adding their sizes double-counts intersections.
+
+For two sets:
+
+```text
+|A union B| = |A| + |B| - |A intersection B|
+```
+
+For three sets:
+
+```text
+|A union B union C|
+= singles - pairs + triples
+```
+
+This alternating pattern is inclusion-exclusion.
+
+# General formula
+
+For events `E1, E2, ..., Em`, the size of their union is:
+
+```text
+sum over nonempty subsets S:
+    (-1)^(|S|+1) * size(intersection of events in S)
+```
+
+Odd subset sizes are added. Even subset sizes are subtracted.
+
+# Why the signs work
+
+Suppose an object belongs to exactly `t` events. Its total contribution is:
+
+```text
+C(t,1) - C(t,2) + C(t,3) - ... +/- C(t,t)
+```
+
+This sum equals `1`, so every object in at least one event is counted once. An
+object in zero events is never included.
+
+# Pattern 1: union of divisibility sets
+
+Let:
+
+```text
+Ei = numbers <= N divisible by d[i]
+```
+
+Intersection of a subset means numbers divisible by every selected divisor,
+which is the same as divisible by their lcm.
+
+```text
+count(intersection) = floor(N / lcm(selected divisors))
+```
+
+Use subset enumeration when `m <= 20`.
+
+# Pattern 2: all symbols appear
+
+Count strings of length `n` over `k` symbols where every symbol appears.
+
+Total strings:
+
+```text
+k^n
+```
+
+Bad event `Ei`: symbol `i` is missing.
+
+If a set of `j` symbols is missing, there are:
+
+```text
+(k-j)^n
+```
+
+strings. Choose which `j` symbols are missing:
+
+```text
+C(k,j)
+```
+
+Answer:
+
+```text
+sum j=0..k of (-1)^j * C(k,j) * (k-j)^n
+```
+
+# Pattern 3: bounded stars and bars
+
+Count:
+
+```text
+x1 + ... + xn = s
+0 <= xi <= b
+```
+
+Without upper bounds, Section 32 gives:
+
+```text
+C(s+n-1, n-1)
+```
+
+Bad event `Ei`: child `i` gets at least `b+1` candies.
+
+If `j` chosen children are bad, give each of them `b+1` candies first. Remaining
+candies:
+
+```text
+s - j*(b+1)
+```
+
+Then distribute the rest freely:
+
+```text
+C(s - j*(b+1) + n - 1, n - 1)
+```
+
+Answer:
+
+```text
+sum j >= 0 (-1)^j * C(n,j) * C(s-j(b+1)+n-1, n-1)
+```
+
+only while `s-j(b+1) >= 0`.
+
+# Implementation notes
+
+For subset inclusion-exclusion:
+
+```text
+for mask in 1..(1<<m)-1:
+    bits = popcount(mask)
+    contribution = intersection size for selected events
+    add if bits odd, subtract if bits even
+```
+
+For formula inclusion-exclusion, loop over the number of bad events `j`.
+
+For modular subtraction:
+
+```cpp
+ans = (ans - term + MOD) % MOD;
+```
+
+Python's final `ans % MOD` normalizes negative values.
+
+# Common mistakes
+
+```text
+Subtracting odd subsets instead of even subsets.
+Counting "all events happen" when the problem asks "at least one event happens."
+Forgetting lcm in divisibility intersections.
+Letting lcm overflow before comparing with N.
+In bounded stars-and-bars, subtracting b instead of b+1.
+Continuing the loop after the remaining sum becomes negative.
+```
+
+# Submission checklist
+
+```text
+1. What are the events?
+2. Are you counting a union of good events or excluding bad events?
+3. What is the intersection size for a chosen subset?
+4. Is the sign based on subset size?
+5. Are modular subtractions normalized?
+```

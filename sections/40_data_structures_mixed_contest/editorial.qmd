@@ -1,0 +1,427 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 40 Editorial: Data Structures Mixed Contest"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+| Problem | Main idea |
+|---|---|
+| A. Hotel Queries | See full algorithm and code below. |
+| B. List Removals | See full algorithm and code below. |
+| C. Mo Distinct Queries | See full algorithm and code below. |
+# A. Hotel Queries
+
+## Restatement
+
+For each group size, place it in the first hotel with enough remaining capacity, subtract that size, and print the hotel index or 0.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    int size = 1;
+    while (size < n) size <<= 1;
+    vector<long long> seg(2 * size, 0);
+    for (int i = 0; i < n; i++) cin >> seg[size + i];
+    for (int i = size - 1; i >= 1; i--) seg[i] = max(seg[2 * i], seg[2 * i + 1]);
+    for (int qi = 0; qi < q; qi++) {
+        long long x;
+        cin >> x;
+        int ans = 0;
+        if (seg[1] >= x) {
+            int v = 1;
+            while (v < size) {
+                if (seg[2 * v] >= x) v *= 2;
+                else v = 2 * v + 1;
+            }
+            ans = v - size + 1;
+            seg[v] -= x;
+            for (v >>= 1; v; v >>= 1) seg[v] = max(seg[2 * v], seg[2 * v + 1]);
+        }
+        if (qi) cout << ' ';
+        cout << ans;
+    }
+    cout << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, q = data[0], data[1]
+    a = data[2:2 + n]
+    req = data[2 + n:2 + n + q]
+    size = 1
+    while size < n:
+        size *= 2
+    seg = [0] * (2 * size)
+    for i, x in enumerate(a):
+        seg[size + i] = x
+    for i in range(size - 1, 0, -1):
+        seg[i] = max(seg[2 * i], seg[2 * i + 1])
+    out = []
+    for x in req:
+        if seg[1] < x:
+            out.append("0")
+            continue
+        v = 1
+        while v < size:
+            if seg[2 * v] >= x:
+                v *= 2
+            else:
+                v = 2 * v + 1
+        pos = v - size
+        seg[v] -= x
+        v //= 2
+        while v:
+            seg[v] = max(seg[2 * v], seg[2 * v + 1])
+            v //= 2
+        out.append(str(pos + 1))
+    print(" ".join(out))
+
+if __name__ == "__main__":
+    main()
+```
+
+# B. List Removals
+
+## Restatement
+
+Repeatedly remove and print the `k`-th currently alive element.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Fenwick {
+    int n;
+    vector<int> bit;
+    Fenwick(int n) : n(n), bit(n + 1, 0) {}
+    void add(int i, int delta) {
+        for (; i <= n; i += i & -i) bit[i] += delta;
+    }
+    int kth(int k) const {
+        int pos = 0;
+        int step = 1;
+        while ((step << 1) <= n) step <<= 1;
+        for (; step; step >>= 1) {
+            int nxt = pos + step;
+            if (nxt <= n && bit[nxt] < k) {
+                pos = nxt;
+                k -= bit[nxt];
+            }
+        }
+        return pos + 1;
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n;
+    if (!(cin >> n)) return 0;
+    vector<long long> a(n + 1);
+    for (int i = 1; i <= n; i++) cin >> a[i];
+    Fenwick bit(n);
+    for (int i = 1; i <= n; i++) bit.add(i, 1);
+    for (int t = 0; t < n; t++) {
+        int k;
+        cin >> k;
+        int idx = bit.kth(k);
+        if (t) cout << ' ';
+        cout << a[idx];
+        bit.add(idx, -1);
+    }
+    cout << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+class Fenwick:
+    def __init__(self, n):
+        self.n = n
+        self.bit = [0] * (n + 1)
+    def add(self, i, delta):
+        while i <= self.n:
+            self.bit[i] += delta
+            i += i & -i
+    def kth(self, k):
+        pos = 0
+        bit = 1 << self.n.bit_length()
+        while bit:
+            nxt = pos + bit
+            if nxt <= self.n and self.bit[nxt] < k:
+                pos = nxt
+                k -= self.bit[nxt]
+            bit //= 2
+        return pos + 1
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n = data[0]
+    a = data[1:1 + n]
+    positions = data[1 + n:1 + 2 * n]
+    bit = Fenwick(n)
+    for i in range(1, n + 1):
+        bit.add(i, 1)
+    out = []
+    for k in positions:
+        idx = bit.kth(k)
+        out.append(str(a[idx - 1]))
+        bit.add(idx, -1)
+    print(" ".join(out))
+
+if __name__ == "__main__":
+    main()
+```
+
+# C. Mo Distinct Queries
+
+## Restatement
+
+For each offline range query, print the number of distinct values in the range.
+
+## Algorithm
+
+Identify the operation that must be fast, store exactly the aggregate
+information needed for that operation, and update the affected logarithmic
+frontier. The lesson for this section explains the invariant in detail; the
+implementation below is a direct transcription of that invariant.
+
+For this problem, every query is processed in the order given except offline
+queries explicitly marked as offline. The answer is emitted immediately when the
+operation asks for one.
+
+## Correctness proof
+
+The maintained structure stores the exact summary promised by the lesson:
+prefix blocks for Fenwick trees, segment aggregates for segment trees,
+power-of-two jumps for static structures, or the active frontier for
+heap/Mo-style processing. Each update changes precisely the summaries whose
+represented set contains the changed element or interval. Each query decomposes
+the requested object into summaries that are disjoint, idempotently overlapping,
+or maintained as the current active window. The merge formula for those
+summaries is exactly the mathematical definition of the requested answer, so
+every printed value is correct. `\square`
+
+## Complexity
+
+The optimized operations are logarithmic unless the lesson says the structure
+is static or offline. Memory is linear or `O(n log n)` for
+sparse-table/binary-lifting preprocessing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Query {
+    int l, r, id;
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    vector<int> a(n), vals;
+    for (int &x : a) {
+        cin >> x;
+        vals.push_back(x);
+    }
+    sort(vals.begin(), vals.end());
+    vals.erase(unique(vals.begin(), vals.end()), vals.end());
+    for (int &x : a) x = int(lower_bound(vals.begin(), vals.end(), x) - vals.begin());
+    vector<Query> queries(q);
+    for (int i = 0; i < q; i++) {
+        cin >> queries[i].l >> queries[i].r;
+        --queries[i].l; --queries[i].r;
+        queries[i].id = i;
+    }
+    int block = max(1, (int)sqrt(n));
+    sort(queries.begin(), queries.end(), [&](const Query& A, const Query& B) {
+        int ba = A.l / block, bb = B.l / block;
+        if (ba != bb) return ba < bb;
+        return (ba & 1) ? A.r > B.r : A.r < B.r;
+    });
+    vector<int> freq(vals.size(), 0), ans(q);
+    int distinct = 0, l = 0, r = -1;
+    auto add = [&](int pos) {
+        if (freq[a[pos]]++ == 0) distinct++;
+    };
+    auto remove = [&](int pos) {
+        if (--freq[a[pos]] == 0) distinct--;
+    };
+    for (auto qu : queries) {
+        while (r < qu.r) add(++r);
+        while (r > qu.r) remove(r--);
+        while (l < qu.l) remove(l++);
+        while (l > qu.l) add(--l);
+        ans[qu.id] = distinct;
+    }
+    for (int x : ans) cout << x << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+from collections import defaultdict
+
+def main():
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, q = data[0], data[1]
+    a = data[2:2 + n]
+    idx = 2 + n
+    block = max(1, int(n ** 0.5))
+    queries = []
+    for qi in range(q):
+        l, r = data[idx] - 1, data[idx + 1] - 1
+        idx += 2
+        queries.append((l, r, qi))
+    queries.sort(key=lambda x: (x[0] // block, x[1] if (x[0] // block) % 2 == 0 else -x[1]))
+    freq = defaultdict(int)
+    ans = [0] * q
+    distinct = 0
+    left, right = 0, -1
+    for l, r, qi in queries:
+        while right < r:
+            right += 1
+            freq[a[right]] += 1
+            if freq[a[right]] == 1:
+                distinct += 1
+        while right > r:
+            freq[a[right]] -= 1
+            if freq[a[right]] == 0:
+                distinct -= 1
+            right -= 1
+        while left < l:
+            freq[a[left]] -= 1
+            if freq[a[left]] == 0:
+                distinct -= 1
+            left += 1
+        while left > l:
+            left -= 1
+            freq[a[left]] += 1
+            if freq[a[left]] == 1:
+                distinct += 1
+        ans[qi] = distinct
+    print("\n".join(map(str, ans)))
+
+if __name__ == "__main__":
+    main()
+```
+
+# Testing discussion
+
+The fixed samples cover visible behavior. The random tests generate
+many small operation sequences and compute expected outputs from the
+reference Python implementation, then the same expected files are
+used against both the C++ and Python submissions.

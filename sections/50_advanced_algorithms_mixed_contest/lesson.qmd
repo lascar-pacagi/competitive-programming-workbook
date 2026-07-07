@@ -1,0 +1,181 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 50: Advanced Algorithms Mixed Contest"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Mixed advanced contest habits
+
+By now, the hard part is often recognizing the model: impartial game on a DAG,
+congruence merging, or fast recurrence evaluation. The local tasks are small
+but force you to state the invariant precisely before coding.
+
+## DAG Grundy
+
+For impartial games on a DAG, every state has a Grundy number:
+
+```text
+grundy[v] = mex({ grundy[to] for every move v -> to })
+```
+
+`mex` is the minimum excluded nonnegative integer. A state is winning exactly
+when `grundy[v] != 0`.
+
+Because the graph is acyclic, compute states in reverse topological order. If
+vertices are already numbered so edges go forward, iterate from `n` down to
+`1`; otherwise explicitly topologically sort first.
+
+## General CRT
+
+To merge:
+
+```text
+x = a mod m
+x = b mod n
+```
+
+Let `g = gcd(m, n)`. A solution exists iff:
+
+```text
+(b - a) % g == 0
+```
+
+Reduce:
+
+```text
+m' = m/g, n' = n/g
+```
+
+Find `t` satisfying:
+
+```text
+a + m*t = b mod n
+m*t = b-a mod n
+m' * t = (b-a)/g mod n'
+```
+
+Since `m'` and `n'` are coprime, invert `m' mod n'`. The new modulus is
+`lcm(m,n) = m/g*n`. Normalize the answer into `[0, lcm)`.
+
+## Fast Fibonacci
+
+Fast doubling computes `(F(n), F(n+1))` recursively:
+
+```text
+c = F(2k)   = F(k) * (2*F(k+1) - F(k))
+d = F(2k+1) = F(k)^2 + F(k+1)^2
+```
+
+If `n` is even, return `(c, d)`. If `n` is odd, return `(d, c+d)`.
+
+This is a matrix-exponentiation result specialized to Fibonacci, with fewer
+constant factors and less code.
+
+## Contest lesson
+
+These three problems look unrelated. The common skill is compression:
+
+- a whole game state becomes one Grundy number;
+- two congruences become one congruence;
+- a recurrence query becomes two values `(F(n), F(n+1))`.
+
+## CRT worked example
+
+Merge:
+
+```text
+x = 2 mod 6
+x = 5 mod 9
+```
+
+`gcd(6,9)=3`. Since `5-2=3` is divisible by `3`, a solution exists.
+
+Check values:
+
+```text
+2, 8, 14, 20, 26, ...
+```
+
+Modulo `9`, these are:
+
+```text
+2, 8, 5, ...
+```
+
+So `x = 14` works. The merged modulus is:
+
+```text
+lcm(6,9) = 18
+```
+
+All solutions are:
+
+```text
+x = 14 mod 18
+```
+
+If the residues had disagreed modulo `3`, there would be no solution.
+
+## Fast doubling trace
+
+To compute `F(5)`, recurse to `F(2)`, then `F(1)`, then `F(0)`.
+
+At `k = 1`:
+
+```text
+F(2) = F(1) * (2*F(2)-F(1)) = 1
+F(3) = F(1)^2 + F(2)^2 = 2
+```
+
+At `k = 2`:
+
+```text
+F(4) = F(2) * (2*F(3)-F(2)) = 3
+F(5) = F(2)^2 + F(3)^2 = 5
+```
+
+The recursive function returns pairs so every level has exactly the two values
+needed by the next doubling step.
+
+## Mixed-contest debugging
+
+For Grundy, test terminal vertices and vertices whose outgoing Grundy set is
+`{1}` so the mex is `0`. For CRT, test incompatible residues:
+
+```text
+x = 0 mod 2
+x = 1 mod 4
+```
+
+For Fibonacci, test:
+
+```text
+F(0)=0, F(1)=1, F(2)=1, F(10)=55
+```
+
+These anchors catch most implementation mistakes quickly.
+
+# Exercises
+
+- A. DAG Grundy: For each start vertex in a DAG, print whether the first player wins.
+- B. General CRT: For each pair of congruences, print the smallest nonnegative solution and lcm modulus, or `NO`.
+- C. Fast Fibonacci: Answer Fibonacci queries modulo `1e9+7`.

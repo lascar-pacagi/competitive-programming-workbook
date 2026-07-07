@@ -1,0 +1,184 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 34: Probability and Expected Value"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Expected value in programming contests
+
+Expected value is the long-run average value of a random variable. If a value
+`x` occurs with probability `p`, it contributes `p*x` to the expectation.
+
+When a problem asks for expected value modulo a prime, represent a rational
+number:
+
+```text
+a / b
+```
+
+as:
+
+```text
+a * inverse(b) mod MOD
+```
+
+This uses modular inverses from Section 29.
+
+# Linearity of expectation
+
+The most important rule:
+
+```text
+E[X + Y] = E[X] + E[Y]
+```
+
+This is true even if `X` and `Y` are dependent.
+
+For independent bonus events, event `i` contributes:
+
+```text
+v[i] with probability p[i]/q[i]
+0    otherwise
+```
+
+So:
+
+```text
+E[event i] = v[i] * p[i] / q[i]
+E[total] = sum_i E[event i]
+```
+
+# Geometric waiting time
+
+If each attempt succeeds with probability `p`, the expected number of attempts
+until the first success is:
+
+```text
+1 / p
+```
+
+Derivation:
+
+```text
+E = 1 + (1-p)E
+pE = 1
+E = 1/p
+```
+
+If `p = a/b`, then:
+
+```text
+E = b/a
+```
+
+# Coupon collector
+
+There are `n` coupon types. Suppose you already have `i` distinct types. The
+probability that the next draw gives a new type is:
+
+```text
+(n-i)/n
+```
+
+The expected waiting time for the next new type is:
+
+```text
+n/(n-i)
+```
+
+Add stages for `i = 0..n-1`:
+
+```text
+n/n + n/(n-1) + ... + n/1
+= n * (1 + 1/2 + ... + 1/n)
+```
+
+# Modular harmonic sums
+
+For many coupon-collector queries, precompute:
+
+```text
+H[i] = 1 + 1/2 + ... + 1/i mod MOD
+```
+
+Then:
+
+```text
+answer(n) = n * H[n] mod MOD
+```
+
+# Worked expectation table
+
+Suppose a task has three independent bonuses:
+
+```text
+bonus value   probability
+10            1/2
+6             1/3
+9             2/3
+```
+
+The expected total is not the most likely total. It is the sum of each bonus's
+contribution:
+
+```text
+10 * 1/2 + 6 * 1/3 + 9 * 2/3
+= 5 + 2 + 6
+= 13
+```
+
+Linearity lets us avoid enumerating all `2^3` subsets of bonuses. This is the
+main contest trick: define indicator variables for events and sum their
+expectations.
+
+# State-based expectation
+
+Some problems define expectation recursively. If `E[state]` is the expected
+remaining cost, write one equation per state:
+
+```text
+E[state] = immediate_cost + sum probability(next) * E[next]
+```
+
+If transitions only go to "smaller" states, compute by DP. If transitions can
+return to the same state, isolate the variable algebraically, like the
+geometric waiting-time derivation.
+
+# Common mistakes
+
+```text
+Using floating-point output for a modular problem.
+Assuming linearity requires independence.
+For geometric waiting time, outputting p instead of 1/p.
+For coupon collector, using n/i with i in the wrong direction.
+Forgetting to convert denominators with modular inverses.
+```
+
+# Submission checklist
+
+```text
+1. Is the problem asking for exact modular expectation or decimal output?
+2. What random variables can be summed?
+3. Can the process be split into stages?
+4. Are denominators nonzero modulo MOD?
+5. Are all subtractions and fractions normalized?
+```

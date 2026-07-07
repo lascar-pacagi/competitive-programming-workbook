@@ -1,0 +1,311 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 8: Binary search on the answer"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why binary search on the answer matters
+
+Sometimes the answer is hard to construct directly, but easy to check.
+
+Examples:
+
+- Can we place `k` objects with distance at least `d`?
+- Can we ship all packages with capacity `C`?
+- Is there an integer `x` with `x*x >= n`?
+
+If the yes/no answer changes monotonically as the candidate answer changes,
+we can binary search the answer.
+
+The pattern is:
+
+```text
+candidate answer
+    |
+    v
+feasibility predicate: true or false
+    |
+    v
+binary search over candidate values
+```
+
+# Monotone predicates
+
+A predicate is **monotone** if its truth values change direction at most once.
+
+For minimum feasible searches:
+
+```text
+candidate:  0  1  2  3  4  5  6
+predicate:  F  F  F  T  T  T  T
+```
+
+We want the first `T`.
+
+For maximum feasible searches:
+
+```text
+candidate:  0  1  2  3  4  5  6
+predicate:  T  T  T  T  F  F  F
+```
+
+We want the last `T`.
+
+Before writing binary search, write the predicate direction in words.
+
+# Minimum feasible template
+
+Use this when larger candidates remain feasible after the first feasible point.
+
+Example:
+
+> smallest `x` such that `x*x >= n`
+
+If `x` works, every larger `x` also works.
+
+Template:
+
+```text
+lo = known lower bound
+hi = known feasible upper bound
+while lo < hi:
+    mid = (lo + hi) // 2
+    if feasible(mid):
+        hi = mid
+    else:
+        lo = mid + 1
+answer = lo
+```
+
+Invariant:
+
+```text
+answer is always in [lo, hi]
+hi is feasible
+```
+
+# Maximum feasible template
+
+Use this when smaller candidates remain feasible after the last feasible point.
+
+Example:
+
+> largest minimum distance `d` such that we can place `k` objects
+
+If distance `d` works, every smaller distance also works.
+
+Template with an exclusive bad upper bound:
+
+```text
+lo = known feasible value
+hi = known infeasible value
+while lo + 1 < hi:
+    mid = (lo + hi) // 2
+    if feasible(mid):
+        lo = mid
+    else:
+        hi = mid
+answer = lo
+```
+
+Invariant:
+
+```text
+lo is feasible
+hi is infeasible
+```
+
+# Bounds matter
+
+Binary search needs correct initial bounds.
+
+For square threshold:
+
+```text
+0 <= n <= 10^18
+answer <= 10^9
+```
+
+because:
+
+```text
+(10^9)^2 = 10^18
+```
+
+For shipping capacity:
+
+```text
+lower bound = max package weight
+upper bound = sum of all package weights
+```
+
+The lower bound is necessary because every package must fit alone. The upper
+bound is feasible because one day could ship everything.
+
+# Feasibility checks
+
+Binary search is only as good as its predicate.
+
+For maximum minimum distance:
+
+```text
+can_place(d):
+    choose the leftmost position
+    repeatedly choose the next position at least d away
+    return whether at least k positions were chosen
+```
+
+This greedy check works because choosing earlier never hurts future placement.
+
+For minimum capacity:
+
+```text
+days_needed(C):
+    scan packages in order
+    start a new day when the next package would exceed C
+```
+
+This greedy check uses the fewest days for that capacity because each day is
+filled as much as possible before moving on.
+
+# Worked example: maximum distance
+
+Positions:
+
+```text
+1 2 4 8 9
+```
+
+Need to choose `3`.
+
+Check `d = 3`:
+
+```text
+choose 1
+next at least 4 -> choose 4
+next at least 7 -> choose 8
+success
+```
+
+Check `d = 4`:
+
+```text
+choose 1
+next at least 5 -> choose 8
+next at least 12 -> none
+failure
+```
+
+So the answer is `3`.
+
+# Worked example: minimum capacity
+
+Weights:
+
+```text
+1 2 3 4 5
+```
+
+Days:
+
+```text
+2
+```
+
+Capacity `8`:
+
+```text
+day 1: 1 2 3 = 6
+day 2: 4 = 4
+day 3: 5 = 5
+needs 3 days -> fail
+```
+
+Capacity `9`:
+
+```text
+day 1: 1 2 3 = 6
+day 2: 4 5 = 9
+needs 2 days -> success
+```
+
+The minimum feasible capacity is `9`.
+
+# Overflow safety
+
+Binary search often computes midpoints and products near constraints.
+
+Use:
+
+```cpp
+mid = lo + (hi - lo) / 2;
+```
+
+instead of:
+
+```cpp
+mid = (lo + hi) / 2;
+```
+
+For `mid * mid` near `10^18`, use `__int128` in C++:
+
+```cpp
+(__int128)mid * mid
+```
+
+Python integers do not overflow, but the logic can still be off by one.
+
+# Common mistakes
+
+- Binary searching when the predicate is not monotone.
+- Using a minimum-feasible template for a maximum-feasible problem.
+- Choosing an upper bound that is not actually feasible.
+- Forgetting that `hi` may be exclusive in some templates.
+- Infinite loops caused by `mid = (lo + hi) / 2` and wrong updates.
+- Overflowing `mid * mid`.
+- Writing a feasibility check that is slower than expected.
+
+# Before you submit
+
+Write down:
+
+1. What is the candidate answer?
+2. Is the predicate `False...True` or `True...False`?
+3. What are the initial bounds?
+4. Which bound is guaranteed feasible?
+5. What is the complexity of one predicate check?
+6. What is the total complexity after multiplying by `log range`?
+
+# Exercises
+
+The local exercises cover:
+
+1. `a_square_threshold`: first true over integers.
+2. `b_max_min_distance`: last true with a greedy placement check.
+3. `c_minimum_capacity`: first true with a greedy scheduling check.
+
+Run:
+
+```bash
+python3 sections/08_binary_search_answer/check.py
+```
+

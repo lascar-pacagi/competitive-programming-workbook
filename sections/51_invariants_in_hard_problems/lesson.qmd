@@ -1,0 +1,182 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 51: Invariants In Hard Problems"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Invariants under pressure
+
+Hard constructive problems often become simple after finding what never
+changes: parity, xor, residue class, sorted order, or a conservation law. The
+workflow is: test small cases, identify the invariant, prove necessity, then
+show a construction or decision rule for sufficiency.
+
+## What counts as an invariant
+
+An invariant is a property that every allowed operation preserves. If the
+initial state and target state have different invariant values, the target is
+impossible.
+
+Common competitive programming invariants:
+
+| Operation clue | Likely invariant |
+|---|---|
+| add/subtract by 2 | parity |
+| add/subtract by `k` | value modulo `k` |
+| swap elements | multiset of values |
+| xor operation | xor of selected group |
+| move units between boxes | total sum |
+| reorder under constraints | relative order or inversion parity |
+
+## Necessity and sufficiency
+
+Invariant arguments have two halves.
+
+Necessity:
+
+```text
+Every operation preserves P.
+The start has P = A.
+Therefore any reachable state must also have P = A.
+```
+
+Sufficiency:
+
+```text
+If the invariant condition holds, here is a sequence of operations or a direct
+construction that reaches the goal.
+```
+
+Many wrong editorials stop after necessity. For red-level problems, the hard
+part is often proving sufficiency.
+
+## Parity example
+
+If an operation changes a number by `2`, then parity never changes. Therefore
+all numbers can become equal only if they already have the same parity.
+
+That condition is also sufficient: choose any target with that parity, and
+each number can move to it by repeated `+2` or `-2` operations.
+
+## XOR split example
+
+For an array, define prefix xor `px[i] = a[1] xor ... xor a[i]`. The xor of the
+left part before split `i` is `px[i]`. The xor of the right part is:
+
+```text
+total_xor xor px[i]
+```
+
+So the split is balanced iff:
+
+```text
+px[i] == total_xor xor px[i]
+```
+
+Equivalently, `total_xor == 0`. If total xor is not zero, no split works; if it
+is zero, every split with equal prefix and suffix xor can be counted directly.
+
+## Small-case workflow
+
+When stuck:
+
+1. Generate all states for `n <= 5`.
+2. Group reachable states by parity, sum, xor, or residue.
+3. Look for a property shared by every state in a component.
+4. Try to construct moves between any two states with the same property.
+
+The local exercises are intentionally small, but this workflow is exactly what
+scales to Codeforces constructive problems.
+
+## Worked residue example
+
+Operation:
+
+```text
+choose one number and add or subtract k
+```
+
+Array:
+
+```text
+[5, 11, 17], k = 6
+```
+
+All values are `5 mod 6`, so they can all become equal. For example, make them
+all `11`:
+
+```text
+5 + 6 = 11
+11 stays
+17 - 6 = 11
+```
+
+Array:
+
+```text
+[5, 10, 17], k = 6
+```
+
+Residues are:
+
+```text
+5, 4, 5
+```
+
+The second number can never have residue `5`, so equality is impossible.
+
+## Invariant proof template
+
+Use this exact structure in editorials:
+
+```text
+Invariant: value modulo k.
+Preservation: adding/subtracting k does not change modulo k.
+Necessity: if two values have different residues, they can never be equal.
+Sufficiency: if all residues match, move every value to one chosen target by
+repeated +/- k operations.
+```
+
+## How to stress-test an invariant
+
+For a constructive invariant problem, brute force tiny states:
+
+```text
+states: all arrays of length <= 4 with values 0..5
+edges: one allowed operation
+components: reachable sets under those operations
+```
+
+Then print candidate invariant values for each component. If every component
+has one invariant value, the invariant may be necessary. If every state with
+that invariant value is in the same component, it may also be sufficient.
+
+This is not a proof, but it is a powerful way to discover the proof.
+
+# Exercises
+
+- A. Same Parity: Can all numbers become equal if one operation changes a number by 2?
+- B. XOR Balanced Splits: Count split positions where left xor equals right xor.
+- C. Same Residue: Can all numbers become equal using operations that change a number by `k`?
+# Contest checklist
+
+State the invariant, choose the model, prove the operation, then code the smallest reliable version.

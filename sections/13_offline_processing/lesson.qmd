@@ -1,0 +1,619 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 13: Offline Processing"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why offline processing matters
+
+Most query problems are presented online:
+
+```text
+Read query 1, answer it.
+Read query 2, answer it.
+...
+```
+
+But unless the statement explicitly forces online behavior, you are allowed to
+read all queries first. Once you know every query, you can reorder the work.
+
+That is **offline processing**.
+
+The tradeoff is simple:
+
+```text
+Original order is convenient for output.
+Sorted order is convenient for computation.
+```
+
+The bridge is storing each query's original index.
+
+# The offline pattern
+
+Most offline solutions follow this shape:
+
+```text
+read all input
+attach original index to each query
+sort queries by a useful key
+move a pointer or data structure monotonically
+write answers into ans[original_index]
+print ans in original order
+```
+
+You should think of the sorted order as an implementation detail. The final
+answers still belong to the original query order.
+
+# Vocabulary
+
+**Online query.** A query that must be answered before future queries are known
+or before future updates happen.
+
+**Offline query.** A query that may be stored and answered later after
+reordering.
+
+**Coordinate compression.** Replacing large values by small ranks while
+preserving equality and order.
+
+**Fenwick tree.** A data structure for prefix sums with point updates in
+`O(log n)`. This section uses it as a local tool for query processing.
+
+**Answer restoration.** Writing computed answers to `ans[id]` so they can be
+printed in original query order.
+
+**Monotone pointer.** A pointer that only moves forward while processing sorted
+queries.
+
+# Coordinate compression
+
+Coordinate compression is the simplest offline transformation.
+
+Given:
+
+```text
+100 50 100 -5 50 7
+```
+
+Distinct sorted values:
+
+```text
+-5 7 50 100
+```
+
+Ranks:
+
+```text
+-5 -> 0
+ 7 -> 1
+50 -> 2
+100 -> 3
+```
+
+Compressed array:
+
+```text
+3 2 3 0 2 1
+```
+
+Compression preserves:
+
+- equality;
+- less-than order;
+- number of distinct values.
+
+It does not preserve:
+
+- distances between values;
+- sums of values;
+- arithmetic relationships.
+
+So compression is safe for indexing, ordering, counting, and equality. It is
+not safe if the problem needs real coordinate lengths unless you keep the
+original coordinates too.
+
+# Fenwick tree in this section
+
+A Fenwick tree stores an array of counts or sums and supports:
+
+```text
+add(position, delta)
+prefix_sum(position)
+range_sum(l, r) = prefix_sum(r) - prefix_sum(l-1)
+```
+
+In this section, we only use point updates and range-sum queries.
+
+Example:
+
+```text
+positions: 1 2 3 4 5
+active:    0 1 0 1 1
+range_sum(2,5) = 3
+```
+
+You can think of the Fenwick tree as a compressed prefix-sum array that supports
+updates efficiently.
+
+That sentence is useful only after you know the mechanics, so here is the
+minimal Fenwick tree you need for this section.
+
+## The lowbit idea
+
+Fenwick trees are one-based. For an index `i`, define:
+
+```text
+lowbit(i) = i & -i
+```
+
+This is the largest power of two dividing `i`.
+
+Examples:
+
+```text
+i       binary    lowbit(i)
+1       001       1
+2       010       2
+3       011       1
+4       100       4
+5       101       1
+6       110       2
+7       111       1
+8       1000      8
+```
+
+Fenwick entry `bit[i]` stores the sum of a block ending at `i` with length
+`lowbit(i)`.
+
+For `n = 8`:
+
+```text
+bit[1] stores a[1..1]
+bit[2] stores a[1..2]
+bit[3] stores a[3..3]
+bit[4] stores a[1..4]
+bit[5] stores a[5..5]
+bit[6] stores a[5..6]
+bit[7] stores a[7..7]
+bit[8] stores a[1..8]
+```
+
+Diagram:
+
+```text
+index:  1 2 3 4 5 6 7 8
+bit[1]: [1]
+bit[2]: [1 2]
+bit[3]:     [3]
+bit[4]: [1 2 3 4]
+bit[5]:         [5]
+bit[6]:         [5 6]
+bit[7]:             [7]
+bit[8]: [1 2 3 4 5 6 7 8]
+```
+
+## Prefix sums
+
+To compute `prefix_sum(i)`, repeatedly take the block ending at `i`, then jump
+left by that block's size:
+
+```text
+sum = 0
+while i > 0:
+    sum += bit[i]
+    i -= lowbit(i)
+```
+
+Example for `prefix_sum(7)`:
+
+```text
+take bit[7] -> covers [7..7]
+move to 6
+take bit[6] -> covers [5..6]
+move to 4
+take bit[4] -> covers [1..4]
+move to 0
+```
+
+Together these blocks cover exactly `[1..7]`.
+
+```text
+[1..4] + [5..6] + [7..7] = [1..7]
+```
+
+## Point updates
+
+To add `delta` at position `i`, update every Fenwick block that contains `i`.
+Those block endpoints are reached by repeatedly adding `lowbit(i)`:
+
+```text
+while i <= n:
+    bit[i] += delta
+    i += lowbit(i)
+```
+
+Example: add at position `5` when `n = 8`.
+
+```text
+i = 5: bit[5] covers [5..5]
+i = 6: bit[6] covers [5..6]
+i = 8: bit[8] covers [1..8]
+```
+
+All three blocks contain position `5`, so all three must change.
+
+## Why this is logarithmic
+
+Each jump changes one binary block of the index. There are only `O(log n)` such
+blocks before the index reaches `0` for a query or exceeds `n` for an update.
+
+So:
+
+```text
+add:        O(log n)
+prefix_sum: O(log n)
+range_sum:  O(log n)
+```
+
+The range query is just:
+
+```text
+range_sum(l, r) = prefix_sum(r) - prefix_sum(l - 1)
+```
+
+That is why Fenwick trees fit offline processing well: sorted queries decide
+which positions are active, and the Fenwick tree quickly counts active
+positions inside a requested index range.
+
+## Complete Fenwick skeleton
+
+C++:
+
+```cpp
+struct Fenwick {
+    vector<int> bit;
+
+    explicit Fenwick(int n) : bit(n + 1, 0) {}
+
+    void add(int idx, int delta) {
+        while (idx < (int)bit.size()) {
+            bit[idx] += delta;
+            idx += idx & -idx;
+        }
+    }
+
+    int sum(int idx) const {
+        int total = 0;
+        while (idx > 0) {
+            total += bit[idx];
+            idx -= idx & -idx;
+        }
+        return total;
+    }
+
+    int range_sum(int left, int right) const {
+        return sum(right) - sum(left - 1);
+    }
+};
+```
+
+Python:
+
+```python
+class Fenwick:
+    def __init__(self, n: int) -> None:
+        self.bit = [0] * (n + 1)
+
+    def add(self, idx: int, delta: int) -> None:
+        while idx < len(self.bit):
+            self.bit[idx] += delta
+            idx += idx & -idx
+
+    def sum(self, idx: int) -> int:
+        total = 0
+        while idx > 0:
+            total += self.bit[idx]
+            idx -= idx & -idx
+        return total
+
+    def range_sum(self, left: int, right: int) -> int:
+        return self.sum(right) - self.sum(left - 1)
+```
+
+For now, treat Fenwick trees as a focused tool for dynamic prefix sums. Later
+data-structure sections can go deeper; Section 13 only needs this point-update,
+range-query version.
+
+# Worked example 1: threshold range queries
+
+Array:
+
+```text
+index: 1 2 3 4 5
+value: 4 1 7 3 4
+```
+
+Queries:
+
+```text
+id  l r x   asks
+0   1 5 4   count values <= 4 in [1,5]
+1   2 4 2   count values <= 2 in [2,4]
+2   3 5 10  count values <= 10 in [3,5]
+```
+
+Sort array positions by value:
+
+```text
+(1,2), (3,4), (4,1), (4,5), (7,3)
+```
+
+Sort queries by `x`:
+
+```text
+x=2, id=1
+x=4, id=0
+x=10, id=2
+```
+
+Process:
+
+```text
+x=2:
+    add position 2
+    answer id 1 = active in [2,4] = 1
+
+x=4:
+    add positions 4, 1, 5
+    answer id 0 = active in [1,5] = 4
+
+x=10:
+    add position 3
+    answer id 2 = active in [3,5] = 3
+```
+
+The query order changed, but the answer array restores it:
+
+```text
+id 0 -> 4
+id 1 -> 1
+id 2 -> 3
+```
+
+# Worked example 2: distinct values in ranges
+
+Array:
+
+```text
+index: 1 2 3 4 5 6 7
+value: 1 2 1 3 2 4 1
+```
+
+Suppose we process positions from left to right. For every value, keep only its
+latest occurrence active.
+
+After processing position `5`, active positions are:
+
+```text
+value 1 latest at 3
+value 2 latest at 5
+value 3 latest at 4
+```
+
+Active marker array:
+
+```text
+index: 1 2 3 4 5
+mark:  0 0 1 1 1
+```
+
+For a query `[2,5]`, the number of distinct values is:
+
+```text
+sum marks in [2,5] = 3
+```
+
+Why does this work? For every value that appears in `[l,r]`, its latest
+occurrence among positions `1..r` is inside `[l,r]`. Values that do not appear
+in `[l,r]` have no active marker inside that range.
+
+# Answer restoration
+
+Never print while processing sorted queries unless sorted order is the requested
+output order.
+
+Attach an id:
+
+```text
+query 0: l=1 r=5 x=4
+query 1: l=2 r=4 x=2
+query 2: l=3 r=5 x=10
+```
+
+After sorting:
+
+```text
+(x=2, id=1)
+(x=4, id=0)
+(x=10, id=2)
+```
+
+Store:
+
+```text
+ans[id] = computed answer
+```
+
+Then print:
+
+```text
+ans[0], ans[1], ans[2]
+```
+
+# When offline processing is not allowed
+
+Do not use offline processing when:
+
+- each answer changes future input or future decisions;
+- the statement explicitly says queries must be answered online;
+- there are updates and queries interleaved in a way your sorting would change
+  time order;
+- the judge is interactive.
+
+Offline processing is safe when queries are independent questions about fixed
+data, or when updates can also be represented in a sorted/event order that
+preserves their meaning.
+
+# Common offline keys
+
+| Query shape | Sort key | Data structure |
+|---|---|---|
+| count values `<= x` in range | threshold `x` | Fenwick over positions |
+| distinct values in `[l,r]` | right endpoint `r` | Fenwick over latest occurrences |
+| sum of points with coordinate `<= x` | coordinate `x` | running sum |
+| many range queries on static array | block of `l`, then `r` | Mo's algorithm |
+| point-in-rectangle queries | x-coordinate event | Fenwick/segment tree over y |
+
+# C++ implementation notes
+
+Store query ids explicitly:
+
+```cpp
+struct Query {
+    int l;
+    int r;
+    long long x;
+    int idx;
+};
+```
+
+Fenwick tree is usually one-based:
+
+```cpp
+void add(int idx, int delta) {
+    while (idx <= n) {
+        bit[idx] += delta;
+        idx += idx & -idx;
+    }
+}
+```
+
+For maps of large values, use `unordered_map<long long,int>` or compress values
+first.
+
+# Python implementation notes
+
+Tuples make sorting queries concise:
+
+```python
+ordered = sorted((x, l, r, idx) for idx, (l, r, x) in enumerate(queries))
+```
+
+Fenwick tree methods should be small and iterative. Avoid rebuilding prefix
+sums after every update.
+
+Use lists for answer restoration:
+
+```python
+ans = [0] * q
+ans[idx] = value
+```
+
+# Proof habits
+
+Offline proofs usually have two parts.
+
+First, prove the sorted order has the right active set:
+
+```text
+When processing threshold x, the data structure contains exactly the elements
+with value <= x.
+```
+
+Second, prove answer restoration:
+
+```text
+Even though queries are processed in sorted order, ans[id] receives the answer
+for the original query with that id.
+```
+
+# Common wrong approaches
+
+## Forgetting original indices
+
+The computation may be correct but printed in sorted order.
+
+## Moving the pointer backward
+
+Offline sort keys are chosen so a pointer only moves forward. If your pointer
+needs to move backward, you probably chose the wrong key or need a different
+algorithm.
+
+## Compressing away needed distances
+
+Compression rank `3 - 1 = 2` does not mean the original coordinates differ by
+`2`.
+
+## Double-counting old occurrences
+
+For distinct range queries, each value should have exactly one active latest
+occurrence. When a value appears again, remove its previous marker.
+
+# Local judge workflow
+
+Run Section 13:
+
+```bash
+python3 sections/13_offline_processing/check.py
+```
+
+Run the reference solutions:
+
+```bash
+CP_TARGET=solution python3 sections/13_offline_processing/check.py
+```
+
+The random tests compare the offline algorithms against direct brute force on
+small arrays and query sets.
+
+# Checklist before submitting
+
+- Can the queries legally be reordered?
+- What is the sort key?
+- What invariant does the data structure satisfy after moving the pointer?
+- Did every query keep its original index?
+- Are Fenwick indices one-based?
+- Are values too large for array indexing without compression?
+- Are answers printed in original order?
+
+# Exercises
+
+## A. Coordinate Compression
+
+Practice turning large values into stable ranks.
+
+## B. Range Count At Most
+
+Practice sorting queries by threshold and restoring answers.
+
+## C. Distinct Range Queries
+
+Practice sorting by right endpoint and maintaining latest occurrences.

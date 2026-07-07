@@ -1,0 +1,740 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 22 Editorial: One-Dimensional DP"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+| Problem | DP type | Main recurrence |
+|---|---|---|
+| A. Broken Stairs | counting ways | `dp[i] = dp[i-1] + dp[i-2]` unless broken |
+| B. Training Score | max take/skip | `dp[i] = max(dp[i-1], dp[i-2] + a[i])` |
+| C. Energy Route | min over previous states | `dp[i] = min(dp[j] + cost(j,i))` |
+
+The shared workflow:
+
+```text
+define state
+initialize base cases
+derive transition from the final move/choice
+compute states in dependency order
+print the answer state
+```
+
+# DP reminder
+
+A DP array is not magic storage. It is a table of solved subproblems.
+
+For every solution below, pay attention to the exact state sentence:
+
+```text
+dp[i] = ...
+```
+
+The recurrence only makes sense after that sentence is precise.
+
+# A. Broken Stairs
+
+## Restatement
+
+You start at step `0` and want to reach step `n`. Each move climbs either `1`
+or `2` steps. Some steps are broken, and you may not land on them. Count the
+number of valid ways to reach step `n` modulo `1_000_000_007`.
+
+## Constraints and traps
+
+`n` can be `2 * 10^5`, so enumerating all paths is impossible.
+
+Important traps:
+
+```text
+Step 0 is the starting position and is not listed as broken.
+If the target step n is broken, the answer is 0.
+For counting, dp[0] should be 1, not 0.
+Modulo is required because the number of paths grows exponentially.
+If b = 0, the broken-step line is omitted.
+```
+
+## Observations
+
+Consider the last move into step `i`.
+
+If `i` is not broken, the final move came from:
+
+```text
+i - 1, using a one-step move
+i - 2, using a two-step move
+```
+
+These two groups of paths are disjoint, because their last previous step is
+different. Therefore we add their counts.
+
+If `i` is broken, no path may land there:
+
+```text
+dp[i] = 0
+```
+
+## Sample walkthrough
+
+Sample:
+
+```text
+n = 5
+broken = {3}
+```
+
+Compute:
+
+```text
+dp[0] = 1
+dp[1] = dp[0] = 1
+dp[2] = dp[1] + dp[0] = 2
+dp[3] = 0 because step 3 is broken
+dp[4] = dp[3] + dp[2] = 2
+dp[5] = dp[4] + dp[3] = 2
+```
+
+The two valid routes are:
+
+```text
+0 -> 1 -> 2 -> 4 -> 5
+0 -> 2 -> 4 -> 5
+```
+
+## Algorithm
+
+```text
+read n and b
+mark broken steps
+dp[0] = 1
+
+for i from 1 to n:
+    if i is broken:
+        dp[i] = 0
+    else:
+        dp[i] = dp[i-1]
+        if i >= 2:
+            dp[i] += dp[i-2]
+        dp[i] %= MOD
+
+print dp[n]
+```
+
+## Correctness proof
+
+**Lemma 1.** For every non-broken step `i >= 1`, every valid path to `i` ends
+at either `i-1` or `i-2` immediately before reaching `i`.
+
+**Proof.** The only allowed move lengths are `1` and `2`. Therefore the step
+before `i` must be `i-1` or `i-2`. `\square`
+
+**Lemma 2.** For every `i`, `dp[i]` equals the number of valid ways to reach
+step `i`, modulo `MOD`, after the algorithm computes it.
+
+**Proof.** By induction on `i`. For `i = 0`, there is exactly one way to be at
+the start: make no moves, so `dp[0] = 1`. For `i > 0`, if step `i` is broken,
+no valid path may land there, and the algorithm sets `dp[i] = 0`. Otherwise,
+by Lemma 1, every valid path to `i` comes from a valid path to `i-1` followed by
+a one-step move, or from a valid path to `i-2` followed by a two-step move.
+These cases are disjoint, and by the induction hypothesis their counts are
+`dp[i-1]` and `dp[i-2]`. The algorithm adds exactly these counts. `\square`
+
+**Theorem.** The algorithm prints the number of valid ways to reach step `n`,
+modulo `1_000_000_007`.
+
+**Proof.** By Lemma 2 with `i = n`, `dp[n]` has exactly the required meaning.
+`\square`
+
+## Complexity
+
+```text
+Time:  O(n + b)
+Memory: O(n)
+```
+
+The memory can be reduced to `O(1)` if broken status is streamed or stored in a
+set, but the array version is clearer and already fits easily.
+
+## C++ implementation notes
+
+Use `long long` for additions before taking modulo. Store broken steps in a
+`vector<char>` to avoid unnecessary memory.
+
+## Python implementation notes
+
+Use a boolean list for `broken`. If `b = 0`, there are simply no remaining
+broken-step tokens.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    const long long MOD = 1000000007LL;
+    int n, b;
+    if (!(cin >> n >> b)) return 0;
+    vector<char> broken(n + 1, false);
+    for (int i = 0; i < b; i++) {
+        int x;
+        cin >> x;
+        broken[x] = true;
+    }
+    vector<long long> dp(n + 1, 0);
+    dp[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        if (broken[i]) continue;
+        dp[i] = dp[i - 1];
+        if (i >= 2) dp[i] = (dp[i] + dp[i - 2]) % MOD;
+    }
+    cout << dp[n] % MOD << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+MOD = 1_000_000_007
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, b = data[0], data[1]
+    broken = [False] * (n + 1)
+    for x in data[2:2 + b]:
+        broken[x] = True
+    dp = [0] * (n + 1)
+    dp[0] = 1
+    for i in range(1, n + 1):
+        if broken[i]:
+            continue
+        dp[i] = dp[i - 1]
+        if i >= 2:
+            dp[i] = (dp[i] + dp[i - 2]) % MOD
+    print(dp[n] % MOD)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Using dp[0] = 0, which makes every count zero.
+Forgetting that broken step n gives answer 0.
+Accessing dp[-1] accidentally when computing step 1.
+Not taking modulo in C++ and overflowing.
+```
+
+## Tests that matter
+
+```text
+n = 1 and step 1 broken -> 0.
+No broken steps -> Fibonacci-style count.
+Consecutive broken steps can block all routes.
+Large n with no broken steps tests modulo.
+```
+
+# B. Training Score
+
+## Restatement
+
+There are `n` days. Training on day `i` gives `a[i]` points. You may not train
+on two consecutive days. You may skip any day, including all days. Find the
+maximum total score.
+
+## Constraints and traps
+
+`n` is large, so trying every subset is impossible.
+
+Important traps:
+
+```text
+Scores may be negative.
+Because skipping all days is allowed, the answer is never below 0.
+Taking day i forbids day i-1 but does not forbid day i-2.
+Use long long in C++ because scores can be large.
+```
+
+## Observations
+
+Define:
+
+```text
+dp[i] = maximum score using only the first i days
+```
+
+For the last day in this prefix, either:
+
+```text
+skip day i:
+    best score is dp[i-1]
+
+take day i:
+    day i-1 must be skipped, so best compatible previous score is dp[i-2]
+    total is dp[i-2] + a[i]
+```
+
+Take the better option.
+
+## Sample walkthrough
+
+Scores:
+
+```text
+5 1 2 10 6 2
+```
+
+Using one-based day numbers:
+
+```text
+dp[0] = 0
+dp[1] = max(dp[0], dp[-1] + 5) = 5
+```
+
+It is cleaner in code to use two previous values instead of accessing `dp[-1]`.
+The resulting table:
+
+```text
+i:      0   1   2   3   4   5   6
+dp:     0   5   5   7  15  15  17
+```
+
+One optimal choice is days `1, 4, 6`, score `5 + 10 + 2 = 17`.
+
+## Algorithm
+
+Array version:
+
+```text
+dp[0] = 0
+dp[1] = max(0, a[1])
+
+for i from 2 to n:
+    dp[i] = max(dp[i-1], dp[i-2] + a[i])
+
+print dp[n]
+```
+
+Rolling version:
+
+```text
+prev2 = 0
+prev1 = 0
+
+for each score x:
+    cur = max(prev1, prev2 + x)
+    prev2 = prev1
+    prev1 = cur
+
+print prev1
+```
+
+## Correctness proof
+
+**Lemma 1.** In an optimal solution for the first `i` days, either day `i` is
+skipped, or day `i` is taken and day `i-1` is skipped.
+
+**Proof.** Day `i` has only two possibilities: skipped or taken. If it is
+taken, the rule forbids training on day `i-1`. `\square`
+
+**Lemma 2.** After processing the first `i` days, `dp[i]` equals the maximum
+valid score using only those days.
+
+**Proof.** By induction. `dp[0] = 0` is correct because no days are available.
+For `i > 0`, Lemma 1 splits every valid optimal solution into two cases. If day
+`i` is skipped, the best possible score is `dp[i-1]`. If day `i` is taken, the
+best compatible score from earlier days is `dp[i-2]`, plus `a[i]`. By the
+induction hypothesis, those smaller DP values are optimal. The algorithm takes
+the maximum of exactly these two exhaustive cases. `\square`
+
+**Theorem.** The algorithm prints the maximum possible training score.
+
+**Proof.** By Lemma 2 with `i = n`, `dp[n]` is the best score using all days.
+The rolling implementation stores the same recurrence values, only without the
+full table. `\square`
+
+## Complexity
+
+```text
+Time:  O(n)
+Memory: O(1) with rolling variables
+```
+
+## C++ implementation notes
+
+Initialize both previous values to `0`. This naturally handles negative scores
+because skipping all days remains available.
+
+## Python implementation notes
+
+The rolling version is short and avoids allocating an array. Use it only after
+the recurrence is clear.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n;
+    if (!(cin >> n)) return 0;
+    long long prev2 = 0, prev1 = 0;
+    for (int i = 0; i < n; i++) {
+        long long x;
+        cin >> x;
+        long long cur = max(prev1, prev2 + x);
+        prev2 = prev1;
+        prev1 = cur;
+    }
+    cout << prev1 << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n = data[0]
+    a = data[1:1 + n]
+    prev2 = 0
+    prev1 = 0
+    for x in a:
+        cur = max(prev1, prev2 + x)
+        prev2, prev1 = prev1, cur
+    print(prev1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Forcing at least one day to be selected, which fails on all-negative input.
+Using dp[i-1] + a[i], which allows adjacent selected days.
+Using int in C++ for large sums.
+Updating prev1 before computing cur in the rolling version.
+```
+
+## Tests that matter
+
+```text
+All scores negative -> answer 0.
+One day -> max(0, a[1]).
+Alternating large/small values -> tests take/skip logic.
+Large positive values -> tests long long.
+```
+
+# C. Energy Route
+
+## Restatement
+
+There are `n` platforms in a line. Platform `i` has height `h[i]`. You start on
+platform `1`. From platform `i`, you may jump forward to any platform up to
+`k` positions ahead. The cost of a jump from `i` to `j` is
+`abs(h[i] - h[j])`. Find the minimum total cost to reach platform `n`.
+
+## Constraints and traps
+
+`n` can be large, but `k <= 50`, so checking up to `k` previous platforms for
+each state is acceptable.
+
+Important traps:
+
+```text
+The graph is acyclic because jumps only go forward.
+The best previous platform for i is not always i-1.
+Use a large infinity for uncomputed minimum states.
+The answer for n = 1 is 0.
+Use long long in C++ because heights are large.
+```
+
+## Observations
+
+The final jump into platform `i` must come from some platform `j` such that:
+
+```text
+i - k <= j < i
+```
+
+If the cheapest cost to reach `j` is already known, then using `j` as the final
+previous platform costs:
+
+```text
+dp[j] + abs(h[j] - h[i])
+```
+
+Take the minimum over all valid `j`.
+
+## Sample walkthrough
+
+Input:
+
+```text
+5 3
+10 30 40 50 20
+```
+
+Zero-based table:
+
+```text
+platform:  0   1   2   3   4
+height:   10  30  40  50  20
+```
+
+Compute:
+
+```text
+dp[0] = 0
+
+dp[1] = dp[0] + |10-30| = 20
+
+dp[2] = min(
+    dp[0] + |10-40| = 30,
+    dp[1] + |30-40| = 30
+) = 30
+
+dp[3] = min(
+    dp[0] + |10-50| = 40,
+    dp[1] + |30-50| = 40,
+    dp[2] + |40-50| = 40
+) = 40
+
+dp[4] = min(
+    dp[1] + |30-20| = 30,
+    dp[2] + |40-20| = 50,
+    dp[3] + |50-20| = 70
+) = 30
+```
+
+Answer: `30`.
+
+## Algorithm
+
+```text
+read n, k, heights
+dp[0] = 0
+dp[i] = INF for all other i
+
+for i from 1 to n-1:
+    for j from max(0, i-k) to i-1:
+        dp[i] = min(dp[i], dp[j] + abs(h[j] - h[i]))
+
+print dp[n-1]
+```
+
+## Correctness proof
+
+**Lemma 1.** Every valid route to platform `i > 0` has a unique final previous
+platform `j` with `max(0, i-k) <= j < i`.
+
+**Proof.** The last move must be a forward jump ending at `i`. Since jumps may
+advance at most `k` positions, the previous platform `j` must satisfy
+`i-k <= j < i`. That final previous platform is unique for the route. `\square`
+
+**Lemma 2.** After computing `dp[i]`, it equals the minimum energy needed to
+reach platform `i`.
+
+**Proof.** By induction on `i`. For `i = 0`, no jump is needed, so `dp[0] = 0`.
+For `i > 0`, Lemma 1 says every valid route reaches some valid previous
+platform `j`, then jumps from `j` to `i`. By the induction hypothesis, the
+minimum energy to reach each such `j` is `dp[j]`, so the best route with final
+previous platform `j` has cost `dp[j] + abs(h[j] - h[i])`. The algorithm takes
+the minimum over all valid `j`, so it finds the best route to `i`. `\square`
+
+**Theorem.** The algorithm prints the minimum total energy to reach platform
+`n`.
+
+**Proof.** By Lemma 2 for the last platform, `dp[n-1]` is the required minimum.
+`\square`
+
+## Complexity
+
+For each platform, the algorithm checks at most `k` previous platforms.
+
+```text
+Time:  O(nk)
+Memory: O(n)
+```
+
+With `k <= 50`, this is effectively linear for the given constraints.
+
+## C++ implementation notes
+
+Use `llabs` or `abs` with `long long` values. Set `INF` to a value far above
+the maximum possible route cost, such as `(1LL << 62)`.
+
+## Python implementation notes
+
+The nested loop is fine for `k <= 50`. Store `hi = h[i]` inside the outer loop
+if you want to avoid repeated indexing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, k;
+    if (!(cin >> n >> k)) return 0;
+    vector<long long> h(n);
+    for (long long &x : h) cin >> x;
+    const long long INF = (1LL << 62);
+    vector<long long> dp(n, INF);
+    dp[0] = 0;
+    for (int i = 1; i < n; i++) {
+        for (int j = max(0, i - k); j < i; j++) {
+            dp[i] = min(dp[i], dp[j] + llabs(h[j] - h[i]));
+        }
+    }
+    cout << dp[n - 1] << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, k = data[0], data[1]
+    h = data[2:2 + n]
+    inf = 10**30
+    dp = [inf] * n
+    dp[0] = 0
+    for i in range(1, n):
+        best = inf
+        start = max(0, i - k)
+        hi = h[i]
+        for j in range(start, i):
+            cand = dp[j] + abs(h[j] - hi)
+            if cand < best:
+                best = cand
+        dp[i] = best
+    print(dp[-1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Only considering jumps from i-1.
+Allowing jumps longer than k.
+Computing states right-to-left without changing the recurrence.
+Using a small INF that can be beaten by real path costs.
+Forgetting n = 1, where the answer is 0.
+```
+
+## Tests that matter
+
+```text
+k = 1 -> only one possible route.
+n = 1 -> answer 0.
+Best route skips several platforms.
+Heights near 10^9 -> tests long long.
+Several previous platforms tie for best cost.
+```
+
+# Testing and stress strategy
+
+The section checker runs:
+
+```bash
+CP_TARGET=solution python3 sections/22_one_dimensional_dp/check.py
+```
+
+The random tests cover:
+
+```text
+Broken Stairs:
+  random broken sets, no broken steps, and blocked targets.
+
+Training Score:
+  positive, negative, and mixed scores.
+
+Energy Route:
+  varied k, single-platform cases, and random heights.
+```
+
+For your own stress tests:
+
+```text
+A: compare DP against brute-force recursive enumeration for n <= 20.
+B: enumerate all subsets for n <= 20 and reject adjacent selections.
+C: run Dijkstra on the DAG for n <= 50 and compare with the DP.
+```
+
+The brute force should be used only as a testing oracle on tiny inputs, not as
+the submitted solution.
+
+# What to carry forward
+
+One-dimensional DP is the first reusable DP pattern:
+
+```text
+last move -> transition
+last choice -> take/skip
+small prefix -> bigger prefix
+```
+
+The next sections will add more state dimensions and more complex computation
+orders. The discipline from this section remains the same: define the state
+before writing the recurrence.
+

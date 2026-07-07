@@ -1,0 +1,686 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 1 Editorial: Complexity, I/O, and constraints"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# How to read this editorial
+
+This editorial is intentionally more detailed than the problems require. The
+goal is to model the thinking process you should use before submitting:
+
+1. restate the task in operational terms;
+2. identify the bound that controls running time;
+3. identify the bound that controls integer size;
+4. choose the simplest algorithm that fits;
+5. prove the loop or decision rule;
+6. write code that matches the input format exactly;
+7. design tests that attack likely mistakes.
+
+For easy problems, this may feel slow. That is fine. The habit becomes
+valuable when the same reasoning is hidden inside a harder graph, DP, or
+constructive problem.
+
+# Problem A: Sum Under Constraints
+
+## Restatement
+
+For each test case, read an array and print its sum.
+
+The important details are:
+
+- there may be many test cases;
+- the total number of array elements is bounded;
+- individual values fit in 32-bit integers;
+- the sum may not fit in 32-bit integers.
+
+## Observation
+
+The input already contains every array element, so any accepted solution must
+spend at least linear time reading the data. Summing while reading is optimal.
+
+There is no reason to store the full array. The answer for a test case can be
+updated immediately when each value is read.
+
+The main trap is arithmetic, not algorithm design. If four values are each
+`10^9`, the sum is `4 * 10^9`, which is larger than the maximum signed 32-bit
+integer, `2147483647`.
+
+```text
+values: 1000000000 1000000000 1000000000 1000000000
+32-bit int: overflow risk
+64-bit long long: safe
+```
+
+## Algorithm
+
+```text
+read t
+repeat t times:
+    read n
+    ans = 0
+    repeat n times:
+        read x
+        ans += x
+    print ans
+```
+
+## Sample walk-through
+
+For:
+
+```text
+5
+1 2 3 4 5
+```
+
+the running sum evolves as:
+
+| read value | sum before | sum after |
+|---:|---:|---:|
+| 1 | 0 | 1 |
+| 2 | 1 | 3 |
+| 3 | 3 | 6 |
+| 4 | 6 | 10 |
+| 5 | 10 | 15 |
+
+The invariant is visible in the table: after each row, the sum is exactly the
+sum of the values already processed.
+
+## Correctness
+
+We prove correctness for one test case. The same argument applies independently
+to every test case.
+
+Let the input values be
+
+$$
+a_1, a_2, \ldots, a_n.
+$$
+
+The algorithm maintains the following invariant:
+
+> After processing the first `i` values, `ans = a_1 + a_2 + ... + a_i`.
+
+Before processing any values, `i = 0` and `ans = 0`, which is the sum of the
+empty prefix. Suppose the invariant is true after `i` values. The next value is
+`a_{i+1}`, and the algorithm performs:
+
+```text
+ans = ans + a_{i+1}
+```
+
+Therefore the new value is:
+
+$$
+a_1 + a_2 + \cdots + a_i + a_{i+1},
+$$
+
+so the invariant holds after `i + 1` values. By induction, after all `n`
+values have been processed, `ans` is the sum of the full array. The algorithm
+prints `ans`, so it prints the required answer.
+
+## Complexity
+
+The time is `O(total n)` over all test cases. The memory is `O(1)` besides the
+input buffer.
+
+More explicitly, if the test sizes are `n_1, n_2, ..., n_T`, the loop over
+array elements runs:
+
+$$
+n_1 + n_2 + \cdots + n_T
+$$
+
+times. The statement bounds this sum, so the solution fits.
+
+## Implementation notes
+
+In C++, use `long long` for both the read value and the sum. If `x` is read
+into `int`, the input value itself still fits, but using `long long` everywhere
+keeps the arithmetic uniform.
+
+In Python, the simplest robust approach is to read all tokens, create an
+iterator, and consume exactly the number of values described by each `n`.
+
+## C++ Solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+    while (T--) {
+        int n;
+        cin >> n;
+        long long sum = 0;
+        for (int i = 0; i < n; ++i) {
+            long long x;
+            cin >> x;
+            sum += x;
+        }
+        cout << sum << '\n';
+    }
+    return 0;
+}
+```
+
+## Python Solution
+
+```python
+import sys
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+it = iter(data)
+t = next(it)
+out = []
+for _ in range(t):
+    n = next(it)
+    total = 0
+    for _ in range(n):
+        total += next(it)
+    out.append(str(total))
+sys.stdout.write("\n".join(out))
+```
+
+## Common wrong answers
+
+- Using `int sum` in C++.
+- Printing after every value instead of after every test case.
+- Assuming each array is on one physical input line. Online judges do not
+  require that unless the format explicitly says so.
+- Forgetting that values may be negative.
+
+## Tests that matter
+
+Good tests include:
+
+```text
+single value:        n = 1
+zero cancellation:   -1 1
+large positive sum:  several 10^9 values
+negative sum:        several negative values
+many small tests:    catches parser mistakes
+```
+
+# Problem B: Until Threshold
+
+## Restatement
+
+For each test case, start from `x`. One operation replaces `x` by `2x + 1`.
+Print the number of operations needed to make `x >= y`.
+
+The word "minimum" matters. We are not asked for the first value above `y`; we
+are asked for how many operations are required.
+
+## Observation
+
+The value grows exponentially. Even if `y` is as large as `10^18`, the loop
+needs only about 60 iterations from small positive starts.
+
+The process is monotone for positive `x`:
+
+$$
+2x + 1 > x.
+$$
+
+Therefore once the value reaches `y`, it will never go below `y` later. A
+simple loop that stops at the first moment `x >= y` gives the minimum number of
+operations.
+
+The first few values from a starting value `x_0` are:
+
+```text
+k = 0: x0
+k = 1: 2*x0 + 1
+k = 2: 4*x0 + 3
+k = 3: 8*x0 + 7
+k = 4: 16*x0 + 15
+```
+
+In closed form, after `k` operations:
+
+$$
+x_k = 2^k x_0 + (2^k - 1).
+$$
+
+This confirms the exponential growth. We do not need to use the formula in the
+solution because the loop is already tiny.
+
+## Algorithm
+
+```text
+answer = 0
+while x < y:
+    x = 2*x + 1
+    answer += 1
+print answer
+```
+
+## Sample walk-through
+
+For `x = 3`, `y = 30`:
+
+| operation count | current x | condition |
+|---:|---:|:---|
+| 0 | 3 | `3 < 30`, continue |
+| 1 | 7 | `7 < 30`, continue |
+| 2 | 15 | `15 < 30`, continue |
+| 3 | 31 | `31 >= 30`, stop |
+
+The answer is `3`.
+
+For `x = 5`, `y = 5`, the answer is `0`. The value already satisfies the
+threshold. This case catches solutions that perform the operation before
+checking the condition.
+
+## Correctness
+
+Let `x_0` be the starting value. The loop invariant is:
+
+> after `answer` iterations, `x` equals the value obtained by applying the
+> operation exactly `answer` times to `x_0`.
+
+Initially this is true with `answer = 0`. Each loop iteration applies the
+operation once and increments `answer`, so the invariant remains true. The loop
+stops only when `x >= y`.
+
+It remains to justify minimality. Before the last iteration count was accepted,
+the loop condition was checked for every smaller count and found `x < y`. Thus
+no smaller number of operations reaches the threshold. When the loop exits,
+the invariant says that `answer` operations do reach the threshold. Therefore
+`answer` is exactly the minimum required number.
+
+## Complexity
+
+The number of iterations is `O(log y)` for positive `x`. Memory is `O(1)`.
+
+The bound can be seen from the closed form:
+
+$$
+x_k = 2^k(x_0 + 1) - 1.
+$$
+
+To reach `y`, `2^k` only needs to become proportional to `y`, so `k` is
+logarithmic. For `y <= 10^{18}`, the loop is very small.
+
+## Implementation notes
+
+In C++, `long long` is sufficient here because the loop stops once `x >= y`
+and the largest tested threshold is at most `10^18`. If `x` is just below `y`,
+one update may compute a value slightly above `10^18`, still below the
+`long long` limit.
+
+The condition must be:
+
+```text
+while x < y
+```
+
+not `while x <= y`. If `x == y`, zero operations are needed.
+
+## C++ Solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+    while (T--) {
+        long long x, y;
+        cin >> x >> y;
+        int steps = 0;
+        while (x < y) {
+            x = 2 * x + 1;
+            ++steps;
+        }
+        cout << steps << '\n';
+    }
+    return 0;
+}
+```
+
+## Python Solution
+
+```python
+import sys
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+t = data[0]
+out = []
+idx = 1
+for _ in range(t):
+    x = data[idx]
+    y = data[idx + 1]
+    idx += 2
+    steps = 0
+    while x < y:
+        x = 2 * x + 1
+        steps += 1
+    out.append(str(steps))
+sys.stdout.write("\n".join(out))
+```
+
+## Common wrong answers
+
+- Returning `1` when `x == y`.
+- Trying to loop `x += 1` until `y`.
+- Using floating-point logarithms and getting an off-by-one near exact powers.
+- Using `int` in C++ for `10^18` values.
+
+## Tests that matter
+
+```text
+x == y:                 answer 0
+x just below y:          answer 1
+x = 1, y = 2:            answer 1
+x = 1, y = 4:            answer 2
+very large y:            confirms logarithmic loop
+```
+
+# Problem C: Token Budget
+
+## Restatement
+
+For each query, given `n` and an operation budget `B`, decide the slowest of
+these four complexity classes that still fits:
+
+```text
+O(n), O(n log n), O(n^2), O(n^3)
+```
+
+Use `ceil(log2(max(1, n)))` for the logarithm.
+
+The output is the slowest class that fits. That means if both `linear` and
+`quadratic` fit, print `quadratic`.
+
+## Observation
+
+The labels form an increasing chain for `n >= 1`:
+
+```text
+n <= n log n <= n^2 <= n^3
+```
+
+except that the logarithm model gives `log = 0` when `n = 1`, so we clamp the
+logarithm to at least 1 for a useful contest estimate.
+
+For example, if `n = 100000`, then:
+
+```text
+ceil(log2(n)) = 17
+n              = 100000
+n log n        = 1700000
+n^2            = 10000000000
+n^3            = 1000000000000000
+```
+
+With budget `2000000`, the answer is `nlogn`.
+
+## Algorithm
+
+Compute:
+
+```text
+linear = n
+sort_like = n * ceil_log2(n)
+quadratic = n * n
+cubic = n * n * n
+```
+
+Print the largest fitting label, or `none` if even linear work exceeds the
+budget.
+
+The safest check order is from slowest to fastest:
+
+```text
+if cubic fits: print cubic
+else if quadratic fits: print quadratic
+else if nlogn fits: print nlogn
+else if linear fits: print linear
+else print none
+```
+
+This order avoids storing all fitting classes and then choosing among them.
+
+## Computing the logarithm exactly
+
+Do not use floating point here. We need:
+
+$$
+\lceil \log_2 n \rceil.
+$$
+
+In Python, for positive `n`:
+
+```python
+(n - 1).bit_length()
+```
+
+gives exactly `ceil(log2(n))`. We then clamp it to at least `1` for the
+problem's convention.
+
+In C++, a small loop is enough because `n <= 10^9`:
+
+```cpp
+int ans = 0;
+long long value = 1;
+while (value < n) {
+    value <<= 1;
+    ++ans;
+}
+ans = max(1, ans);
+```
+
+This loop runs at most 30 times for `10^9`.
+
+## Correctness
+
+The algorithm evaluates the exact operation estimates specified by the
+problem. It checks them from slowest to fastest. The first estimate that does
+not exceed the budget is therefore the slowest allowed class. If no estimate
+fits, then even the fastest candidate, `O(n)`, exceeds the budget, so `none` is
+correct.
+
+## Complexity
+
+Each query is handled in `O(1)` time and memory.
+
+The C++ logarithm helper technically performs `O(log n)` tiny bit-doubling
+steps, but `n <= 10^9`, so this is bounded by about 30 iterations. For contest
+analysis, it is constant under the problem constraints. It would also be fine
+to call it `O(log n)`; either way the solution easily fits.
+
+## Overflow issue
+
+The largest possible `n^3` is:
+
+$$
+(10^9)^3 = 10^{27}.
+$$
+
+This does not fit in `long long`. The budget fits in `long long`, but the
+intermediate cost may not. In C++, compute candidate costs with `__int128`:
+
+```cpp
+(__int128)n * n * n
+```
+
+Python integers do not overflow, so the direct expression is safe.
+
+## C++ Solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+using int64 = long long;
+using i128 = __int128_t;
+
+int ceil_log2_for_estimate(int64 n) {
+    int ans = 0;
+    int64 value = 1;
+    while (value < n) {
+        value <<= 1;
+        ++ans;
+    }
+    return max(1, ans);
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int Q;
+    cin >> Q;
+    while (Q--) {
+        int64 n, budget;
+        cin >> n >> budget;
+        int64 lg = ceil_log2_for_estimate(n);
+
+        if ((i128)n * n * n <= budget) {
+            cout << "cubic\n";
+        } else if ((i128)n * n <= budget) {
+            cout << "quadratic\n";
+        } else if ((i128)n * lg <= budget) {
+            cout << "nlogn\n";
+        } else if (n <= budget) {
+            cout << "linear\n";
+        } else {
+            cout << "none\n";
+        }
+    }
+    return 0;
+}
+```
+
+## Python Solution
+
+```python
+import sys
+
+
+def ceil_log2_for_estimate(n: int) -> int:
+    return max(1, (n - 1).bit_length())
+
+
+def classify(n: int, budget: int) -> str:
+    lg = ceil_log2_for_estimate(n)
+    for label, cost in [
+        ("cubic", n * n * n),
+        ("quadratic", n * n),
+        ("nlogn", n * lg),
+        ("linear", n),
+    ]:
+        if cost <= budget:
+            return label
+    return "none"
+
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+q = data[0]
+out = []
+idx = 1
+for _ in range(q):
+    n = data[idx]
+    budget = data[idx + 1]
+    idx += 2
+    out.append(classify(n, budget))
+sys.stdout.write("\n".join(out))
+```
+
+## Common wrong answers
+
+- Checking from fastest to slowest and printing `linear` even when `quadratic`
+  also fits.
+- Using `floor(log2(n))` instead of `ceil(log2(n))`.
+- Returning `nlogn` for `n = 1, B = 1` when the required answer is `cubic`.
+- Overflowing `n * n * n` in C++ before comparing to the budget.
+- Using floating-point logs and misclassifying powers of two.
+
+## Tests that matter
+
+```text
+n = 1, B = 0:       none
+n = 1, B = 1:       cubic
+n = 2, B = 2:       nlogn
+n = 2, B = 4:       quadratic
+n = 2, B = 8:       cubic
+n = 100000, B near n log n
+n = 10^9, large budget
+```
+
+# Stress testing strategy
+
+For this section, stress testing means generating many small and boundary-heavy
+inputs and comparing the submitted program against a trusted implementation.
+The local judge does that through each problem's `tests/random_cases.py`.
+
+The pattern is:
+
+```text
+random input
+    |
+    +-- trusted solution computes expected output
+    |
+    +-- student solution computes actual output
+    |
+    +-- judge compares the two outputs
+```
+
+This is not a replacement for proof. It is a way to catch parser mistakes,
+off-by-one errors, and overflow cases that samples may miss.
+
+Useful random generation is not uniformly random only. It should deliberately
+include edges:
+
+- smallest values;
+- largest values;
+- exact thresholds;
+- values just below and just above thresholds;
+- negative values when allowed;
+- many test cases with short arrays;
+- one test case with a larger array.
+
+# What to carry forward
+
+The algorithms in this section are simple. The habits are not:
+
+- read constraints before coding;
+- distinguish count limits from value limits;
+- choose the simplest algorithm that fits;
+- prove loop invariants even for easy loops;
+- test boundaries, not only typical samples;
+- be explicit about integer size.
+
+These same habits will be used in the next sections for simulation, prefix
+sums, sorting, two pointers, and eventually harder contest problems.

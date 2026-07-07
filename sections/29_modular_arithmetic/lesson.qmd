@@ -1,0 +1,246 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 29: Modular Arithmetic"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why modular arithmetic starts the math phase
+
+Competitive programming uses modular arithmetic for two main reasons:
+
+```text
+1. Answers are enormous, so the statement asks for the answer modulo M.
+2. Division, powers, recurrences, and counting formulas must be computed fast.
+```
+
+Modulo problems punish small implementation mistakes. A correct formula can
+still fail because of overflow, negative remainders, or illegal division.
+
+# Remainders and normalization
+
+`x mod M` is the remainder in the range:
+
+```text
+0, 1, 2, ..., M-1
+```
+
+Python already normalizes negative values:
+
+```python
+(-1) % 7 == 6
+```
+
+C++ keeps the sign of the left operand:
+
+```cpp
+(-1) % 7 == -1
+```
+
+So in C++, normalize after taking `%`:
+
+```cpp
+long long norm(long long x, long long mod) {
+    x %= mod;
+    if (x < 0) x += mod;
+    return x;
+}
+```
+
+# Safe multiplication
+
+If `M <= 1e9+7`, multiplying two reduced `long long` values is safe because:
+
+```text
+(1e9+7)^2 < 1.1e18 < 9.22e18
+```
+
+If a problem allows moduli near `1e18`, use `__int128` in C++:
+
+```cpp
+long long mul_mod(long long a, long long b, long long mod) {
+    return (__int128)a * b % mod;
+}
+```
+
+The local `Power Queries` problem allows arbitrary moduli up to `1e9+7`, but
+the implementation uses `__int128` as a robust habit.
+
+# Binary exponentiation
+
+Computing `a^b` by multiplying `b` times is impossible when `b` is large.
+
+Binary exponentiation uses the binary representation of the exponent:
+
+```text
+13 = 8 + 4 + 1 = 1101_2
+a^13 = a^8 * a^4 * a
+```
+
+Algorithm:
+
+```text
+result = 1
+base = a mod M
+while b > 0:
+    if b is odd:
+        result = result * base mod M
+    base = base * base mod M
+    b = floor(b / 2)
+```
+
+Each loop halves `b`, so the complexity is `O(log b)`.
+
+# Modular division
+
+Division modulo `M` does not mean ordinary division followed by `%`.
+
+To divide by `b`, we need a number `inv` such that:
+
+```text
+b * inv == 1 (mod M)
+```
+
+Then:
+
+```text
+a / b == a * inv (mod M)
+```
+
+An inverse exists exactly when `gcd(b, M) = 1`. Section 30 will study gcd and
+the extended Euclidean algorithm. In this section, we use the most common
+contest case: `M` is prime and `b` is not divisible by `M`.
+
+By Fermat's little theorem:
+
+```text
+b^(M-1) == 1 (mod M)
+```
+
+Therefore:
+
+```text
+b^(M-2) is the modular inverse of b
+```
+
+So under prime modulus:
+
+```text
+inverse(b) = pow_mod(b, M-2, M)
+```
+
+# Repeated affine transformations
+
+Suppose:
+
+```text
+f(x) = a*x + b
+```
+
+Apply it repeatedly:
+
+```text
+f(x)       = a*x + b
+f(f(x))    = a^2*x + a*b + b
+f^3(x)     = a^3*x + a^2*b + a*b + b
+```
+
+After `k` applications:
+
+```text
+f^k(x) = a^k*x + b*(1 + a + a^2 + ... + a^(k-1))
+```
+
+The geometric sum is:
+
+```text
+if a == 1:
+    k
+else:
+    (a^k - 1) / (a - 1)
+```
+
+Under prime modulus, the division by `a - 1` is multiplication by the modular
+inverse of `a - 1`. Be careful: check `a == 1` **after reducing `a` modulo M**.
+
+# Worked example
+
+Let:
+
+```text
+f(x) = 2x + 3
+x = 1
+k = 3
+```
+
+Direct simulation:
+
+```text
+1 -> 5 -> 13 -> 29
+```
+
+Formula:
+
+```text
+2^3 * 1 + 3*(1 + 2 + 4)
+= 8 + 21
+= 29
+```
+
+# Common mistakes
+
+```text
+Using ordinary division instead of modular inverse.
+Trying to compute a^b by b multiplications.
+Forgetting that C++ negative % stays negative.
+Using Fermat inverse when the modulus is not prime.
+Forgetting the a == 1 case in geometric sums.
+Not reducing a, b, and x before formulas.
+Overflowing int or long long multiplication.
+```
+
+# Local judge workflow
+
+Run:
+
+```bash
+CP_TARGET=solution python3 sections/29_modular_arithmetic/check.py
+```
+
+The tests include:
+
+```text
+modulus 1 for exponentiation
+zero exponent
+small prime moduli for inverse
+a == 1 and a == 0 in affine repetition
+large k values
+```
+
+# Submission checklist
+
+```text
+1. Is the modulus prime before using Fermat inverse?
+2. Are all values normalized into [0, M-1]?
+3. Does exponentiation run in O(log exponent)?
+4. Does C++ multiplication fit, or do you need __int128?
+5. Did you handle special cases: M=1, exponent=0, a=1?
+```

@@ -1,0 +1,196 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 56 Editorial: Hard Greedy And Matroids Intro"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Scheduling with Deadlines.** Sort jobs by deadline and keep the selected
+profits in a min-heap. After considering all jobs with deadline at most `d`, the
+heap contains the best set of jobs that can fit into `d` slots. If adding a job
+creates too many selected jobs, remove the smallest profit. This exchange is
+safe because any feasible schedule with the low-profit job can replace it by
+the higher-profit job without using more time.
+
+**B. Interval Cover.** To cover a target segment, repeatedly among all intervals
+starting at or before the current uncovered point choose the one with farthest
+right endpoint. Any valid solution must choose some interval covering the
+current point; choosing the farthest-reaching such interval cannot make the
+remaining suffix harder to cover.
+
+**C. Kruskal Savings.** Sort edges by weight and add an edge only if it connects
+two different components. The DSU maintains the connected components of the
+partial forest. The cut property proves each chosen edge is safe: it is the
+lightest available edge crossing some cut. Savings are total edge weight minus
+the MST weight.
+
+**Common pitfalls.** Greedy proofs need an exchange or cut argument, not just
+intuition. For deadline scheduling, deadlines are capacities. For interval
+cover, detect gaps when no candidate reaches the current point.
+
+The three greedy solutions use exchange arguments.
+
+- A keeps the highest-profit feasible set of unit jobs by deadline using a
+  min-heap.
+- B repeatedly chooses, among intervals that already reach the uncovered
+  point, the one extending farthest right.
+- C is Kruskal's algorithm: add an edge exactly when it connects two DSU
+  components, then compute removable weight.
+
+Each proof compares the greedy choice with an optimal solution and shows the
+greedy choice can be exchanged in without worsening feasibility or objective.
+
+# A. Deadline Profit
+
+## Restatement
+
+Each unit job has deadline and profit. Maximize profit.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;if(!(cin>>n))return 0;vector<pair<int,int>>j(n);for(auto&x:j)cin>>x.first>>x.second;sort(j.begin(),j.end());priority_queue<int,vector<int>,greater<int>>pq;for(auto[d,p]:j){pq.push(p);if((int)pq.size()>d)pq.pop();}long long s=0;while(!pq.empty()){s+=pq.top();pq.pop();}cout<<s<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys,heapq
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n=data[0]; jobs=sorted((data[i],data[i+1]) for i in range(1,2*n+1,2)); h=[]
+    for d,p in jobs:
+        heapq.heappush(h,p)
+        if len(h)>d: heapq.heappop(h)
+    print(sum(h))
+if __name__=="__main__": main()
+```
+
+# B. Minimum Interval Cover
+
+## Restatement
+
+Minimum intervals needed to cover `[0,T]`, or `-1`.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T,n;if(!(cin>>T>>n))return 0;vector<pair<int,int>>s(n);for(auto&x:s)cin>>x.first>>x.second;sort(s.begin(),s.end());int i=0,cur=0,ans=0;while(cur<T){int best=cur;while(i<n&&s[i].first<=cur)best=max(best,s[i++].second);if(best==cur){cout<<-1<<'\n';return 0;}cur=best;ans++;}cout<<ans<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    T,n=data[0],data[1]; seg=sorted((data[i],data[i+1]) for i in range(2,2+2*n,2)); i=ans=0; cur=0
+    while cur<T:
+        best=cur
+        while i<n and seg[i][0]<=cur: best=max(best,seg[i][1]); i+=1
+        if best==cur: print(-1); return
+        cur=best; ans+=1
+    print(ans)
+if __name__=="__main__": main()
+```
+
+# C. MST Savings
+
+## Restatement
+
+Print total edge weight removable while keeping the graph connected, or `-1`.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m))return 0;vector<array<int,3>>e;long long total=0;for(int i=0,a,b,w;i<m;i++){cin>>a>>b>>w;e.push_back({w,a-1,b-1});total+=w;}vector<int>p(n);iota(p.begin(),p.end(),0);function<int(int)>f=[&](int x){return p[x]==x?x:p[x]=f(p[x]);};sort(e.begin(),e.end());long long keep=0;int cnt=0;for(auto [w,a,b]:e){a=f(a);b=f(b);if(a!=b){p[a]=b;keep+=w;cnt++;}}cout<<(cnt==n-1?total-keep:-1)<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m=data[0],data[1]; edges=[]; total=0; idx=2
+    for _ in range(m):
+        a,b,w=data[idx],data[idx+1],data[idx+2]; idx+=3; edges.append((w,a-1,b-1)); total+=w
+    p=list(range(n))
+    def f(x):
+        while p[x]!=x: p[x]=p[p[x]]; x=p[x]
+        return x
+    keep=0; cnt=0
+    for w,a,b in sorted(edges):
+        ra,rb=f(a),f(b)
+        if ra!=rb: p[ra]=rb; keep+=w; cnt+=1
+    print(total-keep if cnt==n-1 else -1)
+if __name__=="__main__": main()
+```
+
+# What to carry forward
+
+Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

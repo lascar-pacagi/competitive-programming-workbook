@@ -1,0 +1,515 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 9: Greedy I - Local Choices And Exchange"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why greedy is dangerous and useful
+
+A greedy algorithm makes a decision now and does not revisit it.
+
+That is exactly why greedy is attractive in contests:
+
+- the code is often short;
+- the running time is usually sorting plus a scan;
+- the idea may be visible from the statement.
+
+It is also why greedy is dangerous. Many wrong greedy solutions pass samples
+because the first few examples are too small to expose the bad local choice.
+
+The central question is not:
+
+```text
+Does this local choice feel natural?
+```
+
+The central question is:
+
+```text
+Can every optimal solution be transformed to one that makes this local choice?
+```
+
+That transformation is called an **exchange argument**.
+
+# The shape of this section
+
+This section studies three common greedy choices.
+
+| Pattern | Local choice | Typical data structure | Local exercise |
+|---|---:|---:|---|
+| Earliest finish | Keep the interval that ends first | Sort by end time | Activity Selection |
+| Pair with largest remaining | Decide the fate of the heaviest item | Sort and two pointers | Rescue Boats |
+| Drop largest cost | Keep many items, remove worst offender | Sort and max-heap | Deadline Schedule |
+
+These are not isolated tricks. They are templates for proof.
+
+# How to recognize a greedy candidate
+
+Greedy often appears when the statement contains:
+
+- choosing a maximum-size subset;
+- minimizing the number of groups, machines, boats, rooms, or days;
+- deadlines or intervals;
+- a sorted order that seems to reveal local conflicts;
+- no need to output the exact set, only the optimum value.
+
+The constraints also matter. If `n` is up to `200000`, exhaustive subset search
+is impossible. If the structure has only one dimension, such as time, weight, or
+deadline, sorting is usually worth trying.
+
+The usual thought process:
+
+```text
+1. What local conflict prevents taking everything?
+2. If I must resolve one conflict, which item is safest to keep or discard?
+3. Can I prove that an optimal answer exists after making that choice?
+4. After the choice, does the remaining problem have the same form?
+```
+
+# Vocabulary
+
+**Greedy choice.** A decision made using current information, without
+backtracking.
+
+**Exchange argument.** A proof that takes an optimal solution that may not use
+our greedy choice and swaps one or more elements so that it does use the greedy
+choice, without making the solution worse.
+
+**Canonical optimal solution.** An optimal solution with an extra nice property,
+such as "among all optimal interval schedules, choose one whose first interval
+ends earliest." Greedy proofs often show that this canonical solution agrees
+with the greedy algorithm.
+
+**Invariant.** A fact that remains true after every step. Greedy scans often
+maintain an invariant like "the chosen set is as good as any set of the same
+size among processed items."
+
+**Counterexample search.** The habit of trying small inputs that make the local
+choice fail. Before trusting a greedy rule, attack it.
+
+# Worked example 1: intervals
+
+Suppose we want the maximum number of non-overlapping intervals:
+
+```text
+A: [1, 10)
+B: [1,  3)
+C: [3,  5)
+D: [5,  7)
+```
+
+The longest interval starts earliest, but choosing it gives only one activity.
+
+```text
+time: 1 2 3 4 5 6 7 8 9 10
+A:   [------------------)
+B:   [----)
+C:        [----)
+D:             [----)
+```
+
+The correct greedy rule is:
+
+```text
+Choose the interval with the earliest finishing time among compatible intervals.
+```
+
+Why? Finishing earlier leaves at least as much room for future intervals as any
+other first choice.
+
+Trace:
+
+```text
+sort by end:
+B [1,3), C [3,5), D [5,7), A [1,10)
+
+last_end = -infinity
+take B, last_end = 3
+take C, last_end = 5
+take D, last_end = 7
+skip A
+
+answer = 3
+```
+
+The proof is not "it seems to leave room." The proof is an exchange:
+
+1. Let `g` be the interval with earliest end.
+2. Take an optimal solution and look at its first interval `x`.
+3. Since `g` ends no later than `x`, replacing `x` by `g` cannot create an
+   overlap with the rest of that optimal solution.
+4. Therefore some optimal solution begins with `g`.
+5. After choosing `g`, solve the remaining compatible intervals the same way.
+
+# Worked example 2: boats
+
+Each boat carries at most two people and total weight at most `L`.
+
+Weights:
+
+```text
+1 2 2 3
+L = 5
+```
+
+Sorted:
+
+```text
+lightest                         heaviest
+   v                                v
+   1        2        2        3
+```
+
+The heaviest person must be placed on some boat. There are only two cases:
+
+- If the lightest person can ride with the heaviest, pair them.
+- Otherwise, nobody can ride with the heaviest, so the heaviest rides alone.
+
+Trace:
+
+```text
+1 + 3 <= 5, pair them. boats = 1
+2 + 2 <= 5, pair them. boats = 2
+```
+
+The exchange idea is:
+
+If the heaviest can ride with the lightest, pairing them is safe because the
+lightest is the easiest possible partner. In any optimal solution where the
+heaviest rides with someone else, swap that partner with the lightest. The boat
+stays feasible, and the displaced partner is no lighter than the lightest, so
+it can take the lightest person's old place.
+
+# Worked example 3: deadlines
+
+Each task has a duration and a deadline. We want to finish as many tasks as
+possible.
+
+```text
+task   duration   deadline
+A      3          5
+B      2          6
+C      4          6
+D      1          3
+```
+
+Sort by deadline:
+
+```text
+D (1,3), A (3,5), B (2,6), C (4,6)
+```
+
+Process tasks in that order, tentatively accepting each task:
+
+```text
+take D: total = 1 <= 3
+take A: total = 4 <= 5
+take B: total = 6 <= 6
+take C: total = 10 > 6
+```
+
+We accepted too much work by deadline `6`. To keep as many tasks as possible,
+remove one accepted task. Which one?
+
+Remove the longest duration.
+
+```text
+accepted durations: 1, 3, 2, 4
+remove 4
+remaining total = 6
+answer = 3
+```
+
+Why the longest? If we must remove exactly one task from the current accepted
+set, removing the longest leaves the smallest possible total time. That makes
+future deadlines easiest to satisfy while preserving the number of accepted
+tasks as much as possible.
+
+# Heap primer for deadline scheduling
+
+The deadline problem needs a data structure that can repeatedly answer:
+
+```text
+What is the longest duration among the tasks I have accepted so far?
+```
+
+A **heap** is a container that can quickly return one extreme element:
+
+- a max-heap returns the largest element;
+- a min-heap returns the smallest element.
+
+For this section, we use a max-heap of chosen task durations.
+
+The operations we need are:
+
+```text
+push(x):      insert duration x
+top():        read the largest duration
+pop():        remove the largest duration
+size():       number of chosen tasks
+```
+
+Each `push` and `pop` costs `O(log n)`. Reading `top` costs `O(1)`.
+
+Example:
+
+```text
+chosen durations: 1, 3, 2
+max-heap top:     3
+
+insert 4
+chosen durations: 1, 3, 2, 4
+max-heap top:     4
+
+pop top
+chosen durations: 1, 3, 2
+```
+
+This matches the greedy rule:
+
+```text
+If total time exceeds the current deadline, remove the longest chosen task.
+```
+
+In C++, `priority_queue<long long>` is a max-heap by default:
+
+```cpp
+priority_queue<long long> chosen;
+chosen.push(duration);
+longest = chosen.top();
+chosen.pop();
+```
+
+In Python, `heapq` is a min-heap. To simulate a max-heap, store negative
+durations:
+
+```python
+heapq.heappush(chosen, -duration)
+longest = -chosen[0]
+removed = -heapq.heappop(chosen)
+```
+
+In the reference solution, we write:
+
+```python
+total += heapq.heappop(chosen)
+```
+
+because the popped value is negative. Adding it subtracts the removed duration.
+
+# A proof checklist for greedy
+
+Before submitting a greedy solution, fill this out in your head.
+
+```text
+Greedy choice:
+    What exact item do I keep, pair, or discard?
+
+Local conflict:
+    What constraint forced me to decide?
+
+Exchange:
+    If an optimal solution does not make my choice, how do I modify it?
+
+No loss:
+    Why is the modified solution still valid and at least as good?
+
+Recursion or invariant:
+    After this step, why is the remaining scan still the same kind of problem?
+```
+
+If you cannot answer the exchange question, your greedy idea is not ready.
+
+# Common wrong greedy rules
+
+## Activity selection
+
+Wrong rule:
+
+```text
+Pick the shortest interval.
+```
+
+Counterexample:
+
+```text
+[2,3) is shortest
+[1,2), [2,4), [4,5) gives three intervals
+```
+
+Shortest interval alone does not say anything about how much useful space is
+left on both sides.
+
+Wrong rule:
+
+```text
+Pick the interval that starts earliest.
+```
+
+Counterexample:
+
+```text
+[1,100)
+[2,3), [3,4), [4,5)
+```
+
+The earliest starter can block many later intervals.
+
+## Rescue boats
+
+Wrong rule:
+
+```text
+Pair adjacent sorted weights from lightest to heaviest.
+```
+
+Counterexample with `L = 10`:
+
+```text
+1 2 8 9
+adjacent pairs: (1,2), 8, 9 -> 3 boats
+greedy pairs:   (1,9), (2,8) -> 2 boats
+```
+
+The heaviest people are the bottleneck. Decide them first.
+
+## Deadline schedule
+
+Wrong rule:
+
+```text
+Always take the shortest available task first.
+```
+
+Counterexample:
+
+```text
+duration deadline
+2        2
+2        2
+100      100
+```
+
+Taking short tasks first is not enough. Deadlines determine the order in which
+constraints become active.
+
+# Implementation notes in C++
+
+Use sorting aggressively:
+
+```cpp
+sort(v.begin(), v.end(), [](const auto &a, const auto &b) {
+    if (a.second != b.second) return a.second < b.second;
+    return a.first < b.first;
+});
+```
+
+For deadline scheduling, use `priority_queue<long long>` as a max-heap of
+chosen durations:
+
+```cpp
+priority_queue<long long> chosen;
+long long total = 0;
+
+for (auto [duration, deadline] : tasks) {
+    total += duration;
+    chosen.push(duration);
+    if (total > deadline) {
+        total -= chosen.top();
+        chosen.pop();
+    }
+}
+```
+
+Use `long long` for total time and deadlines. Even when each value fits in
+`int`, the sum over many tasks may not.
+
+# Implementation notes in Python
+
+Python sorting is stable and expressive:
+
+```python
+intervals.sort(key=lambda p: (p[1], p[0]))
+```
+
+Python's `heapq` is a min-heap. To simulate a max-heap, push negative values:
+
+```python
+heapq.heappush(chosen, -duration)
+if total > deadline:
+    total += heapq.heappop(chosen)
+```
+
+The popped value is negative, so adding it decreases `total`.
+
+For large input, read all tokens:
+
+```python
+data = list(map(int, sys.stdin.buffer.read().split()))
+```
+
+# Local judge workflow
+
+Run all Section 9 exercises:
+
+```bash
+python3 sections/09_greedy_exchange/check.py
+```
+
+Run the reference solutions:
+
+```bash
+CP_TARGET=solution python3 sections/09_greedy_exchange/check.py
+```
+
+Each problem has fixed tests and randomized tests. The randomized tests compare
+the reference greedy solution against a brute-force solver on small instances.
+That is especially useful for greedy topics, where a wrong rule often survives
+many hand-written samples.
+
+# Submission checklist
+
+Before submitting a greedy solution:
+
+- State the greedy rule in one exact sentence.
+- Check whether sorting key and tie-breakers match the proof.
+- Try at least two counterexamples against alternate greedy rules.
+- Confirm endpoint conventions for intervals, such as `[s, e)`.
+- Use `long long` or Python integers for accumulated sums.
+- Stress small cases against brute force when possible.
+- Keep the proof and implementation aligned: do not prove one rule and code
+  another.
+
+# Exercises
+
+## A. Activity Selection
+
+Practice earliest-finish greedy and a clean exchange proof.
+
+## B. Rescue Boats
+
+Practice deciding the bottleneck item first and using two pointers.
+
+## C. Deadline Schedule
+
+Practice a greedy scan with a heap and the "remove the most expensive accepted
+item" exchange.

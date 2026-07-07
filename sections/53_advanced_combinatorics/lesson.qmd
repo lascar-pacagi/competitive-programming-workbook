@@ -1,0 +1,190 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 53: Advanced Combinatorics"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Counting structures
+
+Advanced combinatorics is mostly about recognizing a known structure and
+checking its assumptions. Catalan counts balanced recursive objects,
+derangements count permutations with forbidden fixed points, and Burnside's
+lemma counts orbits under symmetry.
+
+## Catalan numbers
+
+Catalan numbers count many recursively balanced structures:
+
+- valid parenthesis strings;
+- rooted binary tree shapes;
+- triangulations of a convex polygon;
+- monotone paths that do not cross a diagonal.
+
+Formula:
+
+```text
+Cat(n) = C(2n, n) / (n + 1)
+```
+
+Under prime modulus `MOD`, compute division by multiplying with modular inverse:
+
+```text
+Cat(n) = C(2n,n) * inv(n+1) mod MOD
+```
+
+## Derangements
+
+A derangement is a permutation with no fixed point. Let `D[n]` be the number of
+derangements of `n` elements.
+
+Recurrence:
+
+```text
+D[0] = 1
+D[1] = 0
+D[n] = (n-1) * (D[n-1] + D[n-2])
+```
+
+Reason: element `1` goes to some `j`. Either `j` goes back to `1`, leaving a
+derangement of `n-2` elements, or `j` does not go back, which contracts into a
+derangement-like arrangement of `n-1` elements.
+
+## Burnside's lemma
+
+When objects are considered equivalent under symmetry, count orbits by:
+
+```text
+number of orbits = average number of objects fixed by each symmetry
+```
+
+For necklaces of length `n` with `k` colors under rotation, a rotation by `r`
+positions has:
+
+```text
+gcd(n, r)
+```
+
+cycles, so it fixes:
+
+```text
+k^(gcd(n,r))
+```
+
+colorings. Therefore:
+
+```text
+answer = (1/n) * sum_{r=0}^{n-1} k^gcd(n,r)
+```
+
+Under a prime modulus, divide by `n` using `inv(n)`.
+
+## Recognition checklist
+
+- "balanced recursive object" suggests Catalan.
+- "permutation with forbidden fixed positions" suggests derangements or
+  inclusion-exclusion.
+- "same up to rotation/reflection" suggests Burnside or Polya.
+- Always identify the symmetry group before applying Burnside.
+
+## Catalan worked example
+
+For `n = 3`, valid parenthesis strings are:
+
+```text
+((()))
+(()())
+(())()
+()(())
+()()()
+```
+
+So `Cat(3)=5`. Formula:
+
+```text
+C(6,3)/(3+1) = 20/4 = 5
+```
+
+Under modulo arithmetic, compute `20 * inv(4) mod MOD`.
+
+## Burnside worked example
+
+Necklaces of length `3` with `2` colors, up to rotation.
+
+Rotations:
+
+```text
+rotate by 0: gcd(3,0)=3 cycles -> 2^3 fixed colorings
+rotate by 1: gcd(3,1)=1 cycle  -> 2^1 fixed colorings
+rotate by 2: gcd(3,2)=1 cycle  -> 2^1 fixed colorings
+```
+
+Average:
+
+```text
+(8 + 2 + 2) / 3 = 4
+```
+
+The four necklaces are represented by:
+
+```text
+000, 111, 001, 011
+```
+
+where rotations of `001` are considered the same.
+
+## Modular implementation notes
+
+For all three exercises, precompute enough factorials or powers before
+answering queries.
+
+Catalan:
+
+```text
+cat[n] = C(2n,n) * inv(n+1)
+```
+
+Derangements:
+
+```text
+D[0]=1
+D[1]=0
+D[n]=(n-1)(D[n-1]+D[n-2])
+```
+
+Burnside:
+
+```text
+ans = sum(pow(k, gcd(n,r), MOD) for r in 0..n-1) * inv(n)
+```
+
+The danger in Burnside is using the number of fixed positions instead of the
+number of cycles. A rotation fixes a coloring when all positions in each cycle
+share the same color.
+
+# Exercises
+
+- A. Catalan Queries: Print Catalan numbers modulo `1e9+7`.
+- B. Derangement Queries: Print the number of derangements of `n` modulo `1e9+7`.
+- C. Necklace Orbits: Count color necklaces of length `n` with `k` colors up to rotation.
+# Contest checklist
+
+State the invariant, choose the model, prove the operation, then code the smallest reliable version.

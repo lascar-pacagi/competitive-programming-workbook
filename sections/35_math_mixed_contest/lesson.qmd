@@ -1,0 +1,219 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 35: Math Mixed Contest"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# How to approach a math mixed contest
+
+Math problems rarely announce their technique. Use statement shape:
+
+| Signal | Likely tool |
+|---|---|
+| paths with right/down moves | combinations |
+| avoid one forbidden object | subtract bad paths |
+| gcd equals 1 | prime factors and inclusion-exclusion |
+| at least one event happens | complement probability |
+| many values up to `10^6` | sieve / SPF |
+
+# A. Blocked grid paths
+
+Paths from `(1,1)` to `(H,W)` use:
+
+```text
+H-1 down moves
+W-1 right moves
+```
+
+so total paths:
+
+```text
+C(H+W-2, H-1)
+```
+
+Paths through blocked cell `(R,C)`:
+
+```text
+ways start -> blocked
+* ways blocked -> finish
+```
+
+Subtract those bad paths.
+
+Worked example:
+
+```text
+H = 3, W = 4
+blocked = (2,2)
+```
+
+All paths need `2` down moves and `3` right moves:
+
+```text
+C(5,2) = 10
+```
+
+Paths from `(1,1)` to `(2,2)` need one down and one right:
+
+```text
+C(2,1) = 2
+```
+
+Paths from `(2,2)` to `(3,4)` need one down and two right:
+
+```text
+C(3,1) = 3
+```
+
+Bad paths:
+
+```text
+2 * 3 = 6
+```
+
+Good paths:
+
+```text
+10 - 6 = 4
+```
+
+The multiplication is valid because every bad path has a unique prefix ending
+at the blocked cell and a unique suffix starting from it.
+
+# B. Coprime pairs
+
+Two numbers are not coprime iff they share at least one prime factor.
+
+When processing a new number `x`, factor it into distinct primes:
+
+```text
+x = 2^a * 3^b * 5^c  -> distinct primes [2,3,5]
+```
+
+For every nonempty subset of these primes, store how many previous numbers were
+divisible by their product. Inclusion-exclusion gives how many previous numbers
+share at least one prime factor with `x`.
+
+```text
+previous coprime with x = previous_count - share_any_prime
+```
+
+Then add `x` to all subset-product counters.
+
+This works because the subset products are square-free: each distinct prime is
+used at most once.
+
+Example with previous numbers:
+
+```text
+previous = [6, 10, 21]
+x = 30 = 2 * 3 * 5
+```
+
+Numbers sharing a factor with `30`:
+
+```text
+divisible by 2: 6,10      -> 2
+divisible by 3: 6,21      -> 2
+divisible by 5: 10        -> 1
+```
+
+The sum `2+2+1` counts `6` twice if it has factors `2` and `3`, so subtract
+pair intersections:
+
+```text
+divisible by 2*3: 6       -> 1
+divisible by 2*5: 10      -> 1
+divisible by 3*5: none    -> 0
+```
+
+Then add triple intersections:
+
+```text
+divisible by 2*3*5: none  -> 0
+```
+
+So:
+
+```text
+share_any = 2 + 2 + 1 - 1 - 1 - 0 + 0 = 3
+```
+
+All three previous numbers are not coprime with `30`, so there are `0`
+previous coprime pairs involving this `x`.
+
+# C. At least one event
+
+For independent events:
+
+```text
+P(at least one happens) = 1 - P(none happen)
+```
+
+And:
+
+```text
+P(none happen) = product_i (1 - p_i/q_i)
+```
+
+Use modular inverses for each `q_i`.
+
+Example:
+
+```text
+P(A) = 1/2
+P(B) = 1/3
+P(C) = 1/4
+```
+
+Probability none happen:
+
+```text
+(1/2) * (2/3) * (3/4) = 1/4
+```
+
+Probability at least one happens:
+
+```text
+1 - 1/4 = 3/4
+```
+
+The events may overlap in the outcome space, so adding `1/2 + 1/3 + 1/4`
+would be wrong.
+
+# Common mistakes
+
+```text
+Subtracting paths through a blocked cell twice.
+Counting prime powers instead of distinct primes in coprime-pair inclusion-exclusion.
+Forgetting that value 1 has no prime factors and is coprime with all previous numbers.
+Adding probabilities of events directly when they overlap.
+```
+
+# Contest checklist
+
+```text
+1. Translate the story into a known counting/probability shape.
+2. Identify bad objects if subtraction or complement is easier.
+3. Check whether values need preprocessing.
+4. Verify edge cases: blocked start/end, value 1, probability 0 or 1.
+```

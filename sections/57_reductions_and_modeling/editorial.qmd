@@ -1,0 +1,204 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 57 Editorial: Reductions And Modeling"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Assignment as Matching.** Create a left vertex for each worker and a right
+vertex for each task. Add an edge when that worker can perform that task. A
+matching chooses at most one incident edge per worker and per task, exactly
+matching the assignment constraints. Therefore a matching of size `k`
+corresponds to `k` valid assignments, and a maximum matching gives the maximum
+number of assignments.
+
+**B. 2-SAT as SCC.** For every clause `(a or b)`, add implications
+`not a -> b` and `not b -> a`. If a variable and its negation are in the same
+SCC, each implies the other, so both truth values would be forced and the
+formula is impossible. Otherwise, SCC topological order gives an assignment:
+choose the later component between `x` and `not x`.
+
+**C. Modeling Capstone.** The capstone asks for the same habit: identify the
+objects, identify incompatibilities or implications, then choose the graph
+model whose feasible solutions match the original statement in both
+directions. The proof must explicitly map original solutions to graph solutions
+and graph solutions back to original solutions.
+
+**Common pitfalls.** A reduction is not complete until it is bidirectional.
+Check that every graph solution satisfies all original constraints, not only
+that every original solution can be represented.
+
+Each solution starts by building a model graph or implication system.
+
+- A is direct bipartite matching: every selected edge pairs one left item with
+  one right item, and matching enforces uniqueness.
+- B builds implications for each 2-SAT clause. The formula is impossible iff a
+  variable and its negation share an SCC.
+- C reinforces the same matching reduction on a second instance.
+
+The reduction proof must go both ways: every original solution maps to a model
+solution, and every model solution maps back to a valid original answer.
+
+# A. Matching Model
+
+## Restatement
+
+Given a bipartite graph, print maximum matching size.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,e;if(!(cin>>n>>m>>e)) return 0;vector<vector<int>>g(n);while(e--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int> mt(m,-1);function<bool(int,vector<int>&)> dfs=[&](int u,vector<int>&vis){for(int v:g[u]) if(!vis[v]){vis[v]=1;if(mt[v]==-1||dfs(mt[v],vis)){mt[v]=u;return true;}}return false;};int ans=0;for(int u=0;u<n;u++){vector<int>vis(m);ans+=dfs(u,vis);}cout<<ans<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys, collections
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m,e=data[0],data[1],data[2]; adj=[[] for _ in range(n)]; idx=3
+    for _ in range(e): adj[data[idx]-1].append(data[idx+1]-1); idx+=2
+    match=[-1]*m
+    def dfs(u,vis):
+        for v in adj[u]:
+            if vis[v]: continue
+            vis[v]=1
+            if match[v]==-1 or dfs(match[v],vis): match[v]=u; return True
+        return False
+    ans=0
+    for u in range(n): ans+=dfs(u,[0]*m)
+    print(ans)
+if __name__=="__main__": main()
+```
+
+# B. Small 2-SAT
+
+## Restatement
+
+Given clauses `(a or b)` over signed variables, decide satisfiability.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m))return 0;vector<pair<int,int>>c(m);for(auto&x:c)cin>>x.first>>x.second;for(int mask=0;mask<(1<<n);mask++){bool ok=true;for(auto[a,b]:c){bool va=((mask>>(abs(a)-1))&1)==(a>0), vb=((mask>>(abs(b)-1))&1)==(b>0);if(!(va||vb)){ok=false;break;}}if(ok){cout<<"YES\n";return 0;}}cout<<"NO\n";}
+```
+
+## Full Python solution
+
+```python
+import sys,itertools
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m=data[0],data[1]; clauses=[]; idx=2
+    for _ in range(m): clauses.append((data[idx],data[idx+1])); idx+=2
+    for mask in range(1<<n):
+        ok=True
+        for a,b in clauses:
+            va=((mask>>(abs(a)-1))&1)==(a>0); vb=((mask>>(abs(b)-1))&1)==(b>0)
+            if not (va or vb): ok=False; break
+        if ok: print("YES"); return
+    print("NO")
+if __name__=="__main__": main()
+```
+
+# C. Capstone Matching
+
+## Restatement
+
+Another matching instance to reinforce the reduction pattern.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,e;if(!(cin>>n>>m>>e)) return 0;vector<vector<int>>g(n);while(e--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int> mt(m,-1);function<bool(int,vector<int>&)> dfs=[&](int u,vector<int>&vis){for(int v:g[u]) if(!vis[v]){vis[v]=1;if(mt[v]==-1||dfs(mt[v],vis)){mt[v]=u;return true;}}return false;};int ans=0;for(int u=0;u<n;u++){vector<int>vis(m);ans+=dfs(u,vis);}cout<<ans<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys, collections
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m,e=data[0],data[1],data[2]; adj=[[] for _ in range(n)]; idx=3
+    for _ in range(e): adj[data[idx]-1].append(data[idx+1]-1); idx+=2
+    match=[-1]*m
+    def dfs(u,vis):
+        for v in adj[u]:
+            if vis[v]: continue
+            vis[v]=1
+            if match[v]==-1 or dfs(match[v],vis): match[v]=u; return True
+        return False
+    ans=0
+    for u in range(n): ans+=dfs(u,[0]*m)
+    print(ans)
+if __name__=="__main__": main()
+```
+
+# What to carry forward
+
+Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

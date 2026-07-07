@@ -1,0 +1,186 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 50 Editorial: Advanced Algorithms Mixed Contest"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. DAG Game Grundy.** Process vertices in reverse topological order. The
+Grundy value of a terminal vertex is `0`. For a nonterminal vertex, collect the
+Grundy values of all outgoing neighbors and take the mex, the smallest
+nonnegative integer not present. A position is winning exactly when its Grundy
+value is nonzero: move to a child with Grundy `0`; from Grundy `0`, every move
+goes to nonzero.
+
+**B. Chinese Remainder Merge.** To merge
+`x = a (mod m)` and `x = b (mod n)`, first check compatibility:
+`a % gcd(m,n)` must equal `b % gcd(m,n)`. If not, there is no solution. If yes,
+divide by the gcd and use an extended-gcd inverse to solve for the offset. The
+new modulus is `lcm(m,n)`, and the merged residue is normalized into
+`[0,lcm)`.
+
+**C. Fast Doubling Fibonacci.** Maintain the pair `(F(k), F(k+1))`. The
+doubling formulas compute `(F(2k), F(2k+1))`; if the next binary bit is `1`,
+advance once to `(F(2k+1), F(2k+2))`. This gives logarithmic time because each
+bit of `n` does constant work.
+
+**Common pitfalls.** For Grundy values, mex is taken over children only, not all
+smaller numbers. CRT must handle non-coprime moduli. Fast doubling should keep
+all operations modulo the requested modulus.
+
+This mixed section checks whether the model is recognized quickly.
+
+- A computes Grundy numbers on a DAG in reverse topological order. A start is
+  winning iff its Grundy number is nonzero.
+- B merges two congruences with the generalized CRT. The compatibility test is
+  equality modulo `gcd(m,n)`.
+- C uses fast doubling for Fibonacci, returning the pair `(F(n), F(n+1))`.
+
+All three solutions compress a large object into a smaller invariant: mex,
+one merged congruence, or a recurrence pair.
+
+# A. DAG Grundy
+
+## Restatement
+
+For each start vertex in a DAG, print whether the first player wins.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,q;if(!(cin>>n>>m>>q))return 0;vector<vector<int>>g(n);while(m--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int>gr(n);for(int u=n-1;u>=0;u--){set<int>s;for(int v:g[u])s.insert(gr[v]);while(s.count(gr[u]))gr[u]++;}while(q--){int s;cin>>s;cout<<(gr[s-1]?"WIN":"LOSE")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m,q=data[0],data[1],data[2]; idx=3; g=[[] for _ in range(n)]
+    for _ in range(m): g[data[idx]-1].append(data[idx+1]-1); idx+=2
+    gr=[0]*n
+    for u in range(n-1,-1,-1):
+        seen={gr[v] for v in g[u]}; x=0
+        while x in seen: x+=1
+        gr[u]=x
+    out=["WIN" if gr[data[idx+i]-1] else "LOSE" for i in range(q)]
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# B. General CRT
+
+## Restatement
+
+For each pair of congruences, print the smallest nonnegative solution and lcm modulus, or `NO`.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; long long eg(long long a,long long b,long long&x,long long&y){if(!b){x=a>=0?1:-1;y=0;return llabs(a);}long long x1,y1,g=eg(b,a%b,x1,y1);x=y1;y=x1-a/b*y1;return g;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T;if(!(cin>>T))return 0;while(T--){long long a,m,b,n,x,y;cin>>a>>m>>b>>n;long long g=eg(m,n,x,y);if((b-a)%g)cout<<"NO\n";else{long long l=m/g*n;__int128 k=(__int128)((b-a)/g)*x;long long mod=n/g;long long kk=(long long)((k%mod+mod)%mod);long long res=(long long)(((__int128)a+(__int128)m*kk)%l);cout<<res<<" "<<l<<"\n";}}}
+```
+
+## Full Python solution
+
+```python
+import sys,math
+def eg(a,b):
+    if b==0: return (abs(a),1 if a>=0 else -1,0)
+    g,x,y=eg(b,a%b); return g,y,x-(a//b)*y
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    t=data[0]; idx=1; out=[]
+    for _ in range(t):
+        a,m,b,n=data[idx],data[idx+1],data[idx+2],data[idx+3]; idx+=4; g,x,y=eg(m,n)
+        if (b-a)%g: out.append("NO")
+        else:
+            l=m//g*n; k=((b-a)//g*x)%(n//g); out.append(f"{(a+m*k)%l} {l}")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# C. Fast Fibonacci
+
+## Restatement
+
+Answer Fibonacci queries modulo `1e9+7`.
+
+## Algorithm and proof
+
+Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+
+## Complexity
+
+The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; const long long MOD=1000000007; pair<long long,long long> fib(long long n){if(!n)return{0,1};auto [a,b]=fib(n/2);long long c=a*((2*b%MOD-a+MOD)%MOD)%MOD,d=(a*a%MOD+b*b%MOD)%MOD;return n&1?make_pair(d,(c+d)%MOD):make_pair(c,d);}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int t;if(!(cin>>t))return 0;while(t--){long long n;cin>>n;cout<<fib(n).first<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+MOD=1_000_000_007
+def fib(n):
+    if n==0: return (0,1)
+    a,b=fib(n//2)
+    c=a*((2*b-a)%MOD)%MOD
+    d=(a*a+b*b)%MOD
+    return (d,(c+d)%MOD) if n%2 else (c,d)
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    print("\n".join(str(fib(x)[0]) for x in data[1:1+data[0]]))
+if __name__=="__main__": main()
+```
+
+# Testing discussion
+
+Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

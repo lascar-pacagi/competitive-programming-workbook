@@ -1,0 +1,357 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 12: Stacks, Queues, And Deques"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why these structures matter
+
+Stacks, queues, and deques are not only basic containers. In contests they are
+often used to keep exactly the candidates that can still matter.
+
+The pattern is:
+
+```text
+When a new element arrives, remove old candidates made useless by it.
+```
+
+This gives linear-time algorithms for problems that look quadratic:
+
+- nearest greater or smaller element;
+- sliding window maximum or minimum;
+- removing adjacent pairs;
+- shortest subarray with a target sum even when values are negative.
+
+# The three containers
+
+| Container | Access pattern | Typical contest use |
+|---|---|---|
+| Stack | last in, first out | nested structure, nearest element |
+| Queue | first in, first out | simulation, BFS later |
+| Deque | push/pop both ends | sliding windows, monotonic candidates |
+
+In C++:
+
+```cpp
+vector<int> st;      // often best as a stack
+queue<int> q;
+deque<int> dq;
+```
+
+In Python:
+
+```python
+stack = []
+from collections import deque
+dq = deque()
+```
+
+# Monotonic stack
+
+A monotonic stack stores candidates in sorted order by value.
+
+For next greater element to the right, scan from right to left and keep a stack
+of values that are strictly greater candidates.
+
+When processing `a[i]`, any stack top `<= a[i]` is useless:
+
+```text
+a[i] is closer to the left and at least as large, so that old value can never be
+the first greater value for any earlier element.
+```
+
+Example:
+
+```text
+a = 2 1 3 2 5
+```
+
+Scan from right:
+
+```text
+i=4, value=5: stack empty -> ans=-1, push 5
+i=3, value=2: top 5 > 2 -> ans=5, push 2
+i=2, value=3: pop 2, top 5 > 3 -> ans=5, push 3
+i=1, value=1: top 3 > 1 -> ans=3, push 1
+i=0, value=2: pop 1, top 3 > 2 -> ans=3, push 2
+```
+
+Answer:
+
+```text
+3 3 5 5 -1
+```
+
+# Why the pop is safe
+
+Suppose we scan from right to left and see current value `x`.
+
+If the stack top is `y <= x`, then `y` is to the right of `x`, but `x` is closer
+to every future position we will process. Since `x` is at least as large as
+`y`, `y` can never be the first strictly greater value for a future position.
+
+So `y` can be removed permanently.
+
+That is the core amortized idea:
+
+```text
+each element is pushed once and popped once
+```
+
+# Monotonic deque for sliding windows
+
+For window maximums, the front of the deque should always hold the index of the
+maximum value in the current window.
+
+Maintain two invariants:
+
+```text
+1. indices in the deque are inside the current window;
+2. values in the deque are decreasing from front to back.
+```
+
+When a new index `i` arrives:
+
+1. Remove front indices that are too old.
+2. Remove back indices whose values are `<= a[i]`.
+3. Push `i`.
+4. Once the first full window exists, the answer is `a[dq.front()]`.
+
+Example:
+
+```text
+a = 1 3 -1 -3 5 3 6 7
+k = 3
+```
+
+Window maximums:
+
+```text
+[1, 3, -1] -> 3
+[3, -1, -3] -> 3
+[-1, -3, 5] -> 5
+[-3, 5, 3] -> 5
+[5, 3, 6] -> 6
+[3, 6, 7] -> 7
+```
+
+# Deque over prefix sums
+
+With only nonnegative numbers, a two-pointer window can find short subarrays
+with sum at least `K`. Negative numbers break that, because extending the right
+endpoint can make the sum smaller.
+
+Use prefix sums:
+
+```text
+sum(l, r) = pref[r] - pref[l]
+```
+
+For each right endpoint `r`, we want the largest possible `l` among candidates
+with:
+
+```text
+pref[r] - pref[l] >= K
+```
+
+But we also want small prefix sums, because smaller `pref[l]` makes the
+difference larger.
+
+Keep prefix indices in a deque with increasing prefix values.
+
+For current prefix `pref[i]`:
+
+1. While the front gives a valid sum, update the answer and pop it. Popping is
+   safe because later `i` values only make the length longer for that same
+   front.
+2. While the back prefix is `>= pref[i]`, pop it. The current index is later and
+   has a smaller or equal prefix sum, so the old back is dominated.
+3. Push `i`.
+
+# Worked prefix example
+
+Array:
+
+```text
+2 -1 2 -1 2 4
+K = 5
+```
+
+Prefix sums:
+
+```text
+index: 0  1  2  3  4  5  6
+pref:  0  2  1  3  2  4  8
+```
+
+At `i = 6`, `pref[i] = 8`.
+
+The deque contains useful low prefix sums. If the front is index `4` with
+`pref[4] = 2`, then:
+
+```text
+8 - 2 = 6 >= 5
+length = 6 - 4 = 2
+```
+
+The subarray is:
+
+```text
+a[4] + a[5] = 2 + 4 = 6
+```
+
+So the answer can be `2`.
+
+# Common recognition signals
+
+Use a monotonic stack when the statement asks for:
+
+- next greater;
+- next smaller;
+- nearest taller building;
+- stock span;
+- remove dominated candidates to the left or right.
+
+Use a monotonic deque when the statement asks for:
+
+- maximum/minimum over every fixed-size window;
+- shortest/longest interval with a prefix-sum condition;
+- DP transition over a sliding range.
+
+Use a plain queue when the statement is a literal FIFO process or, later, BFS.
+
+# C++ implementation notes
+
+For stacks, `vector<T>` is often faster and more flexible than `stack<T>`:
+
+```cpp
+vector<long long> st;
+st.push_back(x);
+st.pop_back();
+st.back();
+```
+
+For deques:
+
+```cpp
+deque<int> dq;
+dq.push_back(i);
+dq.pop_front();
+dq.pop_back();
+```
+
+Use indices, not values, when you must know whether an element has left a
+window.
+
+# Python implementation notes
+
+Use a list as a stack:
+
+```python
+stack.append(x)
+stack.pop()
+stack[-1]
+```
+
+Use `collections.deque` for efficient front pops:
+
+```python
+from collections import deque
+dq = deque()
+dq.popleft()
+```
+
+Avoid `list.pop(0)`; it is linear time.
+
+# Proof habits
+
+For monotonic structures, prove two things:
+
+1. **Dominance.** When you pop a candidate, explain why it can never be useful
+   again.
+2. **Amortization.** Each element is inserted once and removed at most once, so
+   total time is linear after input reading.
+
+The code is short, but the proof is the reason it is trusted.
+
+# Common wrong approaches
+
+## Quadratic nearest-element scan
+
+Checking all positions to the right for each index is too slow for `n=200000`.
+
+## Forgetting expiration
+
+For sliding windows, a large value can stay in the deque after it leaves the
+window unless you remove old indices from the front.
+
+## Keeping values instead of indices
+
+For window problems, values alone do not tell you whether the candidate is still
+inside the window.
+
+## Using two pointers with negative numbers
+
+If numbers can be negative, window sums are not monotone under expansion. Use
+prefix sums and a deque instead.
+
+# Local judge workflow
+
+Run Section 12:
+
+```bash
+python3 sections/12_stacks_queues_deques/check.py
+```
+
+Run the reference solutions:
+
+```bash
+CP_TARGET=solution python3 sections/12_stacks_queues_deques/check.py
+```
+
+The random tests compare against brute force on small arrays. That is useful
+for this topic because off-by-one expiration and equality choices are common.
+
+# Checklist before submitting
+
+- Decide whether equality should be popped: `<`, `<=`, `>`, or `>=`.
+- Store indices when window membership matters.
+- Remove expired indices before reading the front.
+- Use prefix sums for subarray sums.
+- Use 64-bit integers for prefix sums in C++.
+- Prove every popped element is dominated.
+- Test duplicates, all increasing, all decreasing, and negative values.
+
+# Exercises
+
+## A. Next Greater
+
+Practice a right-to-left monotonic stack.
+
+## B. Sliding Window Maximum
+
+Practice a decreasing deque of indices.
+
+## C. Shortest Subarray At Least K
+
+Practice a monotonic deque over prefix sums, including negative values.
+

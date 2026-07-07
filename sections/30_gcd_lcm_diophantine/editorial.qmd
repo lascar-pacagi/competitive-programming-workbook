@@ -1,0 +1,366 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 30 Editorial: GCD, LCM, and Diophantine Equations"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+| Problem | Tool | Output |
+|---|---|---|
+| A. GCD LCM Queries | Euclid and lcm formula | `gcd lcm` |
+| B. General Inverse | extended Euclid | inverse or `-1` |
+| C. Linear Diophantine | Bezout scaling | one solution or impossible |
+
+# A. GCD LCM Queries
+
+## Restatement
+
+For each pair `a,b`, print their greatest common divisor and least common
+multiple.
+
+## Algorithm
+
+```text
+g = gcd(a,b)
+l = a / g * b
+```
+
+## Correctness proof
+
+Euclid's algorithm computes the greatest common divisor because replacing
+`(a,b)` by `(b, a mod b)` preserves the set of common divisors. When the second
+number becomes zero, the first is the greatest common divisor.
+
+The formula `gcd(a,b) * lcm(a,b) = a*b` is standard from prime exponents: for
+each prime, gcd takes the minimum exponent and lcm takes the maximum; their sum
+equals the sum of exponents in `a*b`. Therefore `a/g*b` is the lcm. `\square`
+
+## Complexity
+
+```text
+Time: O(q log min(a,b))
+Memory: O(1)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int q;
+    if (!(cin >> q)) return 0;
+    while (q--) {
+        long long a, b;
+        cin >> a >> b;
+        long long g = gcd(a, b);
+        cout << g << ' ' << a / g * b << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import math
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    q = data[0]
+    idx = 1
+    out = []
+    for _ in range(q):
+        a, b = data[idx], data[idx + 1]
+        idx += 2
+        g = math.gcd(a, b)
+        out.append(f"{g} {a // g * b}")
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+# B. General Inverse
+
+## Restatement
+
+For each `a,m`, find the smallest non-negative `x` with `a*x == 1 (mod m)`, or
+print `-1`.
+
+## Algorithm
+
+Run extended Euclid:
+
+```text
+a*x + m*y = gcd(a,m)
+```
+
+If the gcd is not `1`, no inverse exists. Otherwise, `a*x + m*y = 1`, so
+`a*x == 1 (mod m)`. Normalize `x` into `[0,m-1]`.
+
+When `m = 1`, the only residue is `0`, so the local problem prints `0`.
+
+## Correctness proof
+
+An inverse exists iff there is an integer `x` with `a*x - 1` divisible by `m`,
+equivalently `a*x + m*y = 1` for some integer `y`. By Bezout's identity, the
+set of all integer combinations `a*x + m*y` is exactly the multiples of
+`gcd(a,m)`. Therefore `1` is representable iff `gcd(a,m)=1`. Extended Euclid
+constructs such an `x` when it exists. `\square`
+
+## Complexity
+
+```text
+Time: O(q log min(a,m))
+Memory: O(1)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long egcd(long long a, long long b, long long &x, long long &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    long long x1, y1;
+    long long g = egcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return g;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int q;
+    if (!(cin >> q)) return 0;
+    while (q--) {
+        long long a, m;
+        cin >> a >> m;
+        if (m == 1) {
+            cout << 0 << '\n';
+            continue;
+        }
+        long long x, y;
+        long long g = egcd(a, m, x, y);
+        if (g != 1) {
+            cout << -1 << '\n';
+        } else {
+            x %= m;
+            if (x < 0) x += m;
+            cout << x << '\n';
+        }
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def egcd(a: int, b: int) -> tuple[int, int, int]:
+    if b == 0:
+        return a, 1, 0
+    g, x1, y1 = egcd(b, a % b)
+    return g, y1, x1 - (a // b) * y1
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    q = data[0]
+    idx = 1
+    out = []
+    for _ in range(q):
+        a, m = data[idx], data[idx + 1]
+        idx += 2
+        if m == 1:
+            out.append("0")
+            continue
+        g, x, _ = egcd(a, m)
+        out.append(str(x % m) if g == 1 else "-1")
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+# C. Linear Diophantine
+
+## Restatement
+
+For each `a,b,c`, find any integer pair `x,y` satisfying `a*x + b*y = c`, or
+report impossible.
+
+## Algorithm
+
+```text
+g, x0, y0 = extended_gcd(a,b)
+if c % g != 0:
+    IMPOSSIBLE
+else:
+    scale = c / g
+    x = x0 * scale
+    y = y0 * scale
+```
+
+## Correctness proof
+
+Extended Euclid gives `a*x0 + b*y0 = g`, where `g = gcd(a,b)`. If `c` is not a
+multiple of `g`, no integer combination of `a` and `b` can equal `c`, because
+every such combination is divisible by `g`.
+
+If `c = g*scale`, multiplying the Bezout identity by `scale` gives:
+
+```text
+a*(x0*scale) + b*(y0*scale) = c
+```
+
+so the algorithm prints a valid solution. `\square`
+
+## Complexity
+
+```text
+Time: O(q log min(a,b))
+Memory: O(1)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long egcd(long long a, long long b, long long &x, long long &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    long long x1, y1;
+    long long g = egcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return g;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int q;
+    if (!(cin >> q)) return 0;
+    while (q--) {
+        long long a, b, c;
+        cin >> a >> b >> c;
+        long long x, y;
+        long long g = egcd(a, b, x, y);
+        if (c % g != 0) {
+            cout << "IMPOSSIBLE\n";
+        } else {
+            long long scale = c / g;
+            cout << x * scale << ' ' << y * scale << '\n';
+        }
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def egcd(a: int, b: int) -> tuple[int, int, int]:
+    if b == 0:
+        return a, 1, 0
+    g, x1, y1 = egcd(b, a % b)
+    return g, y1, x1 - (a // b) * y1
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    q = data[0]
+    idx = 1
+    out = []
+    for _ in range(q):
+        a, b, c = data[idx], data[idx + 1], data[idx + 2]
+        idx += 3
+        g, x, y = egcd(a, b)
+        if c % g != 0:
+            out.append("IMPOSSIBLE")
+        else:
+            scale = c // g
+            out.append(f"{x * scale} {y * scale}")
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+# Testing discussion
+
+The local checker compares against the reference construction, so fixed sample
+outputs are one valid solution, not the only possible solution. On real judges
+for Diophantine problems, either the output checker accepts any valid pair or
+the problem asks for a specific normalized solution.
+
+Important tests:
+
+```text
+coprime a,b with c=1
+gcd(a,b) not dividing c
+m=1 for modular inverse
+large coprime values
+```
+
+# What to carry forward
+
+GCD tells you what is divisible, extended Euclid tells you how to build the
+linear combination, and modular inverse is just a special case of that linear
+combination.

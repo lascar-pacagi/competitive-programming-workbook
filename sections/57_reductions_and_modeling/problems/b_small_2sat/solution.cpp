@@ -1,0 +1,2 @@
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m))return 0;vector<pair<int,int>>c(m);for(auto&x:c)cin>>x.first>>x.second;for(int mask=0;mask<(1<<n);mask++){bool ok=true;for(auto[a,b]:c){bool va=((mask>>(abs(a)-1))&1)==(a>0), vb=((mask>>(abs(b)-1))&1)==(b>0);if(!(va||vb)){ok=false;break;}}if(ok){cout<<"YES\n";return 0;}}cout<<"NO\n";}

@@ -1,0 +1,459 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 11: Intervals And Sweep Line"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why sweep line matters
+
+Many interval problems look like they need to inspect every time or every
+coordinate.
+
+That is impossible when coordinates can be as large as `10^18`.
+
+The sweep-line idea is:
+
+```text
+Nothing important changes between event coordinates.
+Only endpoints and query points matter.
+```
+
+So instead of iterating over all coordinates, we sort the important coordinates
+and move from left to right.
+
+This turns problems like these into sorting plus a scan:
+
+- maximum number of active intervals;
+- total length covered by at least one interval;
+- number of intervals covering each query point;
+- room allocation and active resource tracking;
+- counting how long coverage equals exactly `k`.
+
+# The mental picture
+
+Imagine a vertical line moving from left to right on a number line.
+
+```text
+intervals:
+    [1, 5)
+       [3, 7)
+              [7, 9)
+
+sweep:
+    x = 1  start interval 1
+    x = 3  start interval 2
+    x = 5  end interval 1
+    x = 7  end interval 2 and start interval 3
+    x = 9  end interval 3
+```
+
+At each event, we update an active count or an active set.
+
+# Vocabulary
+
+**Event.** A coordinate where the state may change. Starts, ends, and queries
+are events.
+
+**Active interval.** An interval currently containing the sweep position.
+
+**Endpoint convention.** The rule for whether endpoints are included:
+
+```text
+[l, r) includes l but excludes r
+[l, r] includes both l and r
+(l, r) excludes both endpoints
+```
+
+**Tie order.** The order in which events at the same coordinate are processed.
+Tie order encodes endpoint conventions.
+
+**Gap accumulation.** Adding the length between the previous event coordinate
+and the current event coordinate based on the state that was active on that
+whole gap.
+
+**Active set.** A data structure containing currently active intervals or
+resources. It may be just a count, a heap of end times, or a set keyed by some
+value.
+
+# Recognizing sweep-line problems
+
+Consider sweep line when:
+
+- objects are intervals, segments, rectangles, bookings, logins, or time spans;
+- coordinates are too large to iterate over directly;
+- the answer changes only at starts, ends, and query points;
+- you need a maximum active count, total covered length, or coverage counts;
+- sorting events feels natural;
+- a problem statement uses words like "during", "overlap", "contained",
+  "active", "covered", "simultaneously", or "for each point".
+
+The first question should be:
+
+```text
+What are the events?
+```
+
+The second question should be:
+
+```text
+How should ties at the same coordinate be ordered?
+```
+
+# Endpoint conventions and tie order
+
+This is where many wrong answers happen.
+
+For half-open intervals `[l, r)`, an interval ending at `x` is not active at
+`x`, while an interval starting at `x` is active at `x`.
+
+If we process single events one by one for maximum active count:
+
+```text
+end before start
+```
+
+At coordinate `x`, this prevents `[1, x)` and `[x, 5)` from being counted as
+overlapping.
+
+For closed intervals `[l, r]`, both endpoints count. A query at `x` should see
+intervals that start at `x` and intervals that end at `x`.
+
+For point coverage with closed intervals:
+
+```text
+start before query before end
+```
+
+Tie order table:
+
+| Problem | Interval convention | Tie order at same coordinate |
+|---|---|---|
+| Peak active `[l,r)` | half-open | end, then start |
+| Covered length `[l,r)` | half-open | group all events at same coordinate |
+| Query coverage `[l,r]` | closed | start, query, end |
+
+# Worked example 1: peak active
+
+Intervals:
+
+```text
+[1,5), [2,6), [4,7), [7,9)
+```
+
+Events:
+
+```text
+coordinate   event   active after event
+1            start   1
+2            start   2
+4            start   3
+5            end     2
+6            end     1
+7            end     0
+7            start   1
+9            end     0
+```
+
+Maximum active count is `3`.
+
+The important tie is at `7`. Because intervals are half-open, `[4,7)` and
+`[7,9)` do not overlap. The end at `7` is processed before the start at `7`.
+
+# Worked example 2: covered length
+
+Intervals:
+
+```text
+[1,5), [2,6), [8,10)
+```
+
+Sorted event coordinates:
+
+```text
+1, 2, 5, 6, 8, 10
+```
+
+The active count is constant between consecutive event coordinates.
+
+```text
+gap       active on gap   contribution
+[1,2)     1               1
+[2,5)     2               3
+[5,6)     1               1
+[6,8)     0               0
+[8,10)    1               2
+```
+
+Total covered length:
+
+```text
+1 + 3 + 1 + 2 = 7
+```
+
+Notice that we add the gap before applying the events at the current coordinate:
+
+```text
+length from prev to x depends on the active count after prev, before x
+```
+
+# Worked example 3: closed point coverage
+
+Intervals:
+
+```text
+[1,3], [2,5], [5,5]
+```
+
+Queries:
+
+```text
+1 3 4 5 6
+```
+
+Closed intervals include their endpoints, so a query at `5` sees both `[2,5]`
+and `[5,5]`.
+
+Use event kinds:
+
+```text
+0 = start
+1 = query
+2 = end
+```
+
+At the same coordinate, sorted order is:
+
+```text
+start -> query -> end
+```
+
+Trace:
+
+```text
+x=1: start [1,3], query 1 -> 1
+x=2: start [2,5]
+x=3: query 3 -> 2, end [1,3]
+x=4: query 4 -> 1
+x=5: start [5,5], query 5 -> 2, end [2,5], end [5,5]
+x=6: query 6 -> 0
+```
+
+Answer:
+
+```text
+1 2 1 2 0
+```
+
+# Active count versus active set
+
+Many beginner sweep-line problems only need an integer `active`.
+
+```text
+active += 1 at start
+active -= 1 at end
+```
+
+Harder problems need to know something about the active intervals:
+
+- the earliest ending active interval;
+- the interval with smallest or largest weight;
+- which resource/table/room is free;
+- whether an active interval contains another interval.
+
+Then you use an active set:
+
+```text
+priority_queue / heap      earliest or latest end
+set / multiset             ordered active values
+map / dictionary           compressed counts
+```
+
+Example: minimum rooms for meetings.
+
+```text
+sort meetings by start
+heap = end times of currently occupied rooms
+before starting a meeting, pop rooms whose end <= start
+push this meeting's end
+answer = max heap size
+```
+
+That is still a sweep: the active set is a heap of end times.
+
+# Grouping events
+
+For length accumulation, grouping all events at the same coordinate is usually
+cleaner than relying on tie order.
+
+Template:
+
+```text
+sort events by coordinate
+active = 0
+prev = first coordinate
+answer = 0
+
+for each coordinate x:
+    if active > 0:
+        answer += x - prev
+    apply all deltas at x
+    prev = x
+```
+
+The interval convention is encoded by the events. For `[l,r)`, add `+1` at
+`l` and `-1` at `r`.
+
+# Coordinate compression versus sweep line
+
+Coordinate compression and sweep line are related but not identical.
+
+Use sweep line when you can process events in sorted order once.
+
+Use coordinate compression when you need indexed data structures over the
+coordinates:
+
+- Fenwick tree;
+- segment tree;
+- many range updates or range queries;
+- 2D sweep with an inner data structure.
+
+For this section, a sorted event list is enough.
+
+# C++ implementation notes
+
+Use `long long` for coordinates and lengths.
+
+For simple events:
+
+```cpp
+vector<pair<long long, int>> events;
+events.push_back({l, +1});
+events.push_back({r, -1});
+sort(events.begin(), events.end());
+```
+
+For events with multiple kinds:
+
+```cpp
+struct Event {
+    long long x;
+    int kind;
+    int idx;
+};
+```
+
+Sort by `(x, kind)`.
+
+When accumulating length, do not multiply or subtract in `int`.
+
+# Python implementation notes
+
+Python tuples sort lexicographically:
+
+```python
+events.append((l, 0, -1))
+events.append((query_x, 1, query_id))
+events.append((r, 2, -1))
+events.sort()
+```
+
+For large input, use:
+
+```python
+data = list(map(int, sys.stdin.buffer.read().split()))
+```
+
+When answering queries, store answers in an array and write them in original
+order.
+
+# Common wrong approaches
+
+## Iterating over every coordinate
+
+This fails when coordinates are up to `10^9` or `10^18`. You only need event
+coordinates.
+
+## Wrong tie order
+
+For half-open intervals:
+
+```text
+[1,2) and [2,3) do not overlap
+```
+
+If you process starts before ends at `2`, you will incorrectly count overlap.
+
+## Adding length after applying current events
+
+The gap `[prev, x)` is controlled by the active count from after `prev`, before
+events at `x`. Apply the length contribution first, then update events at `x`.
+
+## Losing query order
+
+If queries are sorted as events, their output order changes. Store each query's
+original index.
+
+# Local judge workflow
+
+Run Section 11:
+
+```bash
+python3 sections/11_intervals_sweep_line/check.py
+```
+
+Run the reference solutions:
+
+```bash
+CP_TARGET=solution python3 sections/11_intervals_sweep_line/check.py
+```
+
+The randomized tests use brute force on small coordinates:
+
+- for peak active, try event coordinates directly;
+- for covered length, mark every integer unit in small ranges;
+- for point coverage, test every query against every interval.
+
+# Submission checklist
+
+- Write the interval convention: `[l,r)`, `[l,r]`, or something else.
+- Define event types and tie order before coding.
+- Use `long long` for coordinates and lengths in C++.
+- For length, add the previous gap before applying current-coordinate events.
+- For queries, store original indices.
+- Test intervals that touch at endpoints.
+- Test negative coordinates if allowed.
+- Test duplicate intervals and duplicate query points.
+
+# Exercises
+
+## A. Peak Active
+
+Practice half-open endpoint ordering and maximum active count.
+
+## B. Covered Length
+
+Practice grouping events and accumulating covered gaps.
+
+## C. Point Coverage
+
+Practice query events, closed intervals, and restoring original query order.
+

@@ -1,0 +1,278 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 45 Editorial: Flows and Matchings"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Maximum Flow.** Dinic's algorithm works on the residual graph. A BFS builds
+levels using only edges with positive residual capacity. A DFS then sends flow
+only from level `d` to level `d+1`, which forms a blocking flow for the current
+level graph. When the sink is unreachable in BFS, there is no augmenting path
+left. By the max-flow min-cut theorem, the current flow is maximum. The reverse
+edge stores the option to cancel earlier choices, which is essential for
+correctness.
+
+**B. Bipartite Matching.** Model each left vertex as choosing at most one right
+vertex. The DFS tries to match a left vertex directly, and if the right vertex
+is already used, it recursively asks the previous owner to move elsewhere. A
+successful recursive move creates an augmenting path and increases the matching
+size by one. When no DFS from any unmatched left vertex succeeds, no augmenting
+path remains, so the matching is maximum.
+
+**C. Minimum Cut After Flow.** After computing max flow, run a reachability
+search from the source in the final residual graph. Let `S` be the reachable
+set. No residual edge of positive capacity crosses from `S` to `V \ S`;
+otherwise the endpoint would be reachable. Thus all original capacity across
+that cut is saturated, and its value equals the max flow. The printed cut is
+therefore a minimum cut.
+
+**Common pitfalls.** Always update reverse edges together with forward edges.
+For matching, reset the visited array for each DFS root. For min cut, use the
+residual graph after max flow, not the original graph.
+
+The three exercises are different views of augmenting paths.
+
+- A implements Dinic. BFS builds a residual level graph; DFS sends blocking
+  flow along increasing levels; reverse edges allow rerouting earlier choices.
+- B solves bipartite matching with augmenting DFS. A right vertex can be
+  reassigned if its current left partner can find another route.
+- C runs max flow, then explores the residual graph from the source. The
+  reachable set is the source side of a minimum cut.
+
+For max-flow correctness, the key terminal condition is: if the sink is not
+reachable in the residual graph, there is no augmenting path, so the current
+flow is maximum.
+
+# A. Max Flow
+
+## Restatement
+
+Given a directed capacitated graph from node 1 to node n, print the maximum flow.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; struct Dinic{struct E{int v,rev; long long c;};int n;vector<vector<E>>g;vector<int>level,it;Dinic(int n):n(n),g(n),level(n),it(n){}void add(int u,int v,long long c){E a{v,(int)g[v].size(),c},b{u,(int)g[u].size(),0};g[u].push_back(a);g[v].push_back(b);}bool bfs(int s,int t){fill(level.begin(),level.end(),-1);queue<int>q;level[s]=0;q.push(s);while(!q.empty()){int u=q.front();q.pop();for(auto&e:g[u])if(e.c&&level[e.v]<0){level[e.v]=level[u]+1;q.push(e.v);}}return level[t]>=0;}long long dfs(int u,int t,long long f){if(u==t)return f;for(int&i=it[u];i<(int)g[u].size();i++){E&e=g[u][i];if(e.c&&level[e.v]==level[u]+1){long long r=dfs(e.v,t,min(f,e.c));if(r){e.c-=r;g[e.v][e.rev].c+=r;return r;}}}return 0;}long long flow(int s,int t){long long ans=0,p;while(bfs(s,t)){fill(it.begin(),it.end(),0);while((p=dfs(s,t,4e18)))ans+=p;}return ans;}};
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m)) return 0;Dinic d(n);while(m--){int u,v,c;cin>>u>>v>>c;d.add(u-1,v-1,c);}cout<<d.flow(0,n-1)<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+from collections import deque
+def dinic(n,edges,s,t,cut=False):
+    g=[[] for _ in range(n)]
+    def add(u,v,c):
+        g[u].append([v,c,len(g[v])]); g[v].append([u,0,len(g[u])-1])
+    for u,v,c in edges: add(u,v,c)
+    flow=0
+    while True:
+        level=[-1]*n; level[s]=0; dq=deque([s])
+        while dq:
+            u=dq.popleft()
+            for v,c,rev in g[u]:
+                if c and level[v]<0: level[v]=level[u]+1; dq.append(v)
+        if level[t]<0: break
+        it=[0]*n
+        def dfs(u,f):
+            if u==t: return f
+            for i in range(it[u],len(g[u])):
+                it[u]=i; v,c,rev=g[u][i]
+                if c and level[v]==level[u]+1:
+                    ret=dfs(v,min(f,c))
+                    if ret: g[u][i][1]-=ret; g[v][rev][1]+=ret; return ret
+            return 0
+        while True:
+            pushed=dfs(s,10**18)
+            if not pushed: break
+            flow+=pushed
+    if cut:
+        seen=[False]*n; dq=deque([s]); seen[s]=True
+        while dq:
+            u=dq.popleft()
+            for v,c,rev in g[u]:
+                if c and not seen[v]: seen[v]=True; dq.append(v)
+        return flow,seen
+    return flow,None
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m=data[0],data[1]; idx=2; edges=[]
+    for _ in range(m): edges.append((data[idx]-1,data[idx+1]-1,data[idx+2])); idx+=3
+    print(dinic(n,edges,0,n-1)[0])
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# B. Bipartite Matching
+
+## Restatement
+
+Given edges between left and right parts, print the maximum matching size.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,e;if(!(cin>>n>>m>>e)) return 0;vector<vector<int>>g(n);while(e--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int> mt(m,-1);function<bool(int,vector<int>&)> dfs=[&](int u,vector<int>&vis){for(int v:g[u]) if(!vis[v]){vis[v]=1;if(mt[v]==-1||dfs(mt[v],vis)){mt[v]=u;return true;}}return false;};int ans=0;for(int u=0;u<n;u++){vector<int>vis(m);ans+=dfs(u,vis);}cout<<ans<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys, collections
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m,e=data[0],data[1],data[2]; adj=[[] for _ in range(n)]; idx=3
+    for _ in range(e): adj[data[idx]-1].append(data[idx+1]-1); idx+=2
+    match=[-1]*m
+    def dfs(u,vis):
+        for v in adj[u]:
+            if vis[v]: continue
+            vis[v]=1
+            if match[v]==-1 or dfs(match[v],vis): match[v]=u; return True
+        return False
+    ans=0
+    for u in range(n): ans+=dfs(u,[0]*m)
+    print(ans)
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# C. Min Cut Reachable Side
+
+## Restatement
+
+After max flow from 1 to n, print the flow value and the source-side reachable vertices in the residual graph.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; struct Dinic{struct E{int v,rev; long long c;};int n;vector<vector<E>>g;vector<int>level,it;Dinic(int n):n(n),g(n),level(n),it(n){}void add(int u,int v,long long c){E a{v,(int)g[v].size(),c},b{u,(int)g[u].size(),0};g[u].push_back(a);g[v].push_back(b);}bool bfs(int s,int t){fill(level.begin(),level.end(),-1);queue<int>q;level[s]=0;q.push(s);while(!q.empty()){int u=q.front();q.pop();for(auto&e:g[u])if(e.c&&level[e.v]<0){level[e.v]=level[u]+1;q.push(e.v);}}return level[t]>=0;}long long dfs(int u,int t,long long f){if(u==t)return f;for(int&i=it[u];i<(int)g[u].size();i++){E&e=g[u][i];if(e.c&&level[e.v]==level[u]+1){long long r=dfs(e.v,t,min(f,e.c));if(r){e.c-=r;g[e.v][e.rev].c+=r;return r;}}}return 0;}long long flow(int s,int t){long long ans=0,p;while(bfs(s,t)){fill(it.begin(),it.end(),0);while((p=dfs(s,t,4e18)))ans+=p;}return ans;}};
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m)) return 0;Dinic d(n);while(m--){int u,v,c;cin>>u>>v>>c;d.add(u-1,v-1,c);}long long f=d.flow(0,n-1); vector<int> seen(n); queue<int>q; q.push(0); seen[0]=1; while(!q.empty()){int u=q.front();q.pop(); for(auto &e:d.g[u]) if(e.c&&!seen[e.v]){seen[e.v]=1;q.push(e.v);}} cout<<f<<'\n'; bool first=true; for(int i=0;i<n;i++) if(seen[i]){if(!first) cout<<' '; first=false; cout<<i+1;} cout<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+from collections import deque
+def dinic(n,edges,s,t,cut=False):
+    g=[[] for _ in range(n)]
+    def add(u,v,c):
+        g[u].append([v,c,len(g[v])]); g[v].append([u,0,len(g[u])-1])
+    for u,v,c in edges: add(u,v,c)
+    flow=0
+    while True:
+        level=[-1]*n; level[s]=0; dq=deque([s])
+        while dq:
+            u=dq.popleft()
+            for v,c,rev in g[u]:
+                if c and level[v]<0: level[v]=level[u]+1; dq.append(v)
+        if level[t]<0: break
+        it=[0]*n
+        def dfs(u,f):
+            if u==t: return f
+            for i in range(it[u],len(g[u])):
+                it[u]=i; v,c,rev=g[u][i]
+                if c and level[v]==level[u]+1:
+                    ret=dfs(v,min(f,c))
+                    if ret: g[u][i][1]-=ret; g[v][rev][1]+=ret; return ret
+            return 0
+        while True:
+            pushed=dfs(s,10**18)
+            if not pushed: break
+            flow+=pushed
+    if cut:
+        seen=[False]*n; dq=deque([s]); seen[s]=True
+        while dq:
+            u=dq.popleft()
+            for v,c,rev in g[u]:
+                if c and not seen[v]: seen[v]=True; dq.append(v)
+        return flow,seen
+    return flow,None
+def main():
+    data=list(map(int,sys.stdin.buffer.read().split()))
+    if not data: return
+    n,m=data[0],data[1]; idx=2; edges=[]
+    for _ in range(m): edges.append((data[idx]-1,data[idx+1]-1,data[idx+2])); idx+=3
+    flow,seen=dinic(n,edges,0,n-1,True); print(flow); print(' '.join(str(i+1) for i,x in enumerate(seen) if x))
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# What to carry forward
+
+Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.

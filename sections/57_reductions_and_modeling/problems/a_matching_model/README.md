@@ -1,0 +1,15 @@
+# A. Matching Model
+
+Given a bipartite graph, print maximum matching size.
+
+## Sample
+
+Input:
+
+```text
+3 3 4
+1 1
+1 2
+2 2
+3 3
+```

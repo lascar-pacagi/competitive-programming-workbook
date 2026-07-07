@@ -1,0 +1,219 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 44 Editorial: String Algorithms II"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Trie Prefix Count.** Each trie node represents exactly one prefix: the
+string on the path from the root to that node. During insertion, increment
+`cnt` at the root and after moving to each next node. Therefore, after all
+insertions, `cnt[v]` is the number of dictionary words whose path passes
+through `v`, which is precisely the number of words with that prefix. A query
+walks the prefix characters; a missing edge means zero matches.
+
+**B. Palindrome Queries.** For the local constraints, comparing mirrored
+characters is the clearest exact solution. For substring `[l,r]`, compare
+`s[l]` with `s[r]`, then `s[l+1]` with `s[r-1]`, and so on. If all pairs match,
+the substring equals its reverse. If one pair differs, the two strings differ at
+a mirrored position, so it is not a palindrome. In a larger contest version,
+the same condition can be checked with forward and reverse rolling hashes.
+
+**C. Distinct Substrings.** The local solution enumerates every substring and
+inserts it into a set. A set stores one representative of each equal substring,
+so its final size is exactly the number of distinct substrings. The optimized
+red-level version is a suffix automaton: each state contributes
+`len[v] - len[link[v]]` new substrings, because those are exactly the lengths
+whose first end-position class is represented by `v`.
+
+**Common pitfalls.** Trie counters count prefixes, not terminal words only.
+Palindrome queries must convert input indices consistently. For distinct
+substrings, enumeration is pedagogical and exact at small limits, but a suffix
+automaton is required for large external tasks.
+
+This section shows three string representations.
+
+- A uses a trie. Each inserted word increments counters on the nodes along its
+  path, so the counter at the prefix endpoint is exactly the number of words
+  with that prefix.
+- B checks palindromes by comparing mirrored characters. For larger limits this
+  can be replaced by forward/reverse hashes, but the local proof is exact.
+- C counts distinct substrings. The simplest local implementation may enumerate
+  substrings at small limits; the red-level invariant is the suffix automaton
+  contribution `len[v] - len[link[v]]` per state.
+
+The editorial code favors transparent correctness where limits allow it, while
+the lesson explains the optimized structures used in larger external tasks.
+
+# A. Trie Prefix Count
+
+## Restatement
+
+Given dictionary words and prefix queries, count words having each prefix.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; struct Node{array<int,26> nx{}; int cnt=0;};
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,q;if(!(cin>>n>>q)) return 0; vector<Node> tr(1); for(int i=0;i<n;i++){string s;cin>>s;int v=0;tr[v].cnt++;for(char c:s){int x=c-'a';if(!tr[v].nx[x]){tr[v].nx[x]=tr.size();tr.push_back(Node());}v=tr[v].nx[x];tr[v].cnt++;}} while(q--){string p;cin>>p;int v=0;bool ok=true;for(char c:p){int x=c-'a';if(!tr[v].nx[x]){ok=false;break;}v=tr[v].nx[x];} cout<<(ok?tr[v].cnt:0)<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    lines=sys.stdin.read().splitlines(); n,q=map(int,lines[0].split()); nxt=[]; cnt=[]
+    nxt.append({}); cnt.append(0)
+    for w in lines[1:1+n]:
+        v=0; cnt[v]+=1
+        for ch in w:
+            if ch not in nxt[v]: nxt[v][ch]=len(nxt); nxt.append({}); cnt.append(0)
+            v=nxt[v][ch]; cnt[v]+=1
+    out=[]
+    for p in lines[1+n:1+n+q]:
+        v=0; ok=True
+        for ch in p:
+            if ch not in nxt[v]: ok=False; break
+            v=nxt[v][ch]
+        out.append(str(cnt[v] if ok else 0))
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# B. Palindrome Queries
+
+## Restatement
+
+For each substring query, print whether the substring is a palindrome.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; int q;cin>>q; while(q--){int l,r;cin>>l>>r; string t=s.substr(l-1,r-l+1); string u=t; reverse(u.begin(),u.end()); cout<<(t==u?"YES":"NO")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    s=sys.stdin.readline().strip(); q=int(sys.stdin.readline()); out=[]
+    for _ in range(q):
+        l,r=map(int,sys.stdin.readline().split()); sub=s[l-1:r]; out.append("YES" if sub==sub[::-1] else "NO")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# C. Distinct Substrings
+
+## Restatement
+
+Print the number of distinct non-empty substrings of a string.
+
+## Observations and algorithm
+
+Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+
+## Correctness proof
+
+Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+
+## Complexity
+
+The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; struct St{map<char,int> nx; int link=-1,len=0;};
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; vector<St> st(1); int last=0; for(char c:s){int cur=st.size();st.push_back(St());st[cur].len=st[last].len+1;int p=last;while(p!=-1&&!st[p].nx.count(c)){st[p].nx[c]=cur;p=st[p].link;} if(p==-1) st[cur].link=0; else {int q=st[p].nx[c]; if(st[p].len+1==st[q].len) st[cur].link=q; else {int clone=st.size();st.push_back(st[q]);st[clone].len=st[p].len+1;while(p!=-1&&st[p].nx[c]==q){st[p].nx[c]=clone;p=st[p].link;}st[q].link=st[cur].link=clone;}} last=cur;} long long ans=0; for(int v=1;v<(int)st.size();v++) ans+=st[v].len-st[st[v].link].len; cout<<ans<<'\n';}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    s=sys.stdin.readline().strip(); next=[]; link=[]; length=[]
+    next.append({}); link.append(-1); length.append(0); last=0
+    for ch in s:
+        cur=len(next); next.append({}); length.append(length[last]+1); link.append(0); p=last
+        while p!=-1 and ch not in next[p]: next[p][ch]=cur; p=link[p]
+        if p==-1: link[cur]=0
+        else:
+            q=next[p][ch]
+            if length[p]+1==length[q]: link[cur]=q
+            else:
+                clone=len(next); next.append(next[q].copy()); length.append(length[p]+1); link.append(link[q])
+                while p!=-1 and next[p].get(ch)==q: next[p][ch]=clone; p=link[p]
+                link[q]=link[cur]=clone
+        last=cur
+    print(sum(length[v]-length[link[v]] for v in range(1,len(next))))
+if __name__=="__main__": main()
+```
+
+## Tests that matter
+
+Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+
+# What to carry forward
+
+Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.

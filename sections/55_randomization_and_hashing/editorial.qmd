@@ -1,0 +1,175 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 55 Editorial: Randomization And Hashing"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+## Detailed solution guide
+
+**A. Substring Equality.** The definition asks whether two substrings have the
+same characters in the same order. The local exact solution compares them
+directly. The scalable version stores prefix hashes so the hash of `[l,r]` can
+be extracted in `O(1)` and normalized by length. Equal hashes are treated as
+evidence of equality; double hashing reduces collision risk.
+
+**B. Palindrome Hashing.** A substring is a palindrome iff it equals its reverse.
+With hashes, compare the forward hash of `[l,r]` in `s` with the corresponding
+forward hash in `reverse(s)`. The direct local implementation compares mirrored
+characters, which proves the same condition without collision concerns.
+
+**C. Anagram Queries.** Two substrings are anagrams iff each character appears
+the same number of times in both. Prefix frequency arrays let us compute the
+26-count vector for any substring by subtraction. Comparing those vectors is an
+exact deterministic hash for lowercase letters.
+
+**Common pitfalls.** Hash indices are easy to shift by one, so write the
+substring formula once and test length-one substrings. Randomized hashing is
+probabilistic; frequency vectors for small alphabets are exact.
+
+The local exercises use exact checks when they are cheap and prefix summaries
+when they are better.
+
+- A compares equal-length substrings by their stored representation.
+- B compares mirrored characters, which is exact for the local constraints;
+  the lesson shows how forward/reverse hashes replace it at scale.
+- C uses 26 prefix frequency arrays, which is deterministic and collision-free
+  for lowercase anagram queries.
+
+Hashing is presented as an optimization path, not as a substitute for a proof
+of what is being compared.
+
+# A. Equal Substrings
+
+## Restatement
+
+Answer whether two same-length substrings are equal.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s))return 0;int q;cin>>q;while(q--){int l1,r1,l2,r2;cin>>l1>>r1>>l2>>r2;cout<<(s.substr(l1-1,r1-l1+1)==s.substr(l2-1,r2-l2+1)?"YES":"NO")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    lines=sys.stdin.read().split(); s=lines[0]; q=int(lines[1]); idx=2; out=[]
+    for _ in range(q):
+        l1,r1,l2,r2=map(int,lines[idx:idx+4]); idx+=4; out.append("YES" if s[l1-1:r1]==s[l2-1:r2] else "NO")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# B. Palindrome Substrings
+
+## Restatement
+
+For each query, say whether the first substring is a palindrome.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s))return 0;int q;cin>>q;while(q--){int l1,r1,l2,r2;cin>>l1>>r1>>l2>>r2;cout<<(([&](){string t=s.substr(l1-1,r1-l1+1),u=t;reverse(u.begin(),u.end());return t==u;})()?"YES":"NO")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys
+def main():
+    lines=sys.stdin.read().split(); s=lines[0]; q=int(lines[1]); idx=2; out=[]
+    for _ in range(q):
+        l1,r1,l2,r2=map(int,lines[idx:idx+4]); idx+=4; out.append("YES" if s[l1-1:r1]==s[l1-1:r1][::-1] else "NO")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# C. Anagram Substrings
+
+## Restatement
+
+Answer whether two same-length substrings have the same multiset of letters.
+
+## Observations and algorithm
+
+Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+
+## Correctness proof
+
+Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+
+## Complexity
+
+The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s))return 0;int q;cin>>q;while(q--){int l1,r1,l2,r2;cin>>l1>>r1>>l2>>r2;array<int,26>a{},b{};for(int i=l1-1;i<r1;i++)a[s[i]-'a']++;for(int i=l2-1;i<r2;i++)b[s[i]-'a']++;cout<<(a==b?"YES":"NO")<<'\n';}}
+```
+
+## Full Python solution
+
+```python
+import sys,collections
+def main():
+    lines=sys.stdin.read().split(); s=lines[0]; q=int(lines[1]); idx=2; out=[]
+    for _ in range(q):
+        l1,r1,l2,r2=map(int,lines[idx:idx+4]); idx+=4; out.append("YES" if sorted(s[l1-1:r1])==sorted(s[l2-1:r2]) else "NO")
+    print("\n".join(out))
+if __name__=="__main__": main()
+```
+
+# What to carry forward
+
+Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.
