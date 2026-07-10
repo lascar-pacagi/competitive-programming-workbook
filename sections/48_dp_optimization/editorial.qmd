@@ -25,6 +25,20 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Partition Quadratic Cost.** The transition chooses the previous cut; the
+cost matrix's monotone optima justify divide-and-conquer search over the
+candidate interval.
+
+**B. Window Minimum DP.** At step `i`, expired indices cannot transition to
+`i`; a monotonic deque retains exactly unexpired candidates in increasing DP
+value, so its front is the required minimum.
+
+**C. Optimal Merge Knuth.** The interval recurrence tries the final split.
+Knuth's monotonicity bounds the optimal split for `[l,r]` between neighboring
+optimal splits, preserving the same answer while reducing candidates.
+
 ## Detailed solution guide
 
 **A. Divide-and-Conquer DP Shape.** The transition has the form
@@ -74,11 +88,11 @@ Partition the array into `k` contiguous groups minimizing the sum of squared gro
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -121,11 +135,11 @@ if __name__=="__main__": main()
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -159,11 +173,11 @@ Merge adjacent piles with cost equal to merged sum; print minimum total cost.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -195,5 +209,16 @@ if __name__=="__main__": main()
 ```
 
 # Testing discussion
+
+For A, the input contract requires nonnegative values. This makes the squared
+segment-sum cost Monge, so the optimal previous cut is monotone and the
+divide-and-conquer search restriction is valid. Do not reuse this optimization
+unchanged for signed arrays: the monotone-optimum theorem can fail even though
+the unoptimized recurrence remains correct.
+
+Keep a slow recurrence for random arrays. Compare every DP entry, not only the
+final answer: an incorrect opt-range often first corrupts an interior state.
+For window minima, test `w=1`, `w>=n`, and equal values; for Knuth, test one and
+two piles and verify interval iteration order.
 
 Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

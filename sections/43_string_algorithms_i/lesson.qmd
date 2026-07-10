@@ -174,6 +174,105 @@ If a position formula is wrong, overlapping matches usually expose it.
 
 # Exercises
 
+## Upsolve foundations
+
+### Prefix function vocabulary
+
+For a string `s`, `pi[i]` is the length of the longest **proper** prefix of
+`s[0..i]` that is also a suffix of that same prefix. Proper means it cannot be
+the entire substring. A length, rather than a copied substring, is enough:
+the candidate border ending at `i-1` has length `pi[i-1]`.
+
+To extend it with `s[i]`, compare `s[i]` with `s[j]`, where `j=pi[i-1]`. On a
+mismatch, the next possible border is the border of that border, of length
+`pi[j-1]`. This is the failure link. Do not restart comparison at zero unless
+all failure links have been exhausted.
+
+```text
+pi(s):
+    pi[0] = 0
+    for i = 1..n-1:
+        j = pi[i-1]
+        while j > 0 and s[i] != s[j]:
+            j = pi[j-1]
+        if s[i] == s[j]:
+            j += 1
+        pi[i] = j
+```
+
+### Trace: prefix function of `ababa`
+
+```text
+i     character     candidate j before/after fallback     pi[i]
+0        a                         -                        0
+1        b                         0                        0
+2        a                         0 -> 1                   1
+3        b                         1 -> 2                   2
+4        a                         2 -> 3                   3
+```
+
+The final `pi[4]=3` says `aba` is the longest proper border. Following its
+link gives `pi[2]=1`, so `a` is the other proper border.
+
+### KMP is an indexing problem
+
+For pattern `p` of length `m` and text `t`, build `p + separator + t`, where
+the separator is outside the input alphabet. When `pi[i] == m`, a match ends at
+combined index `i`. The first text character is at combined index `m+1`, so the
+1-based match start is `i - 2*m + 1`.
+
+For `p=aba`, `t=abacaba`, matches end at combined indices 6 and 10, producing
+starts 1 and 5. This formula also retains overlapping matches: `ana` in
+`anana` occurs at positions 1 and 3.
+
+### Borders and periods are the same link structure
+
+Every proper border length of `s` is found by:
+
+```text
+k = pi[n-1]
+while k > 0:
+    output k
+    k = pi[k-1]
+```
+
+The first candidate period is `p=n-pi[n-1]`. It is a true tiling period only
+when `n % p == 0`. For `ababab`, `p=2` divides 6. For `ababa`, the same
+candidate is 2 but does not divide 5, so the minimal repeating block length is
+5, not 2.
+
+### Proof and implementation habits
+
+The loop invariant is: before processing position `i`, `j` is the longest
+border of `s[0..i-1]` that has not been disproved by the new character. Every
+fallback preserves the possibility of matching a shorter border; every success
+extends it by one. Since `j` only rises after a successful character comparison
+and every fallback lowers it, total fallback work is linear.
+
+In C++, use `vector<int>` for `pi`; in Python use a list of integers. Never
+make the separator a character that can occur in input. If the alphabet is not
+controlled, run KMP directly on pattern and text rather than concatenating a
+string.
+
+### Tests and formative checks
+
+1. Compute `pi` for `aaaaa`. Answer: `0 1 2 3 4`; this checks chained borders.
+2. List all proper borders of `abcabca`. Answer: 1 and 4.
+3. Explain why `ababa` has candidate period 2 but answer 5. The divisibility
+   check is the missing condition.
+4. Test a pattern longer than text, a pattern equal to text, and overlapping
+   matches before trusting an occurrence implementation.
+
+Run the local reference suite with:
+
+```bash
+CP_TARGET=solution python3 sections/43_string_algorithms_i/check.py
+```
+
+Before submission, state which of these three interpretations you use: a full
+prefix-function value is a matched pattern, a prefix link is a shorter border,
+or the final border determines a candidate period.
+
 - A. KMP Occurrences: Print the number and 1-based positions of all occurrences of pattern in text.
 - B. All Borders: Print all proper border lengths of a string in increasing order.
 - C. Minimal Period: Print the shortest period length if the string is repetitions of a block, otherwise `n`.

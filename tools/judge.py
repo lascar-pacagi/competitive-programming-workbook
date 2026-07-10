@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -30,6 +31,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+TEMP_DIRS: list[Path] = []
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,7 @@ def generate_random_cases(problem: Path, count: int, seed: int) -> list[Case]:
         return []
 
     tmp = Path(tempfile.mkdtemp(prefix="cp-course-random-"))
+    TEMP_DIRS.append(tmp)
     cmd = [
         sys.executable,
         str(generator),
@@ -101,6 +104,7 @@ def generate_random_cases(problem: Path, count: int, seed: int) -> list[Case]:
 
 def compile_cpp(source: Path) -> Path:
     build_dir = Path(tempfile.mkdtemp(prefix="cp-course-cpp-"))
+    TEMP_DIRS.append(build_dir)
     binary = build_dir / "main"
     cmd = [
         "g++",
@@ -129,11 +133,38 @@ def normalize_tokens(text: str) -> list[str]:
     return text.split()
 
 
-def outputs_match(actual: str, expected: str, checker: str) -> bool:
+def outputs_match(actual: str, expected: str, checker: str, input_data: str) -> bool:
     if checker == "exact":
         return actual.rstrip("\n") == expected.rstrip("\n")
     if checker == "tokens":
         return normalize_tokens(actual) == normalize_tokens(expected)
+    if checker == "diophantine":
+        values = list(map(int, input_data.split()))
+        if not values:
+            return not actual.split()
+        queries = values[0]
+        tokens = actual.splitlines()
+        if len(tokens) != queries:
+            return False
+        index = 1
+        for line in tokens:
+            a, b, c = values[index:index + 3]
+            index += 3
+            possible = math.gcd(a, b) != 0 and c % math.gcd(a, b) == 0
+            fields = line.split()
+            if not possible:
+                if fields != ["IMPOSSIBLE"]:
+                    return False
+            elif len(fields) != 2:
+                return False
+            else:
+                try:
+                    x, y = map(int, fields)
+                except ValueError:
+                    return False
+                if a * x + b * y != c:
+                    return False
+        return True
     raise ValueError(f"unknown checker: {checker}")
 
 
@@ -166,7 +197,7 @@ def run_case(command: list[str], case: Case, timeout: float, checker: str) -> tu
             f"stderr:\n{short(result.stderr)}",
         )
 
-    if not outputs_match(result.stdout, expected, checker):
+    if not outputs_match(result.stdout, expected, checker, input_data):
         return (
             False,
             f"{case.name}: wrong answer\n"
@@ -232,8 +263,7 @@ def main(argv: list[str] | None = None) -> int:
             args.verbose,
         )
     finally:
-        tmp_root = Path(tempfile.gettempdir())
-        for path in tmp_root.glob("cp-course-cpp-*"):
+        for path in TEMP_DIRS:
             if path.is_dir():
                 shutil.rmtree(path, ignore_errors=True)
 

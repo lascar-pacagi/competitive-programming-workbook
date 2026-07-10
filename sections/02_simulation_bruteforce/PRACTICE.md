@@ -28,6 +28,15 @@ local_tested: no
 ## ICPC-Style
 
 ```text
+title: Kattis - Bijele
+link: https://open.kattis.com/problems/bijele
+difficulty: easy
+topics: direct simulation, output contract
+status: required
+local_tested: no
+```
+
+```text
 title: ICPC World Finals problem archive
 link: https://icpc.global/worldfinals/problems
 difficulty: browse archive
@@ -38,4 +47,3 @@ notes: Use the archive to browse how simulation and exhaustive search appear
        inside longer ICPC statements. Later sections will pin specific ICPC
        problems as the matching algorithms are introduced.
 ```
-

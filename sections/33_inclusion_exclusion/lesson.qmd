@@ -23,170 +23,251 @@ execute:
   enabled: false
 ---
 
-# Why inclusion-exclusion exists
+# The counting problem behind inclusion-exclusion
 
-When sets overlap, adding their sizes double-counts intersections.
+Inclusion-exclusion is for a very specific situation: an object can satisfy
+several conditions, and adding the condition counts counts an object more than
+once. First write down the *events* or *bad sets*. Only then write a formula.
 
-For two sets:
+For two sets,
 
 ```text
 |A union B| = |A| + |B| - |A intersection B|
 ```
 
-For three sets:
+The intersection was counted twice by the first two terms, so it is removed
+once. For three sets, add the three singles, subtract the three pairwise
+intersections, then add the triple intersection. The pattern is:
 
 ```text
-|A union B union C|
-= singles - pairs + triples
+|E1 union ... union Em|
+= sum over nonempty subsets S of {1,...,m}
+    (-1)^(|S|+1) * |intersection of Ei for i in S|
 ```
 
-This alternating pattern is inclusion-exclusion.
+Odd-size subsets are added; even-size subsets are subtracted.
 
-# General formula
+# Why the alternating signs count each object once
 
-For events `E1, E2, ..., Em`, the size of their union is:
+Take one object that belongs to exactly `t >= 1` events. It occurs in
+`C(t,j)` intersections of size `j`, so its total coefficient is
 
 ```text
-sum over nonempty subsets S:
-    (-1)^(|S|+1) * size(intersection of events in S)
+C(t,1) - C(t,2) + C(t,3) - ... + (-1)^(t+1) C(t,t).
 ```
 
-Odd subset sizes are added. Even subset sizes are subtracted.
-
-# Why the signs work
-
-Suppose an object belongs to exactly `t` events. Its total contribution is:
+From the binomial theorem,
 
 ```text
-C(t,1) - C(t,2) + C(t,3) - ... +/- C(t,t)
+(1 - 1)^t = C(t,0) - C(t,1) + C(t,2) - ... + (-1)^t C(t,t) = 0.
 ```
 
-This sum equals `1`, so every object in at least one event is counted once. An
-object in zero events is never included.
+Move `C(t,0)=1` to the other side: the alternating coefficient is exactly
+`1`. An object in no event occurs in no term, so it contributes `0`. This is
+the reusable proof, not a fact to memorize.
+
+# Diagnosis before formula
+
+| Statement shape | Events to define | Intersection count |
+|---|---|---|
+| at least one listed divisor divides `x` | `d[i] divides x` | multiples of an LCM |
+| every alphabet symbol must occur | symbol `i` is missing | strings over remaining symbols |
+| each box has an upper bound | box `i` exceeds its bound | shifted stars and bars |
+
+Ask these four questions before coding:
+
+```text
+1. Am I counting a union directly, or subtracting a union of bad events?
+2. What does one selected subset of events mean in the original story?
+3. Can I count that intersection exactly?
+4. Is the number of subsets or terms within the constraints?
+```
 
 # Pattern 1: union of divisibility sets
 
-Let:
+For `1 <= x <= N`, let event `Ei` mean that `d[i]` divides `x`. If a selected
+subset has LCM `L`, its intersection contains exactly `floor(N/L)` numbers.
 
 ```text
-Ei = numbers <= N divisible by d[i]
+count = sum(nonempty subset S) sign(S) * floor(N / lcm(S))
 ```
 
-Intersection of a subset means numbers divisible by every selected divisor,
-which is the same as divisible by their lcm.
+This is practical only because problem A has `m <= 20`: `2^20` is about one
+million. Do **not** enumerate subsets when `m=50` just because the formula is
+valid.
+
+## LCM guard
+
+The mathematical update is:
 
 ```text
-count(intersection) = floor(N / lcm(selected divisors))
+lcm(a,b) = a / gcd(a,b) * b.
 ```
 
-Use subset enumeration when `m <= 20`.
+Here `N` and the divisors can reach `10^18`. We only care whether `L <= N`.
+Before multiplying, test whether `a / gcd(a,b) > N / b`; if so, cap the LCM at
+`N+1` and stop that subset. This prevents overflow and records that its
+contribution is zero.
 
-# Pattern 2: all symbols appear
+If the input may contain duplicate divisors, remove duplicates first. The local
+statement permits them, and treating equal divisors as different events makes
+the same condition appear twice in inclusion-exclusion.
 
-Count strings of length `n` over `k` symbols where every symbol appears.
-
-Total strings:
+## Worked trace: `N=20`, divisors `2,3,5`
 
 ```text
-k^n
+selected set     LCM     floor(20 / LCM)     sign     running total
+{2}               2              10           +            10
+{3}               3               6           +            16
+{5}               5               4           +            20
+{2,3}             6               3           -            17
+{2,5}            10               2           -            15
+{3,5}            15               1           -            14
+{2,3,5}          30               0           +            14
 ```
 
-Bad event `Ei`: symbol `i` is missing.
+The final answer is `14`. For a number such as `6`, the terms `{2}`, `{3}`, and
+`{2,3}` give `+1 +1 -1 = 1`, exactly as the proof promised.
 
-If a set of `j` symbols is missing, there are:
+# Pattern 2: every symbol appears
+
+There are `k^n` strings of length `n` over `k` symbols. Let `Ei` mean that
+symbol `i` is missing. If `j` particular symbols are missing, each position has
+only `k-j` choices, hence `(k-j)^n` strings. There are `C(k,j)` choices of the
+missing symbols:
 
 ```text
-(k-j)^n
+answer = sum(j = 0..k) (-1)^j C(k,j) (k-j)^n.
 ```
 
-strings. Choose which `j` symbols are missing:
+The sign starts positive because we begin with all strings and subtract bad
+strings. In problem B, `k <= 500` and `q <= 200`, so computing each power by
+binary exponentiation gives `O(q*k*log n)`, which is intended.
+
+## Worked trace: length `3`, alphabet `{a,b,c}`
 
 ```text
-C(k,j)
+j = 0:  C(3,0) * 3^3 = 27       add  -> 27
+j = 1:  C(3,1) * 2^3 = 24    subtract -> 3
+j = 2:  C(3,2) * 1^3 = 3        add  -> 6
+j = 3:  C(3,3) * 0^3 = 0    subtract -> 6
 ```
 
-Answer:
-
-```text
-sum j=0..k of (-1)^j * C(k,j) * (k-j)^n
-```
+The six strings are the permutations of `abc`. When `n < k`, the same formula
+evaluates to zero; that is a valuable test, not a special branch you need to
+invent. For the local `n=0,k=1` case, the empty string misses the only symbol,
+so the answer is zero. In code, define `pow(0,0)=1`, as standard binary
+exponentiation does.
 
 # Pattern 3: bounded stars and bars
 
-Count:
+We need nonnegative solutions of
 
 ```text
-x1 + ... + xn = s
-0 <= xi <= b
+x1 + x2 + ... + xn = s,     0 <= xi <= b.
 ```
 
-Without upper bounds, Section 32 gives:
+Without upper bounds, Section 32 gives `C(s+n-1,n-1)`. Let `Ei` be the bad event
+`xi >= b+1`. If a chosen set of `j` children is bad, set
 
 ```text
-C(s+n-1, n-1)
+yi = xi - (b+1)
 ```
 
-Bad event `Ei`: child `i` gets at least `b+1` candies.
-
-If `j` chosen children are bad, give each of them `b+1` candies first. Remaining
-candies:
+for those children. This is a bijection with nonnegative solutions whose
+remaining sum is `s-j(b+1)`. Thus that intersection has
 
 ```text
-s - j*(b+1)
+C(s-j(b+1)+n-1, n-1)
 ```
 
-Then distribute the rest freely:
+solutions when the remaining sum is nonnegative. Choose the bad children in
+`C(n,j)` ways and alternate signs:
 
 ```text
-C(s - j*(b+1) + n - 1, n - 1)
+answer = sum(j >= 0) (-1)^j C(n,j)
+         C(s-j(b+1)+n-1, n-1).
 ```
 
-Answer:
+Stop once `j(b+1) > s`: later intersection counts are zero. The course problem
+also guarantees that the total number of nonzero terms across every query is at
+most `10^6`; use that promise when justifying the loop.
+
+## Worked trace: three children, four candies, bound two
+
+First ignore bounds: `C(6,2)=15`. A selected child who has at least three
+candies receives three first, leaving one candy to distribute:
 
 ```text
-sum j >= 0 (-1)^j * C(n,j) * C(s-j(b+1)+n-1, n-1)
+j=0: + C(3,0) C(6,2) = +15
+j=1: - C(3,1) C(3,2) = - 9
+j=2: remaining 4-2*3 < 0, stop
+answer = 6.
 ```
 
-only while `s-j(b+1) >= 0`.
+For example, `(3,1,0)` is counted in the unrestricted term and once in the
+bad event for child one, so it cancels. A valid distribution such as `(2,1,1)`
+is in no bad event and remains once. This is the same object-by-object logic as
+the general proof.
 
-# Implementation notes
+# Modular arithmetic contract
 
-For subset inclusion-exclusion:
+Problems B and C use `MOD = 1,000,000,007`, which is prime. Their factorial
+tables only contain indices below `MOD` because the local bounds are at most
+`10,000`. Therefore every factorial denominator is invertible. This method is
+not a general method for `C(n,k) mod MOD` when a needed index reaches `MOD`;
+Lucas-style methods are a later topic.
 
-```text
-for mask in 1..(1<<m)-1:
-    bits = popcount(mask)
-    contribution = intersection size for selected events
-    add if bits odd, subtract if bits even
-```
-
-For formula inclusion-exclusion, loop over the number of bad events `j`.
-
-For modular subtraction:
+Normalize subtraction in C++:
 
 ```cpp
 ans = (ans - term + MOD) % MOD;
 ```
 
-Python's final `ans % MOD` normalizes negative values.
+Python can accumulate signed integers and apply `% MOD` at the end of a query.
 
-# Common mistakes
+# Formative exercises
+
+1. For `N=30` and divisors `2,6`, what should a deduplicated/divisibility-aware
+   inclusion-exclusion computation return? Explain why the intersection is not
+   counted as if the divisors were disjoint.
+2. Count length-2 strings over three symbols in which every symbol occurs. Write
+   the four inclusion-exclusion terms before evaluating them.
+3. For `x1+x2=3` with `0 <= xi <= 1`, write the `j=0`, `j=1`, and `j=2` terms.
+   Which terms are zero, and why?
+4. A loop has reached an LCM larger than `N`. Why may it stop building this
+   subset even when more divisors remain?
+
+Answers:
 
 ```text
-Subtracting odd subsets instead of even subsets.
-Counting "all events happen" when the problem asks "at least one event happens."
-Forgetting lcm in divisibility intersections.
-Letting lcm overflow before comparing with N.
-In bounded stars-and-bars, subtracting b instead of b+1.
-Continuing the loop after the remaining sum becomes negative.
+1. 15. Multiples of 6 are already multiples of 2, so 15 + 5 - 5 = 15.
+2. 3^2 - C(3,1)2^2 + C(3,2)1^2 - C(3,3)0^2 = 0.
+3. C(4,1) - C(2,1)C(2,1) + 0 = 4-4=0. No distribution fits.
+4. Every later LCM is a multiple of the current one, hence also exceeds N and
+   has zero multiples in [1,N].
 ```
 
-# Submission checklist
+# Exercises
+
+Complete the four formative exercises above, then solve A--C in that order:
+LCM intersections, missing-symbol events, and shifted bounded distributions.
+
+# Local workflow and checklist
+
+Run the judged local suite with:
+
+```bash
+CP_TARGET=solution python3 sections/33_inclusion_exclusion/check.py
+```
+
+Before submitting, check:
 
 ```text
-1. What are the events?
-2. Are you counting a union of good events or excluding bad events?
-3. What is the intersection size for a chosen subset?
-4. Is the sign based on subset size?
-5. Are modular subtractions normalized?
+events are defined in one sentence
+the intersection count matches a selected subset, not one event
+the sign is determined by the number of selected events
+LCM is capped before overflow and duplicate divisors are removed
+factorials cover the largest needed index for every query
+negative remainders are normalized in C++
 ```

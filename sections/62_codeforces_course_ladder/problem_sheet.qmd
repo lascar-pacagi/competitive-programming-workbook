@@ -1,0 +1,206 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 62: Codeforces Course Ladder -- Offline Problem Sheet"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=20mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Offline use
+
+This is an original concise problem sheet, not a copy of Codeforces statements.
+It contains the information needed for an offline attempt and each official
+URL. Before submitting, read the official page: it controls any detail not
+present here. Ratings are approximate guideposts, not prerequisites.
+
+# Gate 1: foundations
+
+## 1. 71A -- Way Too Long Words (800)
+
+Official: <https://codeforces.com/problemset/problem/71/A>
+
+For each of at most 100 lowercase words (length at most 100), print it
+unchanged when its length is at most 10. Otherwise print its first character,
+the number of characters strictly between the ends, and its last character.
+Output one transformed word per input word.
+
+## 2. 4C -- Registration System (1300)
+
+Official: <https://codeforces.com/problemset/problem/4/C>
+
+Process up to `10^5` requested lowercase names. A first request for a name
+prints `OK`. A later request prints that base name followed by the smallest
+positive suffix that has not previously been issued, and the issued name also
+becomes occupied. Output one response per request.
+
+## 3. 363B -- Fence (1100)
+
+Official: <https://codeforces.com/problemset/problem/363/B>
+
+Given `n <= 1.5 * 10^5` positive heights and `k`, choose `k` consecutive
+positions with minimum total height. Print a 1-indexed starting position; any
+minimum is accepted. The fence is a line, not a cycle.
+
+## 4. 279B -- Books (1400)
+
+Official: <https://codeforces.com/problemset/problem/279/B>
+
+Given at most `10^5` positive reading times and a time budget `t`, choose a
+contiguous block of books whose sum is at most `t`. Print the maximum possible
+number of books. An individual book may already exceed the budget.
+
+## 5. 158B -- Taxi (1100)
+
+Official: <https://codeforces.com/problemset/problem/158/B>
+
+Up to `10^5` groups, each of size 1 through 4, must ride in taxis of capacity
+4. Groups cannot split, but different groups may share a taxi. Print the
+minimum taxi count.
+
+## 6. 706B -- Interesting Drink (1100)
+
+Official: <https://codeforces.com/problemset/problem/706/B>
+
+Store up to `10^5` drink prices. For each of up to `10^5` budget queries,
+print how many drinks cost no more than that budget. Prices and budgets fit in
+ordinary signed 32-bit input values; answers are counts.
+
+# Gate 2: graph, DP, math, and geometry
+
+## 7. 520B -- Two Buttons (1400)
+
+Official: <https://codeforces.com/problemset/problem/520/B>
+
+Starting from positive integer `n`, reach positive integer `m` using only
+`x -> 2x` and `x -> x-1`. With `n,m <= 10^4`, print the fewest operations.
+The intermediate values may exceed `m`, but a finite state bound must be
+justified.
+
+## 8. 455A -- Boredom (1500)
+
+Official: <https://codeforces.com/problemset/problem/455/A>
+
+From a multiset of at most `10^5` integers, repeatedly choose a value `x`, add
+`x` to the score, and remove every occurrence of `x-1`, `x`, and `x+1`.
+Maximize the total. Values are positive and bounded by `10^5`.
+
+## 9. 300C -- Beautiful Numbers (1800)
+
+Official: <https://codeforces.com/problemset/problem/300/C>
+
+Count length-`n` decimal strings whose digits are only `a` and `b` and whose
+digit sum, written in decimal, itself uses only `a` and `b`. The input has
+`1 <= a < b <= 9` and `n <= 10^6`, so factorials modulo `1_000_000_007` are
+required. Print the count modulo that prime.
+
+## 10. 166B -- Polygons (2100, geometry challenge)
+
+Official: <https://codeforces.com/problemset/problem/166/B>
+
+You receive a strictly convex outer polygon A and an arbitrary simple inner
+polygon B, both listed clockwise with integer coordinates. Decide whether all
+of B lies strictly inside A. A vertex of B on A's boundary is not allowed.
+
+## 11. 20C -- Dijkstra? (1900)
+
+Official: <https://codeforces.com/problemset/problem/20/C>
+
+In an undirected graph with up to `10^5` vertices and edges and positive edge
+weights, print one shortest path from vertex 1 to vertex `n`, or `-1` if none
+exists. The path, not just its distance, is required.
+
+## 12. 161D -- Distance in Tree (1800)
+
+Official: <https://codeforces.com/problemset/problem/161/D>
+
+For a tree with up to `5 * 10^4` vertices and a distance `k <= 500`, count
+unordered pairs of distinct vertices whose simple-path distance is exactly
+`k`. A direct BFS from every vertex is too slow.
+
+# Gate 3: compressed state and data structures
+
+## 13. 580D -- Kefa and Dishes (1800)
+
+Official: <https://codeforces.com/problemset/problem/580/D>
+
+Choose exactly `m` of at most 18 dishes and order the chosen dishes. Each dish
+has a base satisfaction, and selected ordered pairs add a bonus when the first
+dish immediately precedes the second. Maximize total satisfaction.
+
+## 14. 1245D -- Shichikuji and Power Grid (1900)
+
+Official: <https://codeforces.com/problemset/problem/1245/D>
+
+For up to 2000 cities, either build a station in a city or connect cities by
+wires. Station and Manhattan-distance wire costs are supplied. Make every city
+receive power at minimum cost, then print the chosen stations and wires.
+
+## 15. 271D -- Good Substrings (1800)
+
+Official: <https://codeforces.com/problemset/problem/271/D>
+
+Given a lowercase string of length at most 1500, a 26-character good/bad mask,
+and `k`, count distinct substrings containing at most `k` bad characters.
+Equal substrings from different positions count once.
+
+## 16. 61E -- Enemy Is Weak (1900)
+
+Official: <https://codeforces.com/problemset/problem/61/E>
+
+For an array of up to `10^6` distinct values, count triples `i < j < k` with
+`a[i] > a[j] > a[k]`. The answer can require 64 bits.
+
+## 17. 86D -- Powerful Array (2200)
+
+Official: <https://codeforces.com/problemset/problem/86/D>
+
+For up to `2 * 10^5` range queries, compute
+`sum(value * frequency(value)^2)` over each subarray. Values are bounded, but
+recomputing every query from scratch is too slow. Print answers in query order.
+
+# Gate 4: reductions and optimization
+
+## 18. 498C -- Array and Operations (2100)
+
+Official: <https://codeforces.com/problemset/problem/498/C>
+
+Given numbers on odd and even indexed vertices and allowed odd-even links,
+perform as many operations as possible. An operation chooses a linked pair and
+any common divisor greater than one, then divides both current numbers by that
+divisor. Find the maximum number of operations.
+
+## 19. 319C -- Kalila and Dimna in the Logging Industry (2100)
+
+Official: <https://codeforces.com/problemset/problem/319/C>
+
+The official story supplies strictly increasing tree heights `a` and strictly
+decreasing recharge costs `b`, with `n <= 10^5`. Derive the DP for minimum
+cutting cost, whose core transition is the minimum over earlier states `j` of
+`dp[j] + b[j] * a[i]`. The intended solution turns earlier states into lines
+and queries them at `a[i]`.
+
+# Offline attempt log
+
+For every task, leave one line before opening the editorial:
+
+```text
+model: ____________________  invariant: ____________________
+first hostile test: ________  exact blocker: _______________
+```

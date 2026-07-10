@@ -413,4 +413,6 @@ Is the capacity/sum small enough for O(nW)?
 Do values need long long?
 For subset sum, did I initialize sum 0 as reachable?
 ```
+# Exercises
 
+Use A for 0/1 capacity direction, B for complete-knapsack direction, and C for boolean subset reachability. Test budget zero, an item larger than the capacity, and repeated values.

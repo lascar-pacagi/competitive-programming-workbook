@@ -308,6 +308,89 @@ if __name__ == "__main__":
 
 # Testing discussion
 
+# Detailed upsolve workshop
+
+Read the following cards before treating the reference listings as templates.
+Each one states the exact heap meaning; that meaning is the proof and the
+debugging oracle.
+
+## A. Running Median
+
+**Constraints and diagnosis.** Up to `2e5` numbers arrive online, so sorting
+every prefix is quadratic. Print the lower median: for an even prefix this is
+the smaller of the two middle values.
+
+**Trace and pseudocode.** For `5,1,9,2`, insert into `low` when it belongs to
+the lower half, otherwise into `high`; move the top element until
+`len(low)==len(high)` or `len(low)==len(high)+1`. Outputs are `5,1,5,2`.
+
+```text
+insert x into the appropriate heap
+if low is smaller: move high.top to low
+if low has two more elements: move low.top to high
+print low.top
+```
+
+**Proof and complexity.** The partition invariant says every low value is at
+most every high value, while the size invariant makes `low.top` the element at
+rank `(len+1)/2`. Insertion and one rebalance cost `O(log n)`, with `O(n)`
+memory. In C++ use a max-heap plus `greater<long long>` min-heap; in Python
+negate `low` values. Test duplicates, negatives, descending input, and every
+prefix length. A slow oracle sorts each prefix.
+
+## B. Course Rooms
+
+**Constraints and diagnosis.** With up to `2e5` half-open intervals, test all
+pairs is quadratic. Sort by start; the min-heap is precisely the end times of
+currently active courses.
+
+**Trace and pseudocode.** For `[0,10),[5,7),[6,20),[10,12)`, the heap sizes
+after push are `1,2,3,2`; answer three.
+
+```text
+sort intervals by start
+for [l,r):
+    while heap.top <= l: pop
+    push r
+    answer = max(answer, heap.size)
+```
+
+**Proof and complexity.** After cleanup, a heap end is greater than `l` iff
+its interval overlaps the current one. Thus its size is the active overlap
+count, and the maximum is the minimum number of rooms. Sorting costs
+`O(n log n)` and heap work is `O(n log n)`. The strictness test is `<=`, not
+`<`; test touching intervals, nested intervals, and equal start times.
+
+## C. K Smallest Pair Sums
+
+**Constraints and diagnosis.** Arrays are sorted, and `k` is far smaller than
+`n*m` in useful cases. Materializing all pairs loses both time and memory.
+Each fixed-a row is sorted, so this is a k-way merge.
+
+**Trace and pseudocode.** For `a=[1,4,8]`, `b=[2,3,10]`, seed `(3,0,0)`,
+`(6,1,0)`, `(10,2,0)`. Popping then advancing its row emits
+`3,4,6,7,10` for the first five sums.
+
+```text
+push (a[i]+b[0], i, 0) for each seeded row
+repeat k times:
+    pop (sum,i,j), output sum
+    if j+1<m: push (a[i]+b[j+1],i,j+1)
+```
+
+**Proof and complexity.** The heap contains the first unreported item of every
+row. Every later item in a row is no smaller, so the heap minimum is the global
+next sum. Time is `O((n+k) log n)` with the local all-row seed (or
+`O((min(n,k)+k)log min(n,k))` when optimized); memory is the heap size. Use
+`long long` sums, tuples in both languages, and test ties, `k=1`, one row, and
+negative values against an all-pairs sorting oracle.
+
+# What to carry forward
+
+A heap represents the next useful frontier, not an arbitrary bag of values.
+State exactly what each heap item means, prove that its top is globally next,
+and check the boundary that removes or advances a frontier item.
+
 The fixed samples cover visible behavior. The random tests generate
 many small operation sequences and compute expected outputs from the
 reference Python implementation, then the same expected files are

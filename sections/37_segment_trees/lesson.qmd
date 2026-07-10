@@ -176,3 +176,78 @@ CP_TARGET=solution python3 sections/37_segment_trees/check.py
 
 Replace `CP_TARGET=solution` by your own `solve.cpp` or `solve.py` attempts
 when practicing.
+# Exercises
+
+Use A to define a range-minimum merge, B to include prefix/suffix/best values in a merge, and C to state a lazy tag before coding. Test an update on one element, a full-range update, and tag composition order.
+
+# Choosing and proving a segment tree
+
+Use a segment tree when updates invalidate precomputed answers and the requested
+range summary can be merged from two adjacent summaries. The node invariant is:
+
+```text
+node v stores the exact summary of its own interval.
+```
+
+For a point assignment, only the leaf and its ancestors change. For a range
+query, the iterative or recursive walk selects disjoint canonical intervals
+whose union is the query range. Associativity of the merge makes their combined
+summary equal the answer.
+
+## Trace: iterative range minimum
+
+For `a=[5,4,3,2,1]`, change position 3 to 10. The leaf becomes 10; recomputing
+its parent, grandparent, and root restores the invariant. Query `[2,4]` sees
+the values `[4,10,2]`, so its minimum is 2. In the half-open iterative form,
+translate 1-based inclusive `[l,r]` to leaf pointers `[l-1+size,r+size)`.
+The right endpoint is deliberately exclusive.
+
+## Trace: maximum subarray merge
+
+Merge left `[1,-2]` and right `[3,4]`. Left state is
+`sum=-1,pref=1,suff=-1,best=1`; right state is `sum=7,pref=7,suff=7,best=7`.
+The crossing candidate is `-1+7=6`, so the best is 7. The crossing candidate
+is always `left.suff+right.pref`; no other crossing subarray is possible.
+
+## Lazy trace
+
+If a node for `[1,4]` has sum 10 and receives `+3`, its summary becomes 22 and
+its pending tag becomes 3. Do not descend. If a later request partially touches
+the node, push: both length-two children gain `3*2` in their sums and gain a
+pending `+3`. Pushing preserves the parent summary while making child summaries
+truthful enough to recurse.
+
+# Implementation choices and failure modes
+
+Pad the tree to a power of two. For unused leaves of a minimum tree use `INF`;
+for non-empty maximum-subarray trees use neutral
+`(sum=0,pref=suff=best=-INF)`, never all zeros. For lazy range-add/range-sum,
+`apply(v,len,x)` must change the sum by `x*len`, and tags compose by addition.
+Use `long long` in C++ and ordinary Python integers for all sums.
+
+| Mistake | Revealing test |
+|---|---|
+| use zero as min padding | all array values positive |
+| allow empty subarray | all values negative |
+| forget length in lazy apply | full-range update then sum query |
+| descend without push | full update, then partial query |
+| mix `[l,r]` and `[l,r)` | one-element query |
+
+## Formative checks
+
+1. Why does `best` need `suff` and `pref`? Answer: a best subarray crossing a
+   merge boundary consists exactly of the left suffix plus the right prefix.
+2. What does a lazy tag mean? Answer: every element in the node's interval has
+   received that unapplied delta, while `seg[v]` already includes its effect.
+3. What is the answer after assigning `-5` to every element of `[-1,-2]`?
+   Answer: `-5`; the section requires a non-empty subarray.
+
+# Submission workflow
+
+Stress a tree against a literal array for short random sequences. Include
+overlapping lazy updates, negative deltas, assignment of the same position many
+times, and queries at both boundaries. Run:
+
+```bash
+CP_TARGET=solution python3 sections/37_segment_trees/check.py
+```

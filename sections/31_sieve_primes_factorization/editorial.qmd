@@ -25,45 +25,84 @@ execute:
 
 # Editorial overview
 
-| Problem | Preprocessing | Query |
-|---|---|---|
-| A. Prime Counter | prime sieve + prefix | range prime count |
-| B. Factor Signature | smallest prime factor | factor statistics |
-| C. Divisor Queries | smallest prime factor | divisor count |
+| Problem | Preprocessing | Per query | Main trap |
+|---|---|---|---|
+| A. Prime Counter | sieve and prefix counts | `O(1)` | subtracting `pref[l-1]` |
+| B. Factor Signature | SPF table | number of prime factors | `x=1` |
+| C. Divisor Queries | SPF table | number of prime factors | multiply `e+1` |
+
+# Shared tool: an SPF table
+
+For B and C, `spf[x]` is the smallest prime dividing `x`; `spf[p]=p` remains
+true for a prime. The table uses indices `0..limit`, with `spf[1]=1` only as a
+sentinel. Its invariant is: after the sieve, `spf[x]` is a prime divisor of
+every `x>=2`.
+
+```text
+spf[x] = x for x = 0..limit
+for p from 2 while p*p <= limit:
+    if spf[p] == p:
+        for multiple from p*p to limit step p:
+            if spf[multiple] == multiple:
+                spf[multiple] = p
+```
+
+Building it costs `O(limit log log limit)` time and `O(limit)` memory. For
+each query, repeatedly divide out the current `spf`; each division removes one
+prime factor, so the local limit `10^6` makes this very small.
+
+**C++ note.** Use `long long p` in `p*p` loop conditions. **Python note.**
+Read every query first so the table ends exactly at the maximum input value.
 
 # A. Prime Counter
 
-## Restatement
+## Restatement and constraints
 
-Count primes in many intervals `[l,r]`.
+For up to `200,000` intervals inside `[1,n]`, where `n <= 10^6`, count the
+primes in each inclusive interval. Scanning an interval per query can cost
+`O(nq)`, so the query must become constant time after one preprocessing pass.
+The boundary trap is `l=1`: there must be a valid `pref[0]`.
 
-## Algorithm
+## Observations and walk-through
 
-Build `is_prime` with the sieve of Eratosthenes, then build:
+Sieve once to obtain `is_prime`. Then let `pref[i]` count primes in `[1,i]`.
+For `n=10`, the primes are `2,3,5,7`; therefore `pref[3]=2` and `pref[10]=4`.
+The answer for `[4,10]` is `4-2=2`, namely `5,7`.
+
+## Pseudocode
 
 ```text
-pref[i] = pref[i-1] + is_prime[i]
+mark 0 and 1 non-prime
+for p from 2 while p*p <= n:
+    if p is still prime:
+        mark p*p, p*p+p, ... non-prime
+pref[0] = 0
+for i from 1 to n:
+    pref[i] = pref[i-1] + is_prime[i]
+for each (l, r): print pref[r] - pref[l-1]
 ```
-
-Answer each query by `pref[r] - pref[l-1]`.
 
 ## Correctness proof
 
-The sieve marks a composite number when processing one of its prime divisors.
-Every composite `x` has a prime divisor at most `sqrt(x)`, so it is marked.
-No prime is ever marked, because a prime has no smaller divisor. Thus
-`is_prime` is correct.
-
-The prefix array counts primes up to each position, so subtracting counts before
-`l` leaves exactly the primes in `[l,r]`. `\square`
+Every composite `x` has a prime divisor at most `sqrt(x)`, so the sieve marks
+it while processing that divisor. A prime has no smaller divisor, so it is
+never marked. Thus `is_prime` is correct. By definition, `pref[r]` counts all
+primes through `r` and `pref[l-1]` counts exactly those before `l`; their
+difference contains precisely the primes in `[l,r]`. `\square`
 
 ## Complexity
 
 ```text
-Preprocessing: O(n log log n)
-Each query:   O(1)
-Memory:       O(n)
+Preprocessing: O(n log log n) time, O(n) memory
+Each query:    O(1) time
 ```
+
+## Implementation notes and wrong answers
+
+In C++, `vector<bool>` is sufficient here; in Python, use a boolean list. Set
+both `0` and `1` to false before the loop. Do not use `pref[r]-pref[l]`: it
+silently drops a prime equal to `l`. Do not start a fresh primality test for
+every endpoint or every query.
 
 ## Full C++ solution
 
@@ -74,25 +113,21 @@ using namespace std;
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     int n, q;
     if (!(cin >> n >> q)) return 0;
     vector<bool> is_prime(n + 1, true);
-    if (n >= 0) is_prime[0] = false;
+    is_prime[0] = false;
     if (n >= 1) is_prime[1] = false;
-    for (long long p = 2; p * p <= n; p++) {
-        if (is_prime[p]) {
+    for (long long p = 2; p * p <= n; ++p)
+        if (is_prime[p])
             for (long long x = p * p; x <= n; x += p) is_prime[x] = false;
-        }
-    }
-    vector<int> pref(n + 1, 0);
-    for (int i = 1; i <= n; i++) pref[i] = pref[i - 1] + is_prime[i];
+    vector<int> pref(n + 1);
+    for (int i = 1; i <= n; ++i) pref[i] = pref[i - 1] + is_prime[i];
     while (q--) {
         int l, r;
         cin >> l >> r;
         cout << pref[r] - pref[l - 1] << '\n';
     }
-    return 0;
 }
 ```
 
@@ -102,35 +137,25 @@ int main() {
 import sys
 
 
-def sieve(n: int) -> list[bool]:
-    is_prime = [True] * (n + 1)
-    if n >= 0:
-        is_prime[0] = False
-    if n >= 1:
-        is_prime[1] = False
-    p = 2
-    while p * p <= n:
-        if is_prime[p]:
-            for x in range(p * p, n + 1, p):
-                is_prime[x] = False
-        p += 1
-    return is_prime
-
-
 def main() -> None:
     data = list(map(int, sys.stdin.buffer.read().split()))
     if not data:
         return
     n, q = data[0], data[1]
-    is_prime = sieve(n)
+    is_prime = [True] * (n + 1)
+    is_prime[0] = False
+    if n >= 1:
+        is_prime[1] = False
+    for p in range(2, int(n**0.5) + 1):
+        if is_prime[p]:
+            for x in range(p * p, n + 1, p):
+                is_prime[x] = False
     pref = [0] * (n + 1)
     for i in range(1, n + 1):
-        pref[i] = pref[i - 1] + int(is_prime[i])
-    idx = 2
+        pref[i] = pref[i - 1] + is_prime[i]
     out = []
-    for _ in range(q):
-        l, r = data[idx], data[idx + 1]
-        idx += 2
+    for i in range(2, 2 + 2 * q, 2):
+        l, r = data[i], data[i + 1]
         out.append(str(pref[r] - pref[l - 1]))
     print("\n".join(out))
 
@@ -141,30 +166,193 @@ if __name__ == "__main__":
 
 # B. Factor Signature
 
-## Restatement
+## Restatement and constraints
 
-For each `x`, print the number of distinct prime factors, the total number of
-prime factors with multiplicity, and the largest prime factor.
+For each of up to `200,000` values `x <= 10^6`, print: number of distinct
+prime factors, total factors with multiplicity, and largest prime factor. For
+`x=1`, print `0 0 1`; this is a specified output convention because one has no
+prime factors.
 
-## Algorithm
+## Observations and walk-through
 
-Build `spf` up to the maximum query value. For each `x`, repeatedly take
-`p = spf[x]`, count how many times it divides `x`, and divide it out.
+Use the shared SPF table. For `x=360`, the grouped divisions are:
+
+| current value | prime block removed | remaining | statistics |
+|---:|---|---:|---|
+| 360 | `2^3` | 45 | distinct `1`, total `3`, largest `2` |
+| 45 | `3^2` | 5 | distinct `2`, total `5`, largest `3` |
+| 5 | `5^1` | 1 | distinct `3`, total `6`, largest `5` |
+
+The factors are encountered in increasing order because each is the smallest
+factor of the remaining value, so the last one is the largest.
+
+## Pseudocode
+
+```text
+if x == 1: print 0 0 1
+otherwise:
+    distinct = total = 0; largest = 1
+    while x > 1:
+        p = spf[x]; exponent = 0
+        while x is divisible by p:
+            x /= p; exponent += 1
+        distinct += 1; total += exponent; largest = p
+    print distinct, total, largest
+```
 
 ## Correctness proof
 
-`spf[x]` is a prime divisor of `x`, and specifically the smallest one. Dividing
-out all copies of `spf[x]` records exactly one distinct factor and its exponent.
-Repeating until `x=1` records every prime-power block in the unique prime
-factorization. The requested statistics are direct sums over those blocks.
+At each iteration, `spf[x]` is a prime divisor of the remaining `x`. Removing
+all copies records one and only one prime-power block. Unique factorization
+means these blocks are exactly all distinct prime factors, their exponents sum
+to the multiplicity count, and the final increasing block is the largest prime
+factor. The `x=1` branch matches its empty factorization. `\square`
+
+## Complexity
+
+```text
+Preprocessing: O(M log log M) time, O(M) memory, M = max input
+Each query:    O(number of prime factors with multiplicity)
+```
+
+## Implementation notes and wrong answers
+
+Keep the original value only if you need it later: the factor loop deliberately
+destroys `x`. Counting one `distinct` per division is wrong for `12=2^2*3`;
+increment it once per prime block. Do not print largest factor `0` for `1`.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> build_spf(int n) {
+    vector<int> spf(n + 1);
+    iota(spf.begin(), spf.end(), 0);
+    if (n >= 1) spf[1] = 1;
+    for (long long p = 2; p * p <= n; ++p)
+        if (spf[p] == p)
+            for (long long x = p * p; x <= n; x += p)
+                if (spf[x] == x) spf[x] = p;
+    return spf;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int q;
+    if (!(cin >> q)) return 0;
+    vector<int> values(q);
+    for (int &x : values) cin >> x;
+    vector<int> spf = build_spf(*max_element(values.begin(), values.end()));
+    for (int x : values) {
+        if (x == 1) { cout << "0 0 1\n"; continue; }
+        int distinct = 0, total = 0, largest = 1;
+        while (x > 1) {
+            int p = spf[x];
+            ++distinct; largest = p;
+            while (x % p == 0) { ++total; x /= p; }
+        }
+        cout << distinct << ' ' << total << ' ' << largest << '\n';
+    }
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def build_spf(n: int) -> list[int]:
+    spf = list(range(n + 1))
+    if n >= 1:
+        spf[1] = 1
+    for p in range(2, int(n**0.5) + 1):
+        if spf[p] == p:
+            for x in range(p * p, n + 1, p):
+                if spf[x] == x:
+                    spf[x] = p
+    return spf
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    values = data[1 : 1 + data[0]]
+    spf = build_spf(max(values))
+    out = []
+    for x in values:
+        if x == 1:
+            out.append("0 0 1")
+            continue
+        distinct = total = 0
+        largest = 1
+        while x > 1:
+            p = spf[x]
+            distinct += 1
+            largest = p
+            while x % p == 0:
+                total += 1
+                x //= p
+        out.append(f"{distinct} {total} {largest}")
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+# C. Divisor Queries
+
+## Restatement and constraints
+
+For each of up to `200,000` values `x <= 10^6`, print the number of positive
+divisors. Directly testing every candidate divisor up to `x` for each query is
+unnecessary; reuse the SPF factor blocks. The special case `x=1` has answer
+one, not zero.
+
+## Observations and walk-through
+
+For `x=72=2^3*3^2`, a divisor chooses exponent `0,1,2,3` for prime `2` and
+`0,1,2` for prime `3`. That is `4*3=12` choices. The choices are independent:
+selecting `2^1*3^2` cannot conflict with any other exponent selection.
+
+## Pseudocode
+
+```text
+answer = 1
+while x > 1:
+    p = spf[x]; exponent = 0
+    while x is divisible by p:
+        x /= p; exponent += 1
+    answer *= exponent + 1
+print answer
+```
+
+## Correctness proof
+
+Unique factorization writes `x` as a product of prime powers. Every divisor is
+uniquely determined by choosing an exponent from `0..ei` for every prime `pi`,
+and every such selection divides `x`. There are `ei+1` choices independently,
+so the product computed by the algorithm is exactly the divisor count.
 `\square`
 
 ## Complexity
 
 ```text
-Preprocessing: O(N log log N)
-Each query:   O(number of prime factors)
+Preprocessing: O(M log log M) time, O(M) memory
+Each query:    O(number of prime factors with multiplicity)
 ```
+
+## Implementation notes and wrong answers
+
+Use an integer accumulator initialized to one. Adding exponents computes a
+different statistic. The local maximum divisor count fits in `int`, though
+`long long` is a harmless general habit. Ensure the `while x > 1` loop naturally
+leaves the answer as one for `x=1`.
 
 ## Full C++ solution
 
@@ -172,139 +360,34 @@ Each query:   O(number of prime factors)
 #include <bits/stdc++.h>
 using namespace std;
 
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    int q;
-    if (!(cin >> q)) return 0;
-    vector<int> values(q);
-    int mx = 1;
-    for (int &x : values) {
-        cin >> x;
-        mx = max(mx, x);
-    }
-    vector<int> spf(mx + 1);
+vector<int> build_spf(int n) {
+    vector<int> spf(n + 1);
     iota(spf.begin(), spf.end(), 0);
-    if (mx >= 1) spf[1] = 1;
-    for (long long p = 2; p <= mx; p++) {
-        if (spf[p] == p && p * p <= mx) {
-            for (long long x = p * p; x <= mx; x += p) {
+    if (n >= 1) spf[1] = 1;
+    for (long long p = 2; p * p <= n; ++p)
+        if (spf[p] == p)
+            for (long long x = p * p; x <= n; x += p)
                 if (spf[x] == x) spf[x] = p;
-            }
-        }
-    }
-    for (int x0 : values) {
-        if (x0 == 1) {
-            cout << "0 0 1\n";
-            continue;
-        }
-        int x = x0, distinct = 0, total = 0, largest = 1;
-        while (x > 1) {
-            int p = spf[x];
-            distinct++;
-            largest = p;
-            while (x % p == 0) {
-                total++;
-                x /= p;
-            }
-        }
-        cout << distinct << ' ' << total << ' ' << largest << '\n';
-    }
-    return 0;
+    return spf;
 }
-```
-
-## Full Python solution
-
-```python
-import sys
-
-
-def spf_table(n: int) -> list[int]:
-    spf = list(range(n + 1))
-    if n >= 1:
-        spf[1] = 1
-    for p in range(2, n + 1):
-        if spf[p] == p and p * p <= n:
-            for x in range(p * p, n + 1, p):
-                if spf[x] == x:
-                    spf[x] = p
-    return spf
-```
-
-The full reference file in the section uses this table and the repeated
-division loop described above.
-
-# C. Divisor Queries
-
-## Restatement
-
-For each `x`, print the number of positive divisors.
-
-## Algorithm
-
-Factor with SPF. If:
-
-```text
-x = p1^e1 * p2^e2 * ... * pk^ek
-```
-
-then:
-
-```text
-tau(x) = (e1+1)(e2+1)...(ek+1)
-```
-
-## Correctness proof
-
-Every divisor chooses an exponent for each prime factor independently. For
-prime `pi`, there are `ei+1` choices: `0,1,...,ei`. Multiplying the independent
-choice counts gives the formula. SPF factorization gives the correct exponents,
-so the computed product is correct. `\square`
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std;
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     int q;
     if (!(cin >> q)) return 0;
     vector<int> values(q);
-    int mx = 1;
-    for (int &x : values) {
-        cin >> x;
-        mx = max(mx, x);
-    }
-    vector<int> spf(mx + 1);
-    iota(spf.begin(), spf.end(), 0);
-    if (mx >= 1) spf[1] = 1;
-    for (long long p = 2; p <= mx; p++) {
-        if (spf[p] == p && p * p <= mx) {
-            for (long long x = p * p; x <= mx; x += p) {
-                if (spf[x] == x) spf[x] = p;
-            }
-        }
-    }
+    for (int &x : values) cin >> x;
+    vector<int> spf = build_spf(*max_element(values.begin(), values.end()));
     for (int x : values) {
-        int ans = 1;
+        int answer = 1;
         while (x > 1) {
-            int p = spf[x];
-            int exp = 0;
-            while (x % p == 0) {
-                exp++;
-                x /= p;
-            }
-            ans *= exp + 1;
+            int p = spf[x], exponent = 0;
+            while (x % p == 0) { x /= p; ++exponent; }
+            answer *= exponent + 1;
         }
-        cout << ans << '\n';
+        cout << answer << '\n';
     }
-    return 0;
 }
 ```
 
@@ -314,36 +397,62 @@ int main() {
 import sys
 
 
-def spf_table(n: int) -> list[int]:
+def build_spf(n: int) -> list[int]:
     spf = list(range(n + 1))
     if n >= 1:
         spf[1] = 1
-    for p in range(2, n + 1):
-        if spf[p] == p and p * p <= n:
+    for p in range(2, int(n**0.5) + 1):
+        if spf[p] == p:
             for x in range(p * p, n + 1, p):
                 if spf[x] == x:
                     spf[x] = p
     return spf
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    values = data[1 : 1 + data[0]]
+    spf = build_spf(max(values))
+    out = []
+    for x in values:
+        answer = 1
+        while x > 1:
+            p = spf[x]
+            exponent = 0
+            while x % p == 0:
+                x //= p
+                exponent += 1
+            answer *= exponent + 1
+        out.append(str(answer))
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
 ```
 
-Then divide by `spf[x]`, count the exponent, and multiply the answer by
-`exponent + 1`.
+# Testing and stress discussion
 
-# Testing discussion
-
-The random tests compare the optimized SPF solutions against slow trial
-division for small values. Important fixed tests include:
+For A, compare against a slow loop that calls trial division on each number in
+a short interval. For B and C, compare factor-derived statistics with trial
+division on random values at most a few thousand. Essential fixed cases are:
 
 ```text
-n = 1
-x = 1
-large prime near the limit
-prime powers such as 64
-numbers with several distinct primes such as 210
+A: [1,1], a singleton prime, and an interval with no primes
+B: 1, a large prime, 64, and 360
+C: 1, a prime, a prime power, and 210
+```
+
+Run the supplied generator with:
+
+```bash
+CP_TARGET=solution python3 sections/31_sieve_primes_factorization/check.py
 ```
 
 # What to carry forward
 
-Use primality sieves for prime flags and prefix counts. Use SPF tables when you
-must factor many values. Once factorized, many divisor properties become simple
-formulas over prime exponents.
+Use a sieve for properties of every value in a bounded range. Use SPF when the
+question needs the factorization itself. Once prime exponents are available,
+many apparently different number-theory statistics become one short loop.

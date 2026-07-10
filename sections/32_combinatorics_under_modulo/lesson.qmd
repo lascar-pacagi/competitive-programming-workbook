@@ -23,190 +23,186 @@ execute:
   enabled: false
 ---
 
-# Why combinatorics needs preprocessing
+# Why counting needs an engine
 
-Counting problems often ask for answers modulo `1,000,000,007`. A direct
-formula such as:
+Many counting statements reduce to a binomial coefficient, but the answer is
+requested modulo `1,000,000,007`. The mathematical fraction
+`n!/(k!(n-k)!)` cannot be evaluated with integer division after taking a
+remainder. This section builds one reusable engine for many queries.
 
-```text
-C(n,k) = n! / (k!(n-k)!)
-```
+| Statement shape | Object to count |
+|---|---|
+| choose `k` positions/items from `n` | `C(n,k)` |
+| rearrange a string with duplicate letters | `n! / product(count!)` |
+| give identical objects to distinct recipients, zero allowed | stars and bars |
+| monotone grid path | choose positions of one move type |
 
-is mathematically correct, but not directly implementable with ordinary
-division under a modulus. Section 29 taught modular inverses; this section turns
-that into a reusable combinatorics engine.
+# Scope: when the factorial method is legal
 
-# Factorials modulo a prime
+The local modulus is the prime `MOD = 1,000,000,007`, and every factorial
+index used by its problems is at most `2,000,000`. In particular, every index
+is strictly less than `MOD`.
 
-For a prime modulus `MOD`, precompute:
+This condition matters. If `i < MOD`, then `i!` is not divisible by `MOD`, so
+it has a modular inverse. If an index reaches `MOD`, `MOD` divides `i!` and
+this inverse-factorial method is no longer valid. Do not silently reuse it for
+`n >= MOD`; that needs a later technique such as Lucas' theorem.
 
-```text
-fact[i] = i! mod MOD
-```
+# Factorials and inverse factorials
 
-with:
+Precompute once up to the largest required index `L`:
 
 ```text
 fact[0] = 1
 fact[i] = fact[i-1] * i mod MOD
-```
 
-This takes `O(N)` time for all `i <= N`.
-
-# Inverse factorials
-
-To compute combinations quickly, also precompute:
-
-```text
-invfact[i] = inverse(i!) mod MOD
-```
-
-Because `MOD` is prime and `i < MOD` in this section, `i!` is not divisible by
-`MOD`, so the inverse exists.
-
-First compute:
-
-```text
-invfact[N] = fact[N]^(MOD-2) mod MOD
-```
-
-Then walk backward:
-
-```text
+invfact[L] = fact[L]^(MOD-2) mod MOD
 invfact[i-1] = invfact[i] * i mod MOD
 ```
 
-Why? Since:
+The first inverse uses Fermat's theorem from Section 29. The backward rule is
+valid because `i! = i * (i-1)!`; multiplying `inverse(i!)` by `i` gives
+`inverse((i-1)!)`. It gives every inverse factorial with one exponentiation,
+not `L` exponentiations.
 
-```text
-i! = i * (i-1)!
-```
-
-we have:
-
-```text
-inverse((i-1)!) = inverse(i!) * i
-```
-
-# Binomial coefficients
-
-The number of ways to choose `k` objects from `n` is:
-
-```text
-C(n,k) = n! / (k!(n-k)!)
-```
-
-Under the modulus:
+After preprocessing:
 
 ```text
 C(n,k) = fact[n] * invfact[k] * invfact[n-k] mod MOD
 ```
 
-This gives `O(1)` per query after preprocessing.
+This is `O(L)` preprocessing, `O(1)` per query, and `O(L)` memory.
+
+## Trace: build `C(6,2)`
+
+Ordinarily, `C(6,2)=720/(2*24)=15`. In modular arithmetic, store:
+
+```text
+fact[6] = 720
+invfact[2] = inverse(2)
+invfact[4] = inverse(24)
+```
+
+Then multiply the three residues. The product is the field version of the same
+division and equals `15`. Also check the boundary cases before coding:
+`C(n,0)=C(n,n)=1`.
 
 # Duplicate permutations
 
-If all `n` objects are distinct, there are `n!` permutations.
-
-If some objects are equal, swapping equal objects does not create a new
-arrangement. For letter counts:
-
-```text
-count[a], count[b], ...
-```
-
-the number of distinct rearrangements is:
+Temporarily label equal objects. A string of length `n` then has `n!` labelled
+permutations. If a letter appears `c` times, swapping just those labels does
+not change the visible string, so every visible arrangement was counted `c!`
+times. Therefore:
 
 ```text
-n! / (count[a]! count[b]! ...)
+distinct arrangements = n! / product_over_letters(count[letter]!)
 ```
 
-Modulo prime:
+## Trace: rearrange `aabc`
+
+There are `4!=24` labelled arrangements. The two `a` labels can be swapped in
+each visible arrangement, so each appears twice in that count:
 
 ```text
-fact[n] * product(inverse(fact[count[ch]])) mod MOD
+24 / 2! = 12
 ```
 
-Example:
-
-```text
-"aab" has 3! / 2! = 3 arrangements:
-aab, aba, baa
-```
+Letters absent from the string have count zero and contribute `0! = 1`; do not
+special-case them in code.
 
 # Stars and bars
 
-Count nonnegative solutions:
+To solve `x1 + x2 + ... + xn = s` with `xi >= 0`, draw `s` stars and `n-1`
+bars. The number of stars before/between/after bars is the allocation.
+
+For three children and four candies:
 
 ```text
-x1 + x2 + ... + xn = s
+**|*|*    means (2, 1, 1)
 ```
 
-Think of `s` stars and `n-1` separators.
-
-Example for `n = 3`, `s = 4`:
+There are `s+n-1` positions, and choosing the `n-1` bar positions determines
+the distribution:
 
 ```text
-**|*|*
+answer = C(s+n-1, n-1)
 ```
 
-means:
+## Trace: edge cases
 
-```text
-x1 = 2, x2 = 1, x3 = 1
-```
+For one child and ten candies, there is exactly one string of stars and no
+bars, so `C(10,0)=1`. For five children and zero candies, all four bars are
+adjacent, so `C(4,4)=1`. These are useful checks that the formula includes
+zero allocations correctly.
 
-There are `s` stars and `n-1` bars, so `s+n-1` total positions. Choose which
-`n-1` positions hold bars:
+# Choosing the preprocessing limit
 
-```text
-C(s+n-1, n-1)
-```
+This is a common source of memory-safe but wrong code.
 
-# Recognition table
-
-| Statement phrase | Formula |
+| Exercise | largest required factorial index |
 |---|---|
-| choose `k` from `n` | `C(n,k)` |
-| rearrange letters with repeats | `n! / prod(count!)` |
-| distribute identical objects among distinct boxes, zero allowed | `C(s+n-1,n-1)` |
-| distribute positive objects among distinct boxes | `C(s-1,n-1)` if `s >= n` |
-| path with only right/down moves on a grid | `C(right+down, right)` |
+| A. Choose Queries | maximum `n` |
+| B. Rearrange Letters | `len(s)` |
+| C. Distribute Candies | maximum `n+s-1` |
 
-# C++ notes
+For C, precomputing only through `max(n)` fails as soon as candies are added.
+Read all queries first, find the maximum index, then allocate the two arrays.
 
-Use `long long` for multiplication:
+# C++ and Python notes
 
-```cpp
-fact[n] * invfact[k] % MOD * invfact[n-k] % MOD
-```
+**C++.** Store values in `long long`; the product of two residues below
+`1e9+7` fits in signed 64-bit, but not in `int`. A lambda for `C(n,k)` should
+return zero if `k<0` or `k>n`, which is convenient in later formulas.
 
-Precompute up to the maximum value needed by all queries, not always the
-maximum constraint if the input is smaller.
+**Python.** `pow(value, MOD-2, MOD)` performs modular exponentiation directly.
+Python integers do not overflow, but lists of two million Python integers are
+still substantial; use one shared precomputation, not a table per query.
 
-# Python notes
-
-Python's built-in `pow(a, MOD-2, MOD)` is fast modular exponentiation.
-
-Precomputing lists of size `2,000,001` is fine in this section.
-
-# Common mistakes
+# Common wrong approaches
 
 ```text
-Using ordinary division under modulo.
-Forgetting fact[0] = 1.
-Precomputing only to max n when stars-and-bars needs n+s-1.
-Using k instead of n-k in one inverse factorial.
-Treating identical candies as distinct.
-Treating repeated letters as distinct.
+Taking n! % MOD, then performing ordinary integer division.
+Using factorial inverses when a factorial index is at least MOD.
+Computing one exponentiation for every inverse factorial.
+Precomputing to max(n) for stars-and-bars instead of max(n+s-1).
+Treating identical candies as distinct, or repeated letters as distinct.
+Forgetting that fact[0] and invfact[0] are both 1.
 ```
+
+# Formative checks
+
+1. Fill `fact[0..5]` and use the backward recurrence to recover
+   `invfact[3]` from `invfact[5]`. State the algebra that justifies the step.
+2. Count the rearrangements of `aabbc`. Expected answer: `5!/(2!*2!)=30`.
+3. Draw the stars-and-bars strings for `x1+x2+x3=2`; verify that there are
+   `C(4,2)=6` distributions.
+4. For queries `(n,s)=(3,4)` and `(100,1)`, identify the exact maximum
+   factorial index before allocating any arrays. Expected value: `100`.
+
+# Local judge workflow
+
+Run the local solutions and randomized checks with:
+
+```bash
+CP_TARGET=solution python3 sections/32_combinatorics_under_modulo/check.py
+```
+
+The generators compare small cases with exact integer combinations and
+permutation enumeration. When a modular answer looks suspicious, first compare
+the same small case before applying `% MOD`.
 
 # Submission checklist
 
 ```text
-1. Is the modulus prime?
-2. What maximum factorial index is needed?
-3. Are all factorials and inverse factorials precomputed?
-4. Does the formula match distinct vs identical objects?
-5. Are zero cases like k=0, s=0, or n=1 handled naturally?
+1. Is MOD prime and is every factorial index strictly below MOD?
+2. What is the maximum factorial index required by every query?
+3. Are fact[0] and invfact[0] both initialized to 1?
+4. Does the story describe distinct or identical objects?
+5. Did you test k=0, k=n, s=0, and n=1?
 ```
+
+# Exercises
+
+Attempt A after implementing one `prepare(limit)` helper. Attempt B by reusing
+the same idea with character counts. Attempt C only after writing down why the
+limit is `n+s-1`, not merely `n` or `s`.

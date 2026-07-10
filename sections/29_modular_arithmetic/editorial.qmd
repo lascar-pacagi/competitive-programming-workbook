@@ -23,53 +23,92 @@ execute:
   enabled: false
 ---
 
-# Editorial overview
+# Editorial map
 
-| Problem | Tool | Main risk |
-|---|---|---|
-| A. Power Queries | binary exponentiation | large exponent |
-| B. Fraction Queries | Fermat inverse | division only valid when inverse exists |
-| C. Affine Repeater | power plus geometric sum | `a == 1` and negative C++ residues |
+| Problem | Recognition signal | Core invariant | Time per query |
+|---|---|---|---|
+| A. Power Queries | exponent up to `10^18` | `result*base^e` preserves original power | `O(log b)` |
+| B. Fraction Queries | stated prime modulus and quotient | denominator times inverse is one | `O(log p)` |
+| C. Affine Repeater | repeat one linear update | accumulated constant is a geometric sum | `O(log k)` |
+
+Read the condition that makes an inverse legal before writing `MOD-2`. That
+condition, not the syntax of `pow`, is the difference between B and a general
+modular-division problem.
 
 # A. Power Queries
 
 ## Restatement
 
-For each query, compute `a^b mod m`.
+For every query, output `a^b mod m`. Values satisfy `0 <= a <= 10^18`,
+`0 <= b <= 10^18`, and `1 <= m <= 10^9+7`. The result must be in `0..m-1`.
 
 ## Constraints and traps
 
-`b` can be as large as `10^18`, so repeated multiplication is impossible. The
-modulus can be `1`, in which case every answer is `0`.
+Repeated multiplication takes `O(b)` time, which is impossible for the largest
+exponent. The modulus can be one, so the answer is zero even when `b=0`; the
+initial value must be `1 % m`, not unconditional `1`. In a reusable version
+with a larger modulus, multiplication also needs an overflow guard.
+
+## Observation and complete trace
+
+The binary digits of `13` are `1101`, so `3^13=3^8*3^4*3`. Binary
+exponentiation maintains the invariant below while processing those bits.
+
+```text
+Compute 3^13 mod 17.
+result  base  remaining exponent  action
+1       3          13           take base: result=3
+3       9           6           square and halve
+3      13           3           take base: result=5; square and halve
+5      16           1           take base: result=12? no: 5*16=80=12;
+                                 square and halve gives base=1, exponent=0
+12      1           0           answer 12
+```
+
+The last line is a useful correction to mental arithmetic: `3^13 mod 17` is
+`12`, not `5`. Verify independently: `3^4=13`, `3^8=16`, and
+`3^13=16*13*3=624=12 (mod 17)`.
 
 ## Algorithm
 
-Use binary exponentiation:
-
 ```text
-result = 1 mod m
-a = a mod m
-while b > 0:
-    if b is odd, result = result * a mod m
-    a = a * a mod m
-    b = b / 2
+pow_mod(a, b, m):
+    result = 1 mod m
+    base = a mod m
+    while b > 0:
+        if b is odd:
+            result = result * base mod m
+        base = base * base mod m
+        b = b // 2
+    return result
 ```
 
 ## Correctness proof
 
-At every step, the algorithm has split the original power into two parts: the
-power already multiplied into `result`, and the remaining power represented by
-`base^b`. If the current exponent bit is `1`, multiplying by `base` accounts
-for that bit. Squaring `base` moves to the next binary place, and halving `b`
-discards the processed bit. When `b` becomes zero, every binary bit has been
-accounted for, so `result == a^original_b mod m`. `\square`
+Let `A` and `B` be the original base and exponent. At loop entry,
+`result*base^b == A^B (mod m)`. If `b` is odd, multiplying `result` by `base`
+and decreasing the represented exponent by one preserves that product. The
+remaining exponent is then even, so replacing `base^b` with
+`(base^2)^(b/2)` also preserves it. When the loop ends, `b=0`, hence the
+invariant gives `result==A^B (mod m)`, exactly the requested answer.
 
 ## Complexity
 
-```text
-Time:  O(q log b)
-Memory: O(1)
-```
+Each iteration halves `b`, so time is `O(log b)` and extra memory is `O(1)`.
+Across `q` queries this is `O(q log b)`.
+
+## C++ implementation notes
+
+Start with `1 % mod` for `mod=1`. The local bound permits either `long long`
+or `__int128` products; the listing uses `__int128` so the helper remains safe
+if the modulus is widened. Normalize a negative base in a more general input
+variant.
+
+## Python implementation notes
+
+The built-in `pow(a,b,m)` is binary exponentiation, not an ordinary large
+power. The explicit loop below is included because it exposes the invariant;
+either form is suitable for the local bounds.
 
 ## Full C++ solution
 
@@ -81,8 +120,8 @@ long long mod_pow(long long a, long long b, long long mod) {
     a %= mod;
     long long result = 1 % mod;
     while (b > 0) {
-        if (b & 1LL) result = (__int128)result * a % mod;
-        a = (__int128)a * a % mod;
+        if (b & 1LL) result = (long long)((__int128)result * a % mod);
+        a = (long long)((__int128)a * a % mod);
         b >>= 1LL;
     }
     return result;
@@ -91,7 +130,6 @@ long long mod_pow(long long a, long long b, long long mod) {
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     int q;
     if (!(cin >> q)) return 0;
     while (q--) {
@@ -99,7 +137,6 @@ int main() {
         cin >> a >> b >> mod;
         cout << mod_pow(a, b, mod) << '\n';
     }
-    return 0;
 }
 ```
 
@@ -110,8 +147,8 @@ import sys
 
 
 def mod_pow(a: int, b: int, mod: int) -> int:
-    a %= mod
     result = 1 % mod
+    a %= mod
     while b:
         if b & 1:
             result = result * a % mod
@@ -126,10 +163,8 @@ def main() -> None:
         return
     q = data[0]
     out = []
-    idx = 1
-    for _ in range(q):
-        a, b, mod = data[idx], data[idx + 1], data[idx + 2]
-        idx += 3
+    for i in range(q):
+        a, b, mod = data[1 + 3 * i : 4 + 3 * i]
         out.append(str(mod_pow(a, b, mod)))
     print("\n".join(out))
 
@@ -140,55 +175,71 @@ if __name__ == "__main__":
 
 ## Common wrong answers and tests
 
-```text
-O(b) multiplication: fails huge b.
-Initializing result = 1 when mod = 1: should become 0.
-Overflowing multiplication in harder variants.
-```
+| Wrong approach | Why it fails | Essential test |
+|---|---|---|
+| loop `b` times | exponential-sized input range | `3 1000000000000000000 17` |
+| `result=1` | does not reduce modulo one | `7 0 1` -> `0` |
+| use `int` products | squared residues can overflow | a high-modulus adaptation |
+| forget to reduce base | unnecessary overflow and wrong negative handling | `a` much larger than `m` |
 
 # B. Fraction Queries
 
 ## Restatement
 
-For prime `p`, compute `a / b mod p` for many queries. The input guarantees
-`b mod p != 0`.
+The first line gives a prime `p` (`2 <= p <= 10^9+7`) and up to `200,000`
+queries. Every query gives `a,b` with `b mod p != 0`; output the residue for
+`a/b mod p`.
 
-## Observations
+## Constraints and traps
 
-Division means multiplying by an inverse:
+There is no ordinary division operator in a finite field. Floating point loses
+the exact residue, and integer division answers a different question. Fermat's
+inverse is legal only because `p` is prime and the denominator is nonzero
+modulo `p`. A composite-modulus version belongs to Section 30.
+
+## Observation and complete trace
+
+An inverse `inv` satisfies `b*inv==1 (mod p)`. For `10/4 mod 17`, use Fermat:
+`inv=4^(17-2)=4^15=13 (mod 17)`.
 
 ```text
-a / b == a * b^{-1} (mod p)
+4 * 13 = 52 = 1 mod 17
+10 * 13 = 130 = 11 mod 17
+check: 4 * 11 = 44 = 10 mod 17
 ```
 
-Since `p` is prime and `b` is not divisible by `p`, Fermat's little theorem
-gives:
-
-```text
-b^{-1} == b^(p-2) (mod p)
-```
+The check is a better debugging tool than converting any value to a decimal.
 
 ## Algorithm
 
 ```text
-for each query:
-    inv = pow_mod(b, p-2, p)
-    print (a mod p) * inv mod p
+for each (a, b):
+    inverse = pow_mod(b, p-2, p)
+    print (a mod p) * inverse mod p
 ```
 
 ## Correctness proof
 
 Because `p` is prime and `b` is not divisible by `p`, Fermat's little theorem
-states `b^(p-1) == 1 (mod p)`. Multiplying both sides by the formal inverse
-meaning gives `b * b^(p-2) == 1 (mod p)`, so `b^(p-2)` is the modular inverse
-of `b`. Multiplying `a` by this inverse is exactly modular division. `\square`
+gives `b^(p-1)==1 (mod p)`. Thus `b*b^(p-2)==1`, so `b^(p-2)` is the inverse
+of `b`. Multiplying `a` by this inverse is exactly the unique residue whose
+product with `b` is `a`; therefore the algorithm prints `a/b mod p`.
 
 ## Complexity
 
-```text
-Time:  O(q log p)
-Memory: O(1)
-```
+One inverse costs `O(log p)` by binary exponentiation. Total time is
+`O(q log p)` and extra memory is `O(1)` apart from buffered I/O.
+
+## C++ implementation notes
+
+Use the same `mod_pow` helper as A and cast the final product to `__int128` if
+you keep the generic modulus helper. Reducing `a` and `b` before the call makes
+the intent clear. Do not replace the helper by `a / b`.
+
+## Python implementation notes
+
+`pow(b % p, p-2, p)` returns the inverse directly. Python's `/` creates a
+float and `//` is integer division; neither has a role in this solution.
 
 ## Full C++ solution
 
@@ -197,11 +248,11 @@ Memory: O(1)
 using namespace std;
 
 long long mod_pow(long long a, long long b, long long mod) {
-    a %= mod;
     long long result = 1 % mod;
-    while (b > 0) {
-        if (b & 1LL) result = (__int128)result * a % mod;
-        a = (__int128)a * a % mod;
+    a %= mod;
+    while (b) {
+        if (b & 1LL) result = (long long)((__int128)result * a % mod);
+        a = (long long)((__int128)a * a % mod);
         b >>= 1LL;
     }
     return result;
@@ -210,7 +261,6 @@ long long mod_pow(long long a, long long b, long long mod) {
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     long long p;
     int q;
     if (!(cin >> p >> q)) return 0;
@@ -218,10 +268,8 @@ int main() {
         long long a, b;
         cin >> a >> b;
         long long inv = mod_pow(b, p - 2, p);
-        long long answer = (__int128)(a % p) * inv % p;
-        cout << answer << '\n';
+        cout << (long long)((__int128)(a % p) * inv % p) << '\n';
     }
-    return 0;
 }
 ```
 
@@ -236,12 +284,11 @@ def main() -> None:
     if not data:
         return
     p, q = data[0], data[1]
-    idx = 2
     out = []
-    for _ in range(q):
-        a, b = data[idx], data[idx + 1]
-        idx += 2
-        out.append(str((a % p) * pow(b % p, p - 2, p) % p))
+    for i in range(q):
+        a, b = data[2 + 2 * i : 4 + 2 * i]
+        inv = pow(b % p, p - 2, p)
+        out.append(str((a % p) * inv % p))
     print("\n".join(out))
 
 
@@ -251,82 +298,86 @@ if __name__ == "__main__":
 
 ## Common wrong answers and tests
 
-```text
-Using a / b as floating-point division.
-Using Fermat inverse with composite modulus.
-Forgetting to reduce b before exponentiation.
-Testing p = 2.
-```
+| Wrong approach | Why it fails | Essential test |
+|---|---|---|
+| use `/` or a decimal | not finite-field division | `p=17`, `10 4` -> `11` |
+| use Fermat for arbitrary `m` | primality is required | compare with Section 30's composite case |
+| forget `b mod p != 0` | inverse would not exist | `p=2`, `b=1` is the boundary legal case |
+| compute `b^p` normally | enormous intermediate value | large prime modulus |
 
 # C. Affine Repeater
 
 ## Restatement
 
-For each query, repeatedly apply:
+For each of up to `200,000` queries, apply
+`f(x)=a*x+b` exactly `k` times modulo `MOD=1,000,000,007`, where every input
+value and `k` may be as large as `10^18`. Output `f^k(x)`.
+
+## Constraints and traps
+
+Simulation is `O(k)` and fails for large `k`. Inputs must be reduced before
+testing `a==1`: `a=MOD+1` takes the same branch as one. There are two special
+cases: `k=0` returns the original `x`, and `a==1` makes the usual geometric
+division invalid.
+
+## Observation and complete trace
+
+Unrolling gives
 
 ```text
-f(x) = a*x + b
+f^k(x) = a^k*x + b*(1+a+...+a^(k-1)).
 ```
 
-exactly `k` times modulo `1,000,000,007`.
-
-## Observations
-
-Expanding the first few applications:
+For the special branch, take `a=1,b=3,x=5,k=4` modulo `17`:
 
 ```text
-f^1(x) = a*x + b
-f^2(x) = a^2*x + a*b + b
-f^3(x) = a^3*x + a^2*b + a*b + b
+simulation: 5 -> 8 -> 11 -> 14 -> 0
+formula:    1^4*5 + 3*(1+1+1+1) = 5+12 = 17 = 0 mod 17
 ```
 
-Therefore:
-
-```text
-f^k(x) = a^k*x + b*(1 + a + ... + a^(k-1))
-```
-
-The sum is `k` when `a == 1`. Otherwise:
-
-```text
-1 + a + ... + a^(k-1) = (a^k - 1) / (a - 1)
-```
-
-Modulo a prime, the division is multiplication by inverse.
+When `a!=1`, the sum is `(a^k-1)*inverse(a-1)`. When `a==1`, it is `k`;
+division by `a-1` would be division by zero.
 
 ## Algorithm
 
 ```text
 reduce a, b, x modulo MOD
-if k == 0: answer is x
+if k == 0: print x
 ak = pow_mod(a, k, MOD)
 if a == 1:
-    geom = k mod MOD
+    geometric_sum = k mod MOD
 else:
-    geom = (ak - 1) * inverse(a - 1) mod MOD
-answer = ak*x + b*geom mod MOD
+    geometric_sum = (ak-1) * pow_mod(a-1, MOD-2, MOD) mod MOD
+print (ak*x + b*geometric_sum) mod MOD
 ```
 
 ## Correctness proof
 
-The expansion can be proven by induction. For `k = 0`, the value is `x`. Assume
-after `k` applications the formula is true. Applying `f` once more gives:
-
-```text
-a*(a^k*x + b*(1 + a + ... + a^(k-1))) + b
-= a^(k+1)*x + b*(a + a^2 + ... + a^k + 1)
-```
-
-which is the same formula for `k+1`. The geometric sum formula is valid when
-`a != 1`; when `a == 1`, every term is `1`, so the sum is `k`. Therefore the
-algorithm computes exactly the repeated transformation modulo `MOD`. `\square`
+For `k=0`, no update is performed and the formula gives `x`. Assume the
+formula after `k` updates. Applying `a*y+b` one more time multiplies the old
+`a^k*x` term by `a` and appends one `b` to the existing sum, yielding the
+formula for `k+1`. Thus induction proves the affine expansion. The geometric
+sum identity is valid for `a!=1`; for `a==1`, all `k` summands equal one.
+The algorithm evaluates these exact quantities modulo the prime, so it returns
+`f^k(x)`.
 
 ## Complexity
 
-```text
-Time:  O(q log k)
-Memory: O(1)
-```
+Two modular powers take `O(log k + log MOD)`, which is `O(log k)` for the
+local fixed modulus; memory is `O(1)` per query. Total time is `O(q log k)`.
+
+## C++ implementation notes
+
+Normalize all three coefficients before the branch. Write
+`(ak - 1 + MOD) % MOD` before multiplying by the inverse to avoid a negative
+remainder. Products of residues fit in `long long` for this fixed MOD, but
+`__int128` is appropriate in a generic widened-modulus helper.
+
+## Python implementation notes
+
+Use `pow(a,k,MOD)` and `pow(a-1,MOD-2,MOD)`. Python normalizes the subtraction
+after `% MOD`, but keeping `(ak-1) % MOD` in the expression makes the intended
+residue explicit.
 
 ## Full C++ solution
 
@@ -340,7 +391,7 @@ long long mod_pow(long long a, long long b) {
     a %= MOD;
     if (a < 0) a += MOD;
     long long result = 1;
-    while (b > 0) {
+    while (b) {
         if (b & 1LL) result = result * a % MOD;
         a = a * a % MOD;
         b >>= 1LL;
@@ -351,29 +402,24 @@ long long mod_pow(long long a, long long b) {
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     int q;
     if (!(cin >> q)) return 0;
     while (q--) {
         long long a, b, x, k;
         cin >> a >> b >> x >> k;
-        a %= MOD;
-        b %= MOD;
-        x %= MOD;
+        a = (a % MOD + MOD) % MOD;
+        b = (b % MOD + MOD) % MOD;
+        x = (x % MOD + MOD) % MOD;
         if (k == 0) {
             cout << x << '\n';
             continue;
         }
         long long ak = mod_pow(a, k);
-        long long geom;
-        if (a == 1) {
-            geom = k % MOD;
-        } else {
-            geom = (ak - 1 + MOD) % MOD * mod_pow(a - 1, MOD - 2) % MOD;
-        }
-        cout << (ak * x + b * geom) % MOD << '\n';
+        long long sum = (a == 1)
+            ? k % MOD
+            : (ak - 1 + MOD) % MOD * mod_pow(a - 1, MOD - 2) % MOD;
+        cout << (ak * x + b * sum) % MOD << '\n';
     }
-    return 0;
 }
 ```
 
@@ -381,7 +427,6 @@ int main() {
 
 ```python
 import sys
-
 
 MOD = 1_000_000_007
 
@@ -391,11 +436,9 @@ def main() -> None:
     if not data:
         return
     q = data[0]
-    idx = 1
     out = []
-    for _ in range(q):
-        a, b, x, k = data[idx], data[idx + 1], data[idx + 2], data[idx + 3]
-        idx += 4
+    for i in range(q):
+        a, b, x, k = data[1 + 4 * i : 5 + 4 * i]
         a %= MOD
         b %= MOD
         x %= MOD
@@ -404,10 +447,10 @@ def main() -> None:
             continue
         ak = pow(a, k, MOD)
         if a == 1:
-            geom = k % MOD
+            geometric_sum = k % MOD
         else:
-            geom = (ak - 1) * pow(a - 1, MOD - 2, MOD) % MOD
-        out.append(str((ak * x + b * geom) % MOD))
+            geometric_sum = (ak - 1) * pow(a - 1, MOD - 2, MOD) % MOD
+        out.append(str((ak * x + b * geometric_sum) % MOD))
     print("\n".join(out))
 
 
@@ -417,32 +460,33 @@ if __name__ == "__main__":
 
 ## Common wrong answers and tests
 
-```text
-Simulating k times.
-Checking original a == 1 instead of reduced a == 1.
-Forgetting k == 0.
-C++ inverse of a-1 when a = 0 needs negative normalization.
-```
+| Wrong approach | Why it fails | Essential test |
+|---|---|---|
+| simulate each update | `k` reaches `10^18` | huge `k` with small values |
+| use geometric quotient for `a==1` | inverse of zero does not exist | `1 3 5 4` |
+| test original, not reduced, `a` | `MOD+1` is residue one | `a=1000000008` |
+| omit `k=0` | formula's empty sum needs care | any `k=0` query |
+| fail to normalize C++ subtraction | negative residue contaminates answer | `a=0`, `k>0` |
 
 # Testing discussion
 
-The random generator for the affine problem brute-forces small `k` and uses the
-formula for large `k`. When writing your own stress tests, compare:
+Run the supplied suite:
 
-```text
-slow simulation for k <= 20
-fast formula for the same random cases
+```bash
+CP_TARGET=solution python3 sections/29_modular_arithmetic/check.py
 ```
+
+For A, use a slow repeated product for exponents at most 30. For B, check that
+`b*answer mod p == a mod p`. For C, use a slow loop for `k<=20` and compare it
+with the formula on random reduced and unreduced inputs. The strongest fixed
+cases are modulus one, zero exponent, `p=2`, `a=0`, `a=1`, and `a=MOD+1`.
 
 # What to carry forward
 
-Modular arithmetic is not just "put `% MOD` everywhere." Carry forward these
-rules:
-
 ```text
-fast powers are O(log exponent)
-division requires an inverse
-Fermat inverse requires a prime modulus
-C++ negative residues must be normalized
-special cases are part of the math
+Binary exponentiation is an invariant-preserving bit scan.
+Modular division means multiplying by an inverse, never ordinary division.
+Fermat inverses require a prime modulus and a nonzero denominator.
+Repeated affine maps produce a power and a geometric sum.
+Special cases such as mod=1, exponent=0, and a=1 belong in the proof first.
 ```

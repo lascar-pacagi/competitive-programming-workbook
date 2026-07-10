@@ -25,6 +25,21 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. KMP Occurrences.** The prefix function records the longest matched prefix
+after every text position; falling through failure links never discards a
+possible occurrence. Each character advances or falls only amortized constant
+times, so matching is `O(|text|+|pattern|)`.
+
+**B. All Borders.** Repeatedly following `pi[length-1]` lists exactly the
+proper prefix lengths that are also suffixes, from longest to shortest; reverse
+the collected list for increasing output.
+
+**C. Minimal Period.** If `p=n-pi[n-1]` divides `n`, copies of the length-`p`
+prefix cover the string; otherwise no shorter border-compatible block can tile
+it, so the period is `n`.
+
 ## Detailed solution guide
 
 **A. KMP Occurrences.** Build the combined string
@@ -75,15 +90,20 @@ Print the number and 1-based positions of all occurrences of pattern in text.
 
 ## Observations and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+Build `pattern + '#' + text` and its prefix function. If pattern length is `m`,
+`pi[i]==m` means a match ends at combined index `i`, whose 1-based text start is
+`i-2*m+1`. For `aba` in `abacaba`, this produces starts 1 and 5, including
+overlaps. Compute pi once, then scan its values.
 
 ## Correctness proof
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+`pi[i]` is the longest pattern-prefix ending at i; consequently value m is
+exactly a complete occurrence. Failure links retain every shorter possible
+border, so no occurrence is skipped. QED.
 
 ## Complexity
 
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+Time and memory are `O(|pattern|+|text|)`.
 
 ## Full C++ solution
 
@@ -115,7 +135,8 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test pattern longer than text, equal strings, no match, and overlapping `ana` in
+`anana`. The separator must be outside the input alphabet.
 
 # B. All Borders
 
@@ -125,15 +146,19 @@ Print all proper border lengths of a string in increasing order.
 
 ## Observations and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+The longest proper border is `pi[n-1]`. Repeatedly set `k=pi[k-1]` to follow
+the borders of that border; collect lengths and reverse for increasing output.
+For `ababa`, this visits 3 then 1.
 
 ## Correctness proof
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+Every shorter border of the string is a border of its longest border, and every
+prefix link is a border by definition, so the walk lists exactly all borders.
+QED.
 
 ## Complexity
 
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+Prefix construction and the link walk are `O(n)` time and `O(n)` memory.
 
 ## Full C++ solution
 
@@ -163,7 +188,8 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test a singleton, `aaaa`, and a string without a border. Do not output n: this
+exercise asks only for proper borders.
 
 # C. Minimal Period
 
@@ -173,15 +199,18 @@ Print the shortest period length if the string is repetitions of a block, otherw
 
 ## Observations and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+Let `p=n-pi[n-1]`. It is a tiling period only if `n%p==0`; otherwise print n.
+For `abcabcabc`, p is 3; for `ababa`, candidate p is 2 but answer is 5.
 
 ## Correctness proof
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+A border of length n-p proves equality after shift p. Divisibility proves these
+shifts cover the whole string as equal blocks; without it, no shorter block tiles
+the string. QED.
 
 ## Complexity
 
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+Time is `O(n)` and memory is `O(n)`.
 
 ## Full C++ solution
 
@@ -210,8 +239,19 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test one character, all one character, a prime-length nonperiodic string, and a
+near-repeat with a different final character.
 
 # What to carry forward
 
 Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.
+
+# Testing discussion
+
+For random strings of length at most 30, compare KMP positions with direct
+substring comparison, borders with a loop over lengths, and the period with a
+loop over every divisor of the length. Run:
+
+```bash
+CP_TARGET=solution python3 sections/43_string_algorithms_i/check.py
+```

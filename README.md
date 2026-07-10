@@ -19,6 +19,10 @@ Each completed section contains:
 - local online-judge tests;
 - a friendly section checker.
 
+The course currently has 61 sections. Section 61 is the final ICPC readiness
+module: complete it with a team after the capstone, then repeat its virtual
+contest and postmortem protocol.
+
 Problem statements are written locally or summarized briefly. External
 Codeforces, AtCoder, and ICPC problems are linked instead of copied.
 
@@ -61,6 +65,13 @@ Run all available section checkers:
 
 ```bash
 python3 tools/check_all.py
+```
+
+Audit the complete course structure and flag editorials that need a deeper
+pedagogical rewrite:
+
+```bash
+python3 tools/audit_course.py
 ```
 
 ## Build PDFs

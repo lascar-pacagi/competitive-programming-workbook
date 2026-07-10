@@ -25,6 +25,20 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Sum Distances.** First compute the root answer and subtree sizes. Moving
+the root across parent-child edge `(u,v)` removes `size[v]` near vertices and
+adds `n-size[v]` far vertices, giving `ans[v]=ans[u]+n-2*size[v]`.
+
+**B. Farthest Node Distance.** The farthest distance through a child uses that
+child's downward value; the farthest outside it uses the best sibling or parent
+value. Prefix/suffix maxima exclude the child without double counting.
+
+**C. Paths Through Node.** Removing a node splits the tree into component sizes.
+Every path through it chooses endpoints from two different components (or the
+node), so summing cross products counts each unordered pair exactly once.
+
 ## Detailed solution guide
 
 **A. Sum of Distances from Every Root.** First root the tree at `1`. A postorder
@@ -71,11 +85,11 @@ For every node, print the sum of distances to all other nodes.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -116,11 +130,11 @@ For every node, print its distance to the farthest node.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -159,11 +173,11 @@ For every node, count unordered pairs of distinct nodes whose path passes throug
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -201,5 +215,11 @@ if __name__=="__main__": main()
 ```
 
 # Testing discussion
+
+For every reroot transition, classify which vertices become closer and farther;
+this is the correctness proof. Brute-force BFS from every root for random trees
+of at most eight vertices. For path-through-node counts, remove the node
+conceptually: pairs in different resulting components contribute, while pairs
+inside one component do not.
 
 Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

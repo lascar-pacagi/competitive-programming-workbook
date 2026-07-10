@@ -23,152 +23,205 @@ execute:
   enabled: false
 ---
 
-# Why sieves matter
+# Why preprocessing wins
 
-Trial division answers one number at a time. A sieve answers many questions up
-to a fixed limit after preprocessing.
+Trial division is a good tool for one modest integer. It is the wrong default
+when a statement gives up to `200,000` values, all at most `10^6`. Rather than
+rediscovering factors for every query, do one pass over the whole value range.
 
-Use a sieve when the statement has:
+Use this section's tools when the statement says one or more of:
+
+| Signal in the statement | First tool |
+|---|---|
+| many interval queries about primes | sieve plus prefix counts |
+| many values must be factorized | smallest-prime-factor (SPF) table |
+| divisor count, distinct factors, or exponents | SPF, then group equal factors |
+| one number near `10^12` only | trial division may still be preferable |
+
+The local problems have maximum value `10^6`, so arrays of size `10^6+1` are
+intentional: they turn expensive repeated work into constant-time lookup.
+
+# Vocabulary and the core invariant
+
+A **prime** has exactly two positive divisors, `1` and itself. A **composite**
+number has a nontrivial factor. Every integer `x > 1` has a unique prime
+factorization, for example:
 
 ```text
-many queries
-all numbers <= N
-prime counts, primality, divisor counts, or repeated factorization
+360 = 2^3 * 3^2 * 5
 ```
+
+The sieve maintains this invariant after processing a candidate `p`:
+
+```text
+Every composite number below p*p has already been marked non-prime.
+```
+
+That is why marking starts at `p*p`: a smaller multiple `p*t` has `t < p` and
+was already handled when its smaller factor was processed.
 
 # Sieve of Eratosthenes
 
-Start by assuming every number at least `2` is prime. Then for each prime `p`,
-mark multiples of `p` as composite.
-
-Why start at `p*p`?
-
-```text
-2p, 3p, ..., (p-1)p
-```
-
-already have a smaller prime factor and were marked earlier.
-
-Pseudocode:
+Start by marking every index from `2` as possibly prime; explicitly set `0`
+and `1` to false. For each still-prime `p`, mark its multiples from `p*p`.
 
 ```text
 is_prime[0] = is_prime[1] = false
-for p in 2..sqrt(n):
+for p from 2 while p*p <= N:
     if is_prime[p]:
-        for x in p*p, p*p+p, ... <= n:
+        for x from p*p to N step p:
             is_prime[x] = false
 ```
 
-Complexity: `O(n log log n)`.
+The time is `O(N log log N)` and the memory is `O(N)`. For `N = 10^6`, this is
+comfortably small in both C++ and Python.
 
-# Prefix prime counts
+## Trace: sieving through 20
 
-After computing `is_prime`, range queries are just prefix sums:
-
-```text
-pref[i] = number of primes <= i
-answer(l,r) = pref[r] - pref[l-1]
-```
-
-# Smallest prime factor table
-
-For factorization queries, store:
+Initially, treat `2..20` as prime candidates. Processing `2` crosses out:
 
 ```text
-spf[x] = smallest prime factor of x
+4, 6, 8, 10, 12, 14, 16, 18, 20
 ```
 
-Initialize `spf[x] = x`. When a prime `p` is found, fill unassigned multiples:
+Processing `3` starts at `9`, not `6`, and crosses out:
 
 ```text
-for x in p*p, p*p+p, ...:
-    if spf[x] == x:
-        spf[x] = p
+9, 12, 15, 18
 ```
 
-Then factor a number by repeated division:
+The numbers still true are `2, 3, 5, 7, 11, 13, 17, 19`. When `p=5`,
+`p*p > 20`, so every remaining candidate is prime; no further marking is
+needed.
+
+# Prime range queries: turn flags into counts
+
+For many queries `[l, r]`, build a prefix count after the sieve:
 
 ```text
-while x > 1:
-    p = spf[x]
-    exponent = 0
-    while x % p == 0:
-        exponent += 1
-        x /= p
+pref[0] = 0
+pref[i] = pref[i-1] + (1 if is_prime[i] else 0)
+answer(l, r) = pref[r] - pref[l-1]
 ```
 
-This is fast because each division removes a prime factor.
+The subtraction removes exactly the primes before `l`. In particular,
+`l = 1` is safe because `pref[0]` exists.
 
-# Divisor count formula
+## Trace: a prefix answer
 
-If:
+For `N=10`, the prefix values at selected indices are:
+
+| `i` | primes in `[1,i]` | `pref[i]` |
+|---:|---|---:|
+| 1 | none | 0 |
+| 2 | `2` | 1 |
+| 5 | `2,3,5` | 3 |
+| 10 | `2,3,5,7` | 4 |
+
+Therefore the number of primes in `[4,10]` is `pref[10]-pref[3]=4-2=2`:
+they are `5` and `7`.
+
+# Smallest prime factors
+
+An SPF table stores the smallest prime dividing every `x >= 2`. Initialize
+`spf[x]=x`; an untouched entry is therefore prime. When processing a prime
+`p`, write `p` into only previously untouched multiples.
 
 ```text
-x = p1^e1 * p2^e2 * ... * pk^ek
+spf[x] = x for all x
+for p from 2 while p*p <= N:
+    if spf[p] == p:                 # p is prime
+        for x from p*p to N step p:
+            if spf[x] == x:
+                spf[x] = p
 ```
 
-then every divisor chooses an exponent from `0..ei` for each prime. Therefore:
+The important operation is not “look up all factors.” It is repeatedly take a
+factor that is guaranteed to divide the remaining value, divide all its copies
+out, and continue. The number `1` has an empty factorization; handle it before
+the loop.
+
+## Trace: factor `360`
 
 ```text
-number_of_divisors = (e1+1)(e2+1)...(ek+1)
+remaining   chosen SPF   exponent so far
+360         2            2^3, remaining 45
+45          3            3^2, remaining 5
+5           5            5^1, remaining 1
 ```
 
-Example:
+Thus `360 = 2^3 * 3^2 * 5`. It has three distinct prime factors, six prime
+factors with multiplicity, and largest prime factor `5`.
+
+# Divisor counts from exponents
+
+If `x = p1^e1 * p2^e2 * ... * pk^ek`, every positive divisor independently
+chooses one exponent in `0..ei` for each prime. Hence:
 
 ```text
-36 = 2^2 * 3^2
-divisors = (2+1)(2+1) = 9
+tau(x) = (e1+1)(e2+1)...(ek+1)
 ```
 
-# Worked example
+For the `360` trace, the answer is `(3+1)(2+1)(1+1)=24`. Do not add the
+exponents: addition gives the number of prime factors with multiplicity, not
+the number of divisors.
 
-Factor `360`:
+# Implementation notes
 
-```text
-360 = 2^3 * 3^2 * 5^1
-distinct prime factors = 3
-total prime factors with multiplicity = 3 + 2 + 1 = 6
-largest prime factor = 5
-number of divisors = (3+1)(2+1)(1+1) = 24
-```
+**C++.** Use `vector<bool>` or `vector<char>` for prime flags and `vector<int>`
+for `spf`. Make the loop variable in `p*p` tests `long long`; that habit avoids
+overflow when a later problem raises the limit.
 
-# C++ notes
+**Python.** A list of booleans/integers of length about one million is suitable.
+Keep the explicit sieve loop for clarity. Use `sys.stdin.buffer.read()` for the
+large query counts in the local exercises.
 
-`vector<bool>` is compact and fine for primality flags. For `spf`, use
-`vector<int>`.
-
-Use `long long` for `p*p` in loops:
-
-```cpp
-for (long long p = 2; p * p <= n; p++)
-```
-
-This avoids overflow when the limit grows in harder problems.
-
-# Python notes
-
-Python lists are fine up to around `10^6` or a few million.
-
-For large sieves, slice assignment can be faster, but the explicit loop is
-clear and matches C++.
-
-# Common mistakes
+# Wrong turns to reject early
 
 ```text
 Treating 1 as prime.
-Starting multiples at 2*p and doing extra work.
-Forgetting prefix[l-1] in range counts.
-Using largest prime factor when SPF is required.
-Not handling x = 1 in factorization.
-Computing divisor count as sum of exponents instead of product of exponent+1.
+Using trial division separately for 200,000 queries.
+Starting every sieve inner loop at 2*p without understanding the duplicated work.
+Forgetting pref[l-1] when l=1.
+Using spf[x] once and forgetting repeated copies of the same prime.
+Returning zero divisors for x=1; its only divisor is 1.
 ```
+
+# Formative checks
+
+1. On paper, sieve through `30`. Which multiples are first marked when
+   processing `5`, and why is `10` not revisited?
+2. Build the prefix counts for primes up to `12`; use them to answer `[1,1]`,
+   `[2,2]`, and `[8,12]`.
+3. Factor `84` with SPF and derive its divisor count. Expected factorization:
+   `2^2 * 3 * 7`; expected divisor count: `12`.
+4. Before coding B, state what each output component should be for `x=1`, a
+   prime, and a prime power. This catches most factor-loop errors.
+
+# Local judge workflow
+
+Run your implementation against fixed and randomized tests with:
+
+```bash
+CP_TARGET=solution python3 sections/31_sieve_primes_factorization/check.py
+```
+
+The generators compare small SPF-derived results with slow trial division.
+When debugging your own solution, first print the factor blocks for `1`, a
+prime, a prime power, and a product of several primes.
 
 # Submission checklist
 
 ```text
-1. What is the maximum number that appears?
-2. Do you need primality only or factorization?
-3. Are 0 and 1 marked non-prime?
-4. Are range queries answered with prefix counts?
-5. Does factorization handle x = 1?
+1. Is the precomputation limit at least the largest input value?
+2. Are 0 and 1 non-prime?
+3. Does every range query use pref[r] - pref[l-1]?
+4. Does the factor loop remove all copies of the current prime?
+5. Does x=1 get its special, mathematically correct answer?
 ```
+
+# Exercises
+
+Attempt A after the prefix trace, B after the factor `360` trace, and C after
+the divisor formula. For each exercise, write the chosen precomputation and its
+time/memory cost before opening the editor.

@@ -23,162 +23,227 @@ execute:
   enabled: false
 ---
 
-# Expected value in programming contests
+# What an expected value problem is asking
 
-Expected value is the long-run average value of a random variable. If a value
-`x` occurs with probability `p`, it contributes `p*x` to the expectation.
+Expectation is the average outcome over many independent repetitions of an
+experiment. It is not the most likely outcome. In contest problems it often
+lets us avoid listing exponentially many outcomes.
 
-When a problem asks for expected value modulo a prime, represent a rational
-number:
+The three reliable entry points are:
+
+| Statement shape | First model to try |
+|---|---|
+| total reward is a sum of event rewards | indicator variables and linearity |
+| repeat until a success | first-step equation / geometric wait |
+| collect new kinds one by one | sum the waiting time of each stage |
+
+Write the random variable first. A formula without a random variable is hard to
+check and easy to apply to the wrong event.
+
+# Exact rational answers modulo a prime
+
+The local problems ask for an exact rational number modulo
+`MOD = 1,000,000,007`, not a decimal approximation. Represent
 
 ```text
 a / b
 ```
 
-as:
+by `a * b^(MOD-2) mod MOD`. This is valid because `MOD` is prime and every
+denominator used by the local contracts is nonzero modulo `MOD`.
+
+For example, `1/3` is the residue `333333336`, because
 
 ```text
-a * inverse(b) mod MOD
+3 * 333333336 = 1,000,000,008 = 1 (mod MOD).
 ```
 
-This uses modular inverses from Section 29.
+Never use `double` and never use integer division. If a future problem allows a
+denominator divisible by `MOD`, this representation is not defined by a Fermat
+inverse; do not silently reuse this technique.
 
-# Linearity of expectation
+# Pattern 1: linearity of expectation
 
-The most important rule:
+For random variables `X` and `Y`,
 
 ```text
-E[X + Y] = E[X] + E[Y]
+E[X + Y] = E[X] + E[Y].
 ```
 
-This is true even if `X` and `Y` are dependent.
+Independence is **not** required for this equation. It is only needed for some
+probability products later in the course.
 
-For independent bonus events, event `i` contributes:
+If bonus `i` has value `v[i]` and happens with probability `p[i]/q[i]`, define
 
 ```text
-v[i] with probability p[i]/q[i]
-0    otherwise
+Xi = v[i] if bonus i happens, otherwise 0.
 ```
 
-So:
+Then `E[Xi] = v[i] * p[i] / q[i]`, and the total reward is `sum Xi`. Sum the
+individual expectations instead of enumerating all `2^n` event subsets.
+
+## Worked trace
+
+For bonuses `(p,q,v) = (1,2,10), (1,4,8), (3,4,12)`:
 
 ```text
-E[event i] = v[i] * p[i] / q[i]
-E[total] = sum_i E[event i]
+E[X1] = 10 * 1/2 = 5
+E[X2] =  8 * 1/4 = 2
+E[X3] = 12 * 3/4 = 9
+E[total] = 5 + 2 + 9 = 16.
 ```
 
-# Geometric waiting time
+The local problem describes independent events, but notice that the calculation
+above did not multiply event probabilities. It would remain valid if the bonus
+events were dependent and their individual probabilities stayed the same.
 
-If each attempt succeeds with probability `p`, the expected number of attempts
-until the first success is:
+# Pattern 2: first-step equations
 
-```text
-1 / p
-```
-
-Derivation:
+Suppose one attempt succeeds with probability `p`. Let `E` be the expected
+number of attempts until the first success. We always spend one attempt. After a
+failure, probability `1-p`, we are back in the same state:
 
 ```text
 E = 1 + (1-p)E
 pE = 1
-E = 1/p
+E = 1/p.
 ```
 
-If `p = a/b`, then:
+For a local input probability `p/q`, this is `q/p` modulo `MOD`.
+
+## Worked trace: success probability `2/5`
 
 ```text
-E = b/a
+E = 1 + (3/5)E
+(2/5)E = 1
+E = 5/2.
 ```
 
-# Coupon collector
+Modulo `MOD`, print `5 * inverse(2) = 500000006`. The contract for problem B
+has `1 <= p <= q < MOD`; success probability zero is intentionally excluded,
+because then no finite expectation exists. Treat that as a modeling warning,
+not as a hidden test case.
 
-There are `n` coupon types. Suppose you already have `i` distinct types. The
-probability that the next draw gives a new type is:
+# Pattern 3: coupon collector as staged waiting
+
+There are `n` equally likely coupon types. When `i` distinct types are already
+collected, `n-i` types would be new, so
 
 ```text
-(n-i)/n
+P(next draw is new) = (n-i)/n.
 ```
 
-The expected waiting time for the next new type is:
+The expected waiting time for the next new type is the reciprocal:
 
 ```text
-n/(n-i)
+E[stage i] = n/(n-i).
 ```
 
-Add stages for `i = 0..n-1`:
+The total time is the sum of the `n` stages, from zero types to all types:
 
 ```text
 n/n + n/(n-1) + ... + n/1
-= n * (1 + 1/2 + ... + 1/n)
+= n * (1 + 1/2 + ... + 1/n).
 ```
 
-# Modular harmonic sums
-
-For many coupon-collector queries, precompute:
+## Worked trace: `n=3`
 
 ```text
-H[i] = 1 + 1/2 + ... + 1/i mod MOD
+collected i     chance of new type     expected draws for this stage
+0                       3/3                         1
+1                       2/3                         3/2
+2                       1/3                         3
+total                                               11/2
 ```
 
-Then:
+Modulo `MOD`, `11/2` is `500000009`. The stage expectation is valid even though
+the number of failed draws in different stages is not fixed; linearity adds the
+stage random variables.
+
+# Precompute harmonic sums efficiently
+
+For up to `200,000` coupon queries with `n <= 1,000,000`, compute
 
 ```text
-answer(n) = n * H[n] mod MOD
+H[i] = H[i-1] + inverse(i),    H[0] = 0.
+answer(n) = n * H[n].
 ```
 
-# Worked expectation table
-
-Suppose a task has three independent bonuses:
+Calling binary exponentiation for every inverse costs `O(N log MOD)` and can be
+acceptable in optimized C++, but a linear inverse table is the better reusable
+tool:
 
 ```text
-bonus value   probability
-10            1/2
-6             1/3
-9             2/3
+inv[1] = 1
+inv[i] = MOD - (MOD / i) * inv[MOD % i] mod MOD, for i >= 2.
 ```
 
-The expected total is not the most likely total. It is the sum of each bonus's
-contribution:
+This recurrence is valid for `1 <= i < MOD`, which holds here. It gives `O(N)`
+preprocessing and `O(1)` per query.
+
+# Debugging first-step models
+
+For an expectation state `E[state]`, write:
 
 ```text
-10 * 1/2 + 6 * 1/3 + 9 * 2/3
-= 5 + 2 + 6
-= 13
+E[state] = immediate cost + sum P(next state) * E[next state].
 ```
 
-Linearity lets us avoid enumerating all `2^3` subsets of bonuses. This is the
-main contest trick: define indicator variables for events and sum their
-expectations.
+If a transition returns to the same state, move that term to the left before
+coding. The geometric wait is the smallest example. If all transitions move to
+smaller states, compute the equations with DP instead.
 
-# State-based expectation
+# C++ and Python implementation notes
 
-Some problems define expectation recursively. If `E[state]` is the expected
-remaining cost, write one equation per state:
+In C++, keep every modular product in `long long`; reduce after each product.
+For Coupon Collector, allocate `vector<long long>` once through the maximum
+query and use fast buffered I/O. In Python, use `pow(x, MOD-2, MOD)` for a
+single inverse and keep harmonic/inverse tables in lists; read all queries
+first to know the required maximum. The linear inverse recurrence reduces
+Coupon Collector preprocessing from `O(N log MOD)` to `O(N)`.
+
+# Formative exercises
+
+1. A reward of 9 is gained with probability `2/3`, and a reward of 6 is gained
+   with probability `1/2`. What is the expected total? Would your answer change
+   if the two events were dependent?
+2. An attempt succeeds with probability `1/4`. Write, then solve, the first-step
+   equation for its expected number of attempts.
+3. For three coupon types, what is the probability of a new type after exactly
+   one distinct type has been collected? What is that stage's expectation?
+4. Why is `p=0` not a valid input for First Success, while `p=0` is valid for an
+   individual Expected Prize event?
+
+Answers:
 
 ```text
-E[state] = immediate_cost + sum probability(next) * E[next]
+1. 9*(2/3) + 6*(1/2) = 9. No: linearity does not require independence.
+2. E = 1 + (3/4)E, so E = 4.
+3. 2/3, then 3/2.
+4. A zero-probability prize simply contributes expectation zero. Repeating
+   an experiment that can never succeed has infinite expected stopping time.
 ```
 
-If transitions only go to "smaller" states, compute by DP. If transitions can
-return to the same state, isolate the variable algebraically, like the
-geometric waiting-time derivation.
+# Exercises
 
-# Common mistakes
+Complete the four formative exercises above before local Problems A--C. They
+move from linearity, to a self-loop equation, to staged expectation.
 
-```text
-Using floating-point output for a modular problem.
-Assuming linearity requires independence.
-For geometric waiting time, outputting p instead of 1/p.
-For coupon collector, using n/i with i in the wrong direction.
-Forgetting to convert denominators with modular inverses.
+# Local workflow and checklist
+
+Run:
+
+```bash
+CP_TARGET=solution python3 sections/34_probability_expected_value/check.py
 ```
 
-# Submission checklist
+Before submission, check:
 
 ```text
-1. Is the problem asking for exact modular expectation or decimal output?
-2. What random variables can be summed?
-3. Can the process be split into stages?
-4. Are denominators nonzero modulo MOD?
-5. Are all subtractions and fractions normalized?
+I defined a random variable or expectation state.
+I used linearity without adding an unnecessary independence assumption.
+I multiplied probabilities only where independence is stated.
+Every modular denominator is nonzero modulo MOD.
+The first-step equation includes the attempt made now.
+Coupon stages run from i=0 through n-1, not in the reverse direction.
 ```

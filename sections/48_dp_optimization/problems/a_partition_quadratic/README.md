@@ -2,6 +2,10 @@
 
 Partition the array into `k` contiguous groups minimizing the sum of squared group sums.
 
+All array values are nonnegative. This condition is part of the problem: it
+makes the quadratic interval cost Monge, which permits the divide-and-conquer
+optimization used by the reference solutions.
+
 ## Sample
 
 Input:

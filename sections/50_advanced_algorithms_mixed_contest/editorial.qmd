@@ -25,6 +25,19 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. DAG Grundy.** Reverse topological order computes successor Grundy values
+before their parent; mex zero/nonzero gives exactly losing/winning states.
+
+**B. General CRT.** Two congruences intersect iff their residue difference is
+divisible by the gcd. Extended Euclid solves the reduced equation and gives the
+unique merged class modulo the lcm.
+
+**C. Fast Fibonacci.** The doubling identities preserve the adjacent pair
+`(F(k),F(k+1))`, so binary decomposition of the index returns the requested
+value in logarithmic time.
+
 ## Detailed solution guide
 
 **A. DAG Game Grundy.** Process vertices in reverse topological order. The
@@ -69,11 +82,11 @@ For each start vertex in a DAG, print whether the first player wins.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -109,11 +122,11 @@ For each pair of congruences, print the smallest nonnegative solution and lcm mo
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -150,11 +163,11 @@ Answer Fibonacci queries modulo `1e9+7`.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -182,5 +195,9 @@ if __name__=="__main__": main()
 ```
 
 # Testing discussion
+
+Use a slow mex DFS on tiny DAGs, brute-force congruence search on small moduli,
+and iterative Fibonacci as independent oracles. Check CRT normalization into
+`[0,lcm)`, zero Fibonacci, and a DAG vertex with no outgoing edges.
 
 Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

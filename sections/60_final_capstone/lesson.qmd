@@ -169,6 +169,15 @@ trying to hide.
 
 # Exercises
 
+## Capstone release checklist
+
+For each final task, state the constraint that rules out brute force, the
+invariant that makes the optimized method correct, and an independently written
+small oracle. Meet-in-the-middle splits items and combines sorted half sums;
+CRT validates compatibility by gcd before merging; recurrence exponentiation
+states what a matrix power represents. Stress each against the oracle before a
+timed rerun: `CP_TARGET=solution python3 sections/60_final_capstone/check.py`.
+
 - A. Capstone Subset: Meet-in-the-middle: maximum subset sum not exceeding `X`.
 - B. Capstone CRT: Merge pairs of congruences or report impossibility.
 - C. Capstone Recurrence: Fast Fibonacci queries modulo `1e9+7`.

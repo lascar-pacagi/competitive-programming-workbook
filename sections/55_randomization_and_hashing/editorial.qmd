@@ -25,6 +25,20 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Equal Substrings.** Equal strings have equal normalized polynomial hashes;
+the local double-hash implementation makes accidental equality negligible, and
+all queries are answered from prefix hashes in `O(1)`.
+
+**B. Palindrome Substrings.** A substring is palindromic precisely when its
+forward hash equals the aligned reverse-string hash. Normalization compares
+the same exponent range.
+
+**C. Anagram Substrings.** Prefix counts for each letter make the count vector
+of any substring a subtraction. Two strings are anagrams exactly when all
+their letter counts agree.
+
 ## Detailed solution guide
 
 **A. Substring Equality.** The definition asks whether two substrings have the
@@ -67,15 +81,15 @@ Answer whether two same-length substrings are equal.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -104,15 +118,15 @@ For each query, say whether the first substring is a palindrome.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -141,15 +155,15 @@ Answer whether two same-length substrings have the same multiset of letters.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -171,5 +185,28 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
+
+# Complete upsolve notes
+
+## A. Equal Substrings
+Build powers and prefix hashes. Normalize each same-length substring hash by
+subtracting its preceding prefix times the matching power; equal hashes answer
+YES probabilistically. The prefix recurrence proves the extraction formula.
+Preprocess O(n), query O(1); double hash in adversarial settings and test
+prefix/suffix/full ranges.
+
+## B. Palindrome Substrings
+Build the same hash for s and reversed s. Compare `[l,r)` against reversed
+`[n-r,n-l)`; equality is the palindrome condition. Preprocess O(n), query
+O(1). Test length one, even/odd palindrome, and an off-by-one reverse boundary.
+
+## C. Anagram Substrings
+For lowercase input, use 26 prefix counts, not a randomized hash. Two ranges
+are anagrams iff every character-count difference agrees. Preprocess O(26n)
+or 26 tables and query O(26); test repeated letters, unequal counts, and full
+ranges. This is exact and avoids collision reasoning.
+
+In C++ use long long modular multiplication; Python should avoid slicing in the
+fast path. Stress all three with direct string comparisons on short random data.
 
 Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

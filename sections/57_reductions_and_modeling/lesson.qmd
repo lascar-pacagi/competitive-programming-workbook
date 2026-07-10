@@ -168,6 +168,15 @@ If either direction fails, the graph you built is only a heuristic.
 
 # Exercises
 
+## Model-to-proof workshop
+
+For every reduction, prove both directions: a valid original solution maps to a
+valid graph/logic solution, and a returned graph/logic solution maps back. Draw
+left vertices, right vertices, and compatibility edges before matching; for
+2-SAT, write both implication edges for every clause; for flow, state what one
+unit means and what each capacity forbids. Test an isolated vertex, contradictory
+clauses, and a resource with capacity greater than one. Run `CP_TARGET=solution python3 sections/57_reductions_and_modeling/check.py`.
+
 - A. Matching Model: Given a bipartite graph, print maximum matching size.
 - B. Small 2-SAT: Given clauses `(a or b)` over signed variables, decide satisfiability.
 - C. Capstone Matching: Another matching instance to reinforce the reduction pattern.

@@ -23,222 +23,358 @@ execute:
   enabled: false
 ---
 
-# Why gcd is a contest primitive
+# Goals and problem signals
 
-The greatest common divisor answers the question:
-
-```text
-What is the largest unit size that divides both numbers?
-```
-
-It appears in fraction reduction, divisibility checks, modular inverses,
-periods, grid-step problems, and equations with integer solutions.
-
-# Euclid's algorithm
-
-The key identity:
+This section develops one chain of ideas:
 
 ```text
-gcd(a, b) = gcd(b, a mod b)
+Euclid computes gcd.
+Extended Euclid also constructs coefficients for the gcd.
+Those coefficients give modular inverses and solve ax + by = c.
 ```
 
-Why? Any number that divides both `a` and `b` also divides `a - q*b`, including
-the remainder `a mod b`. The common divisors are unchanged.
+The three local problems are deliberately close, but their outputs are
+different. Before coding, identify which question is being asked.
 
-Algorithm:
+| Statement signal | Mathematical object | First operation |
+|---|---|---|
+| "largest number dividing both" | `gcd(a,b)` | Euclid |
+| "smallest common multiple" | `lcm(a,b)` | divide by gcd before multiplying |
+| "inverse modulo m" | `a*x + m*y = 1` | extended Euclid, then normalize `x` |
+| "find integers x,y" | `a*x + b*y = c` | test `gcd(a,b) | c`, then scale Bezout coefficients |
+
+The local inputs are positive integers. That keeps the implementation compact;
+for variants with negative inputs, first make the gcd nonnegative and take extra
+care with language-specific division and remainder rules.
+
+# GCD: the invariant behind Euclid's algorithm
+
+For positive integers `a` and `b`, the greatest common divisor is the largest
+positive integer dividing both. Euclid's key identity is:
+
+```text
+gcd(a,b) = gcd(b, a mod b)
+```
+
+Write `a = q*b + r`, where `r = a mod b`. A number divides both `a` and `b`
+exactly when it divides both `b` and `a - q*b = r`. Thus a Euclid step preserves
+the *set* of common divisors, not merely its greatest member.
+
+Pseudocode:
 
 ```text
 while b != 0:
-    a, b = b, a mod b
-answer = a
+    (a, b) = (b, a mod b)
+return a
 ```
 
-Complexity is `O(log min(a,b))`.
+## Trace: `gcd(252, 105)`
 
-# LCM
+| Current `a` | Current `b` | Remainder `a mod b` | Next pair |
+|---:|---:|---:|---:|
+| 252 | 105 | 42 | `(105,42)` |
+| 105 | 42 | 21 | `(42,21)` |
+| 42 | 21 | 0 | `(21,0)` |
 
-The least common multiple satisfies:
+The algorithm returns `21`. At every row, the common divisors are unchanged;
+when the second value is zero, every positive divisor of the first value is a
+common divisor, so that first value is the gcd.
+
+Euclid runs in `O(log min(a,b))` iterations. Consecutive Fibonacci numbers are
+the familiar near-worst case, so this bound remains excellent even for
+`10^18`-scale values.
+
+# LCM: use the identity, but preserve the arithmetic order
+
+For the positive inputs in problem A:
 
 ```text
-gcd(a,b) * lcm(a,b) = a * b
+gcd(a,b) * lcm(a,b) = a*b
 ```
 
-Compute it as:
+The identity follows prime by prime. If prime `p` occurs with exponents `u` and
+`v` in `a` and `b`, then gcd uses `min(u,v)` and lcm uses `max(u,v)`. Their
+exponents add to `u+v`, exactly the exponent in `a*b`.
+
+Compute:
 
 ```text
-lcm = a / gcd(a,b) * b
+g = gcd(a,b)
+l = (a / g) * b
 ```
 
-Divide before multiplying to reduce overflow risk.
+The parentheses are part of the algorithm. `a*b/g` can overflow before the
+division even when the final lcm fits. Dividing first removes the common factor.
+It does **not** prove that the final product fits; use `__int128` when the
+constraints permit lcm above `long long`.
 
-# Extended Euclid
-
-Extended Euclid finds integers `x` and `y` such that:
+## Trace: `a=84`, `b=126`
 
 ```text
-a*x + b*y = gcd(a,b)
+gcd(84,126) = 42
+lcm(84,126) = (84 / 42) * 126 = 252
 ```
 
-This is called Bezout's identity.
+Check both directions: `252/84=3` and `252/126=2`, so it is a common multiple;
+the gcd identity proves it is the least one.
 
-Recursive transition:
+# Extended Euclid: construct Bezout coefficients
+
+Ordinary Euclid returns only `g = gcd(a,b)`. Extended Euclid also returns
+integers `x,y` satisfying:
 
 ```text
-If b == 0:
-    gcd = a, x = 1, y = 0
-
-Otherwise:
-    g, x1, y1 solve b*x1 + (a mod b)*y1 = g
+a*x + b*y = g
 ```
 
-Since:
+This is Bezout's identity. The recursive base case is clear:
 
 ```text
-a mod b = a - floor(a/b)*b
+when b = 0:  a*1 + 0*0 = a
 ```
 
-Substitute:
+For a non-base call, recursively obtain:
+
+```text
+b*x1 + (a mod b)*y1 = g
+```
+
+Since `a mod b = a - floor(a/b)*b`, substitute it:
 
 ```text
 b*x1 + (a - floor(a/b)*b)*y1
 = a*y1 + b*(x1 - floor(a/b)*y1)
 ```
 
-So:
+Therefore the parent call can return:
 
 ```text
 x = y1
 y = x1 - floor(a/b)*y1
 ```
 
-# Modular inverse with any modulus
+Pseudocode, including the exact return contract:
 
-An inverse of `a` modulo `m` is an `x` such that:
+```text
+extended_gcd(a, b):
+    if b == 0:
+        return (a, 1, 0)
+    (g, x1, y1) = extended_gcd(b, a mod b)
+    return (g, y1, x1 - floor(a/b)*y1)
+```
+
+## Trace: coefficients for `30` and `18`
+
+Back-substitution makes the construction visible:
+
+```text
+30 = 1*18 + 12
+18 = 1*12 + 6
+6  = 30 - 18
+
+6 = 30 - 18
+```
+
+So one returned triple is:
+
+```text
+g=6, x=1, y=-1
+30*1 + 18*(-1) = 6
+```
+
+There are many valid coefficient pairs. Extended Euclid is useful because it
+constructs one deterministically in logarithmic time.
+
+# General modular inverse
+
+An inverse of `a` modulo `m` is a residue `x` with:
 
 ```text
 a*x == 1 (mod m)
 ```
 
-This means:
+This congruence is equivalent to the existence of an integer `y` with:
 
 ```text
 a*x + m*y = 1
 ```
 
-Such integers exist exactly when:
+Bezout's identity says an integer linear combination of `a` and `m` can equal
+`1` exactly when `gcd(a,m)=1`. Thus:
 
 ```text
-gcd(a,m) = 1
+inverse exists <=> gcd(a,m) = 1
 ```
 
-So extended Euclid gives the inverse directly. This is more general than the
-Fermat inverse from Section 29, which required a prime modulus.
+When extended Euclid returns `a*x + m*y = 1`, the coefficient `x` is an
+inverse. Normalize it because judges normally require the smallest
+nonnegative representative:
+
+```text
+x = x mod m
+if x < 0: x += m       # needed in C++ after a negative remainder
+```
+
+The local inverse problem defines the answer for `m=1` to be `0`. Handle it
+before the ordinary inverse logic; modulo one has only the residue zero.
+
+## Trace: inverse of `6` modulo `35`
+
+Extended Euclid finds:
+
+```text
+6*6 + 35*(-1) = 1
+```
+
+Hence `6` is the inverse. Verify the required congruence, not ordinary
+division:
+
+```text
+6*6 = 36 == 1 (mod 35)
+```
+
+For `6` modulo `9`, `gcd(6,9)=3`. Every combination `6*x+9*y` is divisible by
+three, so it can never equal one. Returning any number as an inverse is wrong.
 
 # Linear Diophantine equations
 
-For:
+Consider:
 
 ```text
 a*x + b*y = c
 ```
 
-integer solutions exist exactly when:
-
-```text
-gcd(a,b) divides c
-```
-
-If extended Euclid gives:
+Every left-hand side is a multiple of `g=gcd(a,b)`, so a necessary condition is
+`g | c`. It is also sufficient. If extended Euclid gives:
 
 ```text
 a*x0 + b*y0 = g
 ```
 
-and `c = g * scale`, then:
+and `c = g*scale`, multiply both sides by `scale`:
 
 ```text
 a*(x0*scale) + b*(y0*scale) = c
 ```
 
-This gives one solution. There are infinitely many others when a solution
-exists, but the local problem only asks for any one.
-
-# Worked example
-
-Solve:
+This yields one solution. The complete family is useful in harder variants with
+nonnegative or bounded variables:
 
 ```text
-6x + 10y = 14
+x = x0 + (b/g)*t
+y = y0 - (a/g)*t
 ```
 
-`gcd(6,10)=2`, and `2` divides `14`, so a solution exists.
+for any integer `t`. Substitution shows the additional terms cancel.
 
-Extended Euclid may produce:
+## Trace: solve `6x + 10y = 14`
+
+Extended Euclid may return:
 
 ```text
 6*2 + 10*(-1) = 2
 ```
 
-Scale by `7`:
+Here `g=2` divides `14`, and `scale=7`:
 
 ```text
-x = 14
-y = -7
+x = 2*7 = 14
+y = -1*7 = -7
 ```
 
-Check:
+Verification is mandatory:
 
 ```text
 6*14 + 10*(-7) = 84 - 70 = 14
 ```
 
-# C++ notes
+For `6x+10y=15`, the gcd is still two but does not divide fifteen, so no
+integer solution exists.
 
-C++ has `std::gcd` in `<numeric>`, included by `bits/stdc++.h`.
+# Implementation notes
 
-Normalize modular inverse answers:
+## C++
+
+`std::gcd` is available through `<numeric>` (and therefore through the common
+contest include `bits/stdc++.h`). Store answers and Bezout coefficients in
+`long long` for the local `10^9` constraints. In larger variants, the update:
 
 ```cpp
-x %= m;
-if (x < 0) x += m;
+y = x1 - (a / b) * y1;
 ```
 
-For the local constraints, `long long` is enough. For larger `1e18` versions,
-extended-Euclid coefficient multiplication may require `__int128`.
+and the final scaling can require `__int128` even when `a` and `b` fit in
+`long long`.
 
-# Python notes
+## Python
 
-Python has:
+Use `math.gcd` when only the gcd is needed. Python integers do not overflow,
+but recursive extended Euclid still needs its base case and exact quotient
+formula. Python normalizes `x % m` into `[0,m-1]` for positive `m`; C++ does
+not, which is why the explicit correction is shown above.
 
-```python
-math.gcd(a, b)
+# Failure modes and tests
+
+| Mistake | Minimal counterexample | Correct reaction |
+|---|---|---|
+| compute `a*b/g` first | large values with a small gcd | divide by gcd first |
+| assume every `a` has an inverse | `a=6,m=9` | print `-1` because gcd is 3 |
+| use Fermat under a composite modulus | inverse modulo 35 | use extended Euclid |
+| scale before divisibility test | `6x+10y=15` | report impossible |
+| reject negative coefficients | `6x+10y=14` gives `y=-7` | integers may be negative |
+| forget modulus one | `a=25,m=1` | output `0` in the local contract |
+
+For every Diophantine output, substitute the printed values back into the
+original equation. This catches swapped coefficients, missing scale factors,
+and sign errors immediately.
+
+# Formative exercises
+
+1. Compute `gcd(391, 299)` by Euclid. What invariant remains true after every
+   remainder step?
+
+   Hint: write `391 = 1*299 + 92` and continue.
+
+   Answer: the gcd is `23`; every step preserves the set of common divisors.
+
+2. Does `14` have an inverse modulo `35`? Explain without trying candidate
+   residues.
+
+   Hint: an inverse would make an integer combination equal to one.
+
+   Answer: no. `gcd(14,35)=7`, so every combination is divisible by seven.
+
+3. Find one pair solving `15x + 21y = 12`.
+
+   Hint: first find a Bezout representation of `gcd(15,21)`.
+
+   Answer: `15*3 + 21*(-2)=3`; scale by four to get `(x,y)=(12,-8)`.
+
+4. Describe all solutions to `6x + 10y = 14` from the worked trace.
+
+   Hint: use `g=2` and add a multiple of `(b/g,-a/g)`.
+
+   Answer: `x=14+5t`, `y=-7-3t` for every integer `t`.
+
+# Exercises
+
+Complete the four formative exercises above before implementing local Problems
+A--C; their hints and answers are deliberately included for self-checking.
+
+# Local workflow
+
+Run the section checker after implementing each problem:
+
+```bash
+CP_TARGET=solution python3 sections/30_gcd_lcm_diophantine/check.py
 ```
 
-Python's `%` already normalizes negatives:
-
-```python
-x % m
-```
-
-is in `[0, m-1]` when `m > 0`.
-
-# Common mistakes
+Before submission, check these exact questions:
 
 ```text
-Computing lcm as a*b/g before dividing.
-Assuming every number has a modular inverse.
-Using Fermat inverse with composite modulus.
-Forgetting to check c % gcd(a,b) for ax + by = c.
-Expecting the Diophantine solution to be unique.
-Failing to normalize negative inverse coefficients in C++.
-```
-
-# Submission checklist
-
-```text
-1. Did you compute gcd first?
-2. For lcm, did you divide before multiplying?
-3. For inverse, is gcd(a,m) exactly 1?
-4. For ax+by=c, does gcd(a,b) divide c?
-5. Are negative modular answers normalized?
+1. For lcm, did I divide before multiplying?
+2. For an inverse, did I test gcd(a,m) == 1 and normalize the coefficient?
+3. For ax+by=c, did I test c % gcd(a,b) before scaling?
+4. Did I verify a*x+b*y on a small trace, including a negative coefficient?
+5. Do my integer types cover intermediate products under the stated bounds?
 ```

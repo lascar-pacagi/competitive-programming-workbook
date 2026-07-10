@@ -25,94 +25,109 @@ execute:
 
 # Editorial overview
 
-All three problems use factorials and modular inverses under the prime modulus
-`1,000,000,007`.
+| Problem | Mathematical object | Required factorial limit |
+|---|---|---|
+| A. Choose Queries | `C(n,k)` | maximum `n` |
+| B. Rearrange Letters | `n! / product(c!)` | string length |
+| C. Distribute Candies | `C(n+s-1,n-1)` | maximum `n+s-1` |
 
-| Problem | Formula |
-|---|---|
-| A. Choose Queries | `C(n,k)` |
-| B. Rearrange Letters | `n! / product(count!)` |
-| C. Distribute Candies | `C(n+s-1,n-1)` |
+# Shared tool: factorials under a prime modulus
 
-# Factorial helper
+All local factorial indices are below `MOD=1,000,000,007`; this is a required
+precondition, not a cosmetic fact. It ensures `i!` has an inverse modulo `MOD`.
+The local maximum index is at most two million, so the technique is valid.
 
-Precompute:
-
-```text
-fact[i] = i!
-invfact[i] = inverse(i!)
-```
-
-Then:
+Store arrays indexed from `0` through `limit` with the invariant:
 
 ```text
-C(n,k) = fact[n] * invfact[k] * invfact[n-k] mod MOD
+fact[i]    = i! mod MOD
+invfact[i] = inverse(i!) mod MOD
 ```
+
+```text
+fact[0] = 1
+for i = 1..limit: fact[i] = fact[i-1] * i
+invfact[limit] = fact[limit]^(MOD-2)
+for i = limit down to 1: invfact[i-1] = invfact[i] * i
+C(n,k) = 0 if k < 0 or k > n, otherwise fact[n]*invfact[k]*invfact[n-k]
+```
+
+The backward recurrence follows from `i! = i*(i-1)!`. It costs `O(limit)` time,
+one `O(log MOD)` exponentiation, and `O(limit)` memory; `C(n,k)` is then `O(1)`.
+In C++, multiply as `long long`; in Python use `pow(x, MOD-2, MOD)`.
 
 # A. Choose Queries
 
-## Restatement
+## Restatement and constraints
 
-Answer many binomial coefficient queries modulo `MOD`.
+Answer up to `200,000` values of `C(n,k)` for `0 <= k <= n <= 10^6`. Computing
+the product from scratch per query is too slow, and ordinary division after a
+modulo is invalid. Read all queries first because the largest `n` determines
+the one shared preprocessing limit.
 
-## Algorithm
+## Observations and walk-through
 
-Read all queries, find the largest `n`, precompute factorials and inverse
-factorials up to that limit, then answer each query in `O(1)`.
+For `C(6,2)`, ordinary arithmetic says `6!/(2!4!)=15`. The code instead
+multiplies three residues:
+
+```text
+fact[6] * invfact[2] * invfact[4] mod MOD = 15
+```
+
+For `C(10,0)` and `C(10,10)`, the same formula uses `fact[0]=invfact[0]=1`,
+so both answers are one without branches.
+
+## Pseudocode
+
+```text
+read all (n,k) queries
+prepare(maximum n)
+for each (n,k): print C(n,k)
+```
 
 ## Correctness proof
 
-`fact[n]` stores `n!`. Since `MOD` is prime and `n < MOD`, the factorials in the
-denominator are invertible. Multiplying by `invfact[k]` and `invfact[n-k]` is
-therefore exactly division by `k!(n-k)!` in modular arithmetic. This matches
-the binomial coefficient formula. `\square`
+The shared invariant gives `fact[n]=n!` and inverse factorials for both
+denominator terms. Since all indices are below prime `MOD`, those denominator
+factorials are invertible. Their product with `fact[n]` is exactly
+`n!/(k!(n-k)!)` in modular arithmetic, which is `C(n,k)`. `\square`
 
 ## Complexity
 
 ```text
-Preprocessing: O(max n)
-Each query:   O(1)
-Memory:       O(max n)
+Preprocessing: O(max n) time and memory
+Each query:    O(1) time
 ```
+
+## Implementation notes and wrong answers
+
+Do not precompute `invfact[i]` with an exponentiation inside a loop. Do not
+omit `fact[0]=1`. A generic combination helper should reject invalid `k` even
+though this local input guarantees a valid range.
 
 ## Full C++ solution
 
 ```cpp
 #include <bits/stdc++.h>
 using namespace std;
-
 const long long MOD = 1000000007LL;
 
-long long mod_pow(long long a, long long b) {
-    long long result = 1;
-    while (b > 0) {
-        if (b & 1LL) result = result * a % MOD;
-        a = a * a % MOD;
-        b >>= 1LL;
-    }
-    return result;
+long long power(long long a, long long e) {
+    long long r = 1;
+    while (e) { if (e & 1) r = r * a % MOD; a = a * a % MOD; e >>= 1; }
+    return r;
 }
-
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    int q;
-    if (!(cin >> q)) return 0;
-    vector<pair<int, int>> queries(q);
-    int limit = 0;
-    for (auto &[n, k] : queries) {
-        cin >> n >> k;
-        limit = max(limit, n);
-    }
+    ios::sync_with_stdio(false); cin.tie(nullptr);
+    int q; if (!(cin >> q)) return 0;
+    vector<pair<int,int>> queries(q); int limit = 0;
+    for (auto &[n,k] : queries) { cin >> n >> k; limit = max(limit, n); }
     vector<long long> fact(limit + 1, 1), invfact(limit + 1, 1);
-    for (int i = 1; i <= limit; i++) fact[i] = fact[i - 1] * i % MOD;
-    invfact[limit] = mod_pow(fact[limit], MOD - 2);
-    for (int i = limit; i >= 1; i--) invfact[i - 1] = invfact[i] * i % MOD;
-    for (auto [n, k] : queries) {
-        cout << fact[n] * invfact[k] % MOD * invfact[n - k] % MOD << '\n';
-    }
-    return 0;
+    for (int i = 1; i <= limit; ++i) fact[i] = fact[i-1] * i % MOD;
+    invfact[limit] = power(fact[limit], MOD - 2);
+    for (int i = limit; i >= 1; --i) invfact[i-1] = invfact[i] * i % MOD;
+    for (auto [n,k] : queries)
+        cout << fact[n] * invfact[k] % MOD * invfact[n-k] % MOD << '\n';
 }
 ```
 
@@ -120,7 +135,6 @@ int main() {
 
 ```python
 import sys
-
 
 MOD = 1_000_000_007
 
@@ -134,69 +148,96 @@ def prepare(limit: int) -> tuple[list[int], list[int]]:
     for i in range(limit, 0, -1):
         invfact[i - 1] = invfact[i] * i % MOD
     return fact, invfact
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    q = data[0]
+    queries = [(data[i], data[i + 1]) for i in range(1, 2 * q + 1, 2)]
+    fact, invfact = prepare(max(n for n, _ in queries))
+    print("\n".join(str(fact[n] * invfact[k] % MOD * invfact[n-k] % MOD)
+                    for n, k in queries))
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 # B. Rearrange Letters
 
-## Restatement
+## Restatement and constraints
 
-Count distinct permutations of all letters in a string that may contain
-repeated letters.
+Given one lowercase string of length at most `10^6`, count its distinct
+rearrangements modulo `MOD`. The trap is that equal letters are not distinct
+objects, so a direct `n!` overcounts.
 
-## Observations
+## Observations and walk-through
 
-There are `n!` permutations if every position were distinguishable. For a
-letter that appears `c` times, permutations among those equal copies are not
-distinct, so divide by `c!`.
+For `aabc`, pretend the two `a`s are labelled `a1,a2`. There are `4!=24`
+labelled permutations, but `a1abc` and `a2abc` are the same visible string.
+Every visible arrangement is counted `2!` times, so the answer is `24/2=12`.
+For `aabbc`, two independent duplicate groups give `5!/(2!*2!)=30`.
 
-## Formula
+## Pseudocode
 
 ```text
-answer = n! / product(count[ch]!)
+count every letter
+prepare(length of string)
+answer = fact[length]
+for each letter count c:
+    answer = answer * invfact[c] mod MOD
+print answer
 ```
 
 ## Correctness proof
 
-Label equal letters temporarily. There are `n!` labeled permutations. For any
-fixed final string, the `count[ch]` copies of each character can be permuted
-among themselves without changing the visible string, giving exactly
-`product(count[ch]!)` labeled permutations for the same visible arrangement.
-Dividing gives the number of distinct arrangements. Modular inverses implement
-the same division under `MOD`. `\square`
+Label all equal copies temporarily. There are `n!` labelled orders. For a fixed
+visible arrangement, the copies of each character can be permuted in `c!` ways
+without changing it; independent character groups multiply these counts.
+Therefore each visible arrangement has exactly `product(c!)` labelled
+preimages, and multiplying by inverse factorials computes the quotient.
+`\square`
+
+## Complexity
+
+```text
+Time:   O(n + alphabet size)
+Memory: O(n)
+```
+
+## Implementation notes and wrong answers
+
+Use a 26-entry frequency array; counts of absent characters are zero and
+`invfact[0]=1`, so they are harmless. Recomputing `inverse(fact[c])` separately
+for every letter is acceptable for 26 letters but hides the reusable engine.
+Do not count `n!` when the string has duplicates.
 
 ## Full C++ solution
 
 ```cpp
 #include <bits/stdc++.h>
 using namespace std;
-
 const long long MOD = 1000000007LL;
-
-long long mod_pow(long long a, long long b) {
-    long long result = 1;
-    while (b > 0) {
-        if (b & 1LL) result = result * a % MOD;
-        a = a * a % MOD;
-        b >>= 1LL;
-    }
-    return result;
+long long power(long long a, long long e) {
+    long long r = 1;
+    while (e) { if (e & 1) r = r*a % MOD; a = a*a % MOD; e >>= 1; }
+    return r;
 }
-
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    string s;
-    if (!(cin >> s)) return 0;
+    ios::sync_with_stdio(false); cin.tie(nullptr);
+    string s; if (!(cin >> s)) return 0;
     int n = (int)s.size();
-    vector<long long> fact(n + 1, 1);
-    for (int i = 1; i <= n; i++) fact[i] = fact[i - 1] * i % MOD;
-    vector<int> cnt(26, 0);
-    for (char ch : s) cnt[ch - 'a']++;
+    vector<long long> fact(n + 1, 1), invfact(n + 1, 1);
+    for (int i = 1; i <= n; ++i) fact[i] = fact[i-1] * i % MOD;
+    invfact[n] = power(fact[n], MOD - 2);
+    for (int i = n; i >= 1; --i) invfact[i-1] = invfact[i] * i % MOD;
+    int count[26]{};
+    for (char ch : s) ++count[ch - 'a'];
     long long answer = fact[n];
-    for (int c : cnt) answer = answer * mod_pow(fact[c], MOD - 2) % MOD;
+    for (int c : count) answer = answer * invfact[c] % MOD;
     cout << answer << '\n';
-    return 0;
 }
 ```
 
@@ -205,24 +246,27 @@ int main() {
 ```python
 import sys
 
-
 MOD = 1_000_000_007
 
 
 def main() -> None:
-    data = sys.stdin.buffer.read().strip()
-    if not data:
+    s = sys.stdin.buffer.read().strip()
+    if not s:
         return
-    n = len(data)
+    n = len(s)
     fact = [1] * (n + 1)
     for i in range(1, n + 1):
         fact[i] = fact[i - 1] * i % MOD
+    invfact = [1] * (n + 1)
+    invfact[n] = pow(fact[n], MOD - 2, MOD)
+    for i in range(n, 0, -1):
+        invfact[i - 1] = invfact[i] * i % MOD
     counts = [0] * 26
-    for ch in data:
-        counts[ch - 97] += 1
+    for ch in s:
+        counts[ch - ord('a')] += 1
     answer = fact[n]
     for c in counts:
-        answer = answer * pow(fact[c], MOD - 2, MOD) % MOD
+        answer = answer * invfact[c] % MOD
     print(answer)
 
 
@@ -232,74 +276,72 @@ if __name__ == "__main__":
 
 # C. Distribute Candies
 
-## Restatement
+## Restatement and constraints
 
-Count nonnegative integer solutions:
+For each of up to `200,000` queries, distribute `s` identical candies among
+`n` distinct children, allowing zero. Both are at most `10^6`, so the largest
+factorial index is `n+s-1`, at most `1,999,999`, still strictly below `MOD`.
+Precomputing merely to maximum `n` is a frequent wrong answer.
+
+## Observations and walk-through
+
+The equation is `x1+...+xn=s` with nonnegative variables. For `n=3,s=4`, the
+string `**|*|*` represents `(2,1,1)`. There are four stars and two bars; choose
+two bar positions among six, giving `C(6,2)=15`. For `n=1,s=10`, choose zero
+bars, `C(10,0)=1`.
+
+## Pseudocode
 
 ```text
-x1 + x2 + ... + xn = s
-```
-
-## Stars-and-bars derivation
-
-Represent candies by stars and separators between children by bars. There are
-`s` stars and `n-1` bars, so `s+n-1` positions. Choosing the bar positions
-uniquely determines the distribution.
-
-Therefore:
-
-```text
-answer = C(s+n-1, n-1)
+read all (n,s) queries
+prepare(maximum over queries of n+s-1)
+for each query: print C(n+s-1, n-1)
 ```
 
 ## Correctness proof
 
-Given a distribution, write `x1` stars, then a bar, then `x2` stars, and so on.
-This creates a unique sequence of `s` stars and `n-1` bars. Conversely, any such
-sequence determines how many stars lie in each of the `n` gaps. This is a
-bijection, so the number of distributions is the number of ways to choose the
-bar positions: `C(s+n-1,n-1)`. `\square`
+Map a distribution to a row containing `x1` stars, a bar, `x2` stars, and so
+on. This mapping is reversible: the stars in each gap recover the unique
+distribution. There are `s+n-1` positions and selecting the `n-1` bar positions
+therefore counts all and only valid distributions. `\square`
+
+## Complexity
+
+```text
+Preprocessing: O(L) time and memory, L = max(n+s-1)
+Each query:    O(1) time
+```
+
+## Implementation notes and wrong answers
+
+Read all queries before allocating so the maximum uses `n+s-1`. Children are
+distinct but candies are identical: use bars, not a permutation count. The
+formula already handles `s=0` and `n=1`; extra branches are unnecessary.
 
 ## Full C++ solution
 
 ```cpp
 #include <bits/stdc++.h>
 using namespace std;
-
 const long long MOD = 1000000007LL;
-
-long long mod_pow(long long a, long long b) {
-    long long result = 1;
-    while (b > 0) {
-        if (b & 1LL) result = result * a % MOD;
-        a = a * a % MOD;
-        b >>= 1LL;
-    }
-    return result;
+long long power(long long a, long long e) {
+    long long r = 1;
+    while (e) { if (e & 1) r = r*a % MOD; a = a*a % MOD; e >>= 1; }
+    return r;
 }
-
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    int q;
-    if (!(cin >> q)) return 0;
-    vector<pair<int, int>> queries(q);
-    int limit = 0;
-    for (auto &[n, s] : queries) {
-        cin >> n >> s;
-        limit = max(limit, n + s - 1);
-    }
+    ios::sync_with_stdio(false); cin.tie(nullptr);
+    int q; if (!(cin >> q)) return 0;
+    vector<pair<int,int>> queries(q); int limit = 0;
+    for (auto &[n,s] : queries) { cin >> n >> s; limit = max(limit, n+s-1); }
     vector<long long> fact(limit + 1, 1), invfact(limit + 1, 1);
-    for (int i = 1; i <= limit; i++) fact[i] = fact[i - 1] * i % MOD;
-    invfact[limit] = mod_pow(fact[limit], MOD - 2);
-    for (int i = limit; i >= 1; i--) invfact[i - 1] = invfact[i] * i % MOD;
-    for (auto [n, s] : queries) {
-        int total = n + s - 1;
-        int choose = n - 1;
-        cout << fact[total] * invfact[choose] % MOD * invfact[total - choose] % MOD << '\n';
+    for (int i = 1; i <= limit; ++i) fact[i] = fact[i-1] * i % MOD;
+    invfact[limit] = power(fact[limit], MOD - 2);
+    for (int i = limit; i >= 1; --i) invfact[i-1] = invfact[i] * i % MOD;
+    for (auto [n,s] : queries) {
+        int all = n + s - 1, bars = n - 1;
+        cout << fact[all] * invfact[bars] % MOD * invfact[all-bars] % MOD << '\n';
     }
-    return 0;
 }
 ```
 
@@ -307,7 +349,6 @@ int main() {
 
 ```python
 import sys
-
 
 MOD = 1_000_000_007
 
@@ -321,31 +362,50 @@ def prepare(limit: int) -> tuple[list[int], list[int]]:
     for i in range(limit, 0, -1):
         invfact[i - 1] = invfact[i] * i % MOD
     return fact, invfact
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    q = data[0]
+    queries = [(data[i], data[i + 1]) for i in range(1, 2 * q + 1, 2)]
+    fact, invfact = prepare(max(n + s - 1 for n, s in queries))
+    out = []
+    for n, s in queries:
+        all_positions = n + s - 1
+        bars = n - 1
+        out.append(str(fact[all_positions] * invfact[bars] % MOD
+                       * invfact[all_positions - bars] % MOD))
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
 ```
 
-# Testing discussion
+# Testing and stress discussion
 
-The random tests compare against Python's exact `math.comb` and exact
-factorial arithmetic for small cases, then reduce modulo `MOD`. Important cases
-include:
+For A, compare small values with `math.comb`. For B, enumerate permutations of
+short strings and compare the number of unique strings. For C, enumerate small
+nonnegative vectors recursively, then compare with the formula. Important
+fixed tests are:
 
 ```text
-k = 0 and k = n
-s = 0
-n = 1
-all letters equal
-all letters distinct
+A: k=0, k=n, and the largest n
+B: all equal letters and all distinct letters
+C: s=0, n=1, and a query that determines the global maximum n+s-1
+```
+
+Run the supplied checks with:
+
+```bash
+CP_TARGET=solution python3 sections/32_combinatorics_under_modulo/check.py
 ```
 
 # What to carry forward
 
-Most beginner combinatorics under modulo reduces to:
-
-```text
-precompute factorials
-precompute inverse factorials
-translate the story into C(n,k), duplicate permutations, or stars-and-bars
-```
-
-The next section adds inclusion-exclusion for cases where direct counting
-overcounts invalid objects.
+First translate a story into a mathematical object. Then determine the largest
+factorial index *before* coding. Prime-modulus factorial preprocessing is a
+powerful constant-time query engine, but only while every relevant index remains
+strictly below the modulus.

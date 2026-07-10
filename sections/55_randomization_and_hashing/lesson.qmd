@@ -173,4 +173,27 @@ requires a proof with no collision caveat.
 - C. Anagram Substrings: Answer whether two same-length substrings have the same multiset of letters.
 # Contest checklist
 
+# Query contracts and exact oracles
+
+For a polynomial prefix hash, store `H[i+1]=H[i]*B+code(s[i])`. Normalize a
+substring `[l,r)` by subtracting `H[l]*B^(r-l)`. Equal normalized hashes are a
+fast probabilistic equality test; use two moduli or an exact comparison when a
+collision is unacceptable.
+
+For palindrome `[l,r)`, compare its forward hash with the corresponding range
+in the reversed string. Write the reverse-index conversion before coding:
+`[l,r)` maps to `[n-r,n-l)`. On `abacaba`, `[2,5)` is `aca` and maps to the
+same reversed interval.
+
+Anagrams need no randomness locally: 26 prefix counts make each character
+count in O(1), and two substrings are anagrams iff all 26 differences match.
+This is exact and preferable to randomized character weights for lowercase
+input.
+
+In C++ use `long long` for products before modulo; in Python use integers and
+avoid slicing in the optimized query loop. Test equal ranges, equal hashes at
+different positions, length one, full string, and reverse-index boundaries.
+Run `CP_TARGET=solution python3 sections/55_randomization_and_hashing/check.py`
+and compare random short queries with direct slices/sorted character counts.
+
 State the invariant, choose the model, prove the operation, then code the smallest reliable version.

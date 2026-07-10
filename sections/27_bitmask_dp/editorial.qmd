@@ -52,8 +52,9 @@ covers all skills, output `-1`.
 
 ## Constraints and traps
 
-`n <= 20`, so there are at most `2^20` skill masks. `m` can be much larger than
-`n`, so enumerating candidate subsets would be `2^m` and impossible.
+`n <= 20`, so there are at most `2^20` skill masks. With `m <= 30`, enumerating
+candidate subsets would still be `2^m` and impossible, while an `m * 2^n` DP
+is the intended bound in both C++ and Python.
 
 Costs can sum beyond 32-bit integer range. Use `long long` in C++.
 
@@ -152,7 +153,10 @@ candidate to preserve the "considered once" invariant.
 
 ## Python implementation notes
 
-Copy the list with `dp[:]`. Python integers handle large costs automatically.
+Copy the list with `dp[:]` and skip `INF` states. Before the DP, coalesce equal
+skill masks to their cheapest cost and discard an offer that is no cheaper and
+covers a subset of another offer; such an offer can never improve an optimum.
+Python integers handle large costs automatically.
 
 ## Full C++ solution
 

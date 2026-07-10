@@ -28,6 +28,15 @@ local_tested: no
 ## ICPC-Style
 
 ```text
+title: Kattis - Prozor
+link: https://open.kattis.com/problems/prozor
+difficulty: medium
+topics: two-dimensional prefix sums, fixed-size window sums
+status: required
+local_tested: no
+```
+
+```text
 title: ICPC World Finals problem archive
 link: https://icpc.global/worldfinals/problems
 difficulty: browse archive
@@ -37,4 +46,3 @@ local_tested: no
 notes: Prefix sums often appear as a hidden subroutine in ICPC geometry,
        grids, and optimization problems.
 ```
-

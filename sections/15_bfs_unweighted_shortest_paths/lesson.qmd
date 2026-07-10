@@ -605,4 +605,6 @@ Did I use deque/queue, not Python list pop(0)?
 For grids, did I check bounds before indexing?
 For path output, did I reverse the reconstructed moves?
 ```
+# Exercises
 
+Solve A after identifying components as repeated BFS launches; solve B after writing the `dist` invariant; solve C only after tracing parent recovery on a one-cell grid. For each, test an isolated start vertex and an unreachable target.

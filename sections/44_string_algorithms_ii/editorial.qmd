@@ -25,6 +25,21 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Trie Prefix Count.** Incrementing every trie node visited by an inserted
+word makes that node's count equal to the number of words sharing its prefix.
+Following a query prefix therefore returns the desired count in its length.
+
+**B. Palindrome Queries.** The local constraints permit direct mirrored
+comparison: a substring is a palindrome exactly when every symmetric pair is
+equal. This is `O(length)` per query and avoids probabilistic hash collisions.
+
+**C. Distinct Substrings.** The local task uses a suffix automaton. State `v`
+contributes `len[v]-len[link[v]]` distinct substring lengths, so summing these
+over non-root states is linear in the number of automaton states. Enumeration
+of all substrings is only a small-input stress-testing oracle.
+
 ## Detailed solution guide
 
 **A. Trie Prefix Count.** Each trie node represents exactly one prefix: the
@@ -41,12 +56,11 @@ the substring equals its reverse. If one pair differs, the two strings differ at
 a mirrored position, so it is not a palindrome. In a larger contest version,
 the same condition can be checked with forward and reverse rolling hashes.
 
-**C. Distinct Substrings.** The local solution enumerates every substring and
-inserts it into a set. A set stores one representative of each equal substring,
-so its final size is exactly the number of distinct substrings. The optimized
-red-level version is a suffix automaton: each state contributes
-`len[v] - len[link[v]]` new substrings, because those are exactly the lengths
-whose first end-position class is represented by `v`.
+**C. Distinct Substrings.** The local solution is a suffix automaton. Each
+state contributes `len[v] - len[link[v]]` new substrings: these are exactly the
+lengths whose end-position class first appears at that state. Summing over
+non-root states gives the answer. Enumerating every substring into a set is
+correct only for tiny random tests used to validate the automaton.
 
 **Common pitfalls.** Trie counters count prefixes, not terminal words only.
 Palindrome queries must convert input indices consistently. For distinct
@@ -60,12 +74,12 @@ This section shows three string representations.
   with that prefix.
 - B checks palindromes by comparing mirrored characters. For larger limits this
   can be replaced by forward/reverse hashes, but the local proof is exact.
-- C counts distinct substrings. The simplest local implementation may enumerate
-  substrings at small limits; the red-level invariant is the suffix automaton
-  contribution `len[v] - len[link[v]]` per state.
+- C counts distinct substrings with a suffix automaton. The local invariant is
+  the contribution `len[v] - len[link[v]]` per non-root state; enumeration is
+  reserved for tiny brute-force tests.
 
-The editorial code favors transparent correctness where limits allow it, while
-the lesson explains the optimized structures used in larger external tasks.
+The editorial code uses the same asymptotically appropriate representation as
+the local contract; brute force appears only as a testing oracle.
 
 # A. Trie Prefix Count
 
@@ -75,15 +89,19 @@ Given dictionary words and prefix queries, count words having each prefix.
 
 ## Observations and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+Each trie node is one prefix. Increment its counter for every inserted word
+visiting it; walk a query to its endpoint and return that counter, or zero on a
+missing edge. Inserting `apple, ape, bat` makes query `ap` return two.
 
 ## Correctness proof
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+After every insertion, a node counter equals the words with that node's prefix,
+so the query endpoint is exactly the requested count. QED.
 
 ## Complexity
 
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+Work is linear in total inserted and queried characters; memory is one node per
+distinct prefix.
 
 ## Full C++ solution
 
@@ -118,7 +136,8 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test duplicate words, one word that prefixes another, an absent prefix, and a
+one-character query.
 
 # B. Palindrome Queries
 
@@ -128,15 +147,19 @@ For each substring query, print whether the substring is a palindrome.
 
 ## Observations and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+The local bounds permit exact mirrored comparison. Convert inclusive 1-based
+`[l,r]`, compare outward characters, and stop on a mismatch. In `abacaba`,
+`[2,4]` is `bac` (NO) while `[3,5]` is `aca` (YES).
 
 ## Correctness proof
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+A substring equals its reverse iff each mirrored character pair is equal, which
+is exactly the two-pointer condition. QED.
 
 ## Complexity
 
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+Each query is `O(r-l+1)` time and `O(1)` extra memory; this exact approach is
+only suitable for the local small-query contract.
 
 ## Full C++ solution
 
@@ -159,7 +182,8 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test singleton, full string, even and odd lengths, and a mismatch in the outer
+pair.
 
 # C. Distinct Substrings
 
@@ -169,15 +193,19 @@ Print the number of distinct non-empty substrings of a string.
 
 ## Observations and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+Build a suffix automaton. State v contributes `len[v]-len[link[v]]` new
+substring lengths; sum this over non-root states. For `ababa`, the answer is 9.
 
 ## Correctness proof
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+Suffix links partition represented lengths into disjoint intervals, so every
+distinct nonempty substring belongs to exactly one state's contribution. Clones
+restore this invariant when a transition needs a shorter maximum length. QED.
 
 ## Complexity
 
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
+There are at most `2*n-1` states. The fixed-alphabet version is `O(n)`; the
+map-based listing is `O(n log alphabet)`.
 
 ## Full C++ solution
 
@@ -212,8 +240,61 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test `a`, `aaa`, all distinct characters, and an alternating string.
 
 # What to carry forward
 
 Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.
+
+<!-- Duplicate addendum hidden from the rendered editorial.
+# Complete upsolve notes
+
+## A. Trie Prefix Count
+
+Every node is one prefix and `count[node]` is the number of inserted words that
+visit it. Insert `apple, ape, bat`: the node for `ap` has count two, while a
+missing query edge returns zero immediately. Insert every word character by
+character, incrementing the root and child after each move; walk each query and
+return the endpoint count. The invariant follows by induction over inserted
+words: exactly the words having a prefix pass through that node. Work is linear
+in total inserted and queried characters, with one node per distinct prefix.
+Use fixed 26-child arrays in C++ for lowercase input, dictionaries in Python for
+clarity. Test duplicate words, one word that is a prefix of another, absent
+queries, and a one-character query.
+
+## B. Palindrome Queries
+
+The local bounds permit exact two-pointer checking. Convert inclusive 1-based
+`l,r` to zero-based positions, then compare outward characters while `l<r`.
+For `abacaba`, `[2,4]` is `bac` and fails at `b,c`; `[3,5]` is `aca` and passes.
+A substring equals its reverse iff every mirrored pair is equal, which proves
+the test. A query costs `O(r-l+1)`, with `O(1)` extra memory; this is not the
+right technique for very large query limits. C++ can use `substr` plus reverse
+under the local contract, Python can use `s[l-1:r] == s[l-1:r][::-1]`. Test
+singletons, full string, even and odd lengths, and a mismatch at the center's
+outside pair.
+
+## C. Distinct Substrings
+
+The full listing uses a suffix automaton. After reading a prefix, `last` is the
+state for that entire prefix; each state has maximum represented length `len`
+and a suffix link to the largest proper suffix state. State v represents new
+substring lengths `len[link[v]]+1..len[v]`, so its contribution is
+`len[v]-len[link[v]]`. Summing non-root contributions counts every nonempty
+distinct substring once. A clone copies transitions when the existing target
+cannot have the required `len[p]+1`; redirecting suffix transitions restores
+the state invariant. For `ababa`, the answer is nine. There are at most
+`2*n-1` states and `O(n)` transitions for a fixed alphabet (the map-based local
+listing is `O(n log alphabet)`). Test `a`, `aaa`, all distinct characters, and
+an alternating string. Python dictionaries make the same construction viable.
+
+-->
+# Testing discussion
+
+Brute-force small trie prefixes by `word.startswith(prefix)`, palindrome
+queries by reverse comparison, and distinct substrings with a set of all slices.
+Then run:
+
+```bash
+CP_TARGET=solution python3 sections/44_string_algorithms_ii/check.py
+```

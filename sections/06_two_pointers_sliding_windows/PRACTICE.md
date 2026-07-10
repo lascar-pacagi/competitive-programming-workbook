@@ -28,6 +28,15 @@ local_tested: no
 ## ICPC-Style
 
 ```text
+title: Kattis - Natjecanje
+link: https://open.kattis.com/problems/natjecanje
+difficulty: medium
+topics: ordered greedy scan, local choices
+status: required
+local_tested: no
+```
+
+```text
 title: ICPC World Finals problem archive
 link: https://icpc.global/worldfinals/problems
 difficulty: browse archive
@@ -37,4 +46,3 @@ local_tested: no
 notes: Two-pointer scans appear inside scheduling, geometry, and sorted-list
        problems after a monotone order has been established.
 ```
-

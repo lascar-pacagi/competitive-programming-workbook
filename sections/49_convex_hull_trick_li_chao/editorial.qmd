@@ -25,6 +25,19 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Dynamic Line Minimum.** A Li Chao node keeps the line best at its midpoint;
+the only line that can beat it on one half is recursed into that half, so every
+query path sees the minimum candidate.
+
+**B. Quadratic CHT DP.** Expanding the square turns each earlier state into a
+line queried at `x[i]`. Thus the Li Chao answer is exactly the minimizing DP
+transition plus the query-only terms.
+
+**C. Dynamic Line Maximum.** Negating all line values reduces maximum queries
+to the same minimum-line invariant used in A.
+
 ## Detailed solution guide
 
 **A. Static Lines, Minimum Query.** Each inserted line represents one candidate
@@ -70,11 +83,11 @@ Add lines `y=mx+b` and answer minimum value at query points.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -109,11 +122,11 @@ Compute `dp[i]=min_j dp[j]+(x_i-x_j)^2+c` for increasing `x`.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -144,11 +157,11 @@ Add lines and answer maximum value at query points.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -176,5 +189,10 @@ if __name__=="__main__": main()
 ```
 
 # Testing discussion
+
+Stress every line query against evaluating all inserted lines. Equal slopes need
+an explicit keep-better-intercept rule. For quadratic DP, expand
+`(x_i-x_j)^2` before choosing slope and intercept; a sign error changes min to
+max behavior. Test repeated `x`, negative values, and a single line.
 
 Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

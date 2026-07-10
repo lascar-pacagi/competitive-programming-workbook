@@ -28,6 +28,15 @@ local_tested: no
 ## ICPC-Style
 
 ```text
+title: Kattis - Different Distances
+link: https://open.kattis.com/problems/differentdistances
+difficulty: easy
+topics: statement parsing, repeated test cases
+status: required
+local_tested: no
+```
+
+```text
 title: ICPC World Finals problem archive
 link: https://icpc.global/worldfinals/problems
 difficulty: browse archive
@@ -37,4 +46,3 @@ local_tested: no
 notes: Use this archive as a browsing source for longer statements. At this
        stage, focus on identifying simple subproblems inside larger text.
 ```
-

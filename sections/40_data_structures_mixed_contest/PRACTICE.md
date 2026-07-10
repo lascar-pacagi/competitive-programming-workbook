@@ -1,10 +1,12 @@
-# Practice for Section 40: Data Structures Mixed Contest
+# Practice Queue
 
-Practice: CSES Hotel Queries, CSES List Removals, CSES Distinct Values Queries, Codeforces Mo's algorithm practice set, AtCoder segment tree practice tasks.
+1. Codeforces 86D - Powerful array (Mo's ordering and add/remove invariant)
+   https://codeforces.com/problemset/problem/86/D
+2. AtCoder ABC174 F - Range Set Query (offline distinct-range queries)
+   https://atcoder.jp/contests/abc174/tasks/abc174_f
+3. Kattis Turbo - ICPC-style order-statistics/Fenwick practice
+   https://open.kattis.com/problems/turbo
 
-When practicing external problems, solve them in this order:
-
-1. Re-derive the invariant or stored state before coding.
-2. Implement a small local brute force if constraints allow it.
-3. Stress your optimized solution against the brute force.
-4. Write down the exact reason the data structure supports each operation.
+Classify the query workload before coding: online first-feasible search, dynamic
+rank deletion, or offline range movement. Stress against a direct array/set
+oracle on small random data.

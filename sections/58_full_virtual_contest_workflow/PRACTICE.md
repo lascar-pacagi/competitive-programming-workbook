@@ -1,3 +1,5 @@
-# Practice for Section 58: Full Virtual Contest Workflow
-
-Practice: Run a Codeforces virtual, an AtCoder virtual, and one ICPC regional set; write an upsolve log after each.
+# Practice Queue
+1. Codeforces contest archive: https://codeforces.com/contests
+2. AtCoder contest archive: https://atcoder.jp/contests/
+3. Kattis contest archive - ICPC-style virtuals: https://open.kattis.com/contests
+Run one virtual from each archive and write an upsolve log with one concrete repair.

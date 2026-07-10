@@ -23,39 +23,40 @@ execute:
   enabled: false
 ---
 
-# Why modular arithmetic starts the math phase
+# Why this matters under contest pressure
 
-Competitive programming uses modular arithmetic for two main reasons:
+Modulo is not an instruction to append `% MOD` to a formula. It is a number
+system in which values are represented by remainders. In contests, it appears
+when a count is too large to print, a recurrence runs for an enormous number of
+steps, or a probability must be represented exactly rather than as a decimal.
+
+The useful first question is not "what is the modulus?" It is "which operation
+is too large or illegal in ordinary arithmetic?"
+
+| Statement signal | First tool | Local problem |
+|---|---|---|
+| exponent up to `10^18` | binary exponentiation | A |
+| quotient modulo a stated prime | modular inverse | B |
+| repeat `x <- a*x+b` many times | powers plus a geometric sum | C |
+
+# Vocabulary and the arithmetic contract
+
+For a positive modulus `M`, `x mod M` means the unique representative in
+`0..M-1` congruent to `x`. Addition and multiplication may be reduced at any
+time:
 
 ```text
-1. Answers are enormous, so the statement asks for the answer modulo M.
-2. Division, powers, recurrences, and counting formulas must be computed fast.
+(u + v) mod M = ((u mod M) + (v mod M)) mod M
+(u * v) mod M = ((u mod M) * (v mod M)) mod M
 ```
 
-Modulo problems punish small implementation mistakes. A correct formula can
-still fail because of overflow, negative remainders, or illegal division.
-
-# Remainders and normalization
-
-`x mod M` is the remainder in the range:
-
-```text
-0, 1, 2, ..., M-1
-```
-
-Python already normalizes negative values:
+Subtraction needs normalization. Python already returns a nonnegative result:
 
 ```python
 (-1) % 7 == 6
 ```
 
-C++ keeps the sign of the left operand:
-
-```cpp
-(-1) % 7 == -1
-```
-
-So in C++, normalize after taking `%`:
+In C++, the remainder keeps the left operand's sign, so normalize explicitly:
 
 ```cpp
 long long norm(long long x, long long mod) {
@@ -65,182 +66,205 @@ long long norm(long long x, long long mod) {
 }
 ```
 
-# Safe multiplication
+Division is different. `a / b mod M` means `a * inv(b) mod M`, where
+`b*inv(b) == 1 (mod M)`. Such an inverse exists exactly when `gcd(b,M)=1`.
+For this section's fraction problem, `M` is prime and `b` is nonzero modulo
+`M`, so Fermat's theorem supplies `inv(b)=b^(M-2) mod M`. Section 30 handles
+the general composite-modulus case with extended Euclid.
 
-If `M <= 1e9+7`, multiplying two reduced `long long` values is safe because:
+# Recognition and limits
+
+Read constraints before choosing a formula.
 
 ```text
-(1e9+7)^2 < 1.1e18 < 9.22e18
+Exponent 10^18: an O(exponent) loop is impossible; use O(log exponent).
+Prime modulus plus a nonzero denominator: Fermat inverse is legal.
+Composite modulus: do not use M-2; first check gcd and use extended Euclid.
+Repeated affine update: unroll three steps before reaching for a matrix.
 ```
 
-If a problem allows moduli near `1e18`, use `__int128` in C++:
+For the local exercises, products of two reduced values fit in signed `long
+long` when the modulus is `1,000,000,007`. A reusable routine for a modulus
+near `10^18` needs `__int128` in C++:
 
 ```cpp
 long long mul_mod(long long a, long long b, long long mod) {
-    return (__int128)a * b % mod;
+    return (long long)((__int128)a * b % mod);
 }
 ```
 
-The local `Power Queries` problem allows arbitrary moduli up to `1e9+7`, but
-the implementation uses `__int128` as a robust habit.
+Python integers do not overflow, but an enormous intermediate power is still
+too slow and memory-hungry. Use `pow(a, b, mod)` or the binary loop.
 
 # Binary exponentiation
 
-Computing `a^b` by multiplying `b` times is impossible when `b` is large.
-
-Binary exponentiation uses the binary representation of the exponent:
-
-```text
-13 = 8 + 4 + 1 = 1101_2
-a^13 = a^8 * a^4 * a
-```
-
-Algorithm:
+Write the exponent in binary. For example, `13 = 8+4+1`, so
+`a^13 = a^8*a^4*a`. The loop stores the current power of two in `base` and
+moves selected powers into `result`.
 
 ```text
-result = 1
+result = 1 mod M
 base = a mod M
-while b > 0:
-    if b is odd:
+while exponent > 0:
+    if exponent is odd:
         result = result * base mod M
     base = base * base mod M
-    b = floor(b / 2)
+    exponent = floor(exponent / 2)
 ```
 
-Each loop halves `b`, so the complexity is `O(log b)`.
+## Complete trace: `3^13 mod 17`
 
-# Modular division
-
-Division modulo `M` does not mean ordinary division followed by `%`.
-
-To divide by `b`, we need a number `inv` such that:
+The invariant is `result * base^exponent == 3^13 (mod 17)`.
 
 ```text
-b * inv == 1 (mod M)
+result  base  exponent  action
+1       3       13     odd: result = 3
+3       9        6     square, halve
+3      13        3     odd: result = 5; square, halve
+5      16        1     odd: result = 12; square, halve
+12      1        0     stop
 ```
 
-Then:
+The answer is `12`; indeed `3^13 = 1594323`, whose remainder modulo `17` is
+`12`. Every iteration either consumes one binary bit or halves the remaining
+exponent, so there are only `O(log exponent)` iterations.
+
+## Proof habit
+
+Before coding, write the invariant using the original base and exponent:
 
 ```text
-a / b == a * inv (mod M)
+result * base^remaining == original_base^original_exponent (mod M).
 ```
 
-An inverse exists exactly when `gcd(b, M) = 1`. Section 30 will study gcd and
-the extended Euclidean algorithm. In this section, we use the most common
-contest case: `M` is prime and `b` is not divisible by `M`.
+On an odd iteration, moving one `base` into `result` leaves an even exponent.
+For an even exponent, replacing `base^e` by `(base^2)^(e/2)` preserves the
+product. At exponent zero, the invariant says `result` is the answer.
 
-By Fermat's little theorem:
+# Modular inverse and fraction queries
+
+Under prime `P`, Fermat says `b^(P-1)==1 (mod P)` whenever `b mod P != 0`.
+Thus `b^(P-2)` is the multiplicative inverse of `b`.
+
+## Complete trace: `10 / 4 mod 17`
+
+Binary exponentiation gives `4^15 mod 17 = 13`. Check it before trusting it:
 
 ```text
-b^(M-1) == 1 (mod M)
+4 * 13 = 52 = 1 (mod 17).
+10 / 4 = 10 * 13 = 130 = 11 (mod 17).
 ```
 
-Therefore:
+The final verification is `4*11 == 10 (mod 17)`. Ordinary integer division
+would give `2`, which is unrelated to modular division.
+
+The legality checklist is short and strict:
 
 ```text
-b^(M-2) is the modular inverse of b
-```
-
-So under prime modulus:
-
-```text
-inverse(b) = pow_mod(b, M-2, M)
+Is the modulus prime?
+Is b nonzero modulo that prime?
+If either answer is no, do not use b^(P-2).
 ```
 
 # Repeated affine transformations
 
-Suppose:
+For `f(x)=a*x+b`, expand a few applications:
 
 ```text
-f(x) = a*x + b
+f^1(x) = a*x + b
+f^2(x) = a^2*x + a*b + b
+f^3(x) = a^3*x + a^2*b + a*b + b
 ```
 
-Apply it repeatedly:
+After `k` applications,
 
 ```text
-f(x)       = a*x + b
-f(f(x))    = a^2*x + a*b + b
-f^3(x)     = a^3*x + a^2*b + a*b + b
+f^k(x) = a^k*x + b*(1+a+...+a^(k-1)).
 ```
 
-After `k` applications:
+When `a != 1`, the sum is `(a^k-1)/(a-1)`. When `a==1`, every term is one,
+so the sum is `k`. Check `a==1` only *after* reducing it modulo `MOD`.
+
+## Complete trace: the `a == 1` branch
+
+Let `f(x)=x+3`, `x=5`, and `k=4` modulo `17`.
 
 ```text
-f^k(x) = a^k*x + b*(1 + a + a^2 + ... + a^(k-1))
+direct: 5 -> 8 -> 11 -> 14 -> 0
+formula: 1^4*5 + 3*(1+1+1+1) = 5+12 = 17 = 0 mod 17
 ```
 
-The geometric sum is:
+Trying `(a^k-1)/(a-1)` here would divide by zero. This is not an
+implementation annoyance: the mathematical formula has a distinct case.
+
+# Implementation notes
+
+## C++
+
+Use `long long` for exponents and values. In a generic-power routine, start
+with `result = 1 % mod` so `mod=1` correctly returns zero even for exponent
+zero. Normalize all potentially negative affine inputs before comparing
+`a==1`. Use `__int128` for multiplication if the statement permits moduli
+large enough that two residues can overflow `long long`.
+
+## Python
+
+Use `pow(base, exponent, mod)` for a compact optimized exponentiation and
+`sys.stdin.buffer` for many queries. Python's `%` already normalizes negative
+values, but normalize `a`, `b`, and `x` before the affine branch so the code
+states the mathematical invariant clearly.
+
+# Wrong approaches and targeted tests
+
+| Tempting approach | Why it fails | Test that exposes it |
+|---|---|---|
+| multiply `a` by itself `b` times | `b` can be `10^18` | A with `b=10^18` |
+| initialize result to `1` unconditionally | `1 mod 1` is zero | A with `b=0,m=1` |
+| use ordinary `/` or floating point | modular division needs an inverse | B: `10/4 mod 17` |
+| use Fermat for a composite modulus | `b^(M-2)` need not be inverse | future variant: `6 mod 35` |
+| use geometric division when `a==1` | denominator is zero | C: `a=1,k=4` |
+| compare unreduced `a` with one | `a=MOD+1` is the same residue | C: `a=1000000008` |
+
+# Formative exercises
+
+1. Trace binary exponentiation for `2^11 mod 13`. Record `result`, `base`, and
+   remaining exponent after every iteration.
+2. Compute `7/3 mod 11` and verify the result by multiplying it by three.
+3. Let `f(x)=x+5` modulo `19`. Find `f^7(4)` without simulating seven updates.
+4. Explain why `6/10 mod 21` is not a legal Fermat-inverse question, even
+   though it resembles problem B.
+
+Answers:
 
 ```text
-if a == 1:
-    k
-else:
-    (a^k - 1) / (a - 1)
+1. 2^11 mod 13 = 7. The invariant, not a memorized table, is the check.
+2. inverse(3)=4, so 7/3 = 28 = 6 mod 11; 3*6 = 7 mod 11.
+3. 4 + 7*5 = 39 = 1 mod 19.
+4. 21 is composite and gcd(10,21)=1 only licenses extended Euclid, not Fermat.
 ```
 
-Under prime modulus, the division by `a - 1` is multiplication by the modular
-inverse of `a - 1`. Be careful: check `a == 1` **after reducing `a` modulo M**.
+# Local workflow and submission checklist
 
-# Worked example
-
-Let:
-
-```text
-f(x) = 2x + 3
-x = 1
-k = 3
-```
-
-Direct simulation:
-
-```text
-1 -> 5 -> 13 -> 29
-```
-
-Formula:
-
-```text
-2^3 * 1 + 3*(1 + 2 + 4)
-= 8 + 21
-= 29
-```
-
-# Common mistakes
-
-```text
-Using ordinary division instead of modular inverse.
-Trying to compute a^b by b multiplications.
-Forgetting that C++ negative % stays negative.
-Using Fermat inverse when the modulus is not prime.
-Forgetting the a == 1 case in geometric sums.
-Not reducing a, b, and x before formulas.
-Overflowing int or long long multiplication.
-```
-
-# Local judge workflow
-
-Run:
+Run the complete local suite:
 
 ```bash
 CP_TARGET=solution python3 sections/29_modular_arithmetic/check.py
 ```
 
-The tests include:
+For A, compare the fast routine with a slow loop on small exponents. For B,
+verify every output by multiplying it by the denominator modulo `P`. For C,
+compare the closed form with direct simulation for small `k`.
 
 ```text
-modulus 1 for exponentiation
-zero exponent
-small prime moduli for inverse
-a == 1 and a == 0 in affine repetition
-large k values
+1. Did I establish that every modular inverse exists?
+2. Is every exponent loop O(log exponent)?
+3. Did I normalize C++ negative residues?
+4. Did I test modulus one, exponent zero, and affine a==1?
+5. Does each multiplication fit its language's integer type?
 ```
 
-# Submission checklist
+# Exercises
 
-```text
-1. Is the modulus prime before using Fermat inverse?
-2. Are all values normalized into [0, M-1]?
-3. Does exponentiation run in O(log exponent)?
-4. Does C++ multiplication fit, or do you need __int128?
-5. Did you handle special cases: M=1, exponent=0, a=1?
-```
+Solve local A after completing exercise 1, local B after exercise 2, and local
+C after exercise 3. Before submitting each one, add its targeted edge cases to
+your personal test input and state the invariant or proof idea in one sentence.

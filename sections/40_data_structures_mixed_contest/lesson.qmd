@@ -181,3 +181,67 @@ CP_TARGET=solution python3 sections/40_data_structures_mixed_contest/check.py
 
 Replace `CP_TARGET=solution` by your own `solve.cpp` or `solve.py` attempts
 when practicing.
+# Exercises
+
+# Operational traces and invariants
+
+## First feasible hotel: descend by subtree maximum
+
+Each segment-tree node stores the maximum remaining capacity in its interval.
+For request `4` and capacities `[3,1,4,1,5]`, the root is feasible. Descend
+left whenever the left child's maximum is at least four; otherwise the first
+feasible hotel must be in the right child. The descent reaches index three,
+then its capacity becomes zero and every ancestor maximum is recomputed.
+
+The invariant is: a node value equals the maximum capacity of all leaves below
+it. If a left child is feasible, choosing it preserves "first index"; if it is
+not, no index in that left interval can work. This proves both the search and
+the `O(log n)` update.
+
+## Remove by current order: Fenwick counts alive positions
+
+For values `[10,20,30,40,50]`, initialize counts `[1,1,1,1,1]`. Removing
+current position two asks for the smallest original index with prefix count at
+least two: it is index two, output `20`, then add `-1` there. The alive counts
+become `[1,0,1,1,1]`; the next current position three resolves to original
+index four, output `40`.
+
+Fenwick `kth(k)` binary-lifts through its internal partial sums. Its invariant
+is that `pos` has cumulative count strictly below the remaining `k`; after the
+largest possible steps, `pos+1` is the first prefix reaching the original rank.
+
+## Mo's algorithm: move a window, not every query
+
+Offline range queries can be ordered by left block and a zig-zag right endpoint.
+For `[1,2,1,3,2,4]`, start with empty `[0,-1]`; to answer `[1,3]`, add values
+`1,2,1`, producing frequencies `{1:2,2:1}` and distinct count two. Moving to
+`[2,5]` removes the first `1`, then adds `3,2`, yielding three distinct values.
+
+The maintained invariant is that `freq[v]` counts exactly the active window;
+`distinct` counts values with positive frequency. Compression is required when
+values are large or negative. A block size near `sqrt(n)` balances left and
+right movement, giving about `O((n+q)sqrt(n))` moves.
+
+# Language notes and adversarial practice
+
+**C++.** Store hotel capacities and sums in `long long`; Fenwick frequencies
+fit in `int`. Convert Mo queries from one-based to zero-based exactly once.
+Use a parity-reversed right ordering to reduce constant factors.
+
+**Python.** These local algorithms are viable with iterative arrays, buffered
+input, and a compact frequency list after compression. Avoid a recursive
+segment tree and avoid `list.pop(k)`, which is linear per removal.
+
+| Exercise | Edge case to test |
+|---|---|
+| A: first feasible | no capacity reaches request, answer `0` |
+| B: order statistic | remove first, last, then the only survivor |
+| C: distinct | all equal, all distinct, and repeated equal endpoints |
+
+Before coding, state the stored aggregate: maximum for A, alive count for B,
+and frequency plus distinct count for C. Run
+`CP_TARGET=solution python3 sections/40_data_structures_mixed_contest/check.py`.
+Stress A with a linear first-fit oracle, B with a mutable short list, and C
+with `len(set(a[l:r+1]))` on arrays of length at most 30.
+
+Choose the structure from the operation: A needs first position with enough capacity, B needs k-th alive order statistics, and C benefits from offline range order. Test updates at both ends and restore query order explicitly.

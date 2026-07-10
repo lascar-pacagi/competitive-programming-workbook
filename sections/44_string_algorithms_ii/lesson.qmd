@@ -170,6 +170,88 @@ one sentence prevents many overcomplicated solutions.
 
 # Exercises
 
+## Implementing the three representations
+
+### Trie invariant and trace
+
+A trie node represents the string written on the root-to-node path. Store
+`count[node] = number of inserted words whose path visits node`. Increment the
+root and every visited child during insertion; a prefix query then walks to its
+node and returns its count, or zero if an edge is missing.
+
+Insert `apple`, `ape`, and `bat`:
+
+```text
+root count 3
+root-a count 2       root-b count 1
+root-a-p count 2     root-b-a count 1
+root-a-p-p count 1
+```
+
+Thus `ap` returns 2, `app` returns 1, `b` returns 1, and `z` returns 0. The
+counter is not an end-of-word counter: a word may continue below it.
+
+For lowercase English letters, C++ can use `array<int,26>` child indices. A
+zero child index can mean absent when the root is node zero and new nodes begin
+at one. Python dictionaries are compact and clearer for a sparse alphabet.
+
+### Exact palindrome queries under local bounds
+
+The local task accepts direct comparison. Convert its 1-based inclusive query
+`[l,r]` to zero-based endpoints, then compare `s[l]` with `s[r]`, move inward,
+and stop at the first mismatch. This is exact, unlike a single rolling hash.
+
+For `abacaba`, query `[2,4]` is `bac`: compare `b` and `c`, so answer NO.
+Query `[3,5]` is `aca`: the outside `a` values agree, then the pointers meet,
+so answer YES. Time is O(r-l+1) per query; this is only appropriate because the
+local bounds are deliberately small. Larger query workloads need a taught hash
+or palindrome structure.
+
+### Suffix automaton contribution
+
+A suffix automaton state summarizes end positions of substrings. Its `len[v]`
+is the largest represented length; its suffix link points to the state for the
+largest proper suffix class. Therefore state `v` contributes exactly
+
+```text
+len[v] - len[link[v]]
+```
+
+new distinct non-empty substring lengths. Summing this value over non-root
+states counts every distinct substring once.
+
+For `ababa`, the answer is 9: `a,b,ab,ba,aba,bab,abab,baba,ababa`. The
+automaton has at most `2*n-1` states. A clone copies transitions but shortens
+`len`; it splits a state when two contexts need different suffix links.
+
+### Extension invariant
+
+After extending by character `c`, `last` represents the whole string processed
+so far. Add missing `c` transitions while walking suffix links. If an existing
+transition would violate `len[p]+1 == len[q]`, create a clone whose transitions
+match `q` but whose length is `len[p]+1`, then redirect the affected links.
+This invariant is why cloning is necessary, not an implementation trick.
+
+### Formative checks and workflow
+
+1. After inserting `ape`, `app`, and `apple`, what does the node for `ap`
+   count? Answer: 3.
+2. Why is substring `[l,r]` a palindrome if every mirrored pair agrees?
+   Because reversing swaps exactly those pairs.
+3. What is the distinct-substring count of `aaa`? Answer: 3 (`a,aa,aaa`).
+4. In a suffix automaton, why is the root excluded from the contribution sum?
+   It represents the empty substring.
+
+Run:
+
+```bash
+CP_TARGET=solution python3 sections/44_string_algorithms_ii/check.py
+```
+
+Before coding, decide whether your task needs a prefix tree, an exact local
+substring comparison, or a global substring-state structure. They answer
+different questions and are not interchangeable.
+
 - A. Trie Prefix Count: Given dictionary words and prefix queries, count words having each prefix.
 - B. Palindrome Queries: For each substring query, print whether the substring is a palindrome.
 - C. Distinct Substrings: Print the number of distinct non-empty substrings of a string.

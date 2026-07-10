@@ -25,6 +25,23 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Tree Distances.** Euler entry/exit times make a subtree a contiguous
+interval, while binary lifting raises two vertices to their lowest common
+ancestor. The identity `dist(u,v)=depth[u]+depth[v]-2*depth[lca(u,v)]` is exact
+because the shared root-to-LCA prefix is counted twice. Preprocessing costs
+`O(n log n)` and each query costs `O(log n)`.
+
+**B. Max Edge On Path.** Alongside `up[j][v]`, store the maximum edge on the
+`2^j`-edge climb. Combining the same climbs used by LCA covers the two disjoint
+path halves, so their maximum is the answer. Queries remain `O(log n)`.
+
+**C. K-th Node On Path.** The path is the upward segment from `u` to the LCA
+followed by the reverse upward segment from `v`. Compare `k` with the first
+segment length and lift either endpoint by the corresponding number of edges;
+this covers each path vertex once.
+
 ## Detailed solution guide
 
 **A. Tree Distances.** Root the tree once and compute `depth[v]` and
@@ -72,17 +89,21 @@ aggregate for each such chunk.
 
 Given a rooted tree and queries `u v`, print the number of edges on the path.
 
-## Observations and algorithm
+## Observations, trace, and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+For `n,q` near `2e5`, parent climbing fails on a chain. Store `up[j][v]`, the
+`2^j` ancestor, and depth. For sample nodes 4 and 5, `lca=2`, hence distance is
+`2+2-2*1=2`. Lift the deeper node, then descend powers from largest to zero,
+lifting both only when their ancestors differ; return their parent.
 
-## Correctness proof
+## Correctness proof and complexity
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+`up[j][v]=up[j-1][up[j-1][v]]` composes two exact half-jumps. Reverse-bit
+lifting leaves both vertices immediately below their lowest common ancestor, so
+their parent is the LCA. The two root paths are disjoint below it, proving the
+distance formula. Preprocessing is `O(n log n)`, query time `O(log n)`, memory
+`O(n log n)`. QED.
 
-## Complexity
-
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
 
 ## Full C++ solution
 
@@ -138,7 +159,8 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test `u==v`, root queries, ancestors, a chain, a maximum edge at the LCA
+boundary, both path endpoints, and invalid k values.
 
 # B. Max Edge On Path
 
@@ -146,17 +168,18 @@ Use singleton inputs, repeated values, empty answers, ancestor/self paths, disco
 
 Each edge to a parent has a weight. For each `u v`, print the maximum edge weight on the path.
 
-## Observations and algorithm
+## Observations, trace, and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+Carry `mx[j][v]`, the maximum edge on the same `2^j` upward segment. Whenever a
+lift uses bit j, merge `mx[j][v]` before moving v. Its recurrence is
+`max(mx[j-1][v],mx[j-1][up[j-1][v]])`; merge both sides while finding LCA.
 
-## Correctness proof
+## Correctness proof and complexity
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+The recurrence joins exactly adjacent half-segments. Lifting partitions the
+u-v path into those segments, so their merged maximum is exact. Costs match A;
+the empty local path `u==v` has maximum zero. QED.
 
-## Complexity
-
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
 
 ## Full C++ solution
 
@@ -210,7 +233,8 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test `u==v`, root and ancestor queries, a chain, maximum-edge boundaries, and
+both valid and invalid k values.
 
 # C. Kth Node On Path
 
@@ -218,17 +242,19 @@ Use singleton inputs, repeated values, empty answers, ancestor/self paths, disco
 
 For query `u v k`, print the k-th node on the path from `u` to `v`, or `-1`.
 
-## Observations and algorithm
+## Observations, trace, and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+Let `c=lca(u,v)`, `left=depth[u]-depth[c]+1`, and
+`total=depth[u]+depth[v]-2*depth[c]+1`. Reject invalid k. If `k<=left`, return
+`lift(u,k-1)`; otherwise return `lift(v,total-k)`. On path 4,2,5 this returns
+4,2,5 for k=1,2,3.
 
-## Correctness proof
+## Correctness proof and complexity
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+The first left path nodes are exactly u-to-c; the remaining nodes are v-to-c in
+reverse, so `total-k` is the required upward distance from v. Time is `O(log
+n)` with the shared table. QED.
 
-## Complexity
-
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
 
 ## Full C++ solution
 
@@ -282,8 +308,96 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test `u==v`, root and ancestor queries, a chain, maximum-edge boundaries, and
+both valid and invalid k values.
 
 # What to carry forward
+
+<!-- Duplicate workshop hidden from the rendered editorial.
+# Detailed upsolve workshop
+
+The parent-before-child input order lets preprocessing compute depth immediately.
+For general tree input, first root the tree iteratively; the lifting and query
+proofs below are unchanged.
+
+## A. Tree Distances
+
+**Constraints and model.** For `n,q` up to roughly `2e5`, climbing one parent
+at a time is too slow on a chain. Build `up[j][v]`, the ancestor `2^j` edges
+above `v`, and `depth[v]`.
+
+**Trace and pseudocode.** In the sample tree, `lca(4,5)=2`, so the distance is
+`2+2-2*1=2`. To find an LCA, first lift the deeper endpoint; then try powers
+from largest to smallest only when the two ancestors differ.
+
+```text
+c = lca(u,v)
+answer = depth[u] + depth[v] - 2*depth[c]
+```
+
+**Proof and complexity.** The jump-table recurrence composes two correct
+`2^(j-1)` jumps, so each bit lift is correct. The reverse-bit phase leaves both
+nodes just below their LCA, making their parent the LCA. The two path segments
+to it are disjoint, proving the distance formula. Preprocessing is
+`O(n log n)`, every query `O(log n)`, memory `O(n log n)`. Test `u==v`, root
+queries, ancestors, and a chain; use zero-based/one-based indices consistently.
+
+## B. Max Edge On Path
+
+**Constraints and model.** The same LCA structure can carry an aggregate.
+Store `mx[j][v]`: the maximum edge over the `2^j` upward segment from `v`.
+The local weights are nonnegative, so an empty path has maximum zero.
+
+**Trace and pseudocode.** When lifting a deeper node by a set bit `j`, merge
+`mx[j][v]` into the answer before setting `v=up[j][v]`. When lifting both nodes
+below the LCA, merge both segments; finally merge their one-edge parents.
+
+```text
+mx[j][v] = max(mx[j-1][v], mx[j-1][up[j-1][v]])
+answer = max(all aggregate segments used while finding lca)
+```
+
+**Proof and complexity.** The recurrence joins exactly the two adjacent half
+segments, so every used jump contributes the maximum of precisely its edges.
+The lifting decomposition partitions the `u-v` path, therefore the merged
+maximum is correct. Costs match A. Use `long long` if a future aggregate can
+exceed `int`; test a one-edge path, a maximum at the LCA boundary, and `u==v`.
+
+## C. K-th Node On Path
+
+**Constraints and model.** A query is one-based and may be invalid. Let
+`c=lca(u,v)`, `left=depth[u]-depth[c]+1`, and
+`total=depth[u]+depth[v]-2*depth[c]+1`.
+
+**Trace and pseudocode.** If the path is `4,2,5`, then `left=2,total=3`.
+`k=1` lifts four by zero, `k=2` lifts four by one, and `k=3` lifts five by
+zero. A `k=4` request outputs -1.
+
+```text
+if k<1 or k>total: -1
+else if k<=left: lift(u,k-1)
+else: lift(v,total-k)
+```
+
+**Proof and complexity.** The first `left` nodes are the upward sequence from
+u through c. The remaining suffix is the upward sequence from v read backward;
+the requested suffix node is exactly `total-k` edges above v. Thus every valid
+rank is returned once. Time is `O(log n)`, memory is the shared table. Test the
+two endpoints, the LCA itself, invalid ranks, and a path where one endpoint is
+the LCA.
+
+-->
+# Testing discussion
+
+Run `CP_TARGET=solution python3 sections/41_euler_tour_lca_binary_lifting/check.py`.
+For random trees of at most 20 vertices, build a path by parent walks and use
+it as an oracle for all three exercises. This catches depth, aggregate-order,
+and one-based-rank mistakes more reliably than samples.
+
+# What to carry forward
+
+Binary lifting turns an ancestor relation into a powers-of-two table. Once the
+exact jump invariant is established, LCA, path distance, path aggregates, and
+path indexing are small variations on the same controlled lifts.
 
 Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.

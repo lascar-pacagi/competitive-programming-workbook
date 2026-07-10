@@ -410,3 +410,6 @@ Before submitting a bitmask DP solution:
 6. Estimate states times transition factor.
 7. Use long long / Python int for large sums.
 ```
+# Exercises
+
+Use A to make the covered-skill mask explicit, B to match the number of assigned workers to the mask popcount, and C to state the start and end of the route. Test mask zero, the full mask, and one missing transition.

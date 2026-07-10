@@ -174,4 +174,26 @@ area. Reusing one primitive reduces sign mistakes.
 - C. Polygon Double Area: Print twice the area of a polygon in vertex order.
 # Contest checklist
 
+# Exact local workshops
+
+For integer coordinates, keep every decision exact. Orientation is the sign of
+`cross(B-A,C-A)`: positive means left turn, negative right, zero collinear.
+For `(0,0)->(2,0)`, point `(1,3)` is left because cross is six.
+
+Two closed segments intersect when their endpoint orientations straddle each
+other, with a separate collinear `on_segment` test using bounding boxes. Trace
+`(0,0)-(2,2)` against `(0,2)-(2,0)`: the two orientation signs differ on both
+segments, so they cross. Collinear `(0,0)-(1,0)` and `(2,0)-(3,0)` do not: the
+line test alone is insufficient.
+
+The shoelace sum `sum(x[i]*y[i+1]-y[i]*x[i+1])` is signed twice area. For the
+square `(0,0),(2,0),(2,2),(0,2)`, terms sum to eight, so double area is eight.
+Reverse order changes sign, hence take absolute value.
+
+Use `long long` for cross products in C++ and Python integers directly. Test
+shared endpoints, containment, collinear overlap/disjointness, clockwise
+polygons, and repeated first/last vertex conventions. Run
+`CP_TARGET=solution python3 sections/54_geometry/check.py`; compare small
+segment cases with a grid drawing only as a debugging aid, never as proof.
+
 State the invariant, choose the model, prove the operation, then code the smallest reliable version.

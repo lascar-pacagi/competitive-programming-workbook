@@ -25,6 +25,22 @@ execute:
 
 # Editorial overview
 
+## Read this derivation before the code
+
+The detailed upsolve material for each problem is collected in
+**Problem-local upsolve checklist** below the compact reference listings. Read
+the corresponding block before studying its implementation:
+
+| Problem | State/model to establish | Trace to perform | Main failure mode |
+|---|---|---|---|
+| A | all monotone paths minus paths through one block | `3 by 4`, block `(2,2)` | applying the formula to multiple blocks |
+| B | `seen[d]` for square-free divisors | process `1, 6, 10, 21, 30` | updating `seen` before counting |
+| C | product of no-event probabilities | `1/2, 1/3, 1/4` | multiplying without independence |
+
+The source listings are intentionally compact reference implementations. The
+checklist supplies the constraints, pseudocode, proof checkpoints, complexity,
+language notes, adversarial tests, and brute-force oracle to use before code.
+
 | Problem | Main tools |
 |---|---|
 | A. Blocked Path | combinations, subtract bad paths |
@@ -362,3 +378,130 @@ to off-by-one and complement mistakes, so stress tests are part of the workflow.
 Math contest problems are often a composition of small tools. The main skill is
 recognizing the composition early: combinations plus subtraction, sieve plus
 inclusion-exclusion, or probability plus complement.
+# Extended upsolve workshop
+
+**A. Blocked Path.** Subtract `ways(start,block)*ways(block,finish)` from all
+monotone paths. Test a blocked start or finish, where every path is forbidden.
+
+**B. Coprime Pairs.** For each value, inclusion-exclusion over its distinct
+prime factors counts earlier values sharing any factor; subtract from prior
+count. Test value one and repeated composite values.
+
+**C. At Least One.** Compute `1-product(1-p_i/q_i)`. Directly adding event
+probabilities double-counts overlapping outcomes; test one certain event.
+# Full upsolve notes
+
+**A. Blocked Path.** Every forbidden monotone path has a unique prefix ending
+at `(R,C)` and suffix from it, so subtract
+`C(R+C-2,R-1)*C(H-R+W-C,H-R)` from all paths. For a 3-by-3 grid blocked in the
+middle: `6-2*2=2`. Test a blocked start/end, where the answer is zero.
+
+**B. Coprime Pairs.** Maintain `seen[d]`, the number of prior values divisible
+by square-free `d`. For `30` after `[6,10,21]`, inclusion-exclusion gives
+`seen[2]+seen[3]+seen[5]-seen[6]-seen[10]-seen[15]+seen[30]=3`; all earlier
+values share a factor. Count before updating the subset products. SPF plus at
+most 127 subsets per local value gives safe complexity. Test one, duplicates,
+and a three-factor value.
+
+**C. At Least One.** Compute `none=product((q-p)*inverse(q))`, then answer
+`1-none`. For `1/2` and `1/3`, this is `1-1/2*2/3=2/3`. Independence justifies
+the product; a certain event and a zero-probability event are essential tests.
+
+# Problem-local upsolve checklist
+
+## A. Blocked Path
+
+### Constraints and model
+
+`H` and `W` are up to one million, so grid DP over `H*W` cells is not viable.
+There is exactly one blocked cell. A monotone path is completely determined by
+the positions of its down moves, which makes binomial coefficients the correct
+model. Precompute factorials through `H+W` once.
+
+### Trace and pseudocode
+
+For `H=3,W=4,R=2,C=2`, all paths are `C(5,2)=10`. The blocked prefix count is
+`C(2,1)=2`; the suffix count is `C(3,1)=3`; subtract `6` to get `4`.
+
+```text
+all = choose(H+W-2, H-1)
+through = choose(R+C-2, R-1) * choose(H-R+W-C, H-R)
+answer = all - through modulo MOD
+```
+
+Every forbidden path has one and only one such prefix/suffix pair, proving the
+multiplication and subtraction. The time is `O(H+W)` preprocessing and `O(1)`
+work afterward. In C++ use `long long` products; Python uses the same factorial
+lists. Wrong answers usually forget that a blocked start or end makes the
+answer zero, or apply this one-block formula to multiple blocks. Test both
+endpoints, a one-row grid, and a block adjacent to an endpoint.
+
+## B. Coprime Pairs
+
+### Constraints and state
+
+The array has up to 200,000 values, each at most one million. Build SPF once.
+For each square-free divisor `d`, `seen[d]` is the number of already processed
+values divisible by `d`. Prime powers are deliberately absent: sharing a prime
+is the event being counted.
+
+### Trace and pseudocode
+
+When processing `30=2*3*5` after `[6,10,21]`, count shared values as:
+
+```text
++seen[2] + seen[3] + seen[5]
+-seen[6] - seen[10] - seen[15]
++seen[30]
+```
+
+This is `3`, hence it contributes `3-3=0` coprime pairs. Then increment every
+one of those seven `seen` entries for future values.
+
+```text
+factors = distinct prime factors of x from SPF
+shared = alternating sum seen[product(subset)]
+answer += processed - shared
+for every nonempty subset: seen[product(subset)] += 1
+```
+
+An earlier value is included in the alternating sum once iff it shares at least
+one prime with `x`; otherwise it appears in no selected event. Therefore
+`processed-shared` is precisely the number of new coprime pairs. With at most
+seven distinct factors, each value creates at most 127 subsets. Complexity is
+`O(M log log M + sum 2^omega(a[i]))` time and `O(M)` memory. Test `1` (no
+subsets, coprime with all prior values), repeated composites, and primes.
+
+### Implementation and failure modes
+
+Generate subset products from distinct factors, not from the factorization with
+multiplicity. Count before updating `seen`. Use `long long` for the answer:
+there can be about `n*(n-1)/2` pairs. A brute-force oracle for random arrays of
+length at most 10 should compare every gcd directly.
+
+## C. At Least One
+
+### Constraints and model
+
+The statement explicitly gives independent events and prime-modulus rational
+probabilities with nonzero denominators. Directly adding event probabilities
+overcounts outcomes where several events occur. The complement has one product:
+none of the events happens.
+
+### Trace, proof, and code shape
+
+For probabilities `1/2, 1/3, 1/4`, the no-event probability is
+`(1/2)*(2/3)*(3/4)=1/4`, so the answer is `3/4`. In modular arithmetic compute
+each factor as `(q-p) * inverse(q)`, multiply them, and normalize `1-none`.
+
+```text
+none = 1
+for p, q:
+    none = none * (q-p) * inverse(q) modulo MOD
+print (1-none) modulo MOD
+```
+
+Independence proves the product; complementarity proves the final subtraction.
+The algorithm takes `O(n log MOD)` with Fermat inverses and `O(1)` extra memory.
+Test one event, a zero-probability event, and a certain event. Do not use this
+method if events are dependent or a denominator is zero modulo `MOD`.

@@ -341,4 +341,6 @@ Do I need prefix sums?
 Am I trying split points, endpoints, or the last operation?
 Do costs require long long?
 ```
+# Exercises
 
+Use A to practice length-order DP, B to make a palindrome transition explicit, and C to choose the last burst/split rather than the first action. Test intervals of length one and two before larger examples.

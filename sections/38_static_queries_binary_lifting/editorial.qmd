@@ -341,3 +341,55 @@ The fixed samples cover visible behavior. The random tests generate
 many small operation sequences and compute expected outputs from the
 reference Python implementation, then the same expected files are
 used against both the C++ and Python submissions.
+
+# Problem-specific upsolve notes
+
+## A. Static Range Minimum
+
+**Constraint implication and trap.** The array never changes, so pay
+`O(n log n)` once for `O(1)` queries. Do not use this overlapping two-block
+query trick for sum: it is valid here only because min is idempotent.
+
+For `[5,2,7,1,3,4]`, query `[2,5]` has length 4 and reads one `2^2` block;
+query `[2,6]` uses blocks `[2,5]` and `[3,6]`, whose overlap cannot alter a
+minimum. Pseudocode is: build `st[k][i]=min(st[k-1][i],st[k-1][i+2^(k-1)])`;
+for `[l,r]`, set `k=lg[r-l+1]` and take the min of the two length-`2^k` blocks.
+Induction proves each table cell; the two blocks cover the query, proving the
+answer. Preprocessing/memory `O(n log n)`, query `O(1)`. Test singleton and
+non-power-of-two ranges; convert input indices exactly once.
+
+## B. Static Range GCD
+
+Use the identical table shape with `gcd` as merge. For `[12,18,6,10,15]`,
+query `[2,5]` has gcd 1. Gcd is associative and idempotent, so the same
+overlapping-cover proof applies. Complexity is again `O(n log n)` build and
+memory, `O(1)` per query. C++ uses `std::gcd`; Python uses `math.gcd`. Test a
+length-one range, equal values, and a range whose answer becomes one early.
+
+## C. Kth Ancestor
+
+**Observation and trace.** Let `up[k][v]` be the exact `2^k`-th ancestor, with
+zero meaning absent. Build by composing two half jumps. To lift 4 by three in
+the sample tree, take bit 0 to reach 2, then bit 1 to reach zero, so output
+`-1`; for distance zero output 4 unchanged.
+
+```text
+build up[0][v]=parent[v]
+up[k][v]=up[k-1][up[k-1][v]]
+for each set bit k of distance: v=up[k][v]
+answer -1 if v=0 else v
+```
+
+Induction on `k` proves the table's jump meaning; binary expansion uses exactly
+the requested number of parent edges, proving each query. Build/memory are
+`O(n log n)` and a query is `O(log n)`. Choose `LOG` for the largest possible
+query distance, not just an arbitrary constant. Test root, zero distance,
+one-step, and a distance above depth.
+
+# Stress-testing workflow
+
+Compare sparse-table answers to direct scans on small arrays. For ancestor
+queries, climb the parent array literally. Run
+`CP_TARGET=solution python3 sections/38_static_queries_binary_lifting/check.py`.
+Carry forward: overlap needs idempotence; binary lifting is the same power-of-
+two decomposition applied to functional-graph/tree jumps.

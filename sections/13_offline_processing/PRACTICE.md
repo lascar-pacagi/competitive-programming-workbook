@@ -31,3 +31,8 @@ For each accepted solution, write:
 2. What invariant does the data structure satisfy while queries are processed?
 3. Where is the original query id stored and restored?
 
+## ICPC-Style
+
+1. Kattis - CD
+   https://open.kattis.com/problems/cd
+   Focus: sorted offline scan and duplicate detection.

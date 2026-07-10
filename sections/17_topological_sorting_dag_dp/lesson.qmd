@@ -399,4 +399,6 @@ Did I check order size to detect cycles when cycles are possible?
 For lexicographic order, did I use a min-heap instead of a queue?
 For scheduling, did I use 64-bit integers in C++?
 ```
+# Exercises
 
+Solve A with Kahn's algorithm and a min-heap tie rule, B by propagating DP in topological order, and C by checking whether every dependency is available before scheduling. Test an isolated vertex and a directed cycle.

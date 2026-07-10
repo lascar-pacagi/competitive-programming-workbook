@@ -1,5 +1,5 @@
 {
   "title": "C. Linear Diophantine",
-  "checker": "tokens",
+  "checker": "diophantine",
   "time_limit_seconds": 2.0
 }

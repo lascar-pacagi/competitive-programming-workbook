@@ -25,6 +25,34 @@ execute:
 
 # Editorial overview
 
+## Read before code: problem dossiers
+
+**A. Scoreboard Rank.** Reduce each row to `(-solved, penalty, name)` and sort.
+That tuple is the stated tie rule; test exact ties and lexicographic names.
+Complexity `O(n log n)`.
+
+**B. Split Workload.** Every subset is one teammate's task set and its complement
+is the other's. Enumerating all masks covers every split; minimize the larger
+sum. Test one task and an exactly balanced split. Complexity `O(n2^n)` locally.
+
+**C. Quick MST Decision.** Kruskal's accepted edges cross DSU components, so
+the cut property yields a minimum spanning tree. Test disconnected inputs and
+equal weights before interpreting savings.
+
+## Problem-specific proof map
+
+**A. Scoreboard Rank.** The stored tuple `(-solved, penalty, name)` is exactly
+the lexicographic contest ranking rule, so sorting those tuples gives the
+required order in `O(n log n)`.
+
+**B. Split Workload.** Every assignment of tasks to one teammate is one subset;
+enumerating all subsets therefore examines every two-way split and minimizes
+the larger load exactly.
+
+**C. Quick MST Decision.** Kruskal's DSU rejects cycle edges and accepts only
+component-merging edges. Its cut-property proof gives the minimum network and
+therefore the requested savings decision.
+
 ## Detailed solution guide
 
 **A. Scoreboard Sorting.** Store each team by solved count, penalty, and name.
@@ -66,15 +94,19 @@ Sort teams by more solved, then lower penalty, then name.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Store each team as `(-solved, penalty, name)` and sort tuples. This encodes the
+ranking rule directly; trace two teams tied on solves but not penalty, then a
+complete tie resolved by name.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+Tuple lexicographic order compares exactly the stated tie-break fields in their
+required priority, so sorted output is the requested scoreboard. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Sorting is `O(n log n)` time and `O(n)` memory. Avoid sorting names before
+negating solved count.
 
 ## Full C++ solution
 
@@ -105,15 +137,19 @@ Split problem times between two solvers minimizing the maximum load.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+For each mask, one solver receives selected tasks and the other receives its
+complement. Enumerating every mask covers every split; update the answer with
+the smaller maximum load. Test one task and an exactly balanced subset.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+Every legal two-person allocation determines exactly one subset, and every mask
+determines one allocation, so taking the minimum examines the optimum. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The local brute force is `O(n2^n)` time; it is intentionally limited to small
+n. Use a running subset sum rather than recomputing it in harder variants.
 
 ## Full C++ solution
 
@@ -144,15 +180,19 @@ Use MST savings as a contest modeling drill.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Sort edges and use DSU exactly as Kruskal: accepted edges merge components,
+rejected edges close cycles. Compare the resulting MST cost with the requested
+decision/budget only after checking connectivity.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The cut property makes each component-merging minimum edge safe; therefore no
+connected subgraph can cost less than the constructed tree. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Time `O(m log m)`, memory `O(n)`. Test a disconnected graph and equal-weight
+edges; do not interpret a forest as a feasible network.
 
 ## Full C++ solution
 
@@ -184,5 +224,3 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
-
-Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

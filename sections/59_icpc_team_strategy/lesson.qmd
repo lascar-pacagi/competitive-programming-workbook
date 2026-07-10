@@ -172,6 +172,14 @@ Concrete statements let teammates act.
 
 # Exercises
 
+## Team simulation protocol
+
+Keep one shared board with owner, hypothesis, proof status, and next deadline.
+An owner asks for help with a precise artifact: counterexample, invariant, or
+failing test. A handoff includes input format, current state, and one next step;
+it is not a verbal summary. Simulate a 30-minute three-person round, then audit
+duplicate work and unreported blockers. Run `CP_TARGET=solution python3 sections/59_icpc_team_strategy/check.py`.
+
 - A. Team Assignment: Split implementation workload between two people minimizing max time.
 - B. Team Scoreboard: Rank teams by contest rules.
 - C. Template Fibonacci: Fast recurrence query drill for the team notebook.

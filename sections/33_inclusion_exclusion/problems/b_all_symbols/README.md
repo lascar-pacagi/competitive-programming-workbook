@@ -14,7 +14,11 @@ n2 k2
 nq kq
 ```
 
-`1 <= q <= 20,000`, `0 <= n <= 10^9`, `1 <= k <= 5000`.
+`1 <= q <= 200`, `0 <= n <= 10^9`, `1 <= k <= 500`.
+
+The intended direct inclusion-exclusion solution evaluates `k+1` modular
+powers per query, so these bounds deliberately keep `O(q * k * log n)` viable
+in both C++ and Python.
 
 ## Output
 

@@ -25,6 +25,34 @@ execute:
 
 # Editorial overview
 
+## Read before code: problem dossiers
+
+**A. Capstone Subset.** Split items in half. Every full subset is one pair of
+half-subsets; sorted right sums let each left sum find its best legal partner.
+Test empty subset, exact limit, and all items above the limit.
+
+**B. Capstone CRT.** Maintain one residue/modulus pair for processed equations.
+Compatibility is residue agreement modulo the gcd; extended Euclid constructs
+the merged pair. Test compatible non-coprime moduli and an impossible pair.
+
+**C. Capstone Recurrence.** The adjacent Fibonacci pair is the invariant;
+doubling identities process index bits. Test zero and values around a power of
+two. Each query is `O(log n)`.
+
+## Problem-specific proof map
+
+**A. Capstone Subset.** Every subset splits uniquely into a left-half and a
+right-half subset. Sorting right sums and taking the greatest compatible one
+for every left sum examines the optimum in `O(2^{n/2} log 2^{n/2})` time.
+
+**B. Capstone CRT.** The current pair `(a,m)` represents exactly all solutions
+to processed congruences. A new congruence is compatible iff residues agree
+modulo `gcd(m,n)`; extended Euclid then constructs its merged residue.
+
+**C. Capstone Recurrence.** The fast-doubling invariant stores adjacent
+Fibonacci values. The identities preserve it when a binary digit doubles or
+doubles-plus-one the index, yielding logarithmic queries.
+
 ## Detailed solution guide
 
 **A. Capstone Subset Optimization.** Split the items into two halves, enumerate
@@ -66,15 +94,20 @@ Meet-in-the-middle: maximum subset sum not exceeding `X`.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Split the array into two halves and enumerate all subset sums of each. Sort the
+right sums; for each left sum binary-search the greatest right partner not
+exceeding `X-left`. Trace an empty right subset and an exact-limit pair.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+Every full subset decomposes uniquely into one subset of each half. The binary
+search considers the best feasible partner for each left choice, including the
+optimal decomposition. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Time `O(2^(n/2) log 2^(n/2))`, memory `O(2^(n/2))`. Use `long long` sums; test
+the empty subset and values larger than the limit.
 
 ## Full C++ solution
 
@@ -110,15 +143,20 @@ Merge pairs of congruences or report impossibility.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Maintain `x == a (mod m)` for processed equations. To merge `b (mod n)`, first
+require `(b-a)` divisible by `gcd(m,n)`, then use extended Euclid to solve the
+reduced multiplier and normalize modulo the lcm.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The divisibility condition is necessary because both residues must agree modulo
+the gcd; the constructed multiplier satisfies both equations, so the merged
+class represents exactly their intersection. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Extended Euclid costs `O(log min(m,n))`. Use wide multiplication for the lcm;
+test compatible non-coprime moduli and incompatible residues.
 
 ## Full C++ solution
 
@@ -155,15 +193,18 @@ Fast Fibonacci queries modulo `1e9+7`.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Use fast doubling with state `(F(k),F(k+1))`. From it compute values at `2k`,
+then choose the even or odd pair according to the current index bit.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The doubling identities are algebraic Fibonacci identities; induction on the
+halved index proves the state remains adjacent Fibonacci values. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+`O(log n)` time and recursion depth per query. Test `0`, `1`, and a large
+power-of-two boundary.
 
 ## Full C++ solution
 
@@ -191,5 +232,3 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
-
-Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

@@ -50,6 +50,23 @@ edge weights.
 | all weights are `0` or `1` | next section: 0-1 BFS |
 | negative edge weights | not Dijkstra |
 
+## Nonnegative is a requirement, not a hint
+
+Before writing a heap, inspect **every transition cost in the graph you are
+actually going to run on**. Dijkstra requires all of them to be at least zero.
+That includes costs introduced by a grid model or a state expansion, not merely
+the numbers visible in the original statement.
+
+For example, suppose the source has edges `s -> a` of cost `1` and `s -> b` of
+cost `2`, while `b -> a` has cost `-5`. A heap pops and finalizes `a` at cost
+`1` before it pops `b`. But the route `s -> b -> a` costs `-3`. The finalization
+claim is false, so ordinary Dijkstra is invalid.
+
+Use Bellman-Ford or a problem-specific method when negative edges are allowed.
+If negative cycles are relevant, the question may not even have a finite
+shortest-path answer. Do not try to repair this by changing the visited array:
+the theorem, not the implementation detail, has failed.
+
 # Priority queue primer
 
 Dijkstra repeatedly expands the not-yet-final vertex with smallest known
@@ -95,7 +112,8 @@ key inside the heap; we push a new better pair and ignore the old one later.
 When Dijkstra pops a non-stale pair `(dist[u], u)`, `dist[u]` is final: no
 future relaxation can make it smaller.
 
-Why nonnegative weights matter:
+Why nonnegative weights matter (and why the previous counterexample does not
+contradict it):
 
 ```text
 Every future path must first leave the heap through a distance >= dist[u].
@@ -231,4 +249,6 @@ Did I use long long for distances in C++?
 For grids, did I define whether the start cell cost counts?
 For state graphs, did I include every legal transition?
 ```
+# Exercises
 
+Solve A with duplicate heap entries, B by turning cells into weighted graph states, and C by adding the used-discount bit to the state. Test stale heap entries, an unreachable destination, and a discount used on the first or last edge.

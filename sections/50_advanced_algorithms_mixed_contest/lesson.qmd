@@ -176,6 +176,14 @@ These anchors catch most implementation mistakes quickly.
 
 # Exercises
 
+# Mixed-contest proof checkpoints
+
+For DAG Grundy, a state is winning iff some successor has Grundy value zero
+after mex logic; process reverse topological order. CRT needs compatibility
+`a-b` divisible by `gcd(m,n)` before constructing a solution with extended
+Euclid. Fast doubling follows directly from the two Fibonacci addition
+identities. Test terminal vertices, incompatible moduli, and `F(0)`.
+
 - A. DAG Grundy: For each start vertex in a DAG, print whether the first player wins.
 - B. General CRT: For each pair of congruences, print the smallest nonnegative solution and lcm modulus, or `NO`.
 - C. Fast Fibonacci: Answer Fibonacci queries modulo `1e9+7`.

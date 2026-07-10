@@ -25,6 +25,21 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Dynamic Order Statistics.** A Fenwick prefix is exactly the number of
+stored values at most that index. Fenwick binary lifting finds the first prefix
+whose count reaches `k`, hence the k-th value, in `O(log m)` per operation.
+
+**B. Range Add Range Sum.** The two-tree formula is the prefix sum of the
+difference array after distributing each range update over its affected
+positions. Subtracting two such prefixes therefore gives exactly the requested
+range sum, with `O(log n)` updates and queries.
+
+**C. Static Rectangle Count.** Inclusion-exclusion turns a rectangle into four
+dominance counts. During the x-sweep, the Fenwick tree contains precisely points
+with `x <= X`, so its y-prefix produces each dominance count in `O(log n)`.
+
 ## Detailed solution guide
 
 **A. Dynamic Order Statistics.** A Fenwick tree over value coordinates stores
@@ -68,17 +83,19 @@ objects for the current prefix threshold.
 
 Maintain a multiset over values `1..m`: insert, erase one copy, k-th, and count `<=x`.
 
-## Observations and algorithm
+## Observations, trace, and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+Keep multiplicities in a Fenwick tree. After inserts 3,5,3, rank two is 3 and
+count<=4 is two; after erasing one 3, rank two is 5. Insert/erase update one
+index, count is a prefix sum, and kth is the first prefix reaching k by Fenwick
+binary lifting; reject an invalid k.
 
-## Correctness proof
+## Correctness proof and complexity
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+Fenwick prefixes equal cumulative multiplicities, so the first prefix reaching
+k is exactly the kth multiset value. Every operation is `O(log m)` and memory
+is `O(m)`. QED.
 
-## Complexity
-
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
 
 ## Full C++ solution
 
@@ -125,7 +142,8 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test duplicate insert/erase and invalid ranks, negative/full-range updates, and
+points on rectangle boundaries with duplicate coordinates.
 
 # B. Range Add Range Sum
 
@@ -133,17 +151,18 @@ Use singleton inputs, repeated values, empty answers, ancestor/self paths, disco
 
 Support range addition and range-sum queries.
 
-## Observations and algorithm
+## Observations, trace, and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+An add x on [l,r] writes +x at l and -x at r+1 in a difference tree. A second
+weighted tree gives `prefix(i)=i*sum(B1,i)-sum(B2,i)`. Adding ten on [2,4]
+makes the added contribution through i=3 equal `3*10-10=20`.
 
-## Correctness proof
+## Correctness proof and complexity
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+Summing B1 reconstructs each pending add; summing those reconstructed values
+gives the weighted formula. Prefix subtraction isolates a range. Updates and
+queries are `O(log n)`, memory `O(n)`. QED.
 
-## Complexity
-
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
 
 ## Full C++ solution
 
@@ -185,7 +204,8 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test duplicate insert/erase, invalid ranks, negative/full-range updates, and
+points on inclusive rectangle boundaries with duplicate coordinates.
 
 # C. Static Rectangle Count
 
@@ -193,17 +213,20 @@ Use singleton inputs, repeated values, empty answers, ancestor/self paths, disco
 
 Given points and rectangle queries, count points inside each rectangle.
 
-## Observations and algorithm
+## Observations, trace, and algorithm
 
-Use the detailed solution guide above as the roadmap. The implementation below follows the stated invariant directly and handles the edge cases called out for this exercise.
+Turn a rectangle into x-prefix events at x2 (+) and x1-1 (-). Sort events and
+points by x; a compressed-y Fenwick tree contains points already passed. For
+points (1,1),(2,3),(4,2), rectangle [1,3]x[1,3] sees two points at x=3 and zero
+at x=0.
 
-## Correctness proof
+## Correctness proof and complexity
 
-Correctness follows from the problem-specific argument in the detailed guide: the maintained structure represents exactly the objects claimed there, and each answer is read from that representation. `\square`
+At an event, the tree contains exactly points with x at most its threshold; its
+y-prefix difference counts the requested y interval. Subtracting events is
+rectangle inclusion-exclusion. Cost is `O((n+q)log(n+q))`, memory `O(n+q)`.
+QED.
 
-## Complexity
-
-The running time is the one derived in the detailed guide and visible in the loops below: preprocessing builds the structure once, while each operation performs the stated scans, searches, jumps, or graph traversals.
 
 ## Full C++ solution
 
@@ -247,8 +270,97 @@ if __name__=="__main__": main()
 
 ## Tests that matter
 
-Use singleton inputs, repeated values, empty answers, ancestor/self paths, disconnected matching edges, and bottleneck flow graphs.
+Test duplicate insert/erase, invalid ranks, negative/full-range updates, and
+points on inclusive rectangle boundaries with duplicate coordinates.
 
 # What to carry forward
+
+<!-- Duplicate workshop hidden from the rendered editorial.
+# Detailed upsolve workshop
+
+## A. Dynamic Order Statistics
+
+**Constraints and diagnosis.** Values lie in `1..m` and up to about `2e5`
+operations mix insertion, erase-one-copy, k-th selection, and prefix counts.
+A sorted vector has linear insertion/removal; a Fenwick tree over value space
+has all required operations in `O(log m)`.
+
+**Trace and pseudocode.** Insert `3,5,3`: multiplicity prefixes make rank two
+resolve to value three and `count <= 4` equal two. Erase one three; rank two
+then resolves to five.
+
+```text
+insert x: count[x]++, BIT.add(x,+1)
+erase x: if count[x]>0, count[x]--, BIT.add(x,-1)
+kth k: first index with BIT.prefix(index) >= k, else -1
+count <= x: BIT.prefix(x)
+```
+
+**Proof and complexity.** BIT prefix values are exactly cumulative
+multiplicities. Its binary lifting finds the smallest prefix reaching k, so it
+returns the k-th multiset value. Every operation is `O(log m)`, memory `O(m)`.
+Use one-based tree indices, reject invalid k, and test duplicates, erasing an
+absent value, and x outside useful count boundaries.
+
+## B. Range Add Range Sum
+
+**Constraints and diagnosis.** With `n,q` near `2e5`, touching every position
+of an updated interval is quadratic. A difference-array update becomes a
+prefix query with two Fenwick trees.
+
+**Trace and pseudocode.** Add ten to `[2,4]`: write `+10` at 2 and `-10` at 5
+in the difference tree. The weighted tree stores corrections `+10*(2-1)` and
+`-10*4`; then `prefix(3)=3*10-10=20` is the added contribution through index
+three.
+
+```text
+add(l,r,x): B1[l]+=x; B1[r+1]-=x; B2[l]+=x*(l-1); B2[r+1]-=x*r
+prefix(i) = i*sum(B1,i) - sum(B2,i)
+range(l,r) = prefix(r)-prefix(l-1)
+```
+
+**Proof and complexity.** Summing B1 reconstructs the pending value added at
+each index; algebraically summing those values through i gives the displayed
+two-tree formula. Subtracting prefixes isolates `[l,r]`. Both updates and
+queries are `O(log n)`, memory `O(n)`. Use `long long`; test negative additions,
+singletons, full range, and `l=1`.
+
+## C. Static Rectangle Count
+
+**Constraints and diagnosis.** Many static points and rectangle queries make a
+scan per rectangle too slow. Turn each rectangle into two x-prefix events:
+`count(x<=x2,y1<=y<=y2) - count(x<=x1-1,y1<=y<=y2)`.
+
+**Trace and pseudocode.** With points `(1,1),(2,3),(4,2)`, rectangle
+`[1,3]x[1,3]` has a + event at x=3 seeing two points and a - event at x=0
+seeing none, hence two. Compress all point and query y coordinates.
+
+```text
+sort points and events by x
+before an event x: add every point with point.x <= x into y-BIT
+event contribution = BIT.sum(y2)-BIT.sum(y1-1), multiplied by sign
+```
+
+**Proof and complexity.** At every event the BIT contains exactly points with
+x no larger than its threshold. Its y-prefix difference counts precisely the
+needed y interval; subtracting the two threshold counts is rectangle
+inclusion-exclusion. Sorting and all BIT operations cost `O((n+q)log(n+q))`,
+memory `O(n+q)`. Keep query boundaries inclusive via `x1-1` and `upper_bound`
+for y2. Test boundary points, duplicate coordinates, and empty rectangles.
+
+-->
+# Testing discussion
+
+Run `CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py`.
+For small random cases, compare A with a sorted multiset, B with a direct array,
+and C with a direct point scan. These oracles expose incorrect binary lifting,
+off-by-one difference boundaries, and compression errors.
+
+# What to carry forward
+
+Fenwick trees are prefix-summary engines. Pair them when a range update needs
+an extra weighted correction, binary-lift them when a prefix count becomes an
+order statistic, and combine one with a sweep when one coordinate can be made
+monotone.
 
 Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.

@@ -28,6 +28,15 @@ local_tested: no
 ## ICPC-Style
 
 ```text
+title: Kattis - Financial Planning
+link: https://open.kattis.com/problems/financialplanning
+difficulty: medium
+topics: binary search on answer, monotone feasibility
+status: required
+local_tested: no
+```
+
+```text
 title: ICPC World Finals problem archive
 link: https://icpc.global/worldfinals/problems
 difficulty: browse archive
@@ -37,4 +46,3 @@ local_tested: no
 notes: Binary search on a hidden bottleneck appears often in ICPC problems
        after deriving a monotone feasibility condition.
 ```
-

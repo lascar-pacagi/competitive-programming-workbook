@@ -11,8 +11,8 @@ whether the transition chooses a boundary action or a split point.
 2. CSES Removal Game  
    https://cses.fi/problemset/task/1097
 
-3. Kattis Nested Dolls  
-   https://open.kattis.com/problems/nesteddolls
+3. Kattis String Factoring
+   https://open.kattis.com/problems/stringfactoring
 
 4. Codeforces 607B - Zuma  
    https://codeforces.com/problemset/problem/607/B
@@ -27,4 +27,3 @@ whether the transition chooses a boundary action or a split point.
 
 7. AtCoder Educational DP Contest L - Deque  
    https://atcoder.jp/contests/dp/tasks/dp_l
-

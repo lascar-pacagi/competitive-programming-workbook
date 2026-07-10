@@ -17,8 +17,8 @@ meaning of each state before coding.
 4. Codeforces 161D - Distance in Tree  
    https://codeforces.com/problemset/problem/161/D
 
-5. Kattis Ceilings  
-   https://open.kattis.com/problems/ceilings
+5. Kattis Cat in a Tree
+   https://open.kattis.com/problems/catinatree
 
 ## Stretch
 
@@ -27,4 +27,3 @@ meaning of each state before coding.
 
 7. AtCoder ABC 036 D - Coloring Tree  
    https://atcoder.jp/contests/abc036/tasks/abc036_d
-

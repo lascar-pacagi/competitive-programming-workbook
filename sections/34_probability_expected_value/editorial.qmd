@@ -25,251 +25,236 @@ execute:
 
 # Editorial overview
 
-| Problem | Pattern | Formula |
-|---|---|---|
-| A. Expected Prize | linearity | `sum v_i p_i/q_i` |
-| B. First Success | geometric wait | `q/p` |
-| C. Coupon Collector | staged waits | `n * H_n` |
+| Problem | Random-variable model | Main tool | Cost |
+|---|---|---|---|
+| A. Expected Prize | one reward variable per event | linearity | O(n log MOD) |
+| B. First Success | expected remaining attempts | first-step equation | O(t log MOD) |
+| C. Coupon Collector | wait for each new type | staged linearity | O(max n + q) |
+
+All answers are rational numbers represented modulo the prime
+MOD = 1,000,000,007. The local denominators are strictly below MOD, so their
+Fermat inverses exist.
 
 # A. Expected Prize
 
-## Restatement
+## Restatement and constraints
 
-Each event gives `v[i]` points with probability `p[i]/q[i]`. Compute expected
-total points modulo `MOD`.
+There are up to 200,000 bonus events. Event i awards value vi with probability
+pi/qi and awards zero otherwise. The statement calls events independent, but
+the solution only needs their individual probabilities and qi not divisible by
+MOD.
 
-## Algorithm
+## Derivation
 
-For each event:
+Define Xi to be the points from event i. It is vi with probability pi/qi and
+zero otherwise, hence E[Xi] = vi*pi/qi. The total score is the sum of the Xi,
+so linearity gives
 
-```text
-contribution = v[i] * p[i] * inverse(q[i])
-```
+~~~
+E[total] = sum vi * pi * inverse(qi) modulo MOD.
+~~~
 
-Sum all contributions.
+Linearity does not require independence. This is why we sum event
+contributions instead of enumerating all 2^n possible subsets.
 
-## Correctness proof
+## Worked trace
 
-Let `Xi` be the points from event `i`. It equals `v[i]` with probability
-`p[i]/q[i]` and `0` otherwise, so `E[Xi] = v[i]p[i]/q[i]`. By linearity of
-expectation, the expected total is the sum of these values. Modular inverses
-represent the rational divisions exactly under prime modulus. `\square`
+For sample events (1,2,10), (1,4,8), and (3,4,12):
 
-## Full C++ solution
+~~~
+E[X1] = 10 * 1/2 = 5
+E[X2] =  8 * 1/4 = 2
+E[X3] = 12 * 3/4 = 9
+E[total] = 16
+~~~
 
-```cpp
-#include <bits/stdc++.h>
-using namespace std;
-
-const long long MOD = 1000000007LL;
-
-long long mod_pow(long long a, long long b) {
-    long long result = 1;
-    while (b > 0) {
-        if (b & 1LL) result = result * a % MOD;
-        a = a * a % MOD;
-        b >>= 1LL;
-    }
-    return result;
-}
-
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-
-    int n;
-    if (!(cin >> n)) return 0;
-    long long ans = 0;
-    for (int i = 0; i < n; i++) {
-        long long p, q, v;
-        cin >> p >> q >> v;
-        ans = (ans + (v % MOD) * (p % MOD) % MOD * mod_pow(q, MOD - 2)) % MOD;
-    }
-    cout << ans << '\n';
-    return 0;
-}
-```
-
-## Full Python solution
-
-```python
-import sys
-
-
-MOD = 1_000_000_007
-
-
-def main() -> None:
-    data = list(map(int, sys.stdin.buffer.read().split()))
-    if not data:
-        return
-    n = data[0]
-    idx = 1
-    ans = 0
-    for _ in range(n):
-        p, q, v = data[idx], data[idx + 1], data[idx + 2]
-        idx += 3
-        ans = (ans + v % MOD * p % MOD * pow(q, MOD - 2, MOD)) % MOD
-    print(ans)
-```
-
-# B. First Success
-
-## Restatement
-
-Repeated independent attempts succeed with probability `p/q`. Compute the
-expected number of attempts until the first success.
+If the third event were correlated with the first two but still had probability
+3/4, the same expected total would follow. Independence would matter for a
+product of probabilities, not this sum.
 
 ## Algorithm and proof
 
-Let `E` be the expected number of attempts. One attempt is always made. If it
-fails, with probability `1-p/q`, the process restarts.
+~~~
+answer = 0
+for each p,q,v:
+    answer += (v modulo MOD) * (p modulo MOD) * q^(MOD-2)
+    answer %= MOD
+print answer
+~~~
 
-```text
-E = 1 + (1-p/q)E
-(p/q)E = 1
+For each event this expression is its exact expected contribution in the finite
+field. By linearity, summing all contributions equals the expected total. The
+inverse is valid because 1 <= q < MOD. Therefore the algorithm is correct.
+QED.
+
+## Complexity, language notes, and tests
+
+Time is O(n log MOD), memory O(1) besides input/output buffering. C++ products
+must use long long. Python should use the three-argument pow function; ordinary
+division and floating point both lose the exact residue.
+
+Test one certain bonus, a zero-probability bonus, a zero value, and a value
+larger than MOD. Frequent wrong answers multiply all event probabilities or
+incorrectly think dependent events invalidate linearity.
+
+# B. First Success
+
+## Restatement and constraints
+
+For each of up to 200,000 queries, independent attempts succeed with probability
+p/q, where 1 <= p <= q < MOD. Find the expected attempts through the first
+success. The lower bound p>=1 is essential: probability zero would mean an
+infinite waiting time, not answer zero.
+
+## Derivation and trace
+
+Let E be the expected attempts before an attempt. One attempt is made now. If it
+fails, probability (q-p)/q, the state is exactly the same as before:
+
+~~~
+E = 1 + ((q-p)/q) E
+(p/q) E = 1
 E = q/p
-```
+~~~
 
-So print `q * inverse(p)`.
+For p=2, q=5:
 
-## Full C++ solution
+~~~
+E = 1 + (3/5)E
+(2/5)E = 1
+E = 5/2
+~~~
 
-```cpp
-#include <bits/stdc++.h>
-using namespace std;
-const long long MOD = 1000000007LL;
+The modular output is 5 times inverse(2), namely 500000006.
 
-long long mod_pow(long long a, long long b) {
-    long long result = 1;
-    while (b > 0) {
-        if (b & 1LL) result = result * a % MOD;
-        a = a * a % MOD;
-        b >>= 1LL;
-    }
-    return result;
-}
+## Algorithm and proof
 
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-    int t;
-    if (!(cin >> t)) return 0;
-    while (t--) {
-        long long p, q;
-        cin >> p >> q;
-        cout << q % MOD * mod_pow(p, MOD - 2) % MOD << '\n';
-    }
-    return 0;
-}
-```
+For every query, print q * p^(MOD-2) modulo MOD. The first-step equation
+conditions on all possible results of the first attempt and uniquely solves to
+q/p. Since p is nonzero modulo MOD, its inverse represents that rational value
+exactly. Thus the algorithm is correct. QED.
 
-## Full Python solution
+## Complexity, language notes, and tests
 
-```python
-import sys
+Time is O(t log MOD), memory O(1) besides output. In C++, the product of two
+reduced residues fits in signed 64-bit. In Python, pow(p, MOD-2, MOD) is the
+right inverse operation.
 
-MOD = 1_000_000_007
-
-data = list(map(int, sys.stdin.buffer.read().split()))
-t = data[0]
-idx = 1
-out = []
-for _ in range(t):
-    p, q = data[idx], data[idx + 1]
-    idx += 2
-    out.append(str(q % MOD * pow(p, MOD - 2, MOD) % MOD))
-print("\n".join(out))
-```
+Test p=q, p=1, p=1 and q=2, and large p and q close to MOD. Wrong submissions
+usually output p/q, omit the leading one in the recurrence, or treat p=0 as a
+valid zero expectation.
 
 # C. Coupon Collector
 
-## Restatement
+## Restatement and constraints
 
-With `n` equally likely coupon types, compute the expected number of draws to
-collect all types.
+For each of up to 200,000 queries, n is at most one million. Each draw returns
+one of n coupon types uniformly and independently. We need the expected draws
+until every type has appeared. Repeating a computation for each query is too
+slow, but all queries share harmonic prefixes.
+
+## Derivation and complete trace
+
+At stage i, exactly i types are already known. A draw finds a new type with
+probability (n-i)/n, so its geometric waiting-time expectation is n/(n-i).
+Adding all stages gives
+
+~~~
+E = n/n + n/(n-1) + ... + n/1
+  = n * (1 + 1/2 + ... + 1/n).
+~~~
+
+For n=3:
+
+~~~
+stage        success probability       expected draws
+0 -> 1              3/3                       1
+1 -> 2              2/3                       3/2
+2 -> 3              1/3                       3
+total                                          11/2
+~~~
+
+The required residue is 3 times (1 + inverse(2) + inverse(3)), equal to
+500000009. The stage random variables are added with linearity.
 
 ## Algorithm
 
-When `i` types are already collected, the probability of getting a new type is
-`(n-i)/n`, so the expected waiting time for the next new type is `n/(n-i)`.
+Read all queries and let limit be their maximum. Precompute inverses and
+harmonic prefixes in linear time:
 
-Summing:
+~~~
+inv[1] = 1
+H[0] = 0
+for i from 1 to limit:
+    if i >= 2:
+        inv[i] = MOD - (MOD/i) * inv[MOD%i] modulo MOD
+    H[i] = H[i-1] + inv[i] modulo MOD
+for n in queries:
+    print n * H[n] modulo MOD
+~~~
 
-```text
-answer = n * (1 + 1/2 + ... + 1/n)
-```
-
-Precompute modular harmonic sums.
+The inverse recurrence is valid for 1 <= i < MOD, precisely the local bound.
+It is preferable to one modular exponentiation per i.
 
 ## Correctness proof
 
-The collection process splits into `n` stages: going from `i` collected types to
-`i+1`. Each stage is a geometric wait with success probability `(n-i)/n`, so
-its expected length is `n/(n-i)`. Expectations add, giving the formula.
-`\square`
+During stage i, the probability of moving to stage i+1 is (n-i)/n, so the
+First Success result gives an expected stage length n/(n-i). Completion is the
+sum of exactly these n stages. Linearity gives n times the harmonic sum. The
+precomputation stores every required modular reciprocal and prefix sum, so each
+answer is that exact rational expectation modulo MOD. QED.
 
-## Full C++ solution
+## Complexity, language notes, and tests
 
+Preprocessing costs O(max n), each query O(1), and memory O(max n). C++ should
+cast the inverse-recurrence product to long long. Python lists are practical at
+one million entries. A pow-per-inverse loop is correct but O(max n log MOD) and
+does unnecessary work.
+
+Test n=1, n=2, n=3, consecutive queries, and the maximum query. Common wrong
+answers use n/i instead of n/(n-i), omit the first stage, or recompute a
+harmonic sum independently per query.
+
+# Local workflow
+
+Run:
+
+~~~bash
+CP_TARGET=solution python3 sections/34_probability_expected_value/check.py
+~~~
+
+For small verification, use exact rational arithmetic. Enumerate a few reward
+outcomes, solve the first-step equation symbolically, and compare coupon stage
+sums using Python Fraction before reducing numerator times inverse(denominator)
+modulo MOD.
+# Full reference implementations
+
+## A. Expected Prize: C++
 ```cpp
-#include <bits/stdc++.h>
-using namespace std;
-const long long MOD = 1000000007LL;
-
-long long mod_pow(long long a, long long b) {
-    long long result = 1;
-    while (b > 0) {
-        if (b & 1LL) result = result * a % MOD;
-        a = a * a % MOD;
-        b >>= 1LL;
-    }
-    return result;
-}
-
-int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-    int q;
-    if (!(cin >> q)) return 0;
-    vector<int> values(q);
-    int limit = 0;
-    for (int &n : values) {
-        cin >> n;
-        limit = max(limit, n);
-    }
-    vector<long long> harmonic(limit + 1, 0);
-    for (int i = 1; i <= limit; i++) {
-        harmonic[i] = (harmonic[i - 1] + mod_pow(i, MOD - 2)) % MOD;
-    }
-    for (int n : values) cout << n * harmonic[n] % MOD << '\n';
-    return 0;
-}
+{{< include problems/a_expected_prize/solution.cpp >}}
 ```
-
-## Full Python solution
-
+## A. Expected Prize: Python
 ```python
-import sys
-
-MOD = 1_000_000_007
-data = list(map(int, sys.stdin.buffer.read().split()))
-q = data[0]
-values = data[1 : 1 + q]
-limit = max(values)
-harmonic = [0] * (limit + 1)
-for i in range(1, limit + 1):
-    harmonic[i] = (harmonic[i - 1] + pow(i, MOD - 2, MOD)) % MOD
-print("\n".join(str(n * harmonic[n] % MOD) for n in values))
+{{< include problems/a_expected_prize/solution.py >}}
 ```
-
-# Testing discussion
-
-Random tests use exact rational arithmetic with Python `Fraction`, then convert
-the result to modular form. This catches the common mistake of using floating
-point or rounding.
+## B. First Success: C++
+```cpp
+{{< include problems/b_first_success/solution.cpp >}}
+```
+## B. First Success: Python
+```python
+{{< include problems/b_first_success/solution.py >}}
+```
+## C. Coupon Collector: C++
+```cpp
+{{< include problems/c_coupon_collector/solution.cpp >}}
+```
+## C. Coupon Collector: Python
+```python
+{{< include problems/c_coupon_collector/solution.py >}}
+```
 
 # What to carry forward
 
-Expected value problems are often easier than distribution problems. Try
-linearity first; if the process has repeated waiting for success, look for a
-geometric stage.
+Define the random variable or expected remaining state first. Linearity avoids
+distribution enumeration, and a first-step equation exposes every self-loop.

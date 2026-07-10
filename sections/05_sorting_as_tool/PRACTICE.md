@@ -28,6 +28,15 @@ local_tested: no
 ## ICPC-Style
 
 ```text
+title: Kattis - Parking
+link: https://open.kattis.com/problems/parking2
+difficulty: easy
+topics: sorting, extremes
+status: required
+local_tested: no
+```
+
+```text
 title: ICPC World Finals problem archive
 link: https://icpc.global/worldfinals/problems
 difficulty: browse archive
@@ -37,4 +46,3 @@ local_tested: no
 notes: Sorting is often a preprocessing step inside ICPC sweep-line,
        scheduling, and geometry problems.
 ```
-

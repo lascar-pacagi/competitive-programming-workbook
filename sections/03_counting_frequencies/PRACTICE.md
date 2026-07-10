@@ -28,6 +28,15 @@ local_tested: no
 ## ICPC-Style
 
 ```text
+title: Kattis - Bacon, Eggs, and Spam
+link: https://open.kattis.com/problems/bacon
+difficulty: easy
+topics: frequency maps, grouped output
+status: required
+local_tested: no
+```
+
+```text
 title: ICPC World Finals problem archive
 link: https://icpc.global/worldfinals/problems
 difficulty: browse archive
@@ -38,4 +47,3 @@ notes: Counting subproblems appear often inside longer ICPC statements. Later
        sections will pin specific archive problems where counting is the main
        technique.
 ```
-

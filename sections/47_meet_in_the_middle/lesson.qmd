@@ -165,6 +165,15 @@ valid.
 
 # Exercises
 
+# MITM invariant
+
+Split the items into two halves, enumerate every subset sum of each half, and
+combine only one sum from each list. This is exhaustive because every original
+subset has exactly one left and one right part. Sort one list; use upper_bound
+for counts, predecessor search for best feasible sum, and nearest-neighbor
+checks for closest sum. Complexity is `O(2^(n/2) log 2^(n/2))`, not `O(2^n)`.
+Test negative values, empty halves, and a target below every feasible sum.
+
 - A. Count Subset Sums <= X: Count subsets whose sum is at most `X`.
 - B. Best Subset Sum <= X: Print the maximum subset sum not exceeding `X`.
 - C. Closest Subset Sum: Print the minimum absolute difference between a subset sum and target `T`.

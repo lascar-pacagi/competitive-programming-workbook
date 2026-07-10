@@ -217,3 +217,61 @@ Adding probabilities of events directly when they overlap.
 3. Check whether values need preprocessing.
 4. Verify edge cases: blocked start/end, value 1, probability 0 or 1.
 ```
+# Exercises
+
+Treat A as a blocked-grid counting reduction, B as a gcd-based pair count, and C as a complement/inclusion-exclusion event. For each, write the mathematical object being counted before coding.
+
+## Paper drills before the judge
+
+1. On a `3 by 4` grid blocked at `(2,2)`, list the two binomial factors for
+   paths through the block and verify the answer is four. Hint: a prefix and
+   suffix are independent only after fixing the block.
+2. Process `[1,6,10]` with an initially empty `seen` table. Write entries for
+   `2,3,5,6,10` after every value. Answer: the new-pair contributions are
+   `0,1,1`.
+3. For probabilities `1/2` and `1/3`, compute both the complement product and
+   the incorrect direct sum. Explain which outcomes direct addition counts
+   twice.
+
+Run the local checker after the paper trace:
+
+```bash
+CP_TARGET=solution python3 sections/35_math_mixed_contest/check.py
+```
+
+For B, compare the optimized answer with a nested-loop gcd oracle on random
+arrays of length at most ten. For A and C, enumerate tiny paths/events before
+trusting the closed formula.
+# Model checks before code
+
+For a blocked grid cell, every forbidden path decomposes uniquely into a prefix
+to that cell and suffix from it, so multiplication is justified. For coprime
+pairs, factor only distinct primes: using prime powers breaks the
+inclusion-exclusion events. For probabilities, multiply complements only when
+the statement grants independence.
+# Coprime-pair invariant and trace
+
+Let `seen[d]` be the number of earlier values divisible by square-free product
+`d`. For new `x`, enumerate nonempty subsets of its distinct prime factors.
+Alternating their `seen[product]` counts gives earlier values sharing a prime;
+subtract from the processed count to get coprime pairs. Update `seen` only
+after counting, or `x` pairs with itself. Since `2*3*5*7*11*13*17 > 10^6`, a
+local value has at most seven distinct primes and at most 127 subset products.
+
+Process `[1,6,10]`: one changes no counter; six increments counters for
+`2,3,6`; ten sees `seen[2]+seen[5]-seen[10]=1`, so it is coprime only with
+one, then updates `2,5,10`. This is the implementation invariant in action.
+
+The blocked-cell subtraction applies to exactly one blocked cell; multiple
+cells require a different model. The complement product for probabilities
+requires independent events and denominators nonzero modulo `MOD`.
+
+# C++ and Python implementation notes
+
+For A, factorial and inverse-factorial arrays need indices through `H+W`; use
+`long long` for modular products in C++. For B, store SPF and `seen` in dense
+integer vectors indexed by value, but store the pair answer in `long long`.
+Generate subset products from distinct factors only. Python uses the same dense
+lists and should buffer output; do not use a dictionary for every divisor when
+the one-million value bound permits arrays. For C, normalize `1-none` after
+subtraction in C++; Python's final `% MOD` already does so.

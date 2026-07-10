@@ -25,6 +25,36 @@ execute:
 
 # Editorial overview
 
+## Read before code: problem dossiers
+
+**A. Deadline Profit.** Sort unit jobs by deadline and retain selected profits in
+a min-heap. After a deadline `d`, more than `d` jobs cannot fit; deleting the
+least profitable keeps the best feasible set of that size. Test equal deadlines
+and a high-profit late job. Time `O(n log n)`.
+
+**B. Minimum Interval Cover.** At the leftmost uncovered point, choose among
+available intervals the one reaching farthest right. Exchange any optimal
+cover's first interval for this choice without reducing reach. Test a gap,
+touching endpoints, and an interval that starts too late. Time `O(n log n)`.
+
+**C. MST Savings.** Sum all edges, then use Kruskal/DSU to retain only
+component-merging edges. The cut property proves their weight is minimum; the
+difference is removable savings. Test a disconnected graph and parallel edges.
+
+## Problem-specific proof map
+
+**A. Deadline Profit.** After jobs are sorted by deadline, keep chosen profits
+in a min-heap. If more jobs than available slots are kept, deleting the least
+profitable one preserves the best total profit among feasible choices.
+
+**B. Minimum Interval Cover.** At the current uncovered point, an optimal cover
+can be exchanged to use an available interval reaching at least as far as the
+greedy choice. Repeating this reaches the target with the fewest intervals.
+
+**C. MST Savings.** Kruskal keeps exactly edges that join different components.
+The cut property proves those edges form a minimum spanning tree; total weight
+minus its weight is the maximum removable saving.
+
 ## Detailed solution guide
 
 **A. Scheduling with Deadlines.** Sort jobs by deadline and keep the selected
@@ -70,15 +100,25 @@ Each unit job has deadline and profit. Maximize profit.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Sort jobs by deadline. After reading every job with deadline at most `d`, keep
+the selected profits in a min-heap. If its size exceeds `d`, delete its least
+profitable job: no schedule can complete more than `d` unit jobs by that time.
+For `(1,5),(1,2),(2,4)`, discard profit `2` and keep `5,4`.
+
+```text
+sort by deadline; push each profit; if heap.size > deadline: pop minimum
+```
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The heap has maximum total profit among feasible selected sets of its size. A
+violating set must discard one job; removing the minimum profit loses least
+value, preserving optimality by induction. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Sorting and heap operations take `O(n log n)` time and `O(n)` memory. In Python
+use `heapq`; test equal deadlines and a job with deadline zero if allowed.
 
 ## Full C++ solution
 
@@ -110,15 +150,25 @@ Minimum intervals needed to cover `[0,T]`, or `-1`.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Sort intervals by left endpoint. At current covered point `cur`, scan every
+interval beginning no later than `cur` and choose the greatest right endpoint.
+If none extends beyond `cur`, coverage is impossible. Trace `[0,2],[1,5],[4,6]`
+to choose reach 2, then 5, then 6.
+
+```text
+while cur<T: best=max right among starts<=cur; fail if best==cur; cur=best
+```
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+Every valid cover must choose an interval reaching the current uncovered point.
+Replacing its first such interval by the farthest-reaching greedy interval
+cannot reduce coverage of the remaining suffix, proving an exchange step. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The sort dominates: `O(n log n)` time, `O(n)` memory. Test a gap, touching
+endpoints, and one interval already covering the whole target.
 
 ## Full C++ solution
 
@@ -152,15 +202,20 @@ Print total edge weight removable while keeping the graph connected, or `-1`.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Sum all edges, then process edges by weight with DSU. Add an edge only when its
+endpoints are in different components; otherwise it would form a cycle. The
+kept weight is the MST, so total minus kept is removable weight.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+By the cut property, each lightest component-joining edge is safe for some MST.
+After `n-1` accepted edges the forest is connected and minimum; fewer means the
+input graph was disconnected. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Kruskal costs `O(m log m)` time and `O(n)` DSU memory. Use `long long` totals;
+test parallel edges, equal weights, and a disconnected graph.
 
 ## Full C++ solution
 
@@ -192,5 +247,3 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
-
-Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

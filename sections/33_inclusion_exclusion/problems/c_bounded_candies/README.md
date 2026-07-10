@@ -17,6 +17,15 @@ nq sq bq
 
 `1 <= q <= 5000`, `1 <= n <= 5000`, `0 <= s <= 5000`, `0 <= b <= 5000`.
 
+Additionally, across all queries,
+
+```text
+sum min(n, floor(s / (b + 1))) <= 1,000,000.
+```
+
+This is the number of nonzero inclusion-exclusion terms, and keeps the stated
+Python reference solution within the time limit.
+
 ## Output
 
 Print one answer per query.

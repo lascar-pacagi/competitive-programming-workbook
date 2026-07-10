@@ -20,10 +20,15 @@ coding.
 5. CSES Exponentiation II  
    https://cses.fi/problemset/task/1712
 
+6. Kattis Coprime Integers (2018 ICPC Mid-Central Regional)
+   https://open.kattis.com/problems/coprimeintegers
+   - Practice the Möbius/inclusion-exclusion viewpoint after the local SPF
+     exercise; treat it as the ICPC-style required problem.
+
 ## Stretch
 
-6. Codeforces 451E - Devu and Flowers  
+7. Codeforces 451E - Devu and Flowers
    https://codeforces.com/problemset/problem/451/E
 
-7. AtCoder Educational DP Contest I - Coins  
+8. AtCoder Educational DP Contest I - Coins
    https://atcoder.jp/contests/dp/tasks/dp_i

@@ -169,6 +169,17 @@ dangerous.
 
 # Exercises
 
+## Proof-first greedy workshop
+
+For a greedy claim, write the selected object, the first differing choice of an
+optimal solution, and the exchange that repairs it. In deadline profit, keep a
+min-heap of chosen profits: when a deadline allows d jobs, discard the smallest
+profit if more than d jobs are selected. In interval cover, among intervals
+starting before the uncovered point choose the farthest right endpoint. In MST,
+the cut property says a lightest crossing edge is safe. Test equal deadlines,
+gaps in coverage, duplicate weights, and a tempting locally cheap edge that
+creates a cycle. Run `CP_TARGET=solution python3 sections/56_hard_greedy_matroids_intro/check.py`.
+
 - A. Deadline Profit: Each unit job has deadline and profit. Maximize profit.
 - B. Minimum Interval Cover: Minimum intervals needed to cover `[0,T]`, or `-1`.
 - C. MST Savings: Print total edge weight removable while keeping the graph connected, or `-1`.

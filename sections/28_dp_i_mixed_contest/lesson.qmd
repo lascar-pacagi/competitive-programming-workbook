@@ -316,3 +316,6 @@ Assuming root must be selected when selecting nothing may be optimal.
 5. Large values use 64-bit integers.
 6. Random small tests can be brute-forced.
 ```
+# Exercises
+
+For each task, first name the state dimension that prevents a greedy solution: day for A, both positions for B, and subtree dependency for C. Test the smallest feasible instance before timing the mixed set.

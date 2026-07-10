@@ -438,4 +438,6 @@ Did I prove the graph model and the algorithm separately?
 Use the external queue in `PRACTICE.md` after solving the local set. It mixes
 CSES, AtCoder, Kattis, and Codeforces graph problems so the algorithm is not
 announced in advance.
+# Exercises
 
+Treat A as a minimum-network model, B as DAG scheduling, and C as shortest paths with reversible edges. Before coding, write the graph vertices and edge meaning; test a one-node graph and a disconnected component.

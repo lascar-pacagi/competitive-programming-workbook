@@ -1,0 +1,78 @@
+---
+title: "Competitive Programming"
+subtitle: "Appendix A Editorial: Lazy Propagation"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=25mm
+execute:
+  enabled: false
+---
+
+# Exercise 1: range add, range sum
+
+## State and operations
+
+For each node store `sum` and `lazy_add`. Applying `x` to a segment of length
+`len` sets `sum += x*len` and `lazy_add += x`. Pushing applies the same tag to
+both children and resets the parent tag to zero.
+
+## Correctness
+
+`apply` changes every value of a fully covered segment by `x`, so its sum rises
+by exactly `x*len`. Its tag records that children have not yet received that
+same operation. `push` invokes this correct full-cover operation on each child;
+their sums and tags become correct before recursion. Merging correct child sums
+therefore restores the parent invariant. The induction described in the lesson
+proves both updates and queries.
+
+## Complexity
+
+An update/query visits `O(log n)` boundary nodes plus fully covered nodes whose
+work stops immediately, so it is `O(log n)` time and `O(n)` memory.
+
+# Exercise 2: range assign, range sum
+
+## State and composition
+
+Store `sum`, `has_assign`, and `assign_value`. Applying assignment `x` sets
+`sum = x*len`, `has_assign = true`, and `assign_value = x`. A newer assignment
+replaces the older pending assignment; it does not add to it.
+
+## Correctness
+
+The latest assignment is the only relevant deferred operation because it
+overwrites every earlier value. Thus replacing the pending tag preserves the
+meaning "operation still owed to both children." The same apply/push/pull
+invariant proves correctness.
+
+# Exercise 3: binary flip, count ones
+
+## State and composition
+
+Store `ones` and `lazy_flip`. Applying a flip to length `len` changes
+`ones` to `len-ones` and toggles `lazy_flip`. Two flips cancel, which is why
+tag composition is xor.
+
+## Correctness
+
+Every zero becomes one and every one becomes zero, so exactly the previous
+zeros, `len-ones`, are ones afterward. Xor records the parity of unapplied
+flips; parity completely determines their effect. Push and pull preserve the
+same node invariant as in Exercise 1.
+
+# Stress testing
+
+For each variant, generate arrays of length at most eight and random operations.
+Maintain a plain list beside the tree. After every update, query every interval
+and compare. Include nested full-range updates because they expose composition
+order errors that random single-point updates often miss.

@@ -168,3 +168,71 @@ CP_TARGET=solution python3 sections/38_static_queries_binary_lifting/check.py
 
 Replace `CP_TARGET=solution` by your own `solve.cpp` or `solve.py` attempts
 when practicing.
+# Exercises
+
+Use A and B to check the idempotence requirement of sparse-table queries, and C to define `up[j][v]` before lifting bits of `k`. Test a length-one range and an ancestor above the root.
+
+# Static means a different tradeoff
+
+The signal is not merely "many queries"; it is "many queries and no updates."
+For a static range minimum or gcd, spend `O(n log n)` memory and preprocessing
+to make every query `O(1)`. A sparse table's invariant is:
+
+```text
+st[k][i] is the aggregate of exactly [i, i+2^k-1].
+```
+
+The build recurrence joins two adjacent valid half-blocks, so induction proves
+the invariant. A query uses two blocks of length `2^floor(log2(len))`; their
+union covers the range. Their overlap is legal only for idempotent operations:
+`min(x,x)=x` and `gcd(x,x)=x`, but `sum(x,x)` double-counts.
+
+## Second sparse-table trace
+
+For `[12,18,6,10,15]`, query gcd `[2,5]` has length four, so use one length-4
+block and answer 1? No: `gcd(18,6,10,15)=1`, which is exactly `st[2][2]` in
+1-based notation. For a length-five query, use two length-four overlapping
+blocks; applying gcd to both remains correct because duplicate values do not
+change a gcd.
+
+# Binary lifting as a path sparse table
+
+`up[k][v]` means the node reached after exactly `2^k` parent edges. The root's
+missing parent is sentinel zero. Build `up[k][v]=up[k-1][up[k-1][v]]`; by
+induction this composes two jumps of `2^(k-1)` edges. For a requested distance,
+use its set bits. If a jump reaches zero, every larger ancestor is absent and
+the answer is `-1`.
+
+## Trace: kth ancestor
+
+In parents `2->1, 3->1, 4->2, 5->2`, node 4 lifted by two goes
+`4 -> 2 -> 1`; bit 1 selects `up[1][4]`, which is 1. Lift by three: select
+`up[0][4]=2`, then `up[1][2]=0`, so report `-1`. A distance of zero selects no
+bits and returns the original node.
+
+# Notes, mistakes, and formative checks
+
+Precompute integer logs with `lg[i]=lg[i//2]+1`, not floating `log2`. In C++,
+use `1LL<<k` when comparing a potentially large ancestor distance. In Python,
+stop the bit loop when the node becomes zero or the distance becomes zero.
+
+| Mistake | Test |
+|---|---|
+| sparse table for sums using overlap | sum query of length 3 |
+| wrong right block start | range of non-power-of-two length |
+| forget 1-based to 0-based conversion | singleton range |
+| omit sentinel root parent | lift above the root |
+
+1. Why can min use overlapping blocks? Answer: repeating any candidate leaves
+   the minimum unchanged. 2. Why cannot sum? Answer: overlap contributes twice.
+3. What is the 0th ancestor? Answer: the node itself.
+
+# Submission workflow
+
+For sparse tables, compare each query to a direct scan on small arrays. For
+lifting, climb parents literally for small distances. Test length-one ranges,
+non-power-of-two lengths, root queries, zero distance, and distance above depth.
+
+```bash
+CP_TARGET=solution python3 sections/38_static_queries_binary_lifting/check.py
+```

@@ -179,4 +179,32 @@ This is not a proof, but it is a powerful way to discover the proof.
 - C. Same Residue: Can all numbers become equal using operations that change a number by `k`?
 # Contest checklist
 
+# Three local invariant workshops
+
+**Parity.** Adding or subtracting two preserves `x mod 2`. For `1,5,7,9`, all
+values are odd, so each can move through odd integers toward a common target.
+For `1,4`, no sequence of +/-2 operations can bridge the residue classes. The
+proof has two parts: preservation makes mixed parity impossible; repeated steps
+of two make equal-parity values reachable at a common sufficiently large value.
+
+**XOR split.** Let `T` be XOR of the whole array and `P` XOR of the prefix
+before a cut. The suffix XOR is `T xor P`; equality holds exactly when
+`P == T xor P`, equivalently `T==0`. Thus when total XOR is zero every cut is
+valid, otherwise none is. Test n=1, all zero, and a nonzero total; do not scan
+each suffix independently.
+
+**Residue modulo k.** +/-k preserves `x mod k`. Compare normalized residues,
+especially if a future variant permits negative values. Mixed residues are
+impossible; equal residues are sufficient by repeatedly moving each value by k.
+
+**C++/Python and workflow.** Use `long long` for values and XOR in C++; Python
+integers are exact. Brute-force small operation graphs to discover a candidate
+invariant, then prove preservation and sufficiency separately. Run
+`CP_TARGET=solution python3 sections/51_invariants_in_hard_problems/check.py`.
+
+Exercises: explain why a preserved quantity alone is not always sufficient;
+find the parity classes of `[-3,2,7]`; and verify the XOR identity on
+`[1,2,3,0]`. Answers: reachability may have another obstruction; residues are
+1,0,1; total XOR is zero, so every internal cut works.
+
 State the invariant, choose the model, prove the operation, then code the smallest reliable version.

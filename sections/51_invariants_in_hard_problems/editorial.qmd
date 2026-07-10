@@ -25,6 +25,20 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Same Parity.** Adding or subtracting two preserves parity, and any two
+integers of equal parity differ by a multiple of two; parity is therefore both
+necessary and sufficient.
+
+**B. XOR Balanced Splits.** A split is balanced when prefix xor equals suffix
+xor. Since `prefix xor suffix = total`, this occurs exactly when the prefix xor
+equals `total`; one left-to-right scan counts those positions in `O(n)`.
+
+**C. Same Residue.** Every operation changes a value by a multiple of `k`, so
+residue modulo `k` is invariant. Equal residues are sufficient because each
+difference can be repaired by repeated `k`-steps.
+
 ## Detailed solution guide
 
 **A. Parity Invariant.** Each allowed operation changes the state but preserves
@@ -71,15 +85,15 @@ Can all numbers become equal if one operation changes a number by 2?
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -107,15 +121,15 @@ Count split positions where left xor equals right xor.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -149,15 +163,15 @@ Can all numbers become equal using operations that change a number by `k`?
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -178,5 +192,28 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
+
+# Complete upsolve notes
+
+## A. Same Parity
+An operation changes a value by two, so parity is invariant. Mixed parity makes
+equality impossible. If all residues match, move every value by repeated +/-2
+steps to a common value, proving sufficiency. Scan residues once: `O(n)` time,
+`O(1)` memory. Test one value, all even, all odd, and one mixed pair.
+
+## B. XOR Balanced Splits
+Let total XOR be T and a prefix XOR be P. The suffix is `T xor P`, so equality
+is equivalent to T=0. Thus answer is n-1 when total XOR is zero, otherwise
+zero. This is O(n); test n=1 and zero/nonzero totals. Do not recompute suffix
+XOR for every cut.
+
+## C. Same Residue
+Adding or subtracting k preserves residue modulo k. Equal residues are also
+sufficient because values differ by multiples of k. Compare every `a[i] % k`
+to the first; normalize negatives in a generalized C++ version. O(n) time,
+O(1) memory; test k=1 and a mixed-residue pair.
+
+Use `long long` for values in C++ and direct integers in Python. Run the local
+suite and brute-force very small states to test the claimed reachability class.
 
 Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

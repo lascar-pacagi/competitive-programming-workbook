@@ -224,3 +224,81 @@ CP_TARGET=solution python3 sections/36_fenwick_trees/check.py
 
 Replace `CP_TARGET=solution` by your own `solve.cpp` or `solve.py` attempts
 when practicing.
+# Exercises
+
+Use A for point-add/range-sum indexing, B to count inversions after coordinate compression, and C to turn range additions into a difference Fenwick tree. Test index 1, the final index, and duplicate values.
+
+# Contest decisions, invariants, and traces
+
+Do not choose a Fenwick tree because a problem says "array." Choose it when the
+operations are additions and prefix aggregates, and both updates and queries
+must be fast. A plain prefix-sum array makes queries `O(1)` but a point update
+`O(n)`; direct summation makes an update `O(1)` but each range query `O(n)`.
+A Fenwick tree gives both in `O(log n)`.
+
+The invariant is precise: after any sequence of `add` calls, `bit[i]` equals
+the sum of the original logical values in `[i-lowbit(i)+1,i]`. Prefix query
+visits disjoint blocks that partition `[1,i]`; update visits exactly the block
+owners whose block contains the changed position. These are the two facts to
+prove before trusting the loops.
+
+## Trace: point add and range sum
+
+Start with `a=[2,1,4,3,5]`. Build by calling `add(i,a[i])`. For `add(3,+6)`,
+the logical array becomes `[2,1,10,3,5]`; the visited owners are `3,4,8,...`.
+For query `[2,4]`, compute `prefix(4)-prefix(1)=(2+1+10+3)-2=14`. Never try
+to make `bit[3]` mean "the value at index 3"; it is a block sum.
+
+## Trace: inversions with duplicates
+
+For `[3,1,2,2]`, compress to ranks `[3,1,2,2]`. Read left to right. At the
+third item, `seen=2` and `prefix(rank 2)=1`, so exactly one prior value is
+greater. At the final `2`, the prefix count is two, so again one value is
+greater. Equal values are included in the prefix and are therefore not counted
+as inversions. The final answer is three.
+
+## Difference trace
+
+For `a=[10,20,30,40]`, store differences `[10,10,10,10]`. Adding `+5` on
+`[2,3]` changes only `diff[2] += 5` and `diff[4] -= 5`, giving
+`[10,15,10,5]`. Its prefix sums reconstruct `[10,25,35,40]`. This is why a
+single Fenwick over differences solves range-add/point-query.
+
+# Language notes and proof habits
+
+Use 1-based internal indices: `lowbit(0)=0`, so an update starting at zero
+loops forever. In C++, use `long long` for sums and inversion counts. In Python,
+the integer size is safe, but buffered input and collecting answers before one
+final print matter for large operation counts. Coordinate compression must use
+`sorted(set(a))`, not `sorted(a)`, so equal values share a rank.
+
+Before coding, say aloud which quantity `prefix(i)` represents. For normal
+storage it is `a[1]+...+a[i]`; for difference storage it is the *current value*
+at position `i`. This one sentence prevents most range/update mismatches.
+
+| Wrong approach | Why it fails | Test |
+|---|---|---|
+| use index 0 | lowbit never advances | update/query at first position |
+| use `seen-prefix(rank-1)` for inversions | counts equal values as greater | `[2,2]` |
+| omit `r+1` subtraction | update leaks past the range | update `[2,3]`, query 4 |
+| store sums in `int` | totals can exceed 32 bits | many large additions |
+
+## Formative checks
+
+1. Which blocks does `prefix(13)` read? Hint: repeatedly subtract lowbit.
+   Answer: owners `13,12,8`, covering `[13,13]`, `[9,12]`, `[1,8]`.
+2. Why is `previous - prefix(rank)` the inversion contribution? Answer: it
+   removes every previous value `<=` the current value, leaving exactly `>`.
+3. What two difference entries change for add `-7` on `[l,r]`? Answer:
+   `diff[l]-=7`, `diff[r+1]+=7`.
+
+# Submission workflow
+
+Use a slow array model for stress tests: perform each update literally and
+compute each query by a loop. Compare it with the Fenwick result on small random
+arrays, especially negative additions, index one, index `n`, repeated values,
+and a full-range update. Then run:
+
+```bash
+CP_TARGET=solution python3 sections/36_fenwick_trees/check.py
+```

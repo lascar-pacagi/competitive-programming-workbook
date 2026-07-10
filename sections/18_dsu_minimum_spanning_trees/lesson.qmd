@@ -366,4 +366,6 @@ Did I sort edges by weight before Kruskal?
 Did I use long long for total cost in C++?
 Did I check disconnected/impossible cases?
 ```
+# Exercises
 
+Use A for DSU connectivity after each edge, B for Kruskal's cut property, and C for sorting candidate inter-cluster edges. Test repeated edges, an already connected graph, and a disconnected graph.

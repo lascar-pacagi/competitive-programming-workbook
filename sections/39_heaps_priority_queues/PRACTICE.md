@@ -1,10 +1,11 @@
-# Practice for Section 39: Heaps and Priority Queues
+# Practice Queue
 
-Practice: CSES Concert Tickets, CSES Room Allocation, CSES Sliding Median, AtCoder ABC priority queue tasks, Codeforces greedy heap problems.
+1. Codeforces 1354D - Multiset (priority/order-statistics boundary cases)
+   https://codeforces.com/problemset/problem/1354/D
+2. AtCoder ABC212 D - Querying Multiset (heap frontier and lazy offset)
+   https://atcoder.jp/contests/abc212/tasks/abc212_d
+3. Kattis Disastrous Downtime - ICPC-style sweep with active requests
+   https://open.kattis.com/problems/downtime
 
-When practicing external problems, solve them in this order:
-
-1. Re-derive the invariant or stored state before coding.
-2. Implement a small local brute force if constraints allow it.
-3. Stress your optimized solution against the brute force.
-4. Write down the exact reason the data structure supports each operation.
+For every heap problem, state what one heap item represents and which event
+makes it stale. Compare small cases against a sorted container or direct sweep.

@@ -431,3 +431,69 @@ The fixed samples cover visible behavior. The random tests generate
 many small operation sequences and compute expected outputs from the
 reference Python implementation, then the same expected files are
 used against both the C++ and Python submissions.
+
+# Problem-specific upsolve notes
+
+## A. Point Add Range Sum
+
+**Constraint implication and trap.** With a long sequence of updates and
+queries, scanning `[l,r]` per query is quadratic in the worst case. The update
+is an addition, not an assignment: call `add(i,x)`, never overwrite the old
+Fenwick contribution.
+
+**Walk-through.** From `[1,2,3,4]`, query `[2,4]` is
+`prefix(4)-prefix(1)=9`. After `add(3,10)`, the same query is 19. The tree's
+prefix invariant proves the subtraction removes exactly positions before `l`.
+
+```text
+build: for i=1..n: add(i,a[i])
+type 1 i x: add(i,x)
+type 2 l r: print prefix(r)-prefix(l-1)
+```
+
+Every `bit[j]` stores its lowbit block sum. Prefix blocks partition `[1,r]` and
+`[1,l-1]`, so their difference is exactly `[l,r]`. Build is `O(n log n)` with
+these calls and each operation is `O(log n)`; memory is `O(n)`. In both C++ and
+Python, use 64-bit-capable sums. Test `l=1`, `l=r`, negative delta, and a query
+after several additions to one position.
+
+## B. Inversion Count
+
+**Observation.** Values can be large or negative, so compress them to ordered
+ranks. At index `i`, `i - prefix(rank)` is the number of earlier values that
+are strictly greater; using `prefix(rank-1)` would incorrectly count equals.
+
+For `[3,1,2,5,4]`, the contributions are `0,1,1,0,1`, total 3. The Fenwick
+invariant counts exactly the processed values of each rank, and compression
+preserves `<`, proving the accumulated contributions count every inversion once
+when its right endpoint arrives. Complexity is `O(n log n)` time and `O(n)`
+memory. C++ needs `long long inv`; Python needs no special numeric type. Test
+sorted, reverse-sorted, all-equal, and values outside 32-bit range.
+
+```text
+compress values to ranks
+for i from 0 to n-1:
+    answer += i - prefix(rank[a[i]])
+    add(rank[a[i]], 1)
+```
+
+## C. Range Add Point Query
+
+**Observation.** Store `diff`, not the logical values. A range add changes
+only `diff[l]` and `diff[r+1]`; a point value is the prefix sum of differences.
+For `[10,20,30,40]`, add `5` on `[2,3]`: prefix at 3 changes from 30 to 35,
+but prefix at 4 returns to 40 because of `diff[4]-=5`.
+
+The difference identity proves that every position in `[l,r]` sees `+x` once
+and every other position sees net zero. Each update and point query is
+`O(log n)`, with `O(n)` memory. Allocate an extra usable index for `r+1`.
+In C++/Python, initialize by inserting `a[i]-a[i-1]`, not `a[i]`. Test a
+full-range add, `r=n`, and a negative update.
+
+# Stress-testing workflow
+
+For A and C, keep a slow list and mutate it literally; for B, use a double
+loop on arrays of length at most eight. Compare after every random operation,
+then run `CP_TARGET=solution python3 sections/36_fenwick_trees/check.py`.
+Carry forward: Fenwick trees are prefix structures, and coordinate compression
+or a difference transform changes what that prefix means.

@@ -203,4 +203,6 @@ Did I push 0-cost relaxations to the front?
 Did I push 1-cost relaxations to the back?
 For grids, did I check bounds and walls before relaxing?
 ```
+# Exercises
 
+Use A to recognize binary edge weights, B to encode direction as a state cost, and C to model warp moves explicitly. Test all-zero paths, all-one paths, and a case where FIFO BFS gives the wrong answer.

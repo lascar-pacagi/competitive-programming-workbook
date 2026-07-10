@@ -170,6 +170,67 @@ external binary search and avoids an extra logarithmic factor.
 
 # Exercises
 
+# Worked update traces
+
+## Dynamic order statistics
+
+The Fenwick tree stores multiplicities, not values. With inserts `3,5,3`, its
+prefix counts are `count(<=1)=0`, `count(<=3)=2`, `count(<=5)=3`. The second
+element is found by searching the first index whose prefix count is at least
+two, namely three. After erasing one three, the second element becomes five.
+
+For `kth(k)`, keep a tentative index whose prefix sum is strictly less than
+the remaining rank. Try Fenwick powers of two from largest to smallest; accept
+a step only when its stored partial sum is still below that rank. The next
+index is exactly the first prefix reaching `k`. Reject `k` outside
+`1..total_count` before this search.
+
+## Two Fenwick trees for range add/range sum
+
+Adding `x` on `[l,r]` changes the difference array by `+x` at `l` and `-x` at
+`r+1`. Let `B1` store those changes and `B2` store each change times its index
+correction. Then the prefix sum of the reconstructed array is
+
+```text
+prefix(i) = i * sum(B1,i) - sum(B2,i).
+```
+
+For an add of ten on `[2,4]`, record `B1[2]+=10,B1[5]-=10` and
+`B2[2]+=10,B2[5]-=40`. At `i=3`, the formula adds `3*10-10=20`, the two added
+positions in the prefix. A range sum is `prefix(r)-prefix(l-1)`.
+
+## Static rectangle count: inclusion-exclusion in x
+
+For each rectangle `[x1,x2] x [y1,y2]`, count points with `x<=x2` and y in its
+interval, then subtract the same count at `x1-1`. Sort point insertions and
+these two events by x. A compressed-y Fenwick tree contains exactly points with
+x no larger than the current event's x. For points `(1,1),(2,3),(4,2)` and
+rectangle `[1,3]x[1,3]`, the `x=3` event sees two points and `x=0` sees zero.
+
+# Proof habits, language notes, and workflow
+
+All three structures are summaries with explicit meanings: Fenwick prefix sum
+is a multiplicity/count, the pair of trees reconstructs a prefix of values,
+and the sweep tree represents points already passed by x. Prove updates
+preserve that meaning before trusting a query formula.
+
+**C++.** Use `long long` for range values, Fenwick internal sums, and answers;
+the product `x*(l-1)` can overflow `int`. Compression indices are one-based.
+
+**Python.** Iterative list-based Fenwick trees are viable for the local limits.
+Coordinate-compress all y values from points and query boundaries before a
+sweep; do not use a dictionary as a substitute for order statistics.
+
+| Problem | Essential adversarial cases |
+|---|---|
+| A | duplicate insert/erase, invalid k, `count <= x` at boundaries |
+| B | negative add, single-cell range, full range, `l=1` |
+| C | point on every rectangle boundary, duplicate y, empty rectangle |
+
+Run `CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py`.
+For small randomized inputs, compare A to a sorted list, B to an array updated
+directly, and C to a direct scan of every point for every rectangle.
+
 - A. Dynamic Order Statistics: Maintain a multiset over values `1..m`: insert, erase one copy, k-th, and count `<=x`.
 - B. Range Add Range Sum: Support range addition and range-sum queries.
 - C. Static Rectangle Count: Given points and rectangle queries, count points inside each rectangle.

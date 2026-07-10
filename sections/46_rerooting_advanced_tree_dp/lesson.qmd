@@ -174,6 +174,14 @@ a parent or child.
 
 # Exercises
 
+# Rerooting proof habit
+
+Root once at 1. First compute values flowing from children to parent; then pass
+the complement value from parent to child. For sum distances, `down[v]` is the
+sum to its subtree and `size[v]` its size. Moving the root across edge `v-u`
+changes the answer by `n-2*size[u]`: `size[u]` nodes become one closer and all
+others one farther. Test a chain, a star, and `n=1`.
+
 - A. Sum Distances: For every node, print the sum of distances to all other nodes.
 - B. Farthest Node Distance: For every node, print its distance to the farthest node.
 - C. Paths Through Node: For every node, count unordered pairs of distinct nodes whose path passes through it.

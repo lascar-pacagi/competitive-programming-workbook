@@ -477,4 +477,6 @@ For directed graphs, did I distinguish active and finished vertices?
 For subtree sizes, did I process children before parents?
 Did I avoid recursive depth issues on large chains?
 ```
+# Exercises
 
+Use A to practice entry/exit information in a rooted DFS, B to distinguish a parent edge from a cycle, and C to use three directed-DFS colors. Test a single vertex, a self-contained cycle, and disconnected input.

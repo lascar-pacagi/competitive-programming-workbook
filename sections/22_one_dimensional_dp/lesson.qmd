@@ -499,4 +499,6 @@ Are impossible states represented safely?
 Do I need modulo, and only for counting?
 Do I need long long in C++?
 ```
+# Exercises
 
+For A write base cases before transitions, for B state what `dp[i]` optimizes, and for C verify whether the last move is sufficient state. Test the smallest index, unreachable states, and equal-cost transitions.

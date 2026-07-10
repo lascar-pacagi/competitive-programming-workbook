@@ -25,6 +25,20 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Nim Winner.** Nim xor zero is losing because every move makes it nonzero;
+nonzero xor has a move that lowers one heap and restores zero. This gives the
+winner in linear time per position.
+
+**B. Subtraction Game.** `win[x]` is true exactly when some allowed move reaches
+a losing `win[x-d]`; otherwise every legal move helps the opponent. Induction
+on `x` proves the recurrence.
+
+**C. DAG Game.** A vertex's Grundy value is the mex of successor values. A
+topological reverse order ensures all successors are known, and Grundy zero is
+exactly a losing state.
+
 ## Detailed solution guide
 
 **A. Nim XOR.** Let `x` be the xor of all pile sizes. If `x = 0`, every move
@@ -69,15 +83,15 @@ For each Nim position, print WIN or LOSE.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -110,15 +124,15 @@ Given total stones and allowed moves, print whether the first player wins.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -148,15 +162,15 @@ For each start vertex in a DAG, print whether it is winning.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -185,5 +199,30 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
+
+# Complete upsolve notes
+
+## A. Nim Winner
+XOR all pile sizes. A zero XOR is losing: every move makes it nonzero. A
+nonzero XOR has a move that clears its highest set bit by reducing one pile,
+making XOR zero. This is O(n), uses an integer XOR accumulator, and should test
+empty-equivalent zero piles, equal piles, and one pile.
+
+## B. Subtraction Game
+Let win[s] mean the player to move with s stones can force a win. It is true
+iff some legal subtraction reaches a losing state; win[0]=false. Fill upward
+through the target. The recurrence is an induction proof, costs
+O(target * moves), and must ignore moves larger than s. Test target zero,
+move one, and a move set with gaps.
+
+## C. DAG Game
+Process vertices in reverse topological order. A vertex is winning iff it has
+an edge to a losing successor; sinks are losing. Every successor is already
+classified in this order, proving the recurrence. Complexity is O(V+E); test
+sinks, disconnected components, and multiple query starts. Use iterative
+topological processing in Python for deep graphs.
+
+Run `CP_TARGET=solution python3 sections/52_game_theory/check.py` and compare
+small subtraction/DAG states with a recursive minimax oracle.
 
 Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

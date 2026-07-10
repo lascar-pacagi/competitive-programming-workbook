@@ -378,4 +378,6 @@ Are borders initialized safely?
 Do I need modulo or long long?
 Does the statement require extra state such as direction, turns, or remaining budget?
 ```
+# Exercises
 
+Solve A with obstacle-aware path counts, B with a local minimum transition, and C with direction/turn count included in the state. Test a blocked start, a blocked end, and a single-cell grid.

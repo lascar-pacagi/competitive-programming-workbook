@@ -189,6 +189,41 @@ Entering a cell costs that cell's toll, and the start cell is included.
 Each cell is a graph vertex. Moving to a neighboring cell is a directed edge
 whose cost is the neighbor's toll. Costs are nonnegative, so Dijkstra applies.
 
+The state and its meaning are deliberately simple:
+
+| State | Meaning |
+|---|---|
+| `(r,c)` | we are standing in cell `(r,c)` |
+| `dist[r][c]` | least total toll of a route that has entered `(r,c)` |
+
+Initialize `dist[0][0]` to `cost[0][0]`, not zero: the statement charges for
+the starting cell. From `(r,c)`, each in-bounds four-neighbor `(nr,nc)` has
+transition cost `cost[nr][nc]`. There is no separate cost for leaving a cell.
+
+On the sample, Dijkstra first gives the starting cell distance `1`. The move
+down gives `(1,0)` distance `2`, whereas the move right gives `(0,1)` distance
+`10`. Following the low-toll corridor reaches the goal at `6`; the expensive
+top route remains in the heap but cannot improve that answer.
+
+## Algorithm
+
+```text
+dist[*][*] = infinity
+dist[0][0] = cost[0][0]
+push (cost[0][0], 0, 0) into a min-heap
+
+while the heap is nonempty:
+    (d, r, c) = pop its smallest entry
+    if d != dist[r][c]: continue              # stale entry
+    for each of the four in-bounds neighbors (nr, nc):
+        nd = d + cost[nr][nc]
+        if nd < dist[nr][nc]:
+            dist[nr][nc] = nd
+            push (nd, nr, nc)
+
+print dist[n-1][m-1]
+```
+
 ## Correctness
 
 Dijkstra's invariant applies directly to cell states. Every legal grid walk is
@@ -296,6 +331,39 @@ used. Use states:
 
 All expanded edges have nonnegative weights, so Dijkstra works.
 
+Make the transition table before coding. It prevents the common error of
+either losing the unused-discount route or taking the discount twice.
+
+| Current state | Traverse `u -> v` of weight `w` | Next state | Added cost |
+|---|---|---|---|
+| `(u,0)` | do not use discount | `(v,0)` | `w` |
+| `(u,0)` | use discount now | `(v,1)` | `floor(w/2)` |
+| `(u,1)` | ordinary traversal | `(v,1)` | `w` |
+
+On the sample, the cheap-looking route `1 -> 2 -> 4` costs `10 + 5 = 15` if
+the discount is used on its second edge. The alternative `1 -> 3 -> 4` costs
+`50 + 1 = 51` after discounting `1 -> 3`. The discount belongs in the state,
+because comparing only the two arrivals at a vertex would discard this choice.
+
+## Algorithm
+
+```text
+dist[u][used] = infinity for every vertex u and used in {0, 1}
+dist[1][0] = 0
+push (0, 1, 0) into a min-heap
+
+while the heap is nonempty:
+    (d, u, used) = pop its smallest entry
+    if d != dist[u][used]: continue
+    for each directed edge u -> v of weight w:
+        relax (v, used) with d + w
+        if used == 0:
+            relax (v, 1) with d + floor(w / 2)
+
+answer = min(dist[n][0], dist[n][1])
+print -1 if answer is infinity, otherwise answer
+```
+
 ## Correctness
 
 Every valid original route corresponds to one path in the expanded graph:
@@ -306,7 +374,8 @@ using the discount at most once. Dijkstra therefore finds the optimal route.
 ## Complexity
 
 ```text
-Time:  O((n + m) log n)
+States: 2n; transitions: at most 3m
+Time:   O((n + m) log n)
 Memory: O(n + m)
 ```
 
@@ -422,4 +491,3 @@ Dijkstra is the default shortest-path algorithm for nonnegative weighted
 graphs. The modeling skill is deciding what a state must remember. Once the
 state graph has nonnegative edge weights, the same invariant and heap template
 apply.
-

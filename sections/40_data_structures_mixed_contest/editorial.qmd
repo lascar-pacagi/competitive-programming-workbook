@@ -421,6 +421,85 @@ if __name__ == "__main__":
 
 # Testing discussion
 
+# Detailed upsolve workshop
+
+## A. Hotel Queries
+
+**Constraints and trap.** `n,q` are up to about `2e5`. A linear scan for each
+group is too slow; a plain maximum alone finds feasibility but not the first
+index. Store the maximum remaining capacity in each segment-tree node.
+
+**Trace and pseudocode.** With capacities `[3,1,4,1,5]`, a request of four
+descends root -> left/right according to whether the left subtree maximum is
+at least four, reaches index three, and changes it to zero.
+
+```text
+if root.max < x: output 0
+otherwise descend: go left if left.max >= x, else right
+at leaf i: subtract x; recompute max values on the path to root; output i
+```
+
+**Proof and complexity.** Every node is the maximum of exactly its leaves. A
+feasible left child contains an earlier valid hotel; an infeasible left child
+contains none, so the descent returns the first valid leaf. Each query changes
+and rebuilds one root-to-leaf path: `O(log n)` time, `O(n)` memory. Use
+`long long` capacities. Test no feasible hotel, the first/last feasible hotel,
+and repeated requests to one hotel.
+
+## B. List Removals
+
+**Constraints and trap.** Removing an element from an array/vector shifts all
+following values and becomes quadratic. Instead, original positions are fixed;
+a Fenwick tree stores one for alive positions and zero for removed positions.
+
+**Trace and pseudocode.** For values `[10,20,30,40,50]`, rank two resolves to
+original index two, outputs 20, then adds -1. With counts `[1,0,1,1,1]`, rank
+three resolves to original index four, outputting 40.
+
+```text
+initialize BIT with one at every index
+for rank k:
+    i = first index whose BIT prefix sum >= k
+    output value[i]; BIT.add(i,-1)
+```
+
+**Proof and complexity.** The BIT prefix sum is the number of alive original
+positions at or before its index. Therefore its first prefix reaching `k` is
+the k-th current item. Fenwick binary lifting gives `O(log n)` per removal and
+`O(n)` memory. The search uses one-based indices; test rank one, last rank,
+and duplicate values. A small mutable-list simulation is the stress oracle.
+
+## C. Mo Distinct Queries
+
+**Constraints and trap.** Static array, many offline range queries, and no
+updates signal Mo's algorithm. Recomputing a set for every range is quadratic
+in the worst case. Coordinate-compress values before using an array frequency.
+
+**Trace and pseudocode.** For `[1,2,1,3,2,4]`, activate `[1,3]` to obtain
+frequencies `1:2,2:1` and answer two. Move to `[2,5]`: remove the first one,
+add 3 and 2, and obtain three.
+
+```text
+sort queries by left block, alternating right direction
+move [curL,curR] one endpoint at a time
+add(pos): if freq[a[pos]] changes 0->1, distinct++
+remove(pos): if freq[a[pos]] changes 1->0, distinct--
+```
+
+**Proof and complexity.** The frequency invariant exactly represents the
+current window, so `distinct` is correct when a query is reached. Block order
+limits endpoint movement to `O((n+q)sqrt(n))` in the standard analysis; memory
+is `O(n+q)`. Convert endpoints once, use buffered I/O in Python, and test all
+equal values, all distinct values, singletons, and repeated ranges against
+`len(set(...))` on small random arrays.
+
+# What to carry forward
+
+Choose a stored summary that answers the decision you actually need: subtree
+maximum for first-fit, alive prefix count for dynamic rank, and frequencies for
+an offline window. The invariant makes both the data structure and its proof
+mechanical.
+
 The fixed samples cover visible behavior. The random tests generate
 many small operation sequences and compute expected outputs from the
 reference Python implementation, then the same expected files are

@@ -25,6 +25,34 @@ execute:
 
 # Editorial overview
 
+## Read before code: problem dossiers
+
+**A. Team Assignment.** A mask assigns its selected tasks to one teammate; its
+complement goes to the other. Minimize `max(sum, total-sum)` over all masks.
+Test a single task and a case with several optimal splits.
+
+**B. Team Scoreboard.** The comparator is the contest rule: more solved, lower
+penalty, then name. Make it a tuple, not nested ad hoc comparisons; test all
+tie layers. Complexity `O(n log n)`.
+
+**C. Template Fibonacci.** Fast doubling stores `(F(k),F(k+1))`; identities
+produce `2k` and `2k+1`, proving each halving step. Test `0`, `1`, and a huge
+index. Complexity `O(log n)`.
+
+## Problem-specific proof map
+
+**A. Team Assignment.** A bitmask represents exactly the tasks assigned to one
+person; its complement goes to the other. Enumerating masks covers all splits,
+so the smallest maximum load is optimal.
+
+**B. Team Scoreboard.** Each row is reduced to the stated ranking key: higher
+solved count, lower penalty, then name. Sorting by that key implements every
+tie rule directly.
+
+**C. Template Fibonacci.** Fast doubling maintains `(F(k), F(k+1))`; the
+doubling identities compute the pair for `2k`, and one addition advances to
+`2k+1`. Halving the index gives `O(log n)` time per query.
+
 ## Detailed solution guide
 
 **A. Team Assignment Planning.** The local task is a partition-style planning
@@ -65,15 +93,19 @@ Split implementation workload between two people minimizing max time.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Each bitmask assigns selected tasks to one teammate and all other tasks to the
+second. Compute both loads and minimize their maximum; trace a mask and its
+complement to see why it is redundant but still valid.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+Every two-way allocation maps to one mask, and every mask maps back to one
+allocation, so the minimum maximum load is optimal. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The local bound permits `O(n2^n)` enumeration. Test a single task and equal
+total halves.
 
 ## Full C++ solution
 
@@ -104,15 +136,18 @@ Rank teams by contest rules.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Read a row as `(-solved, penalty, name)` and sort it. This is a simulation of
+the stated rule, not an algorithmic shortcut; test each tie-breaking layer.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+Lexicographic tuple order compares more solved first through negation, then
+lower penalty and finally name, exactly matching the contract. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+`O(n log n)` time and `O(n)` memory. Keep names as strings; numeric conversion
+would lose the intended tie-break.
 
 ## Full C++ solution
 
@@ -143,15 +178,18 @@ Fast recurrence query drill for the team notebook.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Maintain `(F(k),F(k+1))`. The doubling identities compute the pair for `2k`;
+when the next bit is one, advance once. Trace `k=5` from the binary digits.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The identities preserve adjacent Fibonacci values, and halving the index at
+each recursion/bit step reaches zero, proving the returned first component. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Each query is `O(log n)` time and recursion depth. Test `0`, `1`, and a large
+index near the input limit.
 
 ## Full C++ solution
 
@@ -179,5 +217,3 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
-
-Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

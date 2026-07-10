@@ -25,6 +25,19 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Count Subset Sums <= X.** Every subset is uniquely a left subset plus a
+right subset. Sorting right sums lets each left sum count compatible partners
+with `upper_bound`.
+
+**B. Best Subset Sum <= X.** The same unique split applies; binary-search the
+greatest right sum no larger than `X-left` and maximize over left sums.
+
+**C. Closest Subset Sum.** The closest right partner to `target-left` is one of
+the two sorted neighbors around a lower bound, so checking both covers every
+optimal full subset.
+
 ## Detailed solution guide
 
 **A. Count Subsets with Sum at Most `S`.** Split the array into left and right
@@ -66,11 +79,11 @@ Count subsets whose sum is at most `X`.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -104,11 +117,11 @@ Print the maximum subset sum not exceeding `X`.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -144,11 +157,11 @@ Print the minimum absolute difference between a subset sum and target `T`.
 
 ## Algorithm and proof
 
-Correctness follows from the problem-specific reduction in the detailed guide: the generated candidates or states cover exactly the legal choices, and the final query applies the required count, minimum, maximum, merge, or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
 
 ## Complexity
 
-The complexity is the one explained in the detailed guide and follows from the number of generated states plus the searches, transitions, or graph traversals used below.
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
 
 ## Full C++ solution
 
@@ -178,5 +191,10 @@ if __name__=="__main__": main()
 ```
 
 # Testing discussion
+
+The proof is a bijection between full subsets and pairs of half-subsets. For
+small `n`, enumerate all masks as the stress oracle. In counting, use
+`upper_bound(X-left_sum)`; in optimization, verify the candidate immediately
+below that bound, never merely the first greater value.
 
 Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.

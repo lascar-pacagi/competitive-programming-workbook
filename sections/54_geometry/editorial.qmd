@@ -25,6 +25,18 @@ execute:
 
 # Editorial overview
 
+## Problem-specific proof map
+
+**A. Orientation.** The cross product sign is positive, negative, or zero
+according to whether the turn from `AB` to `AC` is left, right, or collinear.
+
+**B. Segment Intersection.** Proper crossings have opposite orientation signs;
+collinear boundary cases reduce to bounding-box overlap. These cases are
+exhaustive for closed segments.
+
+**C. Polygon Double Area.** The shoelace sum adds signed trapezoid areas around
+the boundary. Interior contributions cancel, leaving twice the polygon area.
+
 ## Detailed solution guide
 
 **A. Orientation.** For points `a,b,c`, compute the cross product
@@ -65,15 +77,15 @@ Classify point C relative to directed segment AB.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -104,15 +116,15 @@ Decide whether two closed segments intersect.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -150,15 +162,15 @@ Print twice the area of a polygon in vertex order.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+The proof map above states the invariant or reduction for this task. The implementation mirrors that argument: every branch is one of its explicit mathematical cases.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+The bound is the concrete one stated for this task in the proof map; the code implements exactly its enumerations, transitions, or queries.
 
 ## Full C++ solution
 
@@ -182,5 +194,24 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
+
+# Complete upsolve notes
+
+## A. Orientation
+Compute cross `(bx-ax)*(cy-ay)-(by-ay)*(cx-ax)`. Its sign classifies left,
+right, or collinear because it is signed parallelogram area. O(1); use long
+long and test all three signs and large coordinates.
+
+## B. Segment Intersection
+For closed segments, proper crossing has opposite orientation signs on both
+segments; collinear endpoints require inclusive bounding-box `on_segment`.
+These cases are complete for two line segments. O(1); test a shared endpoint,
+collinear overlap, collinear gap, and one segment containing another.
+
+## C. Polygon Double Area
+Sum cross products of consecutive vertices including last-to-first, then take
+absolute value. Triangulation from the origin proves this signed shoelace sum.
+O(n); test clockwise order, a triangle, and a rectangle. Python is exact;
+avoid floating point in C++ too.
 
 Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

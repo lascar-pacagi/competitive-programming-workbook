@@ -177,6 +177,76 @@ augmenting DFS actually reassigns matches.
 
 # Exercises
 
+## Residual graphs before code
+
+A flow assigns a value to each directed edge, never exceeding capacity and
+conserving flow at every non-source, non-sink vertex. The residual graph stores
+what can still change: a forward edge has residual capacity `capacity-flow`; a
+reverse edge has residual capacity `flow` and can undo an earlier choice.
+
+Consider edges `s->a` capacity 2, `a->t` capacity 2, and `s->t` capacity 1.
+Send two units through `s-a-t`, then one through `s-t`: flow is 3. A forward
+edge with residual zero is saturated; its reverse edge has residual equal to
+the sent amount. Omitting reverse edges makes later rerouting impossible.
+
+### Dinic's two invariants
+
+BFS assigns `level[v]`, the shortest residual distance from source. DFS may use
+only edges with positive residual capacity and `level[to]=level[v]+1`. A DFS
+phase ends when it has made the level graph blocking: every source-to-sink path
+in it contains a saturated edge. Then BFS again. When sink is unreachable, no
+augmenting path remains, so max-flow/min-cut proves optimality.
+
+```text
+while BFS reaches sink:
+    reset every current-edge pointer
+    repeatedly DFS along level-increasing residual edges
+    add each pushed amount to answer
+```
+
+Current-edge pointers remember edges that have already failed in the current
+level graph. Without them, repeated DFS calls revisit dead work.
+
+### Matching is augmenting paths without capacities
+
+For a bipartite graph, `match_right[v]` is the left owner of right vertex `v`,
+or none. A DFS from a left vertex tries an unused right vertex. If it is owned,
+recursively move that owner first; a successful chain is an augmenting path and
+increases matching size by one.
+
+Trace with edges `L1-R1,R2`, `L2-R1`: match L1 to R1. For L2, R1 is occupied,
+so retry L1 through R2, then assign L2-R1. The matching grows from one to two.
+Reset `visited[right]` for each new left root; otherwise one failed search can
+incorrectly block a later one.
+
+### Min-cut reachable side
+
+After maximum flow, BFS from source through positive-residual edges. Call the
+reachable vertices S. No residual forward edge leaves S, otherwise its endpoint
+would be reachable. Thus every original edge from S to its complement is
+saturated; this cut has capacity equal to the flow and is minimum.
+
+### Language notes, checks, and workflow
+
+Capacities and total flow use `long long` in C++. Python recursion in a deep
+Dinic DFS may need a higher recursion limit in larger variants. Keep reverse
+edge indices rather than searching for a reverse edge.
+
+1. Why does a reverse residual edge have capacity equal to current flow? It
+   represents exactly how much of that earlier decision can be cancelled.
+2. In matching, what must be reset per DFS root? The visited-right array.
+3. Why must min-cut reachability use the final residual graph? The original
+   graph contains saturated edges that can no longer cross the cut.
+
+Run:
+
+```bash
+CP_TARGET=solution python3 sections/45_flows_and_matchings/check.py
+```
+
+Test no source-sink path, parallel edges, a bottleneck, rerouting-required
+matching, and a graph where source alone is the residual reachable side.
+
 - A. Max Flow: Given a directed capacitated graph from node 1 to node n, print the maximum flow.
 - B. Bipartite Matching: Given edges between left and right parts, print the maximum matching size.
 - C. Min Cut Reachable Side: After max flow from 1 to n, print the flow value and the source-side reachable vertices in the residual graph.

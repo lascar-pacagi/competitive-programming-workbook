@@ -166,6 +166,21 @@ This is especially useful for divide-and-conquer DP and Knuth optimization.
 
 # Exercises
 
+# Optimization preconditions
+
+An optimization is a theorem, not a pattern match. For divide-and-conquer DP,
+state the monotonicity of optimal split points before shrinking a search range.
+For a monotone deque, prove expired indices are removed and dominated candidates
+can never win again. Knuth requires its quadrangle/monotonicity conditions.
+Trace every optimized transition against the quadratic recurrence on small
+arrays before trusting it.
+
+For local problem A, `a[i] >= 0` is essential rather than cosmetic. With
+`cost(l,r)=(prefix[r]-prefix[l])^2`, nonnegative values make prefix sums
+nondecreasing and give the required Monge inequality; consequently optimal
+split points are monotone. Signed values remove that guarantee, so this exact
+divide-and-conquer search range would no longer be justified.
+
 - A. Partition Quadratic Cost: Partition the array into `k` contiguous groups minimizing the sum of squared group sums.
 - B. Window Minimum DP: `dp[i]=a[i]+min(dp[j])` over the previous `w` positions. Print `dp[n]`.
 - C. Optimal Merge Knuth: Merge adjacent piles with cost equal to merged sum; print minimum total cost.

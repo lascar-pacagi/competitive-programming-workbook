@@ -190,11 +190,50 @@ valid direction costs one. Find the minimum cost from top-left to bottom-right.
 Each cell has up to four outgoing edges. The edge cost is either `0` or `1`, so
 use 0-1 BFS.
 
+Use the cell you are **leaving** to price a move. At `(r,c)`, the transition to
+the neighbor in direction `dir` has cost `0` exactly when `grid[r][c] == dir`;
+otherwise it costs `1`. Reversing that lookup to inspect the destination cell
+solves a different problem.
+
+| State | Transition | Weight | Deque action after an improvement |
+|---|---|---|---|
+| `(r,c)` | valid neighbor in its printed direction | `0` | push front |
+| `(r,c)` | any other valid neighbor | `1` | push back |
+
+For the sample, `S=(0,0)` has `R`, so `(0,1)` gets distance `0` and goes to the
+front. The free route initially follows right, right, down; when it must leave
+the indicated arrow it pays one. The answer is therefore a count of changed
+directions, not a count of moves.
+
+## Algorithm
+
+```text
+dist[*][*] = infinity
+dist[0][0] = 0
+push (0, 0) to the front of a deque
+
+while the deque is nonempty:
+    (r, c) = pop front
+    for every valid cardinal neighbor (nr, nc) with label dir:
+        w = 0 if grid[r][c] == dir else 1
+        if dist[r][c] + w < dist[nr][nc]:
+            dist[nr][nc] = dist[r][c] + w
+            if w == 0: push (nr, nc) to the front
+            else:      push (nr, nc) to the back
+
+print dist[n-1][m-1]
+```
+
 ## Correctness
 
 Every grid route corresponds to a path in this 0/1 graph with the same cost,
 and every graph path is a valid route. By 0-1 BFS correctness, the distance to
 the bottom-right cell is the optimum.
+
+## Complexity
+
+There are `n*m` states and at most four transitions per state. 0-1 BFS runs in
+`O(n*m)` time and uses `O(n*m)` memory.
 
 ## Full C++ solution
 
@@ -288,11 +327,55 @@ The graph has 0-cost walking edges and 1-cost warp edges. Each cell has at most
 29 outgoing transitions: four walks and 25 warp candidates. This is still
 linear up to a constant.
 
+The state is simply an open cell `(r,c)`, and `dist[r][c]` is the fewest paid
+warps needed to reach it. Walls never become states. The two action families
+must remain separate:
+
+| Action | Destination | Weight | Deque action after an improvement |
+|---|---|---|---|
+| walk | one open cardinal neighbor | `0` | push front |
+| warp | any open cell with `max(|dr|,|dc|) <= 2` | `1` | push back |
+
+The warp square includes diagonals and also includes the current cell. The
+latter is harmless: it cannot improve `dist[r][c]`. It is clearer to iterate
+all 25 offsets than to introduce a fragile exception. On the sample, free
+walking explores the start's whole zero-cost component first; one warp then
+crosses the blocking wall pattern into the component containing `G`.
+
+## Algorithm
+
+```text
+find S and G
+dist[*][*] = infinity
+dist[S] = 0
+push S to the front of a deque
+
+while the deque is nonempty:
+    (r, c) = pop front
+    for each open four-neighbor v of (r, c):
+        if dist[r][c] < dist[v]:
+            dist[v] = dist[r][c]
+            push v to the front
+    for every offset dr, dc in [-2, 2]:
+        v = (r + dr, c + dc)
+        if v is an open in-bounds cell and dist[r][c] + 1 < dist[v]:
+            dist[v] = dist[r][c] + 1
+            push v to the back
+
+print -1 if dist[G] is infinity, otherwise dist[G]
+```
+
 ## Correctness
 
 The modeled graph exactly represents allowed actions and their warp cost. By
 0-1 BFS correctness, the computed distance to `G` is the minimum number of
 warps.
+
+## Complexity
+
+Each of the `n*m` cells has at most `4 + 25` candidate transitions. The
+constant is fixed, so the running time is `O(n*m)` and the memory use is
+`O(n*m)`.
 
 ## Full C++ solution
 
@@ -411,4 +494,3 @@ paths, and cases where a longer route in steps is cheaper in cost.
 0-1 BFS is a specialized shortest-path tool. The hard part is often not the
 deque; it is modeling the state so that every transition has cost exactly `0`
 or `1`.
-

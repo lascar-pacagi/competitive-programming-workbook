@@ -25,6 +25,34 @@ execute:
 
 # Editorial overview
 
+## Read before code: problem dossiers
+
+**A. Matching Model.** Left vertices are requesters, right vertices are
+resources, and edges are legal assignments. A valid assignment is exactly a
+bipartite matching; augmenting paths improve it by one. Test competing left
+vertices and a rematching chain. Complexity `O(VE)` for DFS matching.
+
+**B. Small 2-SAT.** Clause `(a or b)` creates implications `not a -> b` and
+`not b -> a`. A variable is impossible exactly when it and its negation share
+an SCC. Test a unit-like contradiction and a satisfiable cycle. Complexity
+`O(V+E)`.
+
+**C. Capstone Matching.** Repeat the bidirectional modeling proof from A, then
+stress a graph where greedy first-edge assignment fails but an augmenting path
+finds the optimum.
+
+## Problem-specific proof map
+
+**A. Matching Model.** Choosing disjoint compatible pairs is exactly a bipartite
+matching: each legal assignment is a matching and each matching is legal.
+
+**B. Small 2-SAT.** Clause `(a or b)` is equivalent to implications `not a ->
+b` and `not b -> a`. A variable is impossible precisely when it and its
+negation share an SCC.
+
+**C. Capstone Matching.** Use the same bidirectional reduction as A, then test
+the matching implementation on an augmenting path that forces a reassignment.
+
 ## Detailed solution guide
 
 **A. Assignment as Matching.** Create a left vertex for each worker and a right
@@ -69,15 +97,21 @@ Given a bipartite graph, print maximum matching size.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Create a left vertex per requester and right vertex per resource; add an edge
+for each legal assignment. A matching is precisely a set of non-conflicting
+assignments. Repeated DFS finds augmenting paths; test two left vertices that
+initially want the same right vertex.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+An augmenting path starts at an unmatched left vertex and ends at an unmatched
+right vertex. Flipping its edges increases matching size by one; when none
+exists, Berge's theorem proves maximality. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+DFS matching is `O(VE)` time and `O(V)` memory. Reset right-side visited flags
+for every DFS root; otherwise valid reroutes are missed.
 
 ## Full C++ solution
 
@@ -116,15 +150,20 @@ Given clauses `(a or b)` over signed variables, decide satisfiability.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+For clause `(a or b)`, add implications `not a -> b` and `not b -> a`. Build
+the implication graph and its reverse, then compute SCCs. A variable and its
+negation in one SCC force each other and make the formula impossible.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+Each implication encodes exactly the assignments forbidden by its clause. SCC
+co-membership gives paths both ways between a literal and its opposite, hence a
+contradiction; absence permits the standard reverse-SCC assignment. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Kosaraju/Tarjan is `O(V+E)` time and memory. Test `(x)` encoded as `(x or x)`
+and contradictory unit clauses.
 
 ## Full C++ solution
 
@@ -160,15 +199,18 @@ Another matching instance to reinforce the reduction pattern.
 
 ## Observations and algorithm
 
-Use the invariant named in the editorial overview. The code processes the input in the natural order and updates exactly the state described by that invariant, so each branch corresponds to one mathematical case rather than an implementation trick.
+Use the same bipartite graph model as A, but first write the two directions of
+the reduction: every legal allocation is a matching and every matching is a
+legal allocation. Then run augmenting DFS.
 
 ## Correctness proof
 
-Correctness follows from the invariant proved in the detailed guide for this problem. The code initializes the base state, applies exactly the transition described there, and prints the value represented by the final state. `\square`
+The matching proof from A applies unchanged. In particular, a greedy first-edge
+choice can fail, while an augmenting path repairs that choice. `\square`
 
 ## Complexity
 
-The complexity follows from the concrete loops and data structures in the code below; the detailed guide also indicates which optimized structure is needed for larger external versions.
+Complexity is `O(VE)`. Stress a chain that requires rematching two vertices.
 
 ## Full C++ solution
 
@@ -200,5 +242,3 @@ if __name__=="__main__": main()
 ```
 
 # What to carry forward
-
-Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.

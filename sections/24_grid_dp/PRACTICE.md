@@ -17,8 +17,8 @@ transition direction, and whether obstacles or extra state dimensions matter.
 4. Codeforces 1195C - Basketball Exercise  
    https://codeforces.com/problemset/problem/1195/C
 
-5. Kattis Avoiding the Apocalypse  
-   https://open.kattis.com/problems/avoidingtheapocalypse
+5. Kattis Robots on a Grid
+   https://open.kattis.com/problems/robotsonagrid
 
 ## Stretch
 
@@ -27,4 +27,3 @@ transition direction, and whether obstacles or extra state dimensions matter.
 
 7. Codeforces 429B - Working out  
    https://codeforces.com/problemset/problem/429/B
-

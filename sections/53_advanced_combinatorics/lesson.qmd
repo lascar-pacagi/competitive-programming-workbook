@@ -187,4 +187,28 @@ share the same color.
 - C. Necklace Orbits: Count color necklaces of length `n` with `k` colors up to rotation.
 # Contest checklist
 
+# Derivations to reproduce under pressure
+
+**Catalan.** `C[n]` counts balanced parenthesis strings, binary-tree shapes,
+and noncrossing pairings. A first pair splits the inside into `i` pairs and the
+outside into `n-1-i`, giving `C[n]=sum C[i]*C[n-1-i]`; `C[0]=1`. Trace:
+`C[1]=1,C[2]=2,C[3]=5`. For many queries precompute once; do not divide by
+`n+1` modulo MOD unless its inverse is legal.
+
+**Derangements.** Consider where element one goes. If it swaps with its image,
+there are `D[n-2]` completions; otherwise merge the two labels and get
+`D[n-1]`. Hence `D[n]=(n-1)(D[n-1]+D[n-2])`, with `D[0]=1,D[1]=0`.
+
+**Burnside.** A necklace orbit is an equivalence class under rotations. A
+rotation by `r` fixes `k^gcd(n,r)` colorings; average these fixed counts over
+all n rotations. For length three with two colors:
+`(2^3+2^1+2^1)/3=4`. The division uses inverse(n) only under the local prime
+modulus and n not divisible by it.
+
+Use `long long` in C++ and `pow(base,exp,MOD)` in Python. Test zero, one, a
+prime necklace length, and a composite length. Run
+`CP_TARGET=solution python3 sections/53_advanced_combinatorics/check.py`; for
+small n, enumerate parenthesis strings, permutations, or colorings as an
+oracle.
+
 State the invariant, choose the model, prove the operation, then code the smallest reliable version.

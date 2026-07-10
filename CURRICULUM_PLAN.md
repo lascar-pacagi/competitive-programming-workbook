@@ -277,28 +277,35 @@ Goal: answer dynamic queries and tree queries efficiently.
     - Point update/range query.
     - Iterative and recursive styles.
 
-38. **Lazy Propagation**
-    - Range update/range query.
-    - Tag composition.
-    - Push and pull discipline.
-
-39. **Sparse Table And Static RMQ**
+38. **Static Queries And Binary Lifting**
     - Idempotent queries.
     - Binary lifting over arrays.
-    - LCP/RMQ applications.
+    - Static RMQ applications.
 
-40. **Heaps, Ordered Sets, And Multisets**
+39. **Heaps And Priority Queues**
     - Sweep-line active data.
     - Median maintenance.
-    - Policy-based structures in C++.
+    - Generating the next-best candidate.
+
+40. **Data Structures Mixed Contest**
+    - Query-heavy reductions across earlier structures.
+    - Choosing between online and offline processing.
 
 41. **Euler Tour, LCA, And Binary Lifting**
     - Tree flattening.
     - Ancestors.
     - Path queries.
 
-42. **Data Structures Mixed Contest**
-    - Query-heavy problems across all three sources.
+42. **Advanced Data Structures Mixed Contest**
+    - Order statistics with Fenwick binary lifting.
+    - Range-add/range-sum with two Fenwick trees.
+    - Offline rectangle counting.
+
+**Appendix A. Lazy Propagation**
+    - Range update/range query.
+    - Tag composition and operation order.
+    - Push/pull discipline, with Section 37's range-update exercise as the
+      implementation bridge.
 
 ## Phase 6: Advanced Algorithms
 
@@ -399,6 +406,19 @@ harder mixed problems.
     - A curated multi-source set with red-level stretch problems.
     - Editorial emphasizes the path from first observation to accepted code.
 
+61. **ICPC Contest Readiness**
+    - Scoreboard rules, time-boxing, and submission discipline.
+    - One-keyboard team communication and handoffs.
+    - A five-hour simulation protocol, postmortem, and targeted retraining.
+
+62. **Codeforces Course Ladder**
+    - An offline problem sheet with direct Codeforces links and original
+      restatements of selected tasks.
+    - A simple-to-hard progression across foundations, graphs, DP, math,
+      data structures, strings, flows, geometry, and advanced optimization.
+    - Original pedagogical editorials that connect each task back to the
+      relevant course sections.
+
 ## Practice Queue Policy
 
 Every mature section should eventually include:
@@ -432,4 +452,3 @@ The first committed milestone is intentionally small and complete:
 
 After reviewing Section 1, future milestones can add sections in batches of
 three to five, preserving the same structure.
-

@@ -169,6 +169,71 @@ chunks. Always update the aggregate before overwriting the vertex.
 
 # Exercises
 
+# A complete lifting trace
+
+Use the parent list from the local sample: `parent[2]=1, parent[3]=1,
+parent[4]=2, parent[5]=2`. Depths are `0,1,1,2,2`. The binary table records
+`up[j][v]`, the ancestor `2^j` edges above `v`; the root points to itself.
+
+```text
+v        1  2  3  4  5
+up[0]    1  1  1  2  2
+up[1]    1  1  1  1  1
+depth    0  1  1  2  2
+```
+
+To find `lca(4,5)`, depths are equal. At bit one both ancestors are one, so do
+not jump; at bit zero the parents are equal, so their common parent two is the
+LCA. For distance, use `depth[4]+depth[5]-2*depth[2]=2`. For `lca(3,4)`, lift
+four by one to two, then the parents are both one.
+
+The invariant for `up[j][v]` is exact: it is the ancestor reached after
+`2^j` parent edges. The recurrence `up[j][v]=up[j-1][up[j-1][v]]` composes two
+correct half-jumps, proving the table by induction. Descending bits only jumps
+when the two nodes remain below their LCA; the final parents are therefore the
+lowest common ancestor.
+
+# Three path queries from one primitive
+
+**Distance.** Once `c=lca(u,v)`, the path has the two disjoint upward pieces
+`u -> c` and `v -> c`, so its edge count is
+`depth[u]+depth[v]-2*depth[c]`.
+
+**Maximum edge.** Store `mx[j][v]`, the maximum edge on the same `2^j` upward
+segment. When a lift uses bit `j`, merge `mx[j][v]` into the answer before
+moving `v`. Its recurrence uses `max` over the two halves. For `u==v`, the
+local answer is zero because the path contains no edge.
+
+**K-th node.** Let `left=depth[u]-depth[c]+1` and
+`total=depth[u]+depth[v]-2*depth[c]+1`. If `k<=left`, lift `u` by `k-1`.
+Otherwise the requested vertex is `total-k` edges above `v`; this reverse lift
+avoids constructing a path vector. Reject `k<1` or `k>total` first.
+
+# Constraints, implementation, and tests
+
+For `n,q` near `2e5`, a parent climb per query is a chain-length disaster;
+`LOG=ceil(log2(n+1))` gives `O(n log n)` preprocessing and `O(log n)` query
+time. The local parent order makes depths available while reading. In an
+arbitrary edge-list tree, build adjacency and perform iterative DFS/BFS first.
+
+**C++.** Allocate `vector<vector<int>> up(LOG, vector<int>(n+1))`; use
+`long long` for weighted aggregates if weights can sum, and initialize the
+empty maximum as zero only because local weights are nonnegative.
+
+**Python.** Avoid recursive DFS on a long chain. Use lists indexed `0..n` and
+an iterative stack/queue; `LOG = (n+1).bit_length()` is clear and safe.
+
+| Mistake | Test |
+|---|---|
+| confuse nodes and edges in distance | `u==v` must output zero |
+| omit equal-depth lift | ancestor/descendant query |
+| use a one-based `k` as zero-based | first and last node on a path |
+| aggregate after moving | one heavy edge immediately above a node |
+
+Run `CP_TARGET=solution python3 sections/41_euler_tour_lca_binary_lifting/check.py`.
+For trees of at most 20 nodes, a parent-walk oracle can list each path and
+check distance, maximum edge, and every valid or invalid `k` directly.
+
 - A. Tree Distances: Given a rooted tree and queries `u v`, print the number of edges on the path.
 - B. Max Edge On Path: Each edge to a parent has a weight. For each `u v`, print the maximum edge weight on the path.
 - C. Kth Node On Path: For query `u v k`, print the k-th node on the path from `u` to `v`, or `-1`.

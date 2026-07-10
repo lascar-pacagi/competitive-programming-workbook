@@ -169,3 +169,95 @@ CP_TARGET=solution python3 sections/39_heaps_priority_queues/check.py
 
 Replace `CP_TARGET=solution` by your own `solve.cpp` or `solve.py` attempts
 when practicing.
+# Exercises
+
+# Worked decision traces
+
+## Running median: preserve two halves
+
+After every insertion, `low` is a max-heap holding the smaller half and `high`
+is a min-heap holding the larger half. Maintain both facts:
+
+```text
+every value in low <= every value in high
+size(low) == size(high) or size(low) == size(high)+1
+```
+
+For prefix `5, 1, 9, 2`, the lower medians are traced below.
+
+```text
+insert   low (max heap)   high (min heap)   printed
+5        {5}              {}                5
+1        {1,5} -> {1}     {5}               1
+9        {1}              {5,9} -> move 5   5
+2        {1,2}            {5,9}             2
+```
+
+The arrows are the rebalance step. Once the two facts hold, exactly
+`ceil(prefix_length/2)` values are at most `low.top()`, so it is the requested
+lower median. Each push/pop costs `O(log n)`.
+
+## Course rooms: a heap is the active frontier
+
+Sort half-open intervals by start. The min-heap contains end times of courses
+that have started but not yet ended. For `(0,10),(5,7),(6,20),(10,12)`:
+
+```text
+start interval   remove ends <= start   active end heap after push
+0     [0,10)     none                  {10}
+5     [5,7)      none                  {7,10}
+6     [6,20)     none                  {7,10,20}
+10    [10,12)    remove 7,10           {12,20}
+```
+
+The maximum heap size is three. The `<=` is essential: half-open intervals
+ending at time 10 and starting at time 10 do not overlap.
+
+## K smallest pair sums: merge sorted rows
+
+If both arrays are sorted, each fixed `i` creates a sorted row
+`a[i]+b[0], a[i]+b[1], ...`. Seed the heap with each row's first value and
+advance only the row that was popped. For `a=[1,4,8]`, `b=[2,3,10]`:
+
+```text
+initial heap: (3,row0,col0), (6,row1,col0), (10,row2,col0)
+pop 3, push 4; pop 4, push 11; pop 6, push 7; pop 7, push 14
+```
+
+Thus the first four sums are `3,4,6,7`. The heap always holds the smallest
+unreported element of every nonempty row, so its minimum is globally next.
+Only seed `min(n,k)` rows in a generalized variant; the local contract has
+`k <= n*m`.
+
+# Implementation and proof habits
+
+**C++.** `priority_queue<T>` is a max-heap; write
+`priority_queue<T, vector<T>, greater<T>>` for a min-heap. Store pair sums in
+`long long`, and store `(sum,row,col)` as a tuple so lexicographic comparison
+breaks ties safely.
+
+**Python.** `heapq` is a min-heap. Negate values for a max-heap, and use tuples
+such as `(sum,row,col)` rather than custom comparators. Never call `heappop` on
+an empty heap; prove the seed/advance invariant first.
+
+# Failure modes, exercises, and workflow
+
+| Problem | Wrong shortcut | Test |
+|---|---|---|
+| A | sort every prefix | descending input of length `2e5` |
+| B | remove ends `< start` | `[0,10)` and `[10,12)` |
+| C | seed every pair | two arrays of length `2e5` with small `k` |
+
+1. Prove that moving `high.top()` to `low` repairs both running-median facts.
+2. Explain why the room heap size after cleanup equals the number of overlapping
+   intervals at the current start time.
+3. On paper, list the first five sums for `[0,7]` and `[1,2,9]` using rows.
+
+Answers: the moved element is the smallest large-half value; every remaining
+end is strictly after the current start; the sums are `1,2,8,9,9`.
+
+Run `CP_TARGET=solution python3 sections/39_heaps_priority_queues/check.py`.
+For A compare with a sorted prefix, for B brute-force overlap counts on small
+interval sets, and for C enumerate and sort every pair sum when `n,m <= 8`.
+
+Use A to maintain the two heap size invariant, B to free rooms before allocating a new one, and C to make each heap item represent the next unseen pair. Test duplicate values and equal endpoints.

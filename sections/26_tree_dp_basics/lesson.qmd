@@ -315,4 +315,6 @@ What exactly does each state mean?
 Do child contributions sum, multiply, or take max?
 Do I need modulo or long long?
 ```
+# Exercises
 
+Root each tree before solving A, B, or C. State what a child contribution means, then test a leaf, a path, and a star to catch parent/child double counting.
