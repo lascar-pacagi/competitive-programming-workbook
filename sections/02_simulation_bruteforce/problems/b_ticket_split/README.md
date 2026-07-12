@@ -18,9 +18,7 @@ x + y + z = n
 a*x + b*y + c*z = s
 ```
 
-If a solution exists, print the first valid triple found by checking `x` from
-`0` to `n`, and for each `x`, checking `y` from `0` to `n - x`. Otherwise
-print `-1`.
+If a solution exists, print any valid triple. Otherwise print `-1`.
 
 ## Input
 
@@ -35,4 +33,4 @@ n s a b c
 
 ## Output
 
-For each test case, print the required first valid triple or `-1`.
+For each test case, print any valid triple or `-1`.

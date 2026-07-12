@@ -165,6 +165,47 @@ def outputs_match(actual: str, expected: str, checker: str, input_data: str) -> 
                 if a * x + b * y != c:
                     return False
         return True
+    if checker == "ticket_split":
+        values = list(map(int, input_data.split()))
+        if not values:
+            return not actual.split()
+        queries = values[0]
+        lines = actual.splitlines()
+        if len(lines) != queries:
+            return False
+        index = 1
+        for line in lines:
+            n, total, cost_a, cost_b, cost_c = values[index:index + 5]
+            index += 5
+            fields = line.split()
+            possible = False
+            for x in range(n + 1):
+                for y in range(n - x + 1):
+                    z = n - x - y
+                    if cost_a * x + cost_b * y + cost_c * z == total:
+                        possible = True
+                        break
+                if possible:
+                    break
+            if fields == ["-1"]:
+                if possible:
+                    return False
+                continue
+            if len(fields) != 3:
+                return False
+            try:
+                x, y, z = map(int, fields)
+            except ValueError:
+                return False
+            if (
+                x < 0
+                or y < 0
+                or z < 0
+                or x + y + z != n
+                or cost_a * x + cost_b * y + cost_c * z != total
+            ):
+                return False
+        return True
     raise ValueError(f"unknown checker: {checker}")
 
 

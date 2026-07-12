@@ -1,6 +1,5 @@
 {
   "title": "B. Ticket Split",
-  "checker": "tokens",
+  "checker": "ticket_split",
   "time_limit_seconds": 2.0
 }
-
