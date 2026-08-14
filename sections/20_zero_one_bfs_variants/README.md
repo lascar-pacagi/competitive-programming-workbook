@@ -9,6 +9,7 @@ This section teaches shortest paths when every edge cost is either `0` or `1`.
    - `a_binary_weight_routes`
    - `b_conveyor_grid`
    - `c_warp_maze`
+   - `d_letter_portals` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -23,4 +24,3 @@ CP_TARGET=solution python3 sections/20_zero_one_bfs_variants/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

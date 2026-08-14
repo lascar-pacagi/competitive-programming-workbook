@@ -121,6 +121,18 @@ Leaving duplicates in the event list double counts the same condition.
 Test divisor 1, a divisor greater than N, duplicate divisors, N=1, and an LCM
 just larger than N.
 
+## Full C++ solution
+
+```cpp
+{{< include problems/a_multiples_union/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/a_multiples_union/solution.py >}}
+```
+
 # B. All Symbols
 
 ## Restatement and diagnosis
@@ -189,6 +201,18 @@ Test n<k, n=k, k=1, n=0, and a huge n with small k.
 
 Common failures are using C(n,j), computing powers linearly, stopping the loop
 at n rather than k, and failing to normalize a subtraction.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/b_all_symbols/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/b_all_symbols/solution.py >}}
+```
 
 # C. Bounded Candies
 
@@ -261,6 +285,18 @@ Test s=0, b=0, n=1, b>=s, and n=2,s=5,b=2. Typical bugs shift by b instead of
 b+1, continue after the remaining sum is negative, or precompute only through
 n instead of n+s-1.
 
+## Full C++ solution
+
+```cpp
+{{< include problems/c_bounded_candies/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/c_bounded_candies/solution.py >}}
+```
+
 # Local workflow
 
 Run:
@@ -272,29 +308,179 @@ CP_TARGET=solution python3 sections/33_inclusion_exclusion/check.py
 For small random cases, compare against direct scanning for A, short-string
 enumeration for B, and recursive allocation enumeration for C. This catches a
 wrong inclusion-exclusion sign much more reliably than samples do.
-# Full reference implementations
 
-## A. Multiples Union: C++
+# D. Seating Without Matches
+
+## Restatement
+
+Count the ways to seat `n` labeled people in `n` labeled seats so that nobody
+sits in their own seat. This is the derangement count, requested modulo the
+prime `1_000_000_007`.
+
+## Constraints and traps
+
+`n` can reach `1_000_000`, so enumerating `n!` seatings is impossible. The
+factorial arrays must therefore be linear, and all division in the formula is
+modular division.
+
+```text
+n = 1 has answer 0: its only seating fixes that person.
+The inclusion-exclusion sign is positive for k = 0.
+Subtracting a term in C++ needs normalization back into [0, MOD).
+The factorial bound is below MOD, so every fact[k] for k <= n is invertible.
+```
+
+## Bad events and reduction
+
+Let event `E_i` mean person `i` remains in seat `i`. We want permutations in
+none of these events. For any chosen set of `k` fixed people, the remaining
+`n-k` people can be seated in `(n-k)!` ways. There are `C(n,k)` chosen sets,
+so inclusion-exclusion gives:
+
+```text
+answer = sum(k=0..n) (-1)^k C(n,k) (n-k)!
+       = sum(k=0..n) (-1)^k n! / k!
+```
+
+All arithmetic is modulo prime `MOD`, so compute factorials and inverse
+factorials with Fermat inverses.
+
+For `n=4`, the alternating terms are `24 - 24 + 12 - 4 + 1 = 9`.
+
+## Worked intersection trace
+
+For three people, define `E_1,E_2,E_3`. There are `3! = 6` unrestricted
+seatings. Each individual event, such as `E_1`, fixes one person and leaves
+two people free, hence has `2! = 2` seatings. The three single-event counts
+subtract `3 * 2 = 6`.
+
+Any two fixed-seat events force the third person as well, so each pair
+intersection has `1! = 1` seating and the three pair intersections add `3`.
+The triple intersection also has one seating and is subtracted:
+
+```text
+6 - 3*2 + 3*1 - 1 = 2
+```
+
+The two remaining seatings are the two 3-cycles. More generally, choosing a
+specific set of `k` events forces exactly those `k` people, leaving `(n-k)!`
+arrangements; there are `C(n,k)` ways to choose the set.
+
+## Algorithm
+
+```text
+precompute fact[0..n] and inv_fact[0..n]
+answer = 0
+for k from 0 to n:
+    term = fact[n] * inv_fact[k]
+    add term for even k; subtract it for odd k
+print normalized answer
+```
+
+## Correctness proof
+
+**Lemma.** The intersection of any selected `k` fixed-seat events contains
+`(n-k)!` permutations.
+
+**Proof.** Those `k` people and seats are forced. The remaining people may be
+permuted freely among remaining seats. $\square$
+
+**Theorem.** The algorithm returns the number of seatings with no original
+seat match.
+
+**Proof.** Inclusion-exclusion over events `E_i` adds and subtracts the
+intersection counts from the lemma. A permutation with one or more fixed seats
+has total coefficient zero; a permutation with none has coefficient one. The
+factorial formula computes each grouped term modulo `MOD`. $\square$
+
+## Complexity
+
+```text
+Time: O(n)
+Memory: O(n)
+```
+
+## Full C++ solution
+
 ```cpp
-{{< include problems/a_multiples_union/solution.cpp >}}
+#include <bits/stdc++.h>
+using namespace std;
+const long long MOD = 1000000007;
+long long power(long long a, long long b) {
+    long long r = 1;
+    for (; b; b >>= 1, a = a * a % MOD) if (b & 1) r = r * a % MOD;
+    return r;
+}
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n; cin >> n;
+    vector<long long> fact(n + 1), inv_fact(n + 1);
+    fact[0] = 1;
+    for (int i = 1; i <= n; ++i) fact[i] = fact[i - 1] * i % MOD;
+    inv_fact[n] = power(fact[n], MOD - 2);
+    for (int i = n; i; --i) inv_fact[i - 1] = inv_fact[i] * i % MOD;
+    long long answer = 0;
+    for (int k = 0; k <= n; ++k) {
+        long long term = fact[n] * inv_fact[k] % MOD;
+        answer = (answer + (k & 1 ? -term : term) + MOD) % MOD;
+    }
+    cout << answer << '\\n';
+}
 ```
-## A. Multiples Union: Python
+
+## C++ implementation notes
+
+Compute `inv_fact[n] = fact[n]^(MOD-2)` once, then fill inverse factorials
+downward with `inv_fact[i-1] = inv_fact[i] * i`. Normalize each alternating
+update immediately with `+ MOD` before `% MOD`, rather than allowing a
+negative C++ remainder to escape.
+
+## Full Python solution
+
 ```python
-{{< include problems/a_multiples_union/solution.py >}}
+import sys
+MOD = 1_000_000_007
+
+
+def main() -> None:
+    n = int(sys.stdin.buffer.read())
+    fact = [1] * (n + 1)
+    for i in range(1, n + 1):
+        fact[i] = fact[i - 1] * i % MOD
+    inv_fact = [1] * (n + 1)
+    inv_fact[n] = pow(fact[n], MOD - 2, MOD)
+    for i in range(n, 0, -1):
+        inv_fact[i - 1] = inv_fact[i] * i % MOD
+    print(sum(((-1 if k & 1 else 1) * fact[n] * inv_fact[k]) for k in range(n + 1)) % MOD)
+
+
+if __name__ == "__main__":
+    main()
 ```
-## B. All Symbols: C++
-```cpp
-{{< include problems/b_all_symbols/solution.cpp >}}
-```
-## B. All Symbols: Python
-```python
-{{< include problems/b_all_symbols/solution.py >}}
-```
-## C. Bounded Candies: C++
-```cpp
-{{< include problems/c_bounded_candies/solution.cpp >}}
-```
-## C. Bounded Candies: Python
-```python
-{{< include problems/c_bounded_candies/solution.py >}}
-```
+
+## Python implementation notes
+
+Python's final `% MOD` normalizes a negative alternating sum automatically.
+The list comprehensions are not needed here: fill the two factorial arrays in
+loops so their `O(n)` storage and indexing remain explicit.
+
+## Traps and tests
+
+- The sign starts positive at `k=0`.
+- `n! / k!` is modular multiplication by an inverse factorial, not integer
+  division after reduction.
+- Test `n=1`, `n=2`, and a large `n` for factorial preprocessing.
+
+# Stress testing
+
+For `n <= 8`, enumerate all permutations and directly reject those with a
+fixed position. This is independent of inclusion-exclusion. The scale oracle
+uses the separate derangement recurrence `D[n]=(n-1)(D[n-1]+D[n-2])` for
+`n=1000000`.
+
+# What to carry forward
+
+For a "none of these conditions" count, define one bad event per condition,
+count a selected intersection, and group equal-size subsets only after that
+intersection is understood.

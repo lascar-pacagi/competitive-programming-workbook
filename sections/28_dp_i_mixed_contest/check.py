@@ -2,43 +2,34 @@
 
 from __future__ import annotations
 
-import os
-import subprocess
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from tools.section_checker import run_section_checks
+
+
 SECTION = Path(__file__).resolve().parent
 PROBLEMS = [
     SECTION / "problems" / "a_training_schedule",
     SECTION / "problems" / "b_two_carts",
     SECTION / "problems" / "c_prerequisite_tree",
+    SECTION / "problems" / "d_circular_exhibition",
+    SECTION / "problems" / "e_one_diagonal_path",
+    SECTION / "problems" / "f_matrix_chain",
+    SECTION / "problems" / "g_hamiltonian_route",
+    SECTION / "problems" / "h_sliding_jump_cost",
+    SECTION / "problems" / "i_grouped_cargo",
+    SECTION / "problems" / "j_minimum_starting_energy",
+    SECTION / "problems" / "k_last_crystal_removed",
+    SECTION / "problems" / "l_weighted_tree_guards",
 ]
 
-
 def main() -> int:
-    target = os.environ.get("CP_TARGET", "student")
-    print(f"Section 28: checking {target} submissions...\n", flush=True)
-    for problem in PROBLEMS:
-        for lang in ("cpp", "py"):
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    "tools/judge.py",
-                    str(problem),
-                    "--lang",
-                    lang,
-                    "--random-count",
-                    "25",
-                ],
-                cwd=ROOT,
-            )
-            if result.returncode:
-                print("\nThe checker stopped at the first failure. Fix that problem/language and run again.")
-                return result.returncode
-    print("\nSection 28 complete: all checked submissions were accepted.")
-    return 0
+    return run_section_checks(28, PROBLEMS, ROOT)
 
 
 if __name__ == "__main__":

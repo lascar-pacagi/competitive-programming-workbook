@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Brute force x and y, derive z, then check both equations.
+    // TODO: solve the problem.
     return 0;
 }
-

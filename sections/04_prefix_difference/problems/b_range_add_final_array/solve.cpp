@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Apply range updates to a difference array and reconstruct values.
+    // TODO: solve the problem.
     return 0;
 }
-

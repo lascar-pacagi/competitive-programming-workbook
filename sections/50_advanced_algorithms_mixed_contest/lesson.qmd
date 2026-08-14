@@ -12,178 +12,67 @@ format:
     toc-depth: 2
     number-sections: true
     colorlinks: true
-    geometry:
-      - margin=25mm
-    include-in-header:
-      text: |
-        \usepackage{microtype}
-        \usepackage{amsmath}
-        \usepackage{booktabs}
+    geometry: [margin=25mm]
 execute:
   enabled: false
 ---
 
 # Mixed advanced contest habits
 
-By now, the hard part is often recognizing the model: impartial game on a DAG,
-congruence merging, or fast recurrence evaluation. The local tasks are small
-but force you to state the invariant precisely before coding.
+At this level, the danger is applying a powerful tool before the problem model
+has earned it.
 
-## DAG Grundy
+# Complete twelve-problem set
 
-For impartial games on a DAG, every state has a Grundy number:
+The virtual contest contains twelve problems. A--F establish the broad core;
+G--L are ordered as a progressively harder second half:
 
-```text
-grundy[v] = mex({ grundy[to] for every move v -> to })
-```
+| Category | Problem package |
+|---|---|
+| String Algorithms I | E. Pattern Prefix Matches |
+| String Algorithms II | F. Suffix LCP Queries |
+| Flows and Matchings | G. Domino Placement |
+| Rerooting and Advanced Tree DP | H. Weighted Tree Distances |
+| Meet-in-the-Middle | I. Balanced Subset Difference |
+| Divide-and-Conquer DP Optimization | J. Monge Partition Table |
+| Convex Hull Trick and Li Chao Tree | K. Online Line DP |
+| Min-cost flow synthesis | L. Profitable Disjoint Routes |
 
-`mex` is the minimum excluded nonnegative integer. A state is winning exactly
-when `grundy[v] != 0`.
+All twelve packages are local and contain statements, stubs, references, and
+tests. The checker runs A--L.
 
-Because the graph is acyclic, compute states in reverse topological order. If
-vertices are already numbered so edges go forward, iterate from `n` down to
-`1`; otherwise explicitly topologically sort first.
+# Diagnose the mathematical object
 
-## General CRT
-
-To merge:
-
-```text
-x = a mod m
-x = b mod n
-```
-
-Let `g = gcd(m, n)`. A solution exists iff:
+For every local task, write a short model before coding:
 
 ```text
-(b - a) % g == 0
+What is the state, relation, or algebraic constraint?
+Which quantities are invariant under the allowed operations?
+Can the input be split into independent parts or reduced recursively?
+What makes a candidate answer valid?
 ```
 
-Reduce:
+Then derive a small case by hand and compare it with the proposed model. Do
+not use the local statements as labels for known algorithms; the editorial is
+where their final reductions belong.
 
-```text
-m' = m/g, n' = n/g
-```
+# Proof checkpoints
 
-Find `t` satisfying:
+An advanced solution needs a proof of the transformation as well as a proof of
+the algorithm. Check that every original solution maps to a constructed object
+and every constructed object maps back. For a recurrence, prove base cases and
+the split. For a modular condition, verify existence and uniqueness assumptions
+before combining constraints.
 
-```text
-a + m*t = b mod n
-m*t = b-a mod n
-m' * t = (b-a)/g mod n'
-```
+# Implementation and testing
 
-Since `m'` and `n'` are coprime, invert `m' mod n'`. The new modulus is
-`lcm(m,n) = m/g*n`. Normalize the answer into `[0, lcm)`.
-
-## Fast Fibonacci
-
-Fast doubling computes `(F(n), F(n+1))` recursively:
-
-```text
-c = F(2k)   = F(k) * (2*F(k+1) - F(k))
-d = F(2k+1) = F(k)^2 + F(k+1)^2
-```
-
-If `n` is even, return `(c, d)`. If `n` is odd, return `(d, c+d)`.
-
-This is a matrix-exponentiation result specialized to Fibonacci, with fewer
-constant factors and less code.
-
-## Contest lesson
-
-These three problems look unrelated. The common skill is compression:
-
-- a whole game state becomes one Grundy number;
-- two congruences become one congruence;
-- a recurrence query becomes two values `(F(n), F(n+1))`.
-
-## CRT worked example
-
-Merge:
-
-```text
-x = 2 mod 6
-x = 5 mod 9
-```
-
-`gcd(6,9)=3`. Since `5-2=3` is divisible by `3`, a solution exists.
-
-Check values:
-
-```text
-2, 8, 14, 20, 26, ...
-```
-
-Modulo `9`, these are:
-
-```text
-2, 8, 5, ...
-```
-
-So `x = 14` works. The merged modulus is:
-
-```text
-lcm(6,9) = 18
-```
-
-All solutions are:
-
-```text
-x = 14 mod 18
-```
-
-If the residues had disagreed modulo `3`, there would be no solution.
-
-## Fast doubling trace
-
-To compute `F(5)`, recurse to `F(2)`, then `F(1)`, then `F(0)`.
-
-At `k = 1`:
-
-```text
-F(2) = F(1) * (2*F(2)-F(1)) = 1
-F(3) = F(1)^2 + F(2)^2 = 2
-```
-
-At `k = 2`:
-
-```text
-F(4) = F(2) * (2*F(3)-F(2)) = 3
-F(5) = F(2)^2 + F(3)^2 = 5
-```
-
-The recursive function returns pairs so every level has exactly the two values
-needed by the next doubling step.
-
-## Mixed-contest debugging
-
-For Grundy, test terminal vertices and vertices whose outgoing Grundy set is
-`{1}` so the mex is `0`. For CRT, test incompatible residues:
-
-```text
-x = 0 mod 2
-x = 1 mod 4
-```
-
-For Fibonacci, test:
-
-```text
-F(0)=0, F(1)=1, F(2)=1, F(10)=55
-```
-
-These anchors catch most implementation mistakes quickly.
+Use types large enough for intermediate products, normalize modular values, and
+make base cases explicit. Write a deliberately slow oracle for very small input
+when possible. Test neutral elements, repeated constraints, impossible cases,
+and maximum bit lengths separately.
 
 # Exercises
 
-# Mixed-contest proof checkpoints
-
-For DAG Grundy, a state is winning iff some successor has Grundy value zero
-after mex logic; process reverse topological order. CRT needs compatibility
-`a-b` divisible by `gcd(m,n)` before constructing a solution with extended
-Euclid. Fast doubling follows directly from the two Fibonacci addition
-identities. Test terminal vertices, incompatible moduli, and `F(0)`.
-
-- A. DAG Grundy: For each start vertex in a DAG, print whether the first player wins.
-- B. General CRT: For each pair of congruences, print the smallest nonnegative solution and lcm modulus, or `NO`.
-- C. Fast Fibonacci: Answer Fibonacci queries modulo `1e9+7`.
+Attempt all twelve problems by recording the model, the key proof
+obligation, and a tiny counterexample that would disprove your idea. Read each
+source section's editorial only after that written attempt.

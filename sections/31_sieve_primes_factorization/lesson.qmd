@@ -66,12 +66,18 @@ Start by marking every index from `2` as possibly prime; explicitly set `0`
 and `1` to false. For each still-prime `p`, mark its multiples from `p*p`.
 
 ```text
+set is_prime[x] = true for every x from 0 to N
 is_prime[0] = is_prime[1] = false
 for p from 2 while p*p <= N:
     if is_prime[p]:
         for x from p*p to N step p:
             is_prime[x] = false
 ```
+
+Thus `is_prime[2]` is set to true by the first line. It remains true because
+the marking loop for `p=2` starts at `2*2=4`; the prime itself is never marked
+false. More generally, a number remains true exactly when no smaller prime
+divisor marks it as composite.
 
 The time is `O(N log log N)` and the memory is `O(N)`. For `N = 10^6`, this is
 comfortably small in both C++ and Python.

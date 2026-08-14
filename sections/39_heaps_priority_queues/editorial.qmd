@@ -57,7 +57,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -155,7 +155,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -242,7 +242,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -384,6 +384,82 @@ next sum. Time is `O((n+k) log n)` with the local all-row seed (or
 `O((min(n,k)+k)log min(n,k))` when optimized); memory is the heap size. Use
 `long long` sums, tuples in both languages, and test ties, `k=1`, one row, and
 negative values against an all-pairs sorting oracle.
+
+# D. Merge Costs
+
+## Restatement and traps
+
+Repeatedly merge two current files, paying their combined size, until one file
+remains. Minimize total cost. With `n <= 200000`, trying merge orders is
+exponential; totals require `long long`. A one-file input costs zero.
+
+## Observation and trace
+
+Always merge the two smallest current sizes. For `4,3,2,6`, merge `2+3=5`,
+then `4+5=9`, then `6+9=15`, totaling `29`.
+
+View any merge plan as a binary tree whose leaves are original files. A file
+size is charged once for every ancestor merge, so smaller sizes should be at
+least as deep as larger sizes. Thus some optimal tree makes the two smallest
+files siblings at maximum depth; merge them first and recurse on their sum.
+
+## Algorithm
+
+```text
+put every size in a min-heap
+while heap has at least two values:
+    pop a and b
+    answer += a+b
+    push a+b
+print answer
+```
+
+## Correctness proof
+
+**Lemma.** There is an optimal merge plan whose first merge uses two smallest
+current sizes.
+
+**Proof.** In an optimal merge tree, choose two sibling leaves at greatest
+depth. Swapping either of their leaf sizes with a no-larger smallest size can
+only decrease the weighted depth sum, so the two smallest sizes can occupy
+those sibling leaves without worsening the plan. Contracting that sibling pair
+is exactly merging them first. $\square$
+
+**Theorem.** The heap algorithm has minimum total cost.
+
+**Proof.** By the lemma, its first merge is compatible with an optimal plan.
+After replacing the pair by their sum, the remaining problem has the same form.
+Induction on the number of files proves every greedy merge and therefore the
+total is optimal. $\square$
+
+## Complexity
+
+`n-1` heap merges cost `O(n log n)` time and `O(n)` memory.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_merge_costs/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_merge_costs/solution.py >}}
+```
+
+## Implementation notes and tests
+
+Use a min-heap (`greater<long long>` in C++, `heapq` in Python). Do not sort
+once: merged sums must re-enter the current frontier. Test one file, equal
+sizes, a very large size beside small ones, and totals beyond 32-bit range.
+
+## Stress testing
+
+For at most seven files, recursively try every pair of current files and take
+the least cost; this is independent of the greedy rule. The scale generator
+uses 200000 ones and a heap-computed expected total to exercise heap work and
+64-bit accumulation.
 
 # What to carry forward
 

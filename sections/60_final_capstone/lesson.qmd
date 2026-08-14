@@ -12,175 +12,53 @@ format:
     toc-depth: 2
     number-sections: true
     colorlinks: true
-    geometry:
-      - margin=25mm
-    include-in-header:
-      text: |
-        \usepackage{microtype}
-        \usepackage{amsmath}
-        \usepackage{booktabs}
+    geometry: [margin=25mm]
 execute:
   enabled: false
 ---
 
 # Final capstone
 
-The end of the course is a launch point, not a finish line. Red-coder training
-means repeated cycles of contest, upsolve, proof cleanup, and template review.
-The capstone mixes subset search, congruence modeling, and recurrence speed.
+This section is a contest simulation, not a final set of templates. The goal
+is to decide what a problem is asking before selecting a tool.
 
-## What "red-coder training" means
+# Capstone protocol
 
-At this level, improvement is less about learning isolated algorithms and more
-about reducing recognition time, proof time, and implementation risk.
-
-A weekly cycle:
+Spend the first pass on all three tasks. For each, write:
 
 ```text
-1. One serious contest or virtual contest.
-2. Full upsolve of every missed problem near your range.
-3. Rewrite one proof cleanly.
-4. Stress-test one implementation.
-5. Add one pattern to your notebook.
+the largest constraint and the naive cost it rules out
+the mathematical or combinatorial object being manipulated
+one promising model and its required invariant
+one small case that can be checked manually
 ```
 
-## Capstone A: meet-in-the-middle
+Choose an order by confidence, not by statement order. After solving one task,
+return to the others with fresh eyes rather than forcing a familiar technique.
 
-Maximum subset sum not exceeding `X` should trigger:
+# Model and proof discipline
 
-```text
-n around 40 -> split into two halves
-enumerate sums -> sort one side -> binary search complement
-```
+Before implementation, state the transformation from the original statement to
+your chosen representation. Prove that it loses no solutions and adds none.
+Then identify the base cases, boundary conventions, and the exact quantity
+that each loop or transition maintains.
 
-The proof is that every subset is uniquely the union of a left-half subset and
-a right-half subset.
+# Validation loop
 
-## Capstone B: CRT
+Build a tiny oracle whenever the input size permits it. Generate small random
+instances, compare outputs, and shrink any mismatch to the smallest failing
+case. Test zero, one, repeated values, impossible conditions, and maximum
+numeric ranges deliberately.
 
-Merging congruences should trigger:
+# During the contest
 
-```text
-x = a mod m
-x = b mod n
-check gcd compatibility
-merge into x = c mod lcm(m,n)
-```
-
-The compatibility check is not optional. If residues disagree modulo the gcd,
-there is no integer satisfying both.
-
-## Capstone C: fast recurrence
-
-Many recurrence problems are solved by matrix exponentiation. Fibonacci has a
-special fast-doubling form:
-
-```text
-(F(n), F(n+1)) -> (F(2n), F(2n+1))
-```
-
-The habit to keep is not memorizing Fibonacci only; it is recognizing when a
-linear recurrence needs logarithmic exponentiation.
-
-## Final self-review rubric
-
-For each problem you solve after this course, ask:
-
-- Did I identify the model before coding?
-- Did I state the invariant or recurrence?
-- Did I prove the transition?
-- Did I test the smallest and largest meaningful cases?
-- Did I preserve a reusable lesson for the next contest?
-
-That loop is how this course continues after the final PDF.
-
-## Capstone integration drill
-
-When opening a hard problem, write a three-column scratch table:
-
-```text
-Observed constraint | Possible model | Why it might fit
-n <= 40             | MITM           | split exponential search
-mod equations       | CRT            | merge congruences
-linear recurrence   | matrix/doubling| logarithmic query
-tree all roots      | rerooting      | answer for every root
-range updates       | lazy segtree   | update/query intervals
-```
-
-Then eliminate models whose assumptions fail. This habit is what turns a large
-course into contest speed.
-
-## Final implementation rule
-
-For red-level problems, never start from the longest template. Start from the
-smallest correct skeleton that proves the model:
-
-```text
-parse
-build the compressed state
-answer one query
-test tiny cases
-only then optimize or generalize
-```
-
-## Final practice protocol
-
-For the next 20 virtual contests:
-
-```text
-Before contest: choose one focus skill.
-During contest: write model/invariant before each medium+ problem.
-After contest: upsolve until every official solution is understandable.
-After upsolve: rewrite one solution without looking.
-Weekly: review failed patterns and update the notebook.
-```
-
-The course gives you the map. This protocol turns the map into reflexes.
-
-## What to maintain after the course
-
-Keep three artifacts:
-
-```text
-template notebook: trusted implementation snippets
-pattern notebook: observations that unlock problems
-mistake notebook: bugs you have personally made
-```
-
-The mistake notebook matters most. Red-coder progress often comes from not
-making the same wrong assumption twice.
-
-## Final capstone self-test
-
-Before considering the course complete, take one problem from each category and
-solve it without looking at the lesson:
-
-```text
-Fenwick/segment tree query
-shortest path or flow model
-tree DP or rerooting
-string matching/hash
-number theory/combinatorics
-game or invariant problem
-```
-
-The target is not memorization; it is recognizing which model the statement is
-trying to hide.
+Keep a short written log of rejected ideas and why their complexity or
+invariant fails. This prevents revisiting the same dead end. Reserve time for
+reading the statement again, checking types, and verifying output format.
 
 # Exercises
 
-## Capstone release checklist
-
-For each final task, state the constraint that rules out brute force, the
-invariant that makes the optimized method correct, and an independently written
-small oracle. Meet-in-the-middle splits items and combines sorted half sums;
-CRT validates compatibility by gcd before merging; recurrence exponentiation
-states what a matrix power represents. Stress each against the oracle before a
-timed rerun: `CP_TARGET=solution python3 sections/60_final_capstone/check.py`.
-
-- A. Capstone Subset: Meet-in-the-middle: maximum subset sum not exceeding `X`.
-- B. Capstone CRT: Merge pairs of congruences or report impossibility.
-- C. Capstone Recurrence: Fast Fibonacci queries modulo `1e9+7`.
-# Contest checklist
-
-State the invariant, choose the model, prove the operation, then code the smallest reliable version.
+Attempt A, B, and C without consulting a technique list. For each submission,
+keep the model, correctness argument, complexity derivation, and at least three
+targeted tests. The editorial is the post-attempt debrief, not the starting
+point.

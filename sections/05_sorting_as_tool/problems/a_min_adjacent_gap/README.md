@@ -1,11 +1,9 @@
-# A. Minimum Adjacent Gap
+# A. Minimum Difference
 
 ## Statement
 
-For each test case, you are given `n` integers. Sort them and print the minimum
-absolute difference between two distinct elements.
-
-If duplicate values exist, the answer is `0`.
+For each test case, you are given `n` integers. Find the minimum absolute
+difference between values at two different positions.
 
 ## Input
 
@@ -22,4 +20,3 @@ a1 a2 ... an
 ## Output
 
 For each test case, print the minimum absolute difference.
-

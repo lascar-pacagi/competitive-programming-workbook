@@ -11,6 +11,7 @@ decomposition.
    - `a_expected_prize`
    - `b_first_success`
    - `c_coupon_collector`
+   - `d_simultaneous_wins` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash

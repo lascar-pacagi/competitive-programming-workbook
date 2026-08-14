@@ -1,0 +1,202 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 61: ICPC Readiness -- Offline Problem Sheet"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=20mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Offline use
+
+This is an original concise sheet for an ordered ICPC-style ladder. Each link
+leads to the authoritative external statement and judge. Work from this sheet
+offline, but read the official statement before submitting: it controls any
+detail not repeated here. Record a model and a hostile test before reading the
+editorial.
+
+Each rung also has an original, locally judgeable companion package under
+`problems/`; see [the companion index](OFFLINE_COMPANIONS.md). The companion
+is a separate exercise for the same course skill, with skeletons, references,
+and tests. It is intentionally not a copy of the linked Kattis statement.
+
+# Round 1: reliable opening solves
+
+## 1. ACM Contest Scoring
+
+Official: <https://open.kattis.com/problems/acm>
+
+Replay one team's submissions. A wrong answer before a problem's first
+acceptance increases that problem's wrong-attempt count; a later acceptance
+adds its minute plus the stated penalty per earlier wrong answer. Ignore all
+records after the contest-end marker. Print solved count and penalty.
+
+## 2. Booking a Room
+
+Official: <https://open.kattis.com/problems/bookingaroom>
+
+Given room numbers already reserved in a hotel numbered from 1 through `R`,
+print the smallest available room number, or state that every room is booked.
+The input order of reservations is arbitrary.
+
+## 3. Sort of Sorting
+
+Official: <https://open.kattis.com/problems/sortofsorting>
+
+For each dataset of uppercase names, sort the names stably by their first two
+characters. Preserve the required blank-line convention between datasets.
+
+## 4. ICPC Team Selection
+
+Official: <https://open.kattis.com/problems/icpcteamselection>
+
+From `3n` student skill values, repeatedly form teams of three. The score of a
+team is its median skill. Maximize the sum of all team scores.
+
+## 5. Guess the Data Structure
+
+Official: <https://open.kattis.com/problems/guessthedatastructure>
+
+Observe insert and remove-value operations. Decide whether the observations are
+consistent with a stack, queue, priority queue, more than one of them, or none.
+
+# Round 2: regional implementation and modeling
+
+## 6. Assigning Workstations
+
+Official: <https://open.kattis.com/problems/workstations>
+
+Researchers arrive at known times and use a workstation for known durations.
+After use, a workstation remains unlocked for a fixed timeout. Minimize the
+number of unlock operations by reusing a suitable unlocked machine.
+
+## 7. Teque
+
+Official: <https://open.kattis.com/problems/teque>
+
+Maintain a sequence under push-front, push-back, push-middle, and get-index
+operations. There can be many operations, so inserting into a normal array is
+too slow.
+
+## 8. Almost Union-Find
+
+Official: <https://open.kattis.com/problems/almostunionfind>
+
+Maintain disjoint sets under union, moving one element from its current set to
+another set, and queries for a set's size and sum of element labels.
+
+## 9. Single Source Shortest Path
+
+Official: <https://open.kattis.com/problems/shortestpath1>
+
+For repeated directed weighted graphs with nonnegative weights, answer shortest
+distance queries from a specified source. Print `Impossible` for unreachable
+vertices.
+
+## 10. Get Shorty
+
+Official: <https://open.kattis.com/problems/getshorty>
+
+Edges multiply a traveller's height by a factor between zero and one. Find a
+path from the first vertex to the last that maximizes the final height factor.
+
+# Round 3: advanced regional tools
+
+## 11. Coast Length
+
+Official: <https://open.kattis.com/problems/coast>
+
+Given a grid of land and water, count only land edges exposed to the outside
+ocean. Water enclosed by land is a lake and does not contribute coastline.
+
+## 12. All Pairs Shortest Path
+
+Official: <https://open.kattis.com/problems/allpairspath>
+
+Answer distance queries in directed graphs that may contain negative edges.
+Distinguish unreachable pairs from pairs whose shortest walk is unbounded below
+because a reachable negative cycle can still reach the destination.
+
+## 13. Arbitrage
+
+Official: <https://open.kattis.com/problems/arbitrage>
+
+Given exchange rates between currencies, determine whether a sequence of trades
+can strictly increase the amount of some starting currency.
+
+## 14. Knapsack
+
+Official: <https://open.kattis.com/problems/knapsack>
+
+For each capacity and item list, maximize total value with 0/1 choices and
+output one set of selected item indices achieving that value.
+
+## 15. Clock Pictures
+
+Official: <https://open.kattis.com/problems/clockpictures>
+
+Two circular sets of clock-hand angles represent the same picture when one can
+be rotated to match the other. Decide whether such a rotation exists.
+
+# Round 4: finalist-style reductions
+
+## 16. String Matching
+
+Official: <https://open.kattis.com/problems/stringmatching>
+
+For each pattern and text pair, print all starting positions where the pattern
+occurs, including overlapping occurrences.
+
+## 17. Max Flow
+
+Official: <https://open.kattis.com/problems/maxflow>
+
+Given a directed capacitated network, compute a maximum flow from source to
+sink and output a valid positive-flow decomposition on original edges.
+
+## 18. Min Cut
+
+Official: <https://open.kattis.com/problems/mincut>
+
+For a directed capacitated network, output the source-side vertex set of a
+minimum cut after computing a maximum flow.
+
+## 19. Distributing Ballot Boxes
+
+Official: <https://open.kattis.com/problems/distributingballotboxes>
+
+Distribute a fixed number of ballot boxes among cities, giving every city at
+least one. Minimize the largest population served by one box.
+
+## 20. Catering
+
+Official: <https://open.kattis.com/problems/catering>
+
+Events require a known number of meals. Meals can be prepared, reused after an
+event at a cleaning cost, or newly purchased; travel/reuse costs are given.
+Find the minimum total cost over the complete event schedule.
+
+# Attempt record
+
+For every task, write this before opening the editorial:
+
+```text
+model: ____________________  invariant: ____________________
+first hostile test: ________  exact blocker: _______________
+```

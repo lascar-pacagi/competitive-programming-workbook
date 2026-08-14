@@ -21,7 +21,7 @@ def build_case(rng: random.Random) -> tuple[str, str]:
     for _ in range(t):
         n = rng.randint(2, 10)
         k = rng.randint(2, n)
-        pos = [rng.randint(-50, 50) for _ in range(n)]
+        pos = sorted(rng.randint(-50, 50) for _ in range(n))
         lines.append(f"{n} {k}")
         lines.append(" ".join(map(str, pos)))
         answers.append(str(brute(pos, k)))
@@ -46,4 +46,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

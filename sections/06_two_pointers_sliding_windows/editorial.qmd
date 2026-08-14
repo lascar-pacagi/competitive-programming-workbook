@@ -497,6 +497,126 @@ sys.stdout.write("\n".join(out))
 - Using 32-bit `int` for the answer.
 - Using this method with negative values.
 
+# Problem D: Cover All Labels
+
+## Restatement
+
+Find the shortest nonempty contiguous segment that contains every label from
+`1` through `m`. If at least one label never occurs, the answer is `-1`.
+
+This is the section's blind-practice task. It still uses a moving window, but
+the window condition is coverage rather than a numeric sum.
+
+## Constraints and traps
+
+The total array length is `200000`, so checking every pair of endpoints is too
+slow. Labels are bounded by `m`, making a frequency array of size `m+1`
+appropriate. A window containing many copies of one label is not complete
+unless it contains every *different* required label.
+
+## Observation and trace
+
+Keep a window and a counter `missing`: the number of labels that occur zero
+times in the window. Adding a label whose current count is zero decreases
+`missing`. Removing a label whose count becomes zero increases it.
+
+For `1 2 1 3 2` with labels `1,2,3`:
+
+| right value | window after expansion/shrinking | missing | best |
+|---:|:---|---:|---:|
+| 1 | `[1]` | 2 | none |
+| 2 | `[1,2]` | 1 | none |
+| 1 | `[1,2,1]` | 1 | none |
+| 3 | `[2,1,3]` after removing the first `1` | 0 | 3 |
+| 2 | `[1,3,2]` after removing the first `2` | 0 | 3 |
+
+Once `missing` is zero, the current window is valid. Removing from the left is
+the only way to make that window shorter; keep doing so until one required
+label disappears.
+
+## Algorithm
+
+```text
+count[1..m] = 0
+missing = m
+left = 0
+answer = infinity
+
+for right from 0 to n-1:
+    add a[right] to count
+    if it was absent before: missing -= 1
+
+    while missing == 0:
+        answer = min(answer, right-left+1)
+        remove a[left] from count
+        if it becomes absent: missing += 1
+        left += 1
+
+print answer, or -1 when it was never updated
+```
+
+## Correctness proof
+
+**Lemma 1.** At every point, `missing` equals the number of required labels
+absent from the current window `[left,right]`.
+
+**Proof.** Initially every required label is absent. The algorithm changes
+`missing` exactly when adding the first occurrence of a label or removing its
+last occurrence. These are exactly the events that change whether a label is
+absent. $\square$
+
+**Lemma 2.** Every candidate used to update `answer` contains every required
+label.
+
+**Proof.** A candidate is recorded only while `missing == 0`. By Lemma 1, no
+required label is absent from that window. $\square$
+
+**Lemma 3.** For each right endpoint, the algorithm records the shortest valid
+window ending at that endpoint.
+
+**Proof.** While the window is valid, the algorithm removes leftmost labels
+one at a time and records each valid length. It stops exactly after removing
+the last occurrence of one required label, at which point no shorter window
+with the same right endpoint can be valid. Thus the final recorded valid window
+for that endpoint is shortest. $\square$
+
+**Theorem.** The algorithm prints the minimum length of a subarray containing
+all required labels, or `-1` when none exists.
+
+**Proof.** By Lemma 2, every recorded length is feasible. Every feasible
+subarray has some right endpoint; by Lemma 3 the algorithm considers a valid
+window no longer than that subarray for the same endpoint. Taking the minimum
+therefore gives the global optimum. If no window is recorded, Lemma 1 shows no
+window ever contained all labels, so `-1` is correct. $\square$
+
+## Complexity
+
+Each endpoint moves from left to right at most once. Time is `O(n+m)` per test
+case and memory is `O(m)`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_cover_all_labels/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_cover_all_labels/solution.py >}}
+```
+
+## Implementation traps and tests
+
+- Count distinct covered labels, not the number of window elements.
+- Update the answer before removing the leftmost label.
+- Stop shrinking only after a count becomes zero.
+- Return `-1` when one required label is absent from the whole array.
+
+Test one required label, a missing label, a shortest window at the beginning
+or end, and windows with many duplicate labels. The random generator uses a
+quadratic endpoint oracle on small arrays.
+
 # Stress testing strategy
 
 All three problems have simple slow oracles:
@@ -521,4 +641,3 @@ This idea will reappear in:
 - sweep-line active sets;
 - offline query processing;
 - advanced sliding-window counting problems.
-

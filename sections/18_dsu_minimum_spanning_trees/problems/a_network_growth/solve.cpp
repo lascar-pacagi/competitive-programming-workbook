@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: maintain components with DSU.
+    // TODO: solve the problem.
     return 0;
 }
-

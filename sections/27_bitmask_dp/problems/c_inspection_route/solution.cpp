@@ -25,7 +25,10 @@ int main() {
             for (int nxt = 0; nxt < n; nxt++) {
                 if ((mask & (1 << nxt)) == 0) {
                     int new_mask = mask | (1 << nxt);
-                    dp[new_mask][nxt] = min(dp[new_mask][nxt], dp[mask][last] + cost[last][nxt]);
+                    dp[new_mask][nxt] = min(
+                        dp[new_mask][nxt],
+                        dp[mask][last] + cost[last][nxt]
+                    );
                 }
             }
         }

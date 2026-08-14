@@ -4,7 +4,7 @@ using namespace std;
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    // TODO: dp[i] = best score using the first i days.
+
+    // TODO: solve the problem.
     return 0;
 }
-

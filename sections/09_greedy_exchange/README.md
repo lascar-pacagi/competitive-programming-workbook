@@ -10,6 +10,7 @@ This section focuses on the proof habit that makes that safe: exchange.
    - `a_activity_selection`
    - `b_rescue_boats`
    - `c_deadline_schedule`
+   - `d_workshop_badges` (blind practice)
 3. Run the checker:
 
 ```bash
@@ -24,4 +25,3 @@ CP_TARGET=solution python3 sections/09_greedy_exchange/check.py
 
 4. Read `editorial.qmd` after making a serious attempt.
 5. Work through `PRACTICE.md`.
-

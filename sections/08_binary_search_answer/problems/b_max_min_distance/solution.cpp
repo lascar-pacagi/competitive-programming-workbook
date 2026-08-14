@@ -25,8 +25,6 @@ int main() {
         cin >> n >> k;
         vector<long long> pos(n);
         for (long long &x : pos) cin >> x;
-        sort(pos.begin(), pos.end());
-
         long long lo = 0;
         long long hi = pos.back() - pos.front() + 1;
         while (lo + 1 < hi) {
@@ -42,4 +40,3 @@ int main() {
 
     return 0;
 }
-

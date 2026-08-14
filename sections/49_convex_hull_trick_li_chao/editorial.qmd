@@ -83,7 +83,7 @@ Add lines `y=mx+b` and answer minimum value at query points.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -122,7 +122,7 @@ Compute `dp[i]=min_j dp[j]+(x_i-x_j)^2+c` for increasing `x`.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -157,7 +157,7 @@ Add lines and answer maximum value at query points.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -186,6 +186,84 @@ def main():
             x=data[idx]; idx+=1; out.append(str(max(m*x+b for m,b in lines)))
     print("\n".join(out))
 if __name__=="__main__": main()
+```
+
+# D. Line Winner
+
+## Restatement
+
+Lines are inserted online. At a query coordinate, print the smallest line value
+and, among equal values, the earliest inserted line. This blind exercise adds a
+deterministic tie rule to dynamic line minimum queries.
+
+## Observations
+
+Compare a line at `x` by the pair `(m*x+b, insertion_id)`. Lexicographic pair
+comparison exactly implements both the value objective and the tie rule. Read
+all operations first and compress the query coordinates; a Li Chao tree then
+needs nodes only for coordinates that will be queried.
+
+At a segment, retain the better line at its midpoint. The other line can only
+win on one side, so recurse into that side after comparing endpoints. This is
+the Li Chao invariant, unchanged except that every comparison uses the pair.
+
+## Algorithm
+
+```text
+collect and sort distinct query x values
+for every inserted line, assign its insertion id
+insert it into a Li Chao segment tree using pair comparisons at endpoints/mid
+for a query x, take the minimum pair over tree nodes on x's root-to-leaf path
+```
+
+## Correctness proof
+
+**Lemma.** Every Li Chao node retains a line that is best at its midpoint among
+lines routed through that node, while any line that can improve another point
+is passed to the only child interval where it can do so.
+
+**Proof.** The midpoint comparison retains the better pair. The difference of
+two linear values is linear; with lexicographic id resolving equality, the
+other line can beat the retained line on at most one side. The endpoint tests
+route it precisely there. $\square$
+
+**Theorem.** Each query returns the required value and earliest attaining id.
+
+**Proof.** By the lemma, any inserted line that can win at the query coordinate
+is retained on some node of that coordinate's search path. Taking the minimum
+pair over that path considers every possible winner and chooses exactly the
+specified lexicographic optimum. $\square$
+
+## Complexity
+
+For `K` distinct query coordinates, insertion and query cost `O(log K)`; memory
+is `O(K)`. Products require `long long` under the local bounds.
+
+## Implementation notes
+
+In C++, represent an empty line as `(INF, INT_MAX)`. In Python, use a matching
+large pair. Do not use only a value comparison on ties: a later equal line must
+not replace an earlier one.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_line_winner/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_line_winner/solution.py >}}
+```
+
+## Tests that matter
+
+```text
+Several identical lines: always select the first id.
+Lines intersecting at a query coordinate.
+Negative x and negative slopes.
+100,000 equal insertions followed by 100,000 queries.
 ```
 
 # Testing discussion

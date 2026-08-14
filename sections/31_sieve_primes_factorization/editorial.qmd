@@ -30,6 +30,7 @@ execute:
 | A. Prime Counter | sieve and prefix counts | `O(1)` | subtracting `pref[l-1]` |
 | B. Factor Signature | SPF table | number of prime factors | `x=1` |
 | C. Divisor Queries | SPF table | number of prime factors | multiply `e+1` |
+| D. Square Completion | SPF table | factor exponent parity | perfect squares and `x=1` |
 
 # Shared tool: an SPF table
 
@@ -72,6 +73,7 @@ The answer for `[4,10]` is `4-2=2`, namely `5,7`.
 ## Pseudocode
 
 ```text
+mark every index from 0 through n as potentially prime
 mark 0 and 1 non-prime
 for p from 2 while p*p <= n:
     if p is still prime:
@@ -88,7 +90,7 @@ Every composite `x` has a prime divisor at most `sqrt(x)`, so the sieve marks
 it while processing that divisor. A prime has no smaller divisor, so it is
 never marked. Thus `is_prime` is correct. By definition, `pref[r]` counts all
 primes through `r` and `pref[l-1]` counts exactly those before `l`; their
-difference contains precisely the primes in `[l,r]`. `\square`
+difference contains precisely the primes in `[l,r]`. $\square$
 
 ## Complexity
 
@@ -206,7 +208,7 @@ At each iteration, `spf[x]` is a prime divisor of the remaining `x`. Removing
 all copies records one and only one prime-power block. Unique factorization
 means these blocks are exactly all distinct prime factors, their exponents sum
 to the multiplicity count, and the final increasing block is the largest prime
-factor. The `x=1` branch matches its empty factorization. `\square`
+factor. The `x=1` branch matches its empty factorization. $\square$
 
 ## Complexity
 
@@ -338,7 +340,7 @@ Unique factorization writes `x` as a product of prime powers. Every divisor is
 uniquely determined by choosing an exponent from `0..ei` for every prime `pi`,
 and every such selection divides `x`. There are `ei+1` choices independently,
 so the product computed by the algorithm is exactly the divisor count.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -433,6 +435,236 @@ if __name__ == "__main__":
     main()
 ```
 
+# D. Square Completion
+
+## Restatement
+
+For each positive integer `x`, print the smallest positive multiplier `k`
+such that `x * k` is a perfect square. The question is about the smallest
+multiplier, not merely whether `x` is already a square.
+
+## Constraints and traps
+
+There can be `200000` values, each at most `10^6`. Trial-dividing every value
+individually repeats work; build one smallest-prime-factor table through the
+largest query value.
+
+```text
+x = 1 already is a square, so its answer is 1.
+Each prime with an odd exponent needs one more copy in k.
+Each prime with an even exponent needs no copy in k.
+k is a product of primes, so use long long in C++ even though this limit is safe.
+```
+
+Do not multiply every distinct prime factor. For `12 = 2^2 * 3`, the exponent
+of `2` is already even, so the answer is `3`, not `6`.
+
+## Observation and walk-through
+
+Write the factorization as:
+
+```text
+x = p1^e1 * p2^e2 * ... * pt^et
+```
+
+A perfect square has an even exponent for every prime. Therefore the smallest
+completion is:
+
+```text
+k = product of pi over exactly those i for which ei is odd
+```
+
+For `72`:
+
+```text
+72 = 2^3 * 3^2
+     ^^^ odd exponent: add one factor 2
+          even exponent: add nothing
+
+k = 2
+72 * 2 = 2^4 * 3^2 = 144
+```
+
+For `36 = 2^2 * 3^2`, every exponent is already even, so the empty product
+gives `k = 1`.
+
+## Algorithm
+
+```text
+read every query and build spf through the largest x
+
+for each x:
+    remaining = x
+    k = 1
+    while remaining > 1:
+        p = spf[remaining]
+        count how many times p divides remaining
+        if that count is odd:
+            k *= p
+    print k
+```
+
+Only the parity of the exponent matters. The code can toggle a Boolean while
+dividing copies of `p`, avoiding a separate exponent integer.
+
+## Correctness proof
+
+**Lemma 1.** The factor loop visits each distinct prime divisor of `x` once
+and determines its exact exponent in `x`.
+
+**Proof.** `spf[remaining]` is a prime divisor of the current remaining value.
+The inner loop divides all copies of that prime, so the next outer iteration
+cannot choose it again. Repeating until the remaining value is one produces
+exactly the unique prime-factor blocks of `x`. $\square$
+
+**Lemma 2.** The multiplier produced by the algorithm makes `x * k` a perfect
+square.
+
+**Proof.** By Lemma 1, for each prime `p` the algorithm knows its exponent
+`e` in `x`. If `e` is even it contributes no `p` to `k`, leaving an even
+exponent. If `e` is odd it contributes exactly one `p`, changing `e` to
+`e+1`, which is even. Thus every prime exponent in `x*k` is even, so the
+product is a square. $\square$
+
+**Lemma 3.** No smaller positive multiplier than the algorithm's `k` can make
+`x` a perfect square.
+
+**Proof.** Every odd exponent of a prime `p` in `x` must be changed by an odd
+number of added copies of `p`; at least one copy is necessary. The algorithm
+adds exactly one such copy and adds no unnecessary prime factor. Any valid
+multiplier must therefore be divisible by every prime in the algorithm's
+product, so it cannot be smaller. $\square$
+
+**Theorem.** The algorithm prints the smallest positive multiplier that
+completes every query value to a perfect square.
+
+**Proof.** Lemma 2 proves the printed multiplier is valid, and Lemma 3 proves
+it is minimal. $\square$
+
+## Complexity
+
+Let `M` be the largest query value. The SPF table costs
+`O(M log log M)` time and `O(M)` memory. Each query divides out its prime
+factors, taking `O(number of prime factors with multiplicity)` time.
+
+## C++ implementation notes
+
+Read all values before constructing `spf`; then the precomputation stops at
+the needed maximum. `bool odd_exponent` toggles for each division. Store the
+output multiplier in `long long` for a safe general template.
+
+## Python implementation notes
+
+The same SPF construction uses a list of integers. Collect output strings in a
+list and join once; this avoids one buffered write per query at the largest
+input size.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> build_spf(int limit) {
+    vector<int> spf(limit + 1);
+    iota(spf.begin(), spf.end(), 0);
+    if (limit >= 1) spf[1] = 1;
+    for (long long p = 2; p * p <= limit; ++p) {
+        if (spf[p] == p) {
+            for (long long multiple = p * p; multiple <= limit; multiple += p) {
+                if (spf[multiple] == multiple) spf[multiple] = p;
+            }
+        }
+    }
+    return spf;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int q;
+    cin >> q;
+    vector<int> values(q);
+    for (int &value : values) cin >> value;
+    vector<int> spf = build_spf(*max_element(values.begin(), values.end()));
+
+    for (int value : values) {
+        int remaining = value;
+        long long multiplier = 1;
+        while (remaining > 1) {
+            int prime = spf[remaining];
+            bool odd_exponent = false;
+            while (remaining % prime == 0) {
+                odd_exponent = !odd_exponent;
+                remaining /= prime;
+            }
+            if (odd_exponent) multiplier *= prime;
+        }
+        cout << multiplier << '\n';
+    }
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def build_spf(limit: int) -> list[int]:
+    spf = list(range(limit + 1))
+    if limit >= 1:
+        spf[1] = 1
+    for prime in range(2, int(limit**0.5) + 1):
+        if spf[prime] == prime:
+            for multiple in range(prime * prime, limit + 1, prime):
+                if spf[multiple] == multiple:
+                    spf[multiple] = prime
+    return spf
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    values = data[1:1 + data[0]]
+    spf = build_spf(max(values))
+    out = []
+    for value in values:
+        remaining = value
+        multiplier = 1
+        while remaining > 1:
+            prime = spf[remaining]
+            odd_exponent = False
+            while remaining % prime == 0:
+                odd_exponent = not odd_exponent
+                remaining //= prime
+            if odd_exponent:
+                multiplier *= prime
+        out.append(str(multiplier))
+    print("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Multiplying every distinct prime factor instead of only odd-exponent ones.
+- Counting a prime factor only once without removing its repeated copies.
+- Returning zero for `x = 1`; the required positive multiplier is one.
+- Trial-dividing every one of `200000` values instead of reusing an SPF table.
+- Forgetting that a prime itself needs to be multiplied by itself.
+
+## Tests that matter
+
+- `x = 1` and an already perfect square;
+- a prime such as `999983`, whose answer is itself;
+- a prime power with odd exponent, such as `2^19`;
+- a product with one odd and one even exponent, such as `72`;
+- many repeated queries, which exercise output handling and SPF reuse;
+- values near `10^6`.
+
 # Testing and stress discussion
 
 For A, compare against a slow loop that calls trial division on each number in
@@ -443,7 +675,13 @@ division on random values at most a few thousand. Essential fixed cases are:
 A: [1,1], a singleton prime, and an interval with no primes
 B: 1, a large prime, 64, and 360
 C: 1, a prime, a prime power, and 210
+D: 1, a square, a prime, and mixed odd/even prime exponents
 ```
+
+For D's tiny random values, the generator tries multipliers one by one and
+checks integer square roots. This deliberately avoids using factorization in
+the oracle. A separate case contains `200000` copies of the large prime
+`999983`, checking preprocessing, repeated queries, and output volume.
 
 Run the supplied generator with:
 

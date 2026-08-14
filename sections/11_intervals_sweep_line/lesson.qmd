@@ -180,40 +180,145 @@ The important tie is at `7`. Because intervals are half-open, `[4,7)` and
 
 # Worked example 2: covered length
 
-Intervals:
+## First: solve this example without a sweep line
+
+The intervals are:
 
 ```text
 [1,5), [2,6), [8,10)
 ```
 
-Sorted event coordinates:
+The notation `[1,5)` means all points from `1` up to, but not including, `5`.
+The first two intervals overlap, so we merge them:
+
+```text
+[1,5) union [2,6) = [1,6)
+```
+
+The third interval is separate. Therefore the union is:
+
+```text
+[1,6) union [8,10)
+```
+
+Its length is:
+
+```text
+(6 - 1) + (10 - 8) = 5 + 2 = 7
+```
+
+We want that union length. We do **not** want the sum of interval lengths:
+`4 + 4 + 2 = 10` would count the overlap from `2` to `5` twice.
+
+## Why endpoints are enough
+
+Coverage can change only when we pass an endpoint. The endpoints here are:
 
 ```text
 1, 2, 5, 6, 8, 10
 ```
 
-The active count is constant between consecutive event coordinates.
+They divide the line into five gaps:
 
 ```text
-gap       active on gap   contribution
-[1,2)     1               1
-[2,5)     2               3
-[5,6)     1               1
-[6,8)     0               0
-[8,10)    1               2
+[1,2), [2,5), [5,6), [6,8), [8,10)
 ```
 
-Total covered length:
+There is no endpoint inside any one gap. So, for example, every point between
+`2` and `5` is covered by exactly the same intervals. We can test one point in
+each gap:
 
 ```text
-1 + 3 + 1 + 2 = 7
+point 1.5: covered by [1,5)           -> keep [1,2)
+point 3.5: covered by [1,5), [2,6)    -> keep [2,5)
+point 5.5: covered by [2,6)           -> keep [5,6)
+point 7:   covered by nothing          -> discard [6,8)
+point 9:   covered by [8,10)          -> keep [8,10)
 ```
 
-Notice that we add the gap before applying the events at the current coordinate:
+The kept gaps have lengths `1`, `3`, `1`, and `2`, which add to `7`.
+The fact that two intervals cover `[2,5)` changes nothing: the union contains
+each point of that gap once.
+
+## Now introduce the sweep line
+
+Checking one point against every interval would be too slow for many
+intervals. Instead, while moving left to right, store:
 
 ```text
-length from prev to x depends on the active count after prev, before x
+covering = how many intervals currently cover the gap immediately to our right
 ```
+
+For this example:
+
+```text
+gap       [1,2)  [2,5)  [5,6)  [6,8)  [8,10)
+covering     1      2      1      0       1
+```
+
+For union length, only zero versus nonzero matters:
+
+```text
+covering > 0  -> add this gap's length once
+covering = 0  -> add nothing
+```
+
+Each interval creates two changes:
+
+```text
+at l: covering increases by 1
+at r: covering decreases by 1
+```
+
+## The scan in slow motion
+
+Start at the first endpoint. Before processing events at coordinate `x`, the
+current `covering` value describes the old gap from `previous` to `x`.
+
+```text
+at 1:  start [1,5)          covering = 1
+
+at 2:  old gap [1,2) is covered, add 2 - 1 = 1
+       start [2,6)          covering = 2
+
+at 5:  old gap [2,5) is covered, add 5 - 2 = 3
+       end [1,5)            covering = 1
+
+at 6:  old gap [5,6) is covered, add 6 - 5 = 1
+       end [2,6)            covering = 0
+
+at 8:  old gap [6,8) is not covered, add nothing
+       start [8,10)         covering = 1
+
+at 10: old gap [8,10) is covered, add 10 - 8 = 2
+       end [8,10)           covering = 0
+```
+
+The accumulated answer is `1 + 3 + 1 + 2 = 7`.
+
+The order is always the same: first add the old gap, then apply the changes at
+the new endpoint. Events at `x` tell us about the gap to the **right** of `x`,
+not the gap we have just crossed.
+
+## Compact template
+
+```text
+create (+1) start and (-1) end events
+sort them by coordinate
+
+covering = 0
+previous = first event coordinate
+answer = 0
+
+for each coordinate x, handling all events at x together:
+    if covering > 0:
+        answer += x - previous
+    apply all changes at x to covering
+    previous = x
+```
+
+Grouping all events at one coordinate is natural here. That coordinate has
+length zero, and every change must be applied before the next gap starts.
 
 # Worked example 3: closed point coverage
 
@@ -456,4 +561,3 @@ Practice grouping events and accumulating covered gaps.
 ## C. Point Coverage
 
 Practice query events, closed intervals, and restoring original query order.
-

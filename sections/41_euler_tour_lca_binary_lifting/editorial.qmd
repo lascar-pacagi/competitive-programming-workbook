@@ -311,7 +311,139 @@ if __name__=="__main__": main()
 Test `u==v`, root and ancestor queries, a chain, maximum-edge boundaries, and
 both valid and invalid k values.
 
-# What to carry forward
+# D. Weighted Tree Distances
+
+## Restatement
+
+Each edge has a signed weight. For every pair of nodes, print the sum of the
+weights on their unique tree path. This blind exercise requires the same LCA
+primitive as unweighted distance, but the depth count alone is no longer the
+quantity to combine.
+
+## Constraints and traps
+
+With `n,q <= 200,000`, walking a path per query is too slow on a chain. A path
+sum can reach about `2 * 10^14`, so use `long long` in C++. Edge weights may be
+negative: do not use a shortest-path interpretation, and do not initialize a
+path aggregate to zero except for the empty path.
+
+## Observations
+
+Root the tree at node `1`. Let `root_sum[v]` be the sum of edge weights on the
+root-to-`v` path. It is available while reading this parent-before-child input:
+
+```text
+root_sum[v] = root_sum[parent[v]] + edge_weight[v].
+```
+
+For `c = lca(u,v)`, the two root paths share exactly the root-to-`c` prefix.
+Adding the two root sums counts that shared prefix twice, so remove it twice:
+
+```text
+path_sum(u,v) = root_sum[u] + root_sum[v] - 2*root_sum[c].
+```
+
+The LCA table is the ordinary `up[t][v]` table. No edge aggregate table is
+needed because the prefix sums already summarize every root path.
+
+## Sample walk-through
+
+For query `(3,4)`, `lca(3,4)=1`. The root sums are `2` for node `3` and `16`
+for node `4`, while the root sum at node `1` is zero:
+
+```text
+2 + 16 - 2*0 = 18.
+```
+
+For `(2,2)`, the LCA is node `2`, so its root sum is added twice and subtracted
+twice. The result is zero, as the empty path should be.
+
+## Algorithm
+
+```text
+read parent and edge weight for every node
+compute depth[v], root_sum[v], and up[0][v]
+build the binary-lifting table
+
+for each query (u,v):
+    c = lca(u,v)
+    print root_sum[u] + root_sum[v] - 2*root_sum[c]
+```
+
+The LCA routine first equalizes depths, then attempts simultaneous jumps from
+largest power to smallest while the proposed ancestors differ.
+
+## Correctness proof
+
+**Lemma 1.** `root_sum[v]` equals the sum of weights on the root-to-`v` path.
+
+**Proof.** The root has sum zero. Every other node appends exactly its parent
+edge to the already-correct parent path, so induction on input order proves the
+recurrence. $\square$
+
+**Lemma 2.** The binary-lifting routine returns `lca(u,v)`.
+
+**Proof.** Each table entry is an exact power-of-two ancestor by induction.
+After depth equalization, simultaneous largest-first jumps keep both nodes
+below their LCA. When no such jump remains, they are its children, so their
+common parent is the LCA. $\square$
+
+**Theorem.** The algorithm prints the path-weight sum for every query.
+
+**Proof.** By Lemma 2, `c` is the unique meeting point of the two root paths.
+By Lemma 1, `root_sum[u] + root_sum[v]` contains every edge on the `u-v` path
+once and every edge on root-to-`c` twice. Subtracting `2*root_sum[c]` removes
+exactly that duplicated prefix. $\square$
+
+## Complexity
+
+```text
+Preprocessing: O(n log n) time and memory
+Each query:    O(log n) time
+```
+
+## C++ implementation notes
+
+Use `long long` for `root_sum` and the final expression. The `up` entries and
+depths remain ordinary integers. The parent-before-child input order means no
+recursive DFS is needed, avoiding recursion-depth issues on a chain.
+
+## Python implementation notes
+
+Python integers naturally cover sums. Parse the input once, build output lines
+in a list, and use an iterative lifting loop; no recursion is needed.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_weighted_distances/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_weighted_distances/solution.py >}}
+```
+
+## Common wrong answers
+
+```text
+Using edge count depth in place of weighted root sums.
+Subtracting root_sum[lca] once instead of twice.
+Using int for a long chain of large weights.
+Treating negative weights as an invalid input or shortest-path issue.
+Forgetting that a query from a node to itself has answer zero.
+```
+
+## Tests that matter
+
+```text
+u=v, including the root.
+An ancestor-descendant query.
+Negative edges on one branch.
+Two branches whose LCA is not the root.
+A 200,000-node chain with 200,000 endpoint queries.
+```
 
 <!-- Duplicate workshop hidden from the rendered editorial.
 # Detailed upsolve workshop

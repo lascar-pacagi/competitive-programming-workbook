@@ -11,6 +11,7 @@ range.
    - `a_merge_piles`
    - `b_palindrome_repairs`
    - `c_treasure_balloons`
+   - `d_endgame_advantage` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -25,4 +26,3 @@ CP_TARGET=solution python3 sections/25_interval_dp/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

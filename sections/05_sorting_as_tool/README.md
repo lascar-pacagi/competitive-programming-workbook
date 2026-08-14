@@ -17,6 +17,7 @@ After this section, you should be able to:
    - `a_min_adjacent_gap`
    - `b_rank_table`
    - `c_merge_intervals`
+   - `d_compact_team` (blind practice: use its problem README only)
 3. Run this section's checker after each problem.
 4. Read `editorial.pdf` only after a serious attempt.
 
@@ -45,4 +46,3 @@ CP_TARGET=solution python3 sections/05_sorting_as_tool/check.py
 
 See [`PRACTICE.md`](PRACTICE.md). Their statements are external; this
 repository does not copy them.
-

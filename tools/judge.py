@@ -14,6 +14,10 @@ The runner expects a problem directory with this shape:
       random_cases.py    # optional
 
 Set CP_TARGET=solution to run reference solutions instead of student stubs.
+
+Personal submissions may live in a mirrored directory outside the public
+course tree. Set CP_SUBMISSIONS_DIR to that directory, or use the default
+local `.submissions/` directory when it exists.
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ import argparse
 import json
 import math
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -48,6 +53,20 @@ def load_manifest(problem: Path) -> dict:
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
+def submissions_root() -> Path | None:
+    """Return the configured personal-submissions root, if one is active."""
+
+    configured = os.environ.get("CP_SUBMISSIONS_DIR")
+    if configured:
+        root = Path(configured).expanduser()
+        if not root.is_absolute():
+            root = ROOT / root
+        return root.resolve()
+
+    local = ROOT / ".submissions"
+    return local.resolve() if local.is_dir() else None
+
+
 def source_for(problem: Path, lang: str, target: str) -> Path:
     if target not in {"student", "solution"}:
         raise ValueError(f"unknown target: {target}")
@@ -58,6 +77,17 @@ def source_for(problem: Path, lang: str, target: str) -> Path:
     else:
         raise ValueError(f"unknown language: {lang}")
     source = problem / name
+    if target == "student":
+        overlay = submissions_root()
+        if overlay is not None:
+            try:
+                relative_problem = problem.resolve().relative_to(ROOT)
+            except ValueError:
+                pass
+            else:
+                personal_source = overlay / relative_problem / name
+                if personal_source.is_file():
+                    source = personal_source
     if not source.exists():
         raise FileNotFoundError(f"missing {source}")
     return source
@@ -102,21 +132,23 @@ def generate_random_cases(problem: Path, count: int, seed: int) -> list[Case]:
     return cases
 
 
-def compile_cpp(source: Path) -> Path:
+def compile_cpp(source: Path, debug: bool = False) -> Path:
     build_dir = Path(tempfile.mkdtemp(prefix="cp-course-cpp-"))
     TEMP_DIRS.append(build_dir)
     binary = build_dir / "main"
-    cmd = [
-        "g++",
-        "-std=c++17",
-        "-O2",
-        "-pipe",
-        "-Wall",
-        "-Wextra",
-        str(source),
-        "-o",
-        str(binary),
-    ]
+    flags = (
+        [
+            "-Og",
+            "-g3",
+            "-fno-omit-frame-pointer",
+            "-D_GLIBCXX_DEBUG",
+            "-D_GLIBCXX_ASSERTIONS",
+        ]
+        if debug
+        else ["-O2", "-pipe"]
+    )
+    cmd = ["g++", "-std=c++23", *flags, "-Wall", "-Wextra",
+           str(source), "-o", str(binary)]
     subprocess.run(cmd, cwd=ROOT, check=True)
     return binary
 
@@ -127,6 +159,96 @@ def command_for(source: Path, lang: str) -> list[str]:
     if lang == "cpp":
         return [str(compile_cpp(source))]
     raise ValueError(f"unknown language: {lang}")
+
+
+def resolve_debug_input(
+    problem: Path,
+    cases: list[Case],
+    selector: str,
+) -> Path:
+    """Resolve a fixed/random case name or an explicit input-file path."""
+
+    explicit = Path(selector)
+    if explicit.is_file():
+        return explicit.resolve()
+
+    test_candidate = problem / "tests" / selector
+    if test_candidate.suffix != ".in":
+        test_candidate = test_candidate.with_suffix(".in")
+    if test_candidate.is_file():
+        return test_candidate.resolve()
+
+    normalized = selector.removesuffix(".in")
+    matches = [
+        case.input_path
+        for case in cases
+        if case.name == normalized or case.input_path.stem == normalized
+    ]
+    if len(matches) == 1:
+        return matches[0].resolve()
+    if len(matches) > 1:
+        names = ", ".join(str(path) for path in matches)
+        raise ValueError(f"ambiguous debug case {selector!r}: {names}")
+
+    available = ", ".join(case.name for case in cases)
+    raise ValueError(
+        f"unknown debug case {selector!r}; available cases: {available}"
+    )
+
+
+def debug_cpp(
+    problem: Path,
+    target: str,
+    random_count: int,
+    seed: int,
+    case_selector: str,
+    stop_at_main: bool,
+) -> int:
+    """Compile a C++ submission with debug symbols and open it in GDB."""
+
+    if shutil.which("gdb") is None:
+        print("gdb was not found; install it before using --gdb", file=sys.stderr)
+        return 1
+
+    problem = problem.resolve()
+    source = source_for(problem, "cpp", target)
+    cases = discover_fixed_cases(problem)
+    try:
+        input_path = resolve_debug_input(problem, cases, case_selector)
+    except ValueError:
+        # Fixed cases and explicit paths do not need the random generator.
+        cases += generate_random_cases(problem, random_count, seed)
+        input_path = resolve_debug_input(problem, cases, case_selector)
+
+    try:
+        binary = compile_cpp(source, debug=True)
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"Debug compilation failed with exit code {exc.returncode}",
+            file=sys.stderr,
+        )
+        return exc.returncode or 1
+
+    command = [
+        "gdb",
+        "--quiet",
+        str(binary),
+        "-ex",
+        "set pagination off",
+        "-ex",
+        "set print pretty on",
+    ]
+    if stop_at_main:
+        command.extend(["-ex", "break main"])
+    command.extend(["-ex", f"run < {shlex.quote(str(input_path))}"])
+
+    print(f"Debug source: {source}")
+    print(f"Input case:   {input_path}")
+    if stop_at_main:
+        print("Stopped at main. Useful commands: next, step, print, display, continue.")
+    else:
+        print("Running until exit or failure. At a crash, use: bt, frame, list, print.")
+    return subprocess.run(command, cwd=ROOT).returncode
 
 
 def normalize_tokens(text: str) -> list[str]:
@@ -232,10 +354,13 @@ def run_case(command: list[str], case: Case, timeout: float, checker: str) -> tu
         return False, f"{case.name}: time limit exceeded after {timeout:.2f}s"
 
     if result.returncode != 0:
+        stderr = result.stderr.rstrip()
+        if not stderr:
+            stderr = "<no stderr output>"
         return (
             False,
             f"{case.name}: runtime error {result.returncode}\n"
-            f"stderr:\n{short(result.stderr)}",
+            f"stderr:\n{stderr}",
         )
 
     if not outputs_match(result.stdout, expected, checker, input_data):
@@ -268,7 +393,10 @@ def judge(problem: Path, lang: str, target: str, random_count: int, seed: int, v
         print(f"{title} [{lang}]: compilation failed with exit code {exc.returncode}")
         return exc.returncode or 1
 
-    print(f"{title} [{lang}, {target}]: {len(cases)} case(s)")
+    location = ""
+    if target == "student" and source.parent != problem:
+        location = ", personal overlay"
+    print(f"{title} [{lang}, {target}{location}]: {len(cases)} case(s)")
     for case in cases:
         ok, message = run_case(command, case, timeout, checker)
         if verbose or not ok:
@@ -292,17 +420,51 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--random-count", type=int, default=20)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument(
+        "--gdb",
+        action="store_true",
+        help="compile C++ with debug symbols and open the selected case in GDB",
+    )
+    parser.add_argument(
+        "--case",
+        metavar="NAME_OR_PATH",
+        help="case name reported by the judge, or a path to an input file",
+    )
+    parser.add_argument(
+        "--step",
+        action="store_true",
+        help="with --gdb, stop at main instead of immediately running to failure",
+    )
     args = parser.parse_args(argv)
 
+    if args.gdb and args.lang != "cpp":
+        parser.error("--gdb requires --lang cpp")
+    if args.gdb and not args.case:
+        parser.error("--gdb requires --case NAME_OR_PATH")
+    if args.step and not args.gdb:
+        parser.error("--step requires --gdb")
+
     try:
-        return judge(
-            args.problem,
-            args.lang,
-            args.target,
-            args.random_count,
-            args.seed,
-            args.verbose,
-        )
+        try:
+            if args.gdb:
+                return debug_cpp(
+                    args.problem,
+                    args.target,
+                    args.random_count,
+                    args.seed,
+                    args.case,
+                    args.step,
+                )
+            return judge(
+                args.problem,
+                args.lang,
+                args.target,
+                args.random_count,
+                args.seed,
+                args.verbose,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            parser.error(str(exc))
     finally:
         for path in TEMP_DIRS:
             if path.is_dir():

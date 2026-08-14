@@ -202,19 +202,28 @@ This more closely simulates recursion and is useful for directed cycle
 detection:
 
 ```text
-stack contains (u, next_index_to_scan)
+mark start as discovered
+push (start, 0)
 
-while stack not empty:
+while stack is not empty:
     u, i = top frame
-    if i == number of neighbors:
+
+    if i == number of neighbors of u:
         finish u
-        pop frame
+        pop the top frame
     else:
-        scan neighbor adj[u][i]
+        v = adj[u][i]
         increment top frame's index
+
+        if v is not discovered:
+            mark v as discovered
+            push (v, 0)
 ```
 
-This lets us know whether a vertex is currently active in the DFS stack.
+The push of `(v, 0)` is the iterative equivalent of calling `dfs(v)`.
+The frame for `u` remains directly below it, with its index already advanced,
+so after `v` finishes the search resumes at `u`'s next neighbor. A vertex is
+active in the DFS exactly while its frame remains on this stack.
 
 # Worked example 1: subtree sizes
 

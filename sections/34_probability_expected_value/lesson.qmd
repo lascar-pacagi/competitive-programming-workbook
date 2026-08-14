@@ -126,20 +126,58 @@ not as a hidden test case.
 
 # Pattern 3: coupon collector as staged waiting
 
-There are `n` equally likely coupon types. When `i` distinct types are already
-collected, `n-i` types would be new, so
+There are `n` coupon types, and every draw independently returns each type with
+probability `1/n`. We want the expected number of draws needed to see all
+types.
+
+Trying to describe the entire history is unnecessary. Split the process into
+stages:
+
+```text
+stage i starts when exactly i distinct types have been collected;
+stage i ends when the next previously unseen type appears.
+```
+
+Let `Ti` be the number of draws spent in stage `i`. Every complete collection
+process passes through stages `0,1,...,n-1` exactly once, so its total number
+of draws is:
+
+```text
+T = T0 + T1 + ... + T(n-1).
+```
+
+Linearity of expectation then gives:
+
+```text
+E[T] = E[T0] + E[T1] + ... + E[T(n-1)].
+```
+
+We can analyze one stage independently. When `i` distinct types are already
+collected:
+
+- `i` types are old and keep us in the same stage;
+- `n-i` types are new and end the stage.
+
+Because all types are equally likely,
 
 ```text
 P(next draw is new) = (n-i)/n.
 ```
 
-The expected waiting time for the next new type is the reciprocal:
+Thus stage `i` is a repeated experiment whose success probability is
+`p=(n-i)/n`. Using the first-step result from the previous section, the
+expected number of draws until that success is:
 
 ```text
 E[stage i] = n/(n-i).
 ```
 
-The total time is the sum of the `n` stages, from zero types to all types:
+This quantity includes the successful draw that discovers the next type. For
+example, with `n=3`, after collecting one type, each draw has probability
+`2/3` of being new. We may succeed immediately, or draw the old type several
+times first; the average stage length is `1/(2/3)=3/2` draws.
+
+Adding the `n` stage expectations gives:
 
 ```text
 n/n + n/(n-1) + ... + n/1
@@ -157,8 +195,8 @@ total                                               11/2
 ```
 
 Modulo `MOD`, `11/2` is `500000009`. The stage expectation is valid even though
-the number of failed draws in different stages is not fixed; linearity adds the
-stage random variables.
+the actual stage lengths are random and need not be independent. Linearity of
+expectation applies to their sum regardless of dependence.
 
 # Precompute harmonic sums efficiently
 
@@ -178,20 +216,170 @@ inv[1] = 1
 inv[i] = MOD - (MOD / i) * inv[MOD % i] mod MOD, for i >= 2.
 ```
 
-This recurrence is valid for `1 <= i < MOD`, which holds here. It gives `O(N)`
-preprocessing and `O(1)` per query.
+## Why the inverse recurrence works
+
+Fix an `i` with `2 <= i < MOD`. Integer division of `MOD` by `i` gives:
+
+```text
+MOD = floor(MOD/i) * i + (MOD mod i).
+```
+
+Use shorter names:
+
+```text
+q = floor(MOD/i)
+r = MOD mod i
+```
+
+Then:
+
+```text
+MOD = q*i + r.
+```
+
+We now work modulo `MOD`. Since `MOD` itself is congruent to zero:
+
+```text
+q*i + r == 0 (mod MOD)
+r == -q*i (mod MOD).
+```
+
+Because `MOD` is prime and `1 <= i < MOD`, the remainder satisfies
+`1 <= r < i`; in particular, it is nonzero and has an inverse. Multiply the
+last congruence by `inv[r]`:
+
+```text
+r * inv[r] == -q*i*inv[r] (mod MOD).
+```
+
+By definition, `r*inv[r] == 1`, so:
+
+```text
+i * (-q*inv[r]) == 1 (mod MOD).
+```
+
+Therefore `-q*inv[r]` is an inverse of `i`. Normalize this negative expression
+into the usual modular range:
+
+```text
+inv[i] = MOD - q*inv[r] mod MOD
+       = MOD - floor(MOD/i)*inv[MOD mod i] mod MOD.
+```
+
+The recurrence is usable from left to right because `r=MOD mod i` is strictly
+smaller than `i`. Thus, when computing `inv[i]`, `inv[r]` has already been
+computed.
+
+For a small trace, take the prime modulus `17` and compute the inverse of `5`:
+
+```text
+17 = 3*5 + 2, so q=3 and r=2.
+inv[2] = 9 because 2*9 == 1 (mod 17).
+
+inv[5] = -3*inv[2] mod 17
+       = -27 mod 17
+       = 7.
+```
+
+Check:
+
+```text
+5*7 = 35 == 1 (mod 17).
+```
+
+In code, write the normalization explicitly:
+
+```cpp
+inv[i] = MOD - (MOD / i) * inv[MOD % i] % MOD;
+```
+
+This proof requires every `i` being inverted to be nonzero and invertible
+modulo `MOD`. The local prime modulus and `N < MOD` guarantee that. With a
+composite modulus, `MOD % i` may not be invertible and this table recurrence
+cannot be used blindly.
+
+The table gives `O(N)` preprocessing and `O(1)` per query.
 
 # Debugging first-step models
 
-For an expectation state `E[state]`, write:
+First-step analysis means: condition on what happens during the very next
+action, then express the remaining work using expectation states.
+
+For an expectation state `E[state]`, write the equation in three pieces:
 
 ```text
-E[state] = immediate cost + sum P(next state) * E[next state].
+expected total work
+= work paid immediately
++ expected work remaining after the next transition.
 ```
 
-If a transition returns to the same state, move that term to the left before
-coding. The geometric wait is the smallest example. If all transitions move to
-smaller states, compute the equations with DP instead.
+Equivalently:
+
+```text
+E[state] = immediate cost
+         + sum over outcomes:
+               P(outcome) * E[state after outcome].
+```
+
+The probabilities in that sum must cover every possible next outcome and add
+to one.
+
+## Example with a self-loop
+
+An attempt costs one step. It succeeds with probability `p` and stops; it
+fails with probability `1-p` and returns to the same state. Therefore:
+
+```text
+E = 1 + p*0 + (1-p)*E.
+```
+
+The `E` on the right is not circular reasoning. It says that after a failure,
+the process is in exactly the same situation as before, so the expected
+remaining work is again `E`. Solve the equation algebraically:
+
+```text
+E - (1-p)E = 1
+pE = 1
+E = 1/p.
+```
+
+Do not implement this as a recursive call to the same state: it would recurse
+forever. The self-loop term must first be moved to the left and eliminated
+algebraically.
+
+## Example without a self-loop
+
+Suppose a state has two equally likely outcomes: move to state `A` or state
+`B`, paying one step now. Then:
+
+```text
+E[state] = 1 + (1/2)E[A] + (1/2)E[B].
+```
+
+If `E[A]` and `E[B]` are already known, this is an ordinary DP transition.
+More generally:
+
+- if every transition goes to an already computed state, evaluate states in
+  dependency order;
+- if a transition returns to the same state, isolate that state algebraically;
+- if several expectation states depend cyclically on one another, the model
+  produces a system of linear equations rather than a simple DP.
+
+## A practical checklist
+
+Before trusting a first-step equation, verify:
+
+```text
+What exactly does E[state] measure?
+What cost is paid before the next state is reached?
+Have I listed every possible next outcome exactly once?
+Do their probabilities sum to 1?
+Which outcomes stop and therefore contribute future expectation 0?
+Which outcomes return to the current state?
+```
+
+Most mistakes come from omitting the immediate `+1`, forgetting a self-loop,
+or treating a transition probability as an expected number of steps.
 
 # C++ and Python implementation notes
 

@@ -12,6 +12,7 @@ item at a time.
    - `a_skill_coverage`
    - `b_assignment_profit`
    - `c_inspection_route`
+   - `d_compatible_lineup` (blind practice: attempt it before the editorial)
 3. Run the checker:
 
 ```bash

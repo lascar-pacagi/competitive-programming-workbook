@@ -11,6 +11,7 @@ stars-and-bars.
    - `a_choose_queries`
    - `b_rearrange_letters`
    - `c_distribute_candies`
+   - `d_separated_lineup` (blind practice: attempt it before the editorial)
 3. Run the checker:
 
 ```bash

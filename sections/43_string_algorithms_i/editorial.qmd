@@ -255,3 +255,93 @@ loop over every divisor of the length. Run:
 ```bash
 CP_TARGET=solution python3 sections/43_string_algorithms_i/check.py
 ```
+
+# D. Prefix Frequency
+
+## Restatement and traps
+
+For every prefix length `L`, count all substring occurrences of that prefix,
+including overlaps. With `n <= 200000`, comparing every prefix at every start
+is quadratic. The whole string itself occurs once, and a singleton prefix can
+occur many times.
+
+## Observation and trace
+
+Let `pi[i]` be the longest proper prefix ending at position `i`. Every prefix
+ending at `i` contributes one occurrence to length `pi[i]`; that occurrence
+also belongs to every border of that prefix. Count direct `pi` values, then
+propagate counts from long lengths to their failure link:
+
+```text
+for x in pi: count[x]++
+for length from n-1 down to 1:
+    count[pi[length-1]] += count[length]
+answer[length] = count[length] + 1
+```
+
+The final `+1` counts the prefix occurrence beginning at position zero. Here is
+the complete small trace for `ababa`:
+
+```text
+index i:       0 1 2 3 4
+character:     a b a b a
+pi[i]:         0 0 1 2 3
+```
+
+Directly incrementing the nonzero `pi` values gives:
+
+```text
+length L:      1 2 3 4 5
+direct count:  1 1 1 0 0
+```
+
+Now propagate in decreasing length. Length `3` passes its one occurrence to
+its failure link `pi[2]=1`; the resulting relevant counts are:
+
+```text
+after L=3:     count[1]=2, count[2]=1, count[3]=1
+```
+
+Lengths `2` and `1` only pass counts to the zero-length sentinel. Adding the
+initial occurrence to every positive length gives `3 2 2 1 1`. In particular,
+the occurrence of `aba` also contributes to its border `a`; that is exactly
+what the failure-link propagation preserves.
+
+## Correctness proof
+
+**Lemma.** After propagation, `count[L]` is the number of non-initial
+occurrences of the prefix of length `L`.
+
+**Proof.** Every occurrence ending at a position first contributes to its
+longest proper prefix match. Its failure-link chain lists exactly all shorter
+prefixes that also end there. Processing links from longer to shorter passes
+each occurrence to every such border once. $\square$
+
+**Theorem.** `count[L]+1` is the total occurrence count of prefix length `L`.
+
+**Proof.** The lemma counts all occurrences ending after the initial prefix;
+the unmatched initial occurrence contributes the one added explicitly. $\square$
+
+## Complexity
+
+The prefix function and failure-link propagation are both `O(n)` time and use
+`O(n)` memory.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_prefix_frequency/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_prefix_frequency/solution.py >}}
+```
+
+## Tests and stress testing
+
+Test `a`, `aaaa`, and a string with no repeated prefix. For tiny strings, the
+oracle directly compares every prefix against every legal substring start;
+this is independent of prefix links. The scale case is `200000` copies of
+`a`, whose answers are `n,n-1,...,1`, exposing quadratic matching.

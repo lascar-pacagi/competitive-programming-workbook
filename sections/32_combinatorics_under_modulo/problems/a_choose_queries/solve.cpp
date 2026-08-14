@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: precompute factorials and inverse factorials.
+    // TODO: solve the problem.
     return 0;
 }

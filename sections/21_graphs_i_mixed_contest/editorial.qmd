@@ -23,6 +23,21 @@ execute:
   enabled: false
 ---
 
+# Category coverage
+
+| Category | Coverage problem |
+|---|---|
+| BFS and unweighted shortest paths | E. Station Coverage Report |
+| DFS, components, and cycles | F. Component Repair |
+| topological sorting and DAG DP | B. Build Timeline |
+| DSU and MST | A. Existing Network |
+| Dijkstra and weighted modeling | G. Alternating Road Route |
+| 0-1 BFS | C. One-Way Reversals |
+
+The additional problems are self-contained local packages and are included by
+this section's checker. D. Reliable Link remains an extra DSU threshold
+problem rather than being counted as the Dijkstra representative.
+
 # Editorial overview
 
 This section is a recognition drill for the first graph phase.
@@ -195,7 +210,7 @@ connected component of the graph made only from free edges.
 **Proof.** DSU union merges the endpoints of every free edge, so all vertices
 connected by a free-edge path end in the same DSU component. DSU never merges
 vertices except through a free edge, so vertices in different free connected
-components remain separated. `\square`
+components remain separated. $\square$
 
 **Lemma 2.** Running Kruskal on paid edges after the free unions produces a
 minimum-cost set of paid edges that connects the free components, if such a set
@@ -206,7 +221,7 @@ between two cities becomes an edge between their super-vertices; paid edges
 inside the same super-vertex are useless. Kruskal's algorithm on this contracted
 undirected graph returns a minimum spanning tree when the graph is connected.
 The DSU implementation after free unions is exactly Kruskal on that contracted
-graph. `\square`
+graph. $\square$
 
 **Theorem.** The algorithm prints the minimum additional cost to connect all
 cities, or `IMPOSSIBLE` if it cannot be done.
@@ -215,7 +230,7 @@ cities, or `IMPOSSIBLE` if it cannot be done.
 zero-cost connectivity. By Lemma 2, the paid edges selected afterward have
 minimum total cost among all ways to connect those components. If after
 processing all paid edges more than one component remains, no paid edge set can
-connect the contracted graph, so connecting all cities is impossible. `\square`
+connect the contracted graph, so connecting all cities is impossible. $\square$
 
 ## Complexity
 
@@ -507,7 +522,7 @@ its prerequisites have been popped.
 **Proof.** A vertex enters the queue only when its indegree becomes zero. Its
 indegree is decremented once for each incoming edge after that predecessor is
 popped. Therefore all incoming neighbors have already been processed before the
-vertex is popped. `\square`
+vertex is popped. $\square$
 
 **Lemma 2.** When vertex `v` is popped, `start[v]` equals the earliest possible
 start time of module `v`.
@@ -516,7 +531,7 @@ start time of module `v`.
 Each prerequisite `u` updated `start[v]` with `finish[u]`, so `start[v]` is at
 least the finish time of every prerequisite. The algorithm uses the maximum of
 those values, which is exactly the earliest time when all prerequisites have
-finished. `\square`
+finished. $\square$
 
 **Lemma 3.** If Kahn's algorithm processes fewer than `n` vertices, the graph
 contains a directed cycle.
@@ -524,7 +539,7 @@ contains a directed cycle.
 **Proof.** If processing stops early, every remaining vertex has positive
 indegree within the remaining subgraph. Starting from any remaining vertex and
 following an incoming edge forever must eventually repeat a vertex, forming a
-directed cycle. `\square`
+directed cycle. $\square$
 
 **Theorem.** The algorithm prints `IMPOSSIBLE` exactly for cyclic dependency
 graphs; otherwise it prints the earliest finish time for each queried module.
@@ -533,7 +548,7 @@ graphs; otherwise it prints the earliest finish time for each queried module.
 valid schedule impossible. If all vertices are processed, Lemma 2 gives the
 earliest start time for each module when it is popped, so `finish[v] =
 start[v] + duration[v]` is the earliest finish time. Queries read from these
-values. `\square`
+values. $\square$
 
 ## Complexity
 
@@ -798,7 +813,7 @@ the constructed graph with the same number of reversals.
 **Proof.** For each traveled road, if the trip follows the road direction, the
 constructed graph contains the cost-0 edge. If the trip goes against the road,
 the constructed graph contains the reverse cost-1 edge. Summing costs counts
-exactly the reversed roads. `\square`
+exactly the reversed roads. $\square$
 
 **Lemma 2.** Every path in the constructed graph corresponds to a valid trip in
 the original problem with the same reversal count.
@@ -806,7 +821,7 @@ the original problem with the same reversal count.
 **Proof.** Every constructed edge came from an original road. A cost-0 edge uses
 that road in its given direction; a cost-1 edge uses it against its direction
 and pays one reversal. Thus the graph path is a valid trip with equal cost.
-`\square`
+$\square$
 
 **Lemma 3.** 0-1 BFS computes shortest distances in the constructed graph.
 
@@ -814,7 +829,7 @@ and pays one reversal. Thus the graph path is a valid trip with equal cost.
 the current state, so it belongs at the front of the deque. When relaxing a
 cost-1 edge, the new state is one distance layer later, so it belongs at the
 back. This preserves nondecreasing distance processing, matching Dijkstra's
-order for edge weights `0` and `1`. `\square`
+order for edge weights `0` and `1`. $\square$
 
 **Theorem.** The algorithm prints the minimum number of reversals needed to
 travel from city `1` to city `n`, or `-1` if no valid trip exists.
@@ -822,7 +837,7 @@ travel from city `1` to city `n`, or `-1` if no valid trip exists.
 **Proof.** By Lemmas 1 and 2, minimizing reversals in the original problem is
 equivalent to finding a shortest path in the constructed 0/1 graph. By Lemma 3,
 0-1 BFS computes that shortest distance. If the distance remains infinity,
-there is no path in the constructed graph, hence no valid trip. `\square`
+there is no path in the constructed graph, hence no valid trip. $\square$
 
 ## Complexity
 
@@ -994,3 +1009,515 @@ In future sections, graph problems will combine these tools with dynamic
 programming, trees, and harder state spaces. The same diagnosis routine remains
 the first step.
 
+# D. Reliable Link
+
+## Restatement
+
+Every undirected road has a difficulty.  A route is judged by its hardest road,
+not by the sum of its road difficulties.  We need the smallest possible value
+of that maximum on a route from city `1` to city `n`, or `-1` if no route
+exists.  When `n = 1`, the empty route has difficulty `0`.
+
+This wording is a trap: it is not an ordinary shortest path.  Adding a road of
+difficulty `4` and one of difficulty `5` gives route difficulty `5`, not `9`.
+
+## Threshold viewpoint
+
+Fix a candidate limit `X`.  Keep only roads with difficulty at most `X`.
+
+```text
+There is a route of difficulty at most X
+if and only if
+1 and n are connected using only roads of difficulty at most X.
+```
+
+As `X` increases, roads only get added, so connectivity can only change from
+false to true.  Sort all roads by difficulty and add them in that order with a
+DSU.  The first difficulty at which cities `1` and `n` share a component is
+the answer.
+
+This is related to Kruskal, but we do not need to finish an MST.  Stop as soon
+as the two required cities become connected.
+
+## Walk-through
+
+For these roads:
+
+```text
+1-3: 3     1-2: 4     3-4: 5     4-5: 5     2-5: 8
+```
+
+Process increasing difficulties:
+
+```text
+add 1-3 (3): components of 1 and 5 differ
+add 1-2 (4): components of 1 and 5 differ
+add 3-4 (5): components of 1 and 5 differ
+add 4-5 (5): 1 and 5 are now connected
+```
+
+The answer is `5`.  The connecting route is `1 -> 3 -> 4 -> 5`, whose maximum
+edge difficulty is `5`.
+
+## Algorithm
+
+```text
+if n is 1:
+    print 0
+    stop
+
+sort all roads by difficulty
+create DSU with one component per city
+
+for each road (u, v, w) in sorted order:
+    union(u, v)
+    if find(1) equals find(n):
+        print w
+        stop
+
+print -1
+```
+
+## Correctness proof
+
+**Lemma 1.** After all roads of difficulty at most `X` have been processed,
+the DSU puts two cities in the same component exactly when they are connected
+using only roads of difficulty at most `X`.
+
+**Proof.** DSU starts with isolated cities and merges exactly the endpoints of
+every processed road.  Thus every DSU merge represents an allowed road path,
+and every allowed road is included in the merges.  Its components are exactly
+the connected components of the threshold graph. $\square$
+
+**Lemma 2.** When the algorithm first finds cities `1` and `n` connected at
+road difficulty `w`, there exists a route from `1` to `n` whose maximum road
+difficulty is at most `w`.
+
+**Proof.** All roads processed so far have difficulty at most `w`.  By Lemma
+1, DSU connectivity gives a path using only those roads. $\square$
+
+**Lemma 3.** No route from `1` to `n` has maximum road difficulty less than
+the first reported value `w`.
+
+**Proof.** Before processing roads of difficulty `w`, the two cities were in
+different DSU components.  By Lemma 1, they were disconnected in the graph of
+all roads with difficulty below `w`.  Such a route therefore cannot exist.
+$\square$
+
+**Theorem.** The algorithm prints the required minimum route difficulty, or
+`-1` exactly when city `n` is unreachable from city `1`.
+
+**Proof.** Lemmas 2 and 3 show that a reported `w` is feasible and minimal.  If
+the scan ends without connecting the cities, Lemma 1 says no input road path
+connects them, so `-1` is correct.  The `n = 1` case is correct by the empty
+route convention. $\square$
+
+## Complexity
+
+```text
+Time:   O(m log m)
+Memory: O(n + m)
+```
+
+Sorting roads dominates; DSU operations are effectively constant amortized
+time.
+
+## Implementation notes
+
+- Use `long long` for road difficulties in C++ even though DSU stores city ids.
+- Repeated roads are harmless; DSU ignores a road within an existing component.
+- Do not add difficulties along a path.
+- Do not return the first road incident to city `n`; check DSU connectivity.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct DSU {
+    vector<int> parent, size;
+    explicit DSU(int n) : parent(n + 1), size(n + 1, 1) {
+        iota(parent.begin(), parent.end(), 0);
+    }
+    int find(int x) {
+        return parent[x] == x ? x : parent[x] = find(parent[x]);
+    }
+    void unite(int a, int b) {
+        a = find(a); b = find(b);
+        if (a == b) return;
+        if (size[a] < size[b]) swap(a, b);
+        parent[b] = a;
+        size[a] += size[b];
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, m;
+    cin >> n >> m;
+    vector<tuple<long long, int, int>> roads;
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        long long w;
+        cin >> u >> v >> w;
+        roads.emplace_back(w, u, v);
+    }
+    if (n == 1) {
+        cout << 0 << '\\n';
+        return 0;
+    }
+    sort(roads.begin(), roads.end());
+    DSU dsu(n);
+    for (auto [w, u, v] : roads) {
+        dsu.unite(u, v);
+        if (dsu.find(1) == dsu.find(n)) {
+            cout << w << '\\n';
+            return 0;
+        }
+    }
+    cout << -1 << '\\n';
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+class DSU:
+    def __init__(self, n: int) -> None:
+        self.parent = list(range(n + 1))
+        self.size = [1] * (n + 1)
+
+    def find(self, x: int) -> int:
+        while self.parent[x] != x:
+            self.parent[x] = self.parent[self.parent[x]]
+            x = self.parent[x]
+        return x
+
+    def union(self, a: int, b: int) -> None:
+        a = self.find(a)
+        b = self.find(b)
+        if a == b:
+            return
+        if self.size[a] < self.size[b]:
+            a, b = b, a
+        self.parent[b] = a
+        self.size[a] += self.size[b]
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    n, m = data[:2]
+    roads = sorted(
+        (data[i + 2], data[i], data[i + 1])
+        for i in range(2, 2 + 3 * m, 3)
+    )
+    if n == 1:
+        print(0)
+        return
+
+    dsu = DSU(n)
+    for w, u, v in roads:
+        dsu.union(u, v)
+        if dsu.find(1) == dsu.find(n):
+            print(w)
+            return
+    print(-1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Summing road difficulties and using ordinary shortest-path Dijkstra.
+- Building a full MST even after cities `1` and `n` are connected; correct but
+  unnecessary.
+- Declaring `-1` merely because a low-difficulty prefix is disconnected.
+- Forgetting the one-city empty-route case.
+
+## Tests that matter
+
+- city `1` and city `n` disconnected;
+- one city and no roads;
+- a low-sum route with one very difficult road versus a longer route with a
+  lower maximum;
+- repeated roads with different difficulties;
+- many equal-difficulty roads that connect the endpoints together.
+
+# Stress testing
+
+For small graphs, use a different formulation: minimax Dijkstra.  Let
+`dist[v]` be the smallest possible maximum edge on a route to `v`, and relax
+an edge of difficulty `w` with:
+
+```text
+candidate = max(dist[u], w)
+```
+
+Use a heap on that candidate and compare its answer with the DSU threshold
+sweep.  The local generator uses this independent oracle for small random
+graphs and a direct-answer `200000`-edge scale case.
+
+# What to carry forward
+
+When a route is scored by its worst edge, convert a minimization question into
+a connectivity threshold:
+
+```text
+"Can I travel using only edges <= X?"
+```
+
+Sorting thresholds and DSU are often simpler than forcing an additive shortest
+path interpretation.
+
+# E. Station Coverage Report
+
+## Restatement and model
+
+For every vertex, imagine asking for its distance to the closest station.
+After obtaining those distances, report how many vertices have no station in
+their component and, among the rest, the farthest vertex with a smallest-index
+tie break.
+
+Running a separate BFS from every station would repeat most graph work. The
+key recognition is that “distance to the closest of several sources” is one
+multi-source shortest-path computation.
+
+## Multi-source BFS
+
+Put every distinct station in the queue initially with distance zero. This is
+equivalent to adding a virtual source joined to every station by a zero-length
+edge, except that no explicit vertex is needed. Ordinary BFS then expands all
+distance-zero stations, followed by all distance-one vertices, and so on.
+
+Duplicate station entries must not be enqueued twice. Testing whether its
+distance is still `-1` handles this naturally.
+
+## Algorithm
+
+1. Build the undirected adjacency list.
+2. Initialize all distances to `-1`.
+3. For each station not initialized before, set its distance to zero and push
+   it into the queue.
+4. Run BFS. On the first visit to `v`, assign
+   `distance[v] = distance[u] + 1`.
+5. Scan vertices in increasing index:
+   - count every distance `-1` as unreachable;
+   - otherwise replace the farthest answer only when the distance is strictly
+     larger.
+
+The strict comparison in the final scan preserves the smallest vertex on ties.
+
+## Correctness proof
+
+Initially, precisely the stations have distance zero, which is their true
+distance to the nearest station. BFS processes vertices in nondecreasing
+distance. When an unvisited neighbor `v` is reached from `u`, there is a route
+of length `distance[u] + 1` from a station to `v`. Any shorter route would
+have reached `v` from an earlier BFS layer, contradicting that it was
+unvisited. Thus every assigned distance is the minimum distance to any station.
+
+Vertices left at `-1` were never reachable from any initial source, so the
+unreachable count is correct. The increasing-index scan chooses the maximum
+finite distance and retains the first vertex attaining it, exactly enforcing
+the requested tie break.
+
+## Complexity and pitfalls
+
+Every vertex enters the queue at most once and every undirected edge is
+examined twice. Time is `O(n+m)` and memory is `O(n+m)`.
+
+Common mistakes are running one BFS per station, forgetting disconnected
+components, enqueuing duplicate stations repeatedly, or using `>=` in the
+final scan and thereby selecting the largest tied vertex.
+
+## Tests that matter
+
+```text
+One station in a connected path -> ordinary BFS distances.
+Stations at both ends of a path -> nearest-source boundary and tie break.
+Repeated station indices -> same result as one occurrence.
+A component with no station -> all its vertices are unreachable.
+Every vertex is a station -> farthest distance zero, vertex 1.
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_station_coverage_report/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_station_coverage_report/solution.py >}}
+```
+
+# F. Component Repair
+
+## Restatement and observations
+
+We need three facts about an undirected graph: its number of connected
+components, the minimum number of roads that can connect the whole graph, and
+the largest component size.
+
+A DFS or BFS started from an unvisited vertex discovers exactly one component.
+If the graph has `c` components, one new road can merge at most two of them and
+therefore reduce the component count by at most one. At least `c-1` roads are
+necessary. They are also sufficient: choose one representative per component
+and connect the representatives in a chain.
+
+## Algorithm
+
+1. Build the undirected adjacency list.
+2. Scan all vertices.
+3. Whenever an unseen vertex is found:
+   - increment the component count;
+   - run iterative DFS from it;
+   - count every popped vertex to obtain this component's size;
+   - update the largest size.
+4. Print `components`, `components - 1`, and `largest`.
+
+Mark a vertex when pushing it, not when popping it. Otherwise several
+neighbors may push the same vertex and inflate memory usage.
+
+## Correctness proof
+
+Each DFS follows exactly graph edges, so every vertex it reaches belongs to
+the start vertex's component. Conversely, every vertex in that component has
+a path from the start; following the path inductively shows DFS eventually
+reaches it. Hence one search visits exactly one complete component.
+
+The outer scan starts a search precisely for components not visited before, so
+the number of searches equals the number of components, and each recorded size
+is exact. Taking their maximum gives the largest component.
+
+Finally, connecting `c` initial components needs at least `c-1` roads because
+each road reduces their count by at most one. A chain through one vertex from
+each component uses exactly `c-1` roads and makes all components connected.
+Therefore the printed repair count is minimal.
+
+## Complexity and pitfalls
+
+Time is `O(n+m)` and memory is `O(n+m)`. Iterative DFS avoids recursion-depth
+failures on a path of length `200000`.
+
+Do not answer with `n-1`; existing roads already connect vertices. Isolated
+vertices are components of size one. A graph that is already connected needs
+zero new roads.
+
+## Tests that matter
+
+```text
+n = 1, m = 0              -> 1 0 1
+No edges                   -> n, n-1, 1
+Already connected          -> 1 0 n
+Several unequal components -> verifies both count and maximum size
+Repeated edges and cycles  -> must not change component membership
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_component_repair/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_component_repair/solution.py >}}
+```
+
+# G. Alternating Road Route
+
+## Why a vertex alone is not enough state
+
+The cheapest way to reach vertex `u` is not always the best prefix for future
+moves. If it ends with a red road, the next road must be blue; a route ending
+with blue permits a different set of transitions. Therefore the state must
+remember the last color:
+
+```text
+(u, R) = at u, with the previous road red
+(u, B) = at u, with the previous road blue
+```
+
+This is the same state-expansion technique used for parity, coupons, or a
+small automaton attached to a graph.
+
+## Expanded graph and algorithm
+
+Each original road `u -> v` of color `c` creates transitions to `(v,c)` only
+from states whose last color is not `c`. Transition cost remains the road
+cost. Because all costs are nonnegative, Dijkstra applies to this expanded
+graph.
+
+The first road may have either color. The implementation handles this by
+relaxing every outgoing road of vertex `1` as an initial state. An alternative
+is a third synthetic “no previous color” state. If `n = 1`, the empty route
+has cost zero and needs explicit handling with the first formulation.
+
+Steps:
+
+1. Build the directed colored adjacency list.
+2. Set both distances per vertex to infinity.
+3. Insert all one-road routes leaving vertex `1`.
+4. Pop `(cost,u,last)` from the min-heap, ignoring stale entries.
+5. Relax only edges whose color differs from `last`.
+6. Return the smaller distance to `(n,R)` and `(n,B)`, or `-1`.
+
+## Correctness proof
+
+Map every valid original route to the sequence of expanded states recording
+the color of each used road. Consecutive colors differ, so every step is an
+expanded-graph edge, and the total cost is unchanged. Conversely, every path
+in the expanded graph uses only edges of a color different from its stored
+previous color, so forgetting the color component yields a valid alternating
+route of the same cost. This is a cost-preserving correspondence.
+
+Dijkstra finds the cheapest expanded path to every state because expanded
+edge costs are nonnegative. Taking the minimum of the two destination states
+therefore gives exactly the cheapest alternating route to vertex `n`.
+
+## Complexity and common mistakes
+
+There are `2n` states and at most `2m` usable state transitions. Time is
+`O((n+m) log n)` and memory is `O(n+m)`.
+
+- The roads are directed; do not add a reverse edge.
+- Store two distances per vertex, not one.
+- The restriction concerns consecutive colors, not total counts of colors.
+- Use 64-bit costs: a route sum can exceed `10^9`.
+- Zero-cost edges are valid and remain compatible with Dijkstra.
+
+## Tests that matter
+
+```text
+n = 1                         -> 0
+Only one direct road          -> its cost
+Cheapest ordinary path repeats a color -> must be rejected
+Two routes reaching u with different last colors -> both states matter
+Destination unreachable under alternation -> -1
+Parallel roads with different colors and zero costs
+```
+
+For small graphs, the randomized oracle can run Bellman-Ford or Dijkstra on
+the explicit `2n`-state graph.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/g_alternating_road_route/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/g_alternating_road_route/solution.py >}}
+```

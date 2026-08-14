@@ -73,6 +73,7 @@ feasibility checks.
 | Repair prefix | The processed prefix is valid and minimal | Raise only what must be raised | Non-Decreasing Repairs |
 | Quota plus validation | Exact counts are met and prefixes stay legal | Use earliest smaller characters, then validate | Bracket Completion |
 | Feasible suffix interval | Remaining sum lies in possible suffix range | Choose smallest value preserving range | Bounded Sum Sequence |
+| Forced descending run | A `>` run must decrease | Delay output, then reverse the run | Pattern Permutation |
 
 # Worked example 1: repairing an array
 
@@ -224,8 +225,23 @@ number of ')' <= n/2
 
 Even if quotas are possible, prefix validation may still fail.
 
-For non-decreasing repairs, impossibility never happens because increments are
-unlimited.
+For non-decreasing repairs, there is no impossibility case. The only allowed
+operation is to increase an element by `1`, with no limit on the number of
+operations and no upper bound on an element's final value. At position `i`, if
+the repaired previous value is `p` and `a[i] < p`, perform exactly `p-a[i]`
+increments; the new value becomes `p`. If `a[i] >= p`, leave it unchanged.
+
+For example, starting from `5 1 2`:
+
+```text
+keep 5
+increase 1 four times:  5 5 2
+increase 2 three times: 5 5 5
+```
+
+So every input array can be repaired. This would no longer be true if the
+statement capped values, limited the number of increments, or allowed only a
+fixed total budget of operations.
 
 # Lexicographic constructions
 
@@ -352,3 +368,7 @@ Use quotas plus a prefix-balance invariant.
 Use a suffix feasibility interval to construct the lexicographically smallest
 sequence.
 
+## D. Pattern Permutation
+
+Use a stack to delay a forced `>` run, then flush it in reverse order at the
+next `<` or at the end.

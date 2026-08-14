@@ -10,6 +10,7 @@ search on graphs where every move has the same cost.
    - `a_connected_groups`
    - `b_unweighted_routes`
    - `c_grid_rescue_path`
+   - `d_nearest_station` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -24,4 +25,3 @@ CP_TARGET=solution python3 sections/15_bfs_unweighted_shortest_paths/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

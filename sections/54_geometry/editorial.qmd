@@ -37,6 +37,11 @@ exhaustive for closed segments.
 **C. Polygon Double Area.** The shoelace sum adds signed trapezoid areas around
 the boundary. Interior contributions cancel, leaving twice the polygon area.
 
+**D. Interior Lattice Points.** Pick's theorem relates area, boundary lattice
+points, and interior lattice points. An edge contributes
+`gcd(|dx|,|dy|)` boundary steps when summed cyclically, so no endpoint needs
+special treatment.
+
 ## Detailed solution guide
 
 **A. Orientation.** For points `a,b,c`, compute the cross product
@@ -81,7 +86,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -120,7 +125,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -166,7 +171,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -193,6 +198,95 @@ def main():
 if __name__=="__main__": main()
 ```
 
+# D. Interior Lattice Points
+
+## Restatement and theorem
+
+Given a simple polygon whose vertices have integer coordinates, count lattice
+points strictly inside it. Vertices are in boundary order; consecutive collinear
+vertices are permitted. Coordinates reach `10^12`, so both cross products and
+the total area require `__int128` in C++.
+
+Pick's theorem for a simple lattice polygon states:
+
+```text
+area = interior + boundary/2 - 1
+2 * interior = double_area - boundary + 2
+```
+
+Thus we need exact double area from the shoelace formula and the number of
+lattice points on the boundary.
+
+## Boundary count and worked trace
+
+For an edge with displacement `(dx,dy)`, the number of lattice *steps* along
+that edge is `gcd(|dx|,|dy|)`. When these values are summed over all cyclic
+edges, every polygon vertex is accounted for exactly once, so:
+
+```text
+boundary = sum gcd(|x[i+1]-x[i]|, |y[i+1]-y[i]|)
+```
+
+For the square `(0,0),(2,0),(2,2),(0,2)`, double area is 8. Each edge has gcd
+2, so `boundary=8`. Pick gives:
+
+```text
+interior = (8 - 8 + 2) / 2 = 1
+```
+
+The unique interior lattice point is `(1,1)`.
+
+## Algorithm
+
+```text
+double_area_signed = 0
+boundary = 0
+for every cyclic edge P -> Q:
+    double_area_signed += P.x * Q.y - P.y * Q.x
+    boundary += gcd(abs(Q.x-P.x), abs(Q.y-P.y))
+double_area = abs(double_area_signed)
+print (double_area - boundary + 2) / 2
+```
+
+Use the final edge from the last vertex back to the first. The numerator is
+always nonnegative and even for a valid simple lattice polygon by Pick's
+theorem.
+
+## Correctness proof
+
+The shoelace formula computes the polygon's exact doubled area from its ordered
+boundary. For each edge, lattice points on the segment occur at equally spaced
+steps of the primitive direction vector; their number of steps is the gcd of
+the coordinate differences. Summing gcd values cyclically counts every
+boundary lattice point exactly once, including vertices shared by edges.
+
+Therefore the algorithm obtains the exact `double_area` and `boundary` of the
+given lattice polygon. Pick's theorem applies because the polygon is simple
+and all its vertices are lattice points. Rearranging it gives exactly
+`(double_area-boundary+2)/2`, so the printed value is the number of strictly
+interior lattice points. QED.
+
+## Complexity, implementation notes, and tests
+
+The algorithm is `O(n)` time and `O(n)` memory if vertices are stored (or
+`O(1)` additional memory with streaming). In C++, cast before multiplying and
+accumulate in `__int128`; a `long long` product overflows for coordinates near
+`10^12`. Python's integers are arbitrary precision. Test a unit-area triangle
+with zero interior points, clockwise vertex order, edges with gcd greater than
+one, and a polygon with collinear boundary vertices.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_interior_lattice_points/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_interior_lattice_points/solution.py >}}
+```
+
 # What to carry forward
 
 # Complete upsolve notes
@@ -215,3 +309,7 @@ O(n); test clockwise order, a triangle, and a rectangle. Python is exact;
 avoid floating point in C++ too.
 
 Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.
+
+For D, tiny tests enumerate lattice points in the polygon's bounding box and
+use an exact ray test, independently of Pick's theorem. The scale case has
+200,000 boundary vertices and coordinates of size `10^12`.

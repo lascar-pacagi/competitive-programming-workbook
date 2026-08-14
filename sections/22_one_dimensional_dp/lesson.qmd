@@ -449,11 +449,14 @@ Base: prove the first state(s).
 
 Inductive step:
     assume all earlier states are correct.
-    show the transition considers every valid final choice.
-    show every candidate produced by the transition is valid.
+    take an arbitrary valid solution for state i.
+    inspect its last decision and show that it matches one case
+    in the transition; therefore no valid solution is omitted.
+    show that every case in the transition produces a valid solution.
 ```
 
-For one-dimensional DP, the "final choice" is often:
+Here, the "last decision" is the part removed to obtain a smaller DP state. In
+one-dimensional DP, it is often:
 
 ```text
 last jump

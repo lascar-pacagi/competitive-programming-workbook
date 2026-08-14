@@ -5,5 +5,13 @@ __pycache__/
 *.aux
 *.log
 *.out
+!sections/**/tests/*.out
 *.toc
 *.synctex.gz
+
+/.quarto/
+**/*.quarto_ipynb
+
+# Personal attempts live outside the public course history. The checker uses
+# this mirrored tree automatically when it exists.
+/.submissions/

@@ -102,7 +102,7 @@ exceeding `X-left`. Trace an empty right subset and an exact-limit pair.
 
 Every full subset decomposes uniquely into one subset of each half. The binary
 search considers the best feasible partner for each left choice, including the
-optimal decomposition. `\square`
+optimal decomposition. $\square$
 
 ## Complexity
 
@@ -151,7 +151,7 @@ reduced multiplier and normalize modulo the lcm.
 
 The divisibility condition is necessary because both residues must agree modulo
 the gcd; the constructed multiplier satisfies both equations, so the merged
-class represents exactly their intersection. `\square`
+class represents exactly their intersection. $\square$
 
 ## Complexity
 
@@ -199,7 +199,7 @@ then choose the even or odd pair according to the current index bit.
 ## Correctness proof
 
 The doubling identities are algebraic Fibonacci identities; induction on the
-halved index proves the state remains adjacent Fibonacci values. `\square`
+halved index proves the state remains adjacent Fibonacci values. $\square$
 
 ## Complexity
 
@@ -229,6 +229,46 @@ def main():
     if not data: return
     print("\n".join(str(fib(x)[0]) for x in data[1:1+data[0]]))
 if __name__=="__main__": main()
+```
+
+# D. Coupon Route
+
+## State expansion
+
+The free-edge coupon is part of the route history. Reaching the same vertex
+before and after using it are different situations, so use states `(vertex,used)`
+where `used` is zero or one. From `(v,used)`, an edge of weight `w` gives
+`(to,used)` at cost `w`; when `used=0`, it also gives `(to,1)` at cost zero.
+
+All expanded-edge costs are nonnegative, so run Dijkstra from `(1,0)`. The
+answer is the smaller distance to `(n,0)` and `(n,1)`.
+
+## Correctness proof
+
+Every legal original route maps to exactly one expanded path by marking whether
+its coupon has already been used. Its expanded cost equals its paid cost.
+Conversely, every expanded path uses at most one zero-cost coupon transition,
+so it maps to a legal route of the same cost. Dijkstra returns shortest paths
+in this nonnegative expanded graph; therefore the reported minimum is optimal.
+
+## Complexity and tests
+
+The expanded graph has `2n` states and at most `4m` directed transitions, so
+Dijkstra costs `O((n+m) log n)` time and `O(n+m)` memory. Test one edge (answer
+zero), a route where the most expensive edge is not on the ordinary shortest
+path, and a long chain. The tiny oracle uses repeated edge relaxation on both
+coupon layers; the scale case is a 200000-vertex chain.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_coupon_route/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_coupon_route/solution.py >}}
 ```
 
 # What to carry forward

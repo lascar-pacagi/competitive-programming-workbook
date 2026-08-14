@@ -2,48 +2,28 @@
 
 from __future__ import annotations
 
-import os
-import subprocess
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from tools.section_checker import run_section_checks
+
+
 SECTION = Path(__file__).resolve().parent
 PROBLEMS = [
     SECTION / "problems" / "a_inventory_cleanup",
     SECTION / "problems" / "b_peak_load",
     SECTION / "problems" / "c_best_study_streak",
+    SECTION / "problems" / "d_balanced_break",
+    SECTION / "problems" / "e_circular_patrol",
 ]
 
-
 def main() -> int:
-    target = os.environ.get("CP_TARGET", "student")
-    print(f"Section 7: checking {target} submissions...\n", flush=True)
-    for problem in PROBLEMS:
-        for lang in ("cpp", "py"):
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    "tools/judge.py",
-                    str(problem),
-                    "--lang",
-                    lang,
-                    "--random-count",
-                    "25",
-                ],
-                cwd=ROOT,
-            )
-            if result.returncode:
-                print(
-                    "\nThe checker stopped at the first failure. "
-                    "Fix that problem/language and run again."
-                )
-                return result.returncode
-    print("\nSection 7 complete: all checked submissions were accepted.")
-    return 0
+    return run_section_checks(7, PROBLEMS, ROOT)
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

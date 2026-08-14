@@ -639,6 +639,102 @@ n = 100000, B near n log n
 n = 10^9, large budget
 ```
 
+# Problem D: Batch Pages
+
+## Restatement
+
+For each print job, split `n` records into pages of capacity `k`. Print the
+number of pages and the unused capacity of the final page. The `n=0` case has
+no final page, so both answers are zero.
+
+## Constraints and traps
+
+There are up to `200000` queries and both values reach `10^18`, so simulating
+records or pages is impossible. The familiar expression `(n+k-1)/k` can
+overflow in C++ when `n+k-1` exceeds signed 64-bit range. Use `(n-1)/k+1` only
+after separating zero.
+
+## Sample walk-through
+
+For `n=25,k=6`, four pages hold 24 records, so one more page is required:
+
+```text
+pages = (25-1)/6 + 1 = 5
+empty = 5*6 - 25 = 5
+```
+
+For `n=8,k=7`, two pages are needed and the final page has six empty slots.
+
+## Algorithm
+
+```text
+for each n, k:
+    if n == 0: print 0 0
+    otherwise:
+        pages = (n-1) // k + 1
+        empty = pages*k - n
+        print pages, empty
+```
+
+## Correctness proof
+
+For `n>0`, integer division `(n-1)//k` counts the number of complete capacity
+blocks before the final record. Adding one therefore gives the unique smallest
+positive number of pages whose total capacity is at least `n`. Those pages have
+capacity `pages*k`; subtracting the `n` occupied slots gives exactly the empty
+slots on the last page. For `n=0`, the statement defines both values as zero.
+Thus every printed pair is correct. $\square$
+
+## Complexity
+
+Each query uses `O(1)` time and `O(1)` extra memory; total time is `O(Q)`.
+
+## C++ implementation notes
+
+Use `long long`. Here `pages*k` is at most `n+k-1` in mathematical value and
+fits under the stated bounds, but do not rewrite the ceiling division as a
+potentially overflowing addition.
+
+## Python implementation notes
+
+Python integers are arbitrary precision, but `(n-1)//k+1` keeps the same
+zero-case semantics and mirrors the proof.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int q; cin >> q;
+    while (q--) {
+        long long n, k; cin >> n >> k;
+        if (n == 0) { cout << "0 0\n"; continue; }
+        long long pages = (n - 1) / k + 1;
+        cout << pages << ' ' << pages * k - n << '\n';
+    }
+}
+```
+
+## Full Python solution
+
+```python
+for n, k in queries:
+    if n == 0:
+        print(0, 0)
+    else:
+        pages = (n - 1) // k + 1
+        print(pages, pages * k - n)
+```
+
+## Common wrong answers and tests
+
+Do not print one empty page for `n=0`; do not use floating-point ceiling; do
+not loop one page at a time. Test `n=0`, `n=k`, `n=k+1`, `k=1`, and values near
+`10^18`.
+
 # Stress testing strategy
 
 For this section, stress testing means generating many small and boundary-heavy

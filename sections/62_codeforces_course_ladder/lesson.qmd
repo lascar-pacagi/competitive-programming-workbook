@@ -23,7 +23,7 @@ execute:
   enabled: false
 ---
 
-# Why a single-source ladder after a broad course
+# Why a 50-problem single-source ladder after a broad course
 
 The course has taught tools by idea. Codeforces now supplies a deliberately
 ordered environment in which the statement is unfamiliar but the underlying
@@ -120,6 +120,23 @@ when one item, vertex, character, or array endpoint is added and removed.
 The hard part is often proving the reduction, not selecting a library template.
 On `498C`, show why a unit of a prime cannot be used twice. On `319C`, derive
 the line slope and intercept from the recurrence before choosing a hull.
+
+# Gates 5--7: expert to red
+
+Tasks 20--50 deliberately stop looking like one-technique exercises. They are
+still ordered, but the order measures the amount of model compression, proof,
+and engineering required rather than a single online rating number.
+
+| Gate | Tasks | What changes in your attempt routine |
+|---|---|---|
+| 5 | 20--27 | derive a representation that turns many operations into logarithmic work |
+| 6 | 28--40 | prove the reduction before choosing the advanced structure |
+| 7 | 41--50 | derive the optimized recurrence or transformation from a slow oracle |
+
+For Gates 5 and 6, spend at least 45 minutes before reading an editorial. For
+Gate 7, first write a slow exact model and state precisely which monotonicity,
+decomposition, or algebraic identity must justify the optimization. A correct
+template with an unproved reduction is not a solved problem.
 
 # A disciplined upsolve protocol
 

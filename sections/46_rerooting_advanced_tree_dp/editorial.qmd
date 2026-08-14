@@ -83,13 +83,63 @@ changes every affected node or pair exactly once.
 
 For every node, print the sum of distances to all other nodes.
 
-## Algorithm and proof
+## Observations and algorithm
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+Root the tree at vertex `1`.  Let `sub[v]` be the number of vertices in the
+rooted subtree of `v`, and let `down[v]` be the sum of distances from `v` to
+vertices in that subtree.  In a postorder traversal, every child `to` gives
 
-## Complexity
+```text
+sub[v]  += sub[to]
+down[v] += down[to] + sub[to]
+```
 
-The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
+The added `sub[to]` accounts for the one extra edge from `v` to every vertex
+in that child subtree.  Thus `down[1]` is the answer for root `1`.
+
+For a parent-child edge `v-to`, reroot from `v` to `to`.  The `sub[to]` vertices
+inside the child subtree become one edge closer, while the other `n-sub[to]`
+vertices become one edge farther:
+
+```text
+answer[to] = answer[v] - sub[to] + (n - sub[to])
+```
+
+Run this transition in a second preorder traversal.  On the three-vertex tree
+with edges `1-2` and `1-3`, `answer[1]=2` and `sub[2]=1`, so
+`answer[2]=2-1+(3-1)=3`, matching distances `1+2` from vertex `2`.
+
+## Correctness proof
+
+**Lemma 1.** After the postorder traversal, `sub[v]` is the size of the rooted
+subtree of `v`, and `down[v]` is the sum of distances from `v` to vertices in
+that subtree.
+
+**Proof.** Both statements hold at a leaf.  Child subtrees are disjoint; adding
+their sizes counts every descendant once.  Every distance from `v` into a child
+subtree is the child's distance plus one, so the displayed recurrence adds
+exactly all subtree distances.  Induction up the tree proves the lemma.
+
+**Lemma 2.** If `to` is a child of `v`, the reroot formula computes the sum of
+distances from `to` to all vertices.
+
+**Proof.** Moving across `v-to` decreases the distance to each of the
+`sub[to]` inside vertices by one and increases the distance to each remaining
+vertex by one.  Applying these two changes to `answer[v]` gives the formula.
+
+**Theorem.** Every printed value is the required sum of distances.
+
+**Proof.** Lemma 1 gives the root answer.  The preorder traversal reaches every
+other vertex through one parent edge, and Lemma 2 transfers a correct answer
+across that edge.  Induction over this traversal proves every answer correct.
+
+## Complexity and implementation notes
+
+Both traversals inspect every edge a constant number of times: `O(n)` time and
+`O(n)` memory.  Distances sums can be quadratic, so use `long long` in C++.
+On a chain, recursive DFS can exceed the call stack; the local references raise
+Python's recursion limit, but an iterative traversal is also a sound choice.
+Test `n=1`, a chain, and a star.
 
 ## Full C++ solution
 
@@ -128,13 +178,49 @@ if __name__=="__main__": main()
 
 For every node, print its distance to the farthest node.
 
-## Algorithm and proof
+## Observations and algorithm
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+Do not reroot a DP here.  In a tree, choose any start vertex and run BFS to a
+farthest vertex `a`.  Run BFS from `a` to a farthest vertex `b`; `a` and `b`
+are endpoints of a diameter.  A third and final BFS from `b` gives arrays
+`dist_a` and `dist_b`.  For each vertex `v`, print
 
-## Complexity
+```text
+max(dist_a[v], dist_b[v]).
+```
 
-The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
+For example, on a path `1-2-3-4`, the endpoints are `1` and `4`.  At vertex
+`2`, the two distances are `1` and `2`; its farthest-node distance is `2`.
+
+## Correctness proof
+
+**Lemma 1.** The two sweeps find diameter endpoints `a` and `b`.
+
+**Proof.** In a tree, a farthest vertex from any start is an endpoint of some
+diameter: otherwise its unique path toward a diameter could be extended to a
+vertex farther from the start.  Starting from such an endpoint, a farthest
+vertex is the opposite endpoint of a longest path, so `a-b` is a diameter.
+
+**Lemma 2.** For every vertex `v`, at least one farthest vertex from `v` is
+`a` or `b`.
+
+**Proof.** Project the paths from `v` to a farthest vertex and to the diameter
+path `a-b`.  If that farthest path leaves the diameter at some attachment
+vertex, replacing its endpoint by the farther of `a` and `b` cannot shorten
+the path from `v`; otherwise the diameter could be extended through that
+endpoint.  Hence the eccentricity of `v` is the larger endpoint distance.
+
+**Theorem.** The algorithm prints the farthest-node distance for every vertex.
+
+**Proof.** Lemma 1 supplies a diameter.  Lemma 2 says the maximum of the two
+computed BFS distances equals the maximum distance to any vertex, exactly the
+requested value.
+
+## Complexity and implementation notes
+
+Each BFS is `O(n)` on a tree, so the total time and memory are `O(n)`.  Keep a
+separate visited/distance array for every BFS.  Test one vertex, a chain, a
+star, and a tree with several equally long diameter candidates.
 
 ## Full C++ solution
 
@@ -171,13 +257,57 @@ if __name__=="__main__": main()
 
 For every node, count unordered pairs of distinct nodes whose path passes through it.
 
-## Algorithm and proof
+## Observations and algorithm
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+Root once at `1` and compute `sub[v]`.  After deleting `v`, each child `to`
+forms a component of size `sub[to]`; if `v` is not the root, all vertices above
+it form one component of size `n-sub[v]`.  A pair of distinct vertices has a
+path through `v` exactly when it is **not** entirely inside one of those
+components.  Pairs with `v` as an endpoint are included automatically.
 
-## Complexity
+Therefore start from all `n choose 2` unordered pairs and subtract the pairs
+inside each component:
 
-The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
+```text
+answer[v] = n choose 2 - sum over components c of (size[c] choose 2).
+```
+
+For a path of five vertices, deleting the middle vertex leaves components of
+sizes two and two.  The answer there is `10 - 1 - 1 = 8`: the two pairs inside
+one side do not pass through the middle; every other pair does.
+
+## Correctness proof
+
+**Lemma 1.** The components after deleting `v` have exactly the child-subtree
+sizes and the optional parent-side size described above.
+
+**Proof.** Removing `v` cuts its edge to each child, isolating that entire
+child subtree.  All remaining vertices outside the subtree are connected via
+the parent direction.  These sets are disjoint and cover every vertex other
+than `v`.
+
+**Lemma 2.** A pair of distinct vertices whose endpoints are not `v` has a
+path through `v` iff its endpoints lie in different components after deleting
+`v`.
+
+**Proof.** A tree has one simple path between two vertices.  It uses `v` iff
+deleting `v` separates its endpoints.  The endpoints are separated exactly
+when they lie in different resulting components.
+
+**Theorem.** The formula prints the requested count for every vertex.
+
+**Proof.** There are `n choose 2` pairs in total.  By Lemma 2, precisely the
+pairs contained inside one component fail to pass through `v`; these sets are
+disjoint.  Subtracting their counts retains every qualifying pair, including
+pairs with endpoint `v`, exactly once.
+
+## Complexity and implementation notes
+
+Computing subtree sizes and scanning all adjacency lists are `O(n)` time and
+`O(n)` memory.  Use `long long` for pair counts.  For each neighbour, use
+`sub[child]` only when it is a child; the parent-side component is the single
+value `n-sub[v]`.  Test a singleton, a chain, a star, and a non-root branching
+vertex.
 
 ## Full C++ solution
 
@@ -214,12 +344,143 @@ def main():
 if __name__=="__main__": main()
 ```
 
+# D. Forced Independent Set
+
+## Restatement
+
+For every vertex `v`, find the largest independent set that must include `v`.
+An independent set contains no edge whose two endpoints are both selected.
+Running a tree DP from scratch for each forced vertex would be quadratic.
+
+## Constraints and traps
+
+With `n=200000`, one full DP per forced vertex is too slow. The state must say
+whether its current vertex is selected: that choice constrains every neighbour.
+
+## Observations and trace
+
+Root the tree. For each vertex `v`, first compute values for its subtree only:
+
+```text
+down_with[v] = best size in v's subtree when v is selected
+down_without[v] = best size in v's subtree when v is not selected
+```
+
+For every child `to`, selecting `v` forces `to` not to be selected; leaving
+`v` unselected lets `to` choose its better state. Thus:
+
+```text
+down_with[v] = 1 + sum(down_without[to])
+down_without[v] = sum(max(down_with[to], down_without[to]))
+```
+
+These values omit the part above `v`. Store matching outside contributions:
+
+```text
+outside_with[v] = best contribution outside v's subtree if v is selected
+outside_without[v] = best contribution outside v's subtree if v is not selected
+```
+
+Both are zero at the root. To pass information from a parent `v` to a child
+`to`, remove `to` from the parent's child sums:
+
+```text
+free_siblings = down_without[v] - max(down_with[to], down_without[to])
+without_siblings = down_with[v] - 1 - down_without[to]
+
+outside_with[to] = outside_without[v] + free_siblings
+outside_without[to] = max(
+    outside_without[v] + free_siblings,
+    outside_with[v] + 1 + without_siblings
+)
+```
+
+The first transition makes the parent unselected because `to` is selected. In
+the second, the parent may be selected or unselected. The requested answer is
+`down_with[v] + outside_with[v]`. In the sample, forcing vertex `3` excludes
+`1`, `4`, and `5`; only vertex `2` can join it, so its answer is `2`.
+
+## Algorithm
+
+```text
+root the tree and record parent plus traversal order
+process the order backwards to compute down_with and down_without
+process the order forwards to compute outside_with and outside_without
+for every v, print down_with[v] + outside_with[v]
+```
+
+## Correctness proof
+
+**Lemma 1.** `down_with[v]` and `down_without[v]` are optimal independent-set
+sizes in `v`'s subtree under their stated conditions.
+
+**Proof.** At a leaf the values are one and zero. Child subtrees are disjoint.
+If `v` is selected, every child must be unselected; if `v` is unselected, every
+child may independently use its better state. The two recurrences therefore
+combine exactly the feasible optimal child choices. Induction proves the lemma.
+
+**Lemma 2.** `outside_with[v]` and `outside_without[v]` are optimal contributions
+outside `v`'s subtree under their stated conditions.
+
+**Proof.** Both values are zero at the root. For a parent-child edge, the
+transition enumerates the only two states of the parent. It combines the already
+optimal outside contribution with disjoint sibling subtrees, excluding the
+child itself. Induction in preorder proves the lemma.
+
+**Theorem.** The printed value for every vertex `v` is the largest independent
+set size among sets that contain `v`.
+
+**Proof.** Lemma 1 gives the optimal selected set inside `v`'s subtree and
+Lemma 2 gives the compatible optimum outside it. The regions are disjoint and
+their sum selects `v`; every feasible global set splits into the same two
+regions. Hence the sum is feasible and optimal.
+
+## Complexity and implementation notes
+
+Both passes inspect every edge a constant number of times: `O(n)` time and
+`O(n)` memory. Use an iterative traversal so a 200000-vertex chain cannot
+overflow recursion. Recomputing all sibling contributions for every child would
+be quadratic; subtract the child's known contribution from the parent sum.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_forced_independent_set/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_forced_independent_set/solution.py >}}
+```
+
+## Common wrong answers
+
+```text
+Allowing a selected parent and selected child together.
+Using a parent's full sum without subtracting the current child.
+Combining `outside_with` with a selected parent across the shared edge.
+Returning the ordinary global maximum instead of forcing the queried vertex.
+```
+
+## Tests that matter
+
+```text
+n=1.
+A star, where a forced center and a forced leaf behave very differently.
+A chain, which also checks iterative traversal.
+A branching tree where forcing an internal vertex excludes several neighbours.
+```
+
 # Testing discussion
 
-For every reroot transition, classify which vertices become closer and farther;
-this is the correctness proof. Brute-force BFS from every root for random trees
-of at most eight vertices. For path-through-node counts, remove the node
-conceptually: pairs in different resulting components contribute, while pairs
-inside one component do not.
+For A, compare each answer on tiny trees with a BFS from every start. For B,
+compare the diameter-endpoint answer with the maximum entry of a BFS distance
+row. For C, enumerate pairs and test whether their unique path contains the
+vertex. For D, enumerate all subsets on tiny trees, reject any subset containing
+both endpoints of an edge, and retain the best size for every included vertex.
+Then run:
 
-Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.
+```bash
+CP_TARGET=solution python3 sections/46_rerooting_advanced_tree_dp/check.py
+```

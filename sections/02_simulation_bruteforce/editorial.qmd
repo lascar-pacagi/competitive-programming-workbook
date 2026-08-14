@@ -709,3 +709,109 @@ The next sections will keep using these ideas. Prefix sums, sorting, two
 pointers, BFS, and dynamic programming all become easier when you can first
 write the direct process and reason about its state.
 
+# Problem D: Carousel Visits
+
+## Restatement
+
+A circular carousel starts at a numbered position. Process left and right
+commands with wraparound, then output the final position and the smallest
+position with the maximum visit count. The starting position is already one
+visit.
+
+## Constraints and traps
+
+Across the input, `n + len(s)` is at most `200000`, so one direct command scan
+and one scan of the visit array are intended. Do not forget the starting visit.
+The wrap rules are asymmetric at the endpoints: left from one reaches n, while
+right from n reaches one. A tie for most visits is resolved by the smallest
+index, so only replace the current best when a strictly larger count appears.
+
+## Walk-through
+
+For `n=5`, start `1`, and commands `RRLLR`:
+
+```text
+position: 1(start), 2, 3, 2, 1, 2
+visits:   v[1]=2, v[2]=3, v[3]=1, v[4]=0, v[5]=0
+```
+
+The output is `2 2`: final position two, and slot two has the most visits.
+
+## Algorithm
+
+```text
+visits[1..n] = 0
+visits[position] += 1
+for command in s:
+    move one circular step left or right
+    visits[position] += 1
+best = smallest index with maximum visits[index]
+print position, best
+```
+
+## Correctness proof
+
+After processing the first `i` commands, maintain: `position` is the exact
+carousel location after those commands, and `visits[j]` is the number of times
+position j has occurred among the start and those `i` moves. Initialization
+records the starting position. Each command applies exactly its stated circular
+move and increments exactly the newly reached position, preserving the
+invariant. After all commands, the first scan value is the required final
+position. Scanning indices in increasing order and replacing `best` only for a
+strictly larger count returns the smallest maximum-count index. Thus both
+printed values are correct.
+
+## Complexity and language notes
+
+Time is `O(n + len(s))` and memory is `O(n)`. C++ uses `vector<int>` indexed
+one through n; Python uses a list of length n+1. Keep the endpoint cases
+explicit rather than relying on negative array indexing.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    ios::sync_with_stdio(false); cin.tie(nullptr);
+    int t; if (!(cin >> t)) return 0;
+    while (t--) {
+        int n, pos; string s; cin >> n >> pos >> s;
+        vector<int> visits(n + 1); ++visits[pos];
+        for (char move : s) {
+            if (move == 'R') pos = pos == n ? 1 : pos + 1;
+            else pos = pos == 1 ? n : pos - 1;
+            ++visits[pos];
+        }
+        int best = 1;
+        for (int i = 2; i <= n; ++i) if (visits[i] > visits[best]) best = i;
+        cout << pos << ' ' << best << '\n';
+    }
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+data = sys.stdin.buffer.read().split()
+it = iter(data)
+out = []
+for _ in range(int(next(it))):
+    n, pos = int(next(it)), int(next(it))
+    visits = [0] * (n + 1)
+    visits[pos] += 1
+    for move in next(it).decode():
+        pos = 1 if move == "R" and pos == n else pos + 1 if move == "R" else n if pos == 1 else pos - 1
+        visits[pos] += 1
+    best = max(range(1, n + 1), key=lambda slot: (visits[slot], -slot))
+    out.append(f"{pos} {best}")
+print("\n".join(out))
+```
+
+## Tests that matter
+
+Test `n=1`, a move across each wrap boundary, a path returning to its start,
+and a tie where every position is visited once. The random generator varies
+small circular sizes and compares every command against a direct reference.

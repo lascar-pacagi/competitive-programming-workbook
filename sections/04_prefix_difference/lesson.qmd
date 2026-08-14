@@ -105,13 +105,42 @@ Then 1-indexed inclusive `[l, r]` becomes:
 prefix[r] - prefix[l - 1]
 ```
 
-In Python slicing terms, if `values` is 0-indexed:
+## The Python slice, slowly
+
+Suppose the statement gives the 1-indexed inclusive query `[l, r]`. Python
+lists are 0-indexed, and a slice `values[start:stop]` includes `start` but
+*excludes* `stop`.
+
+Therefore the first requested element, position `l`, is at Python index
+`l - 1`. The last requested element, position `r`, is at Python index `r - 1`,
+but the slice stop must be one past it: `r`.
 
 ```python
 sum(values[l - 1:r])
 ```
 
-matches the same query.
+Example:
+
+```python
+values = [10, 20, 30, 40, 50]
+# index:     0   1   2   3   4
+# position:  1   2   3   4   5
+
+l, r = 2, 4
+values[l - 1:r]     # values[1:4] -> [20, 30, 40]
+```
+
+The `4` is not included as a Python index. It is the stopping point, so Python
+takes indices `1`, `2`, and `3`. This exactly corresponds to statement
+positions `2`, `3`, and `4`.
+
+Do not use slices inside the real query loop: `sum(values[l - 1:r])` takes
+time proportional to the range length. It is only a useful check while
+learning. The prefix-sum query remains `O(1)`:
+
+```python
+answer = prefix[r] - prefix[l - 1]
+```
 
 # Worked example: range sums
 
@@ -338,4 +367,3 @@ Run:
 ```bash
 python3 sections/04_prefix_difference/check.py
 ```
-

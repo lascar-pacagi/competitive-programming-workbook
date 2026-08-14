@@ -168,7 +168,7 @@ component of `s`.
 
 **Proof.** BFS starts at `s`. Every new vertex is added by following an edge
 from a vertex already reached from `s`. Therefore every visited vertex has a
-path from `s`. `\square`
+path from `s`. $\square$
 
 **Lemma 2.** A BFS started from `s` visits every vertex in the connected
 component of `s`.
@@ -177,13 +177,13 @@ component of `s`.
 path from `s` to `x`: `s = p0, p1, ..., pk = x`. BFS starts with `p0`. Whenever
 `pi` is visited, BFS scans its neighbors, so if `p(i+1)` has not already been
 visited, it is discovered. By induction along the path, `x` is visited.
-`\square`
+$\square$
 
 **Lemma 3.** The outer loop starts exactly one BFS per connected component.
 
 **Proof.** When the loop first reaches a vertex of a component, that vertex is
 unseen and starts a BFS. By Lemma 2, this BFS marks the entire component seen.
-All later vertices in the same component are skipped. `\square`
+All later vertices in the same component are skipped. $\square$
 
 **Theorem.** The algorithm outputs exactly the sizes of all connected
 components.
@@ -191,7 +191,7 @@ components.
 **Proof.** By Lemma 3, each component contributes one BFS. By Lemmas 1 and 2,
 that BFS visits exactly the vertices of that component, so its counter is the
 component size. Sorting only changes output order, not the multiset of sizes.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -421,13 +421,13 @@ length `dist[v]`.
 
 **Proof.** The source has a path of length `0`. Every other assignment is made
 from an edge `u -> v` after `u` already has a path of length `dist[u]`; adding
-that edge gives a path of length `dist[u] + 1`. `\square`
+that edge gives a path of length `dist[u] + 1`. $\square$
 
 **Lemma 2.** BFS never assigns a distance larger than the true shortest
 distance.
 
 **Proof.** This follows from Lemma 1: assigned distances correspond to real
-paths. `\square`
+paths. $\square$
 
 **Lemma 3.** BFS never assigns a distance smaller than the true shortest
 distance.
@@ -438,14 +438,14 @@ distance. By induction, `p(d-1)` is discovered with distance at most `d-1`, so
 when it is processed, `v` is discovered with distance at most `d` if it was not
 already discovered. Therefore the first possible discovery of `v` happens no
 later than layer `d`, and cannot be below the true shortest distance by Lemma
-2. `\square`
+2. $\square$
 
 **Theorem.** For every query target `x`, the algorithm prints the shortest
 distance from `s` to `x`, or `-1` if unreachable.
 
 **Proof.** If `x` is reachable, Lemmas 2 and 3 show that BFS assigns exactly
 the shortest distance. If `x` is unreachable, no path can lead BFS to it, so
-its distance remains `-1`. Each query prints this computed value. `\square`
+its distance remains `-1`. Each query prints this computed value. $\square$
 
 ## Complexity
 
@@ -688,7 +688,7 @@ string is obtained by following parent pointers.
 **Proof.** `S` is discovered with the empty path. Every other cell is
 discovered from an already discovered adjacent non-wall cell using one legal
 move. Recording the parent preserves that legal predecessor. Induction over
-discovery order proves the claim. `\square`
+discovery order proves the claim. $\square$
 
 **Lemma 2.** The first time BFS discovers a cell, the recorded distance is the
 shortest possible distance from `S`.
@@ -696,7 +696,7 @@ shortest possible distance from `S`.
 **Proof.** This is the standard BFS layer invariant. The queue processes all
 cells at distance `k` before cells at distance `k+1`. Therefore a cell cannot
 first be discovered through a longer path while an undiscovered shorter path to
-it exists. `\square`
+it exists. $\square$
 
 **Lemma 3.** Among all shortest paths to a cell, the first parent assignment
 obtained with neighbor order `D,L,R,U` gives the lexicographically smallest
@@ -707,7 +707,7 @@ distance layer because each frontier cell was itself first discovered by the
 smallest prefix leading to it, and its outgoing moves are considered in
 lexicographic order. A cell's first discovery among shortest paths is therefore
 through the smallest shortest prefix plus move that reaches it. The algorithm
-does not overwrite parents, so this smallest shortest path is kept. `\square`
+does not overwrite parents, so this smallest shortest path is kept. $\square$
 
 **Theorem.** If the algorithm prints `YES`, it prints the lexicographically
 smallest shortest path from `S` to `G`; if it prints `NO`, no such path exists.
@@ -715,7 +715,7 @@ smallest shortest path from `S` to `G`; if it prints `NO`, no such path exists.
 **Proof.** If `G` is undiscovered, BFS has exhausted all reachable cells, so no
 path exists. If `G` is discovered, Lemma 2 gives shortest length and Lemma 3
 gives the required tie-breaking. Lemma 1 shows the reconstructed string is a
-valid path. `\square`
+valid path. $\square$
 
 ## Complexity
 
@@ -912,3 +912,204 @@ state-space shortest path
 Before using BFS, always check the cost of a move. If all moves cost the same,
 BFS is probably right. If costs differ, wait for weighted shortest paths.
 
+# D. Nearest Station
+
+## Restatement
+
+An undirected, unweighted graph contains several station vertices.  For every
+vertex, print the minimum number of edges needed to reach any station.  Print
+`-1` when its connected component contains no station.
+
+The graph can have up to `200000` vertices and edges, so running an ordinary
+BFS separately from every vertex, or separately from every station, can be
+too slow.
+
+## Key idea: start BFS from every station
+
+Imagine adding one virtual source connected to every station by a zero-length
+edge.  The desired answer is the shortest distance from that virtual source.
+We do not need to build the virtual source: put every station in the BFS queue
+initially and assign all of them distance `0`.
+
+Then run the usual BFS.  When a vertex `v` is first discovered from `u`, write
+
+```text
+dist[v] = dist[u] + 1
+```
+
+Vertices in components without stations are never put in the queue, so their
+initial value `-1` remains the correct answer.
+
+## Walk-through
+
+For the chain below, stations are vertices `1` and `5`:
+
+```text
+1 -- 2 -- 3 -- 4 -- 5
+```
+
+Initial queue and distances:
+
+```text
+queue: [1, 5]
+dist:  [0, -1, -1, -1, 0]
+```
+
+Processing `1` discovers `2`; processing `5` discovers `4`.  Both receive
+distance `1`.  Next, either `2` or `4` discovers `3`, which receives distance
+`2`.  The answer is therefore:
+
+```text
+0 1 2 1 0
+```
+
+It does not matter which same-distance vertex is popped first.  BFS always
+processes all vertices at distance `d` before any vertex at distance `d + 1`.
+
+## Algorithm
+
+```text
+build an adjacency list for the undirected graph
+set every dist value to -1
+
+for every station s:
+    if dist[s] is -1:          # harmless if a station is listed twice
+        dist[s] = 0
+        push s into the queue
+
+while the queue is not empty:
+    u = pop from the front
+    for every neighbor v of u:
+        if dist[v] is -1:
+            dist[v] = dist[u] + 1
+            push v into the queue
+
+print dist[1], dist[2], ..., dist[n]
+```
+
+## Correctness proof
+
+We prove that the algorithm prints the required distance for every vertex.
+
+Every station is inserted with distance `0`, so its printed value is correct.
+Consider a non-station vertex `v` that is first discovered from `u`.  BFS
+processes vertices in nondecreasing distance order.  Thus `u` has the minimum
+possible distance to any station among vertices that could first reach `v`.
+Appending edge `(u, v)` gives a path of length `dist[u] + 1` from a station to
+`v`, so the algorithm assigns a reachable distance to `v`.
+
+Suppose a shorter station-to-`v` path of length `L` existed.  Let `w` be the
+vertex directly before `v` on that path.  Because
+`L < dist[v] = dist[u] + 1`, we have `L - 1 < dist[u]`.  BFS reaches and
+processes `w` before `u`, then discovers `v` with a value at most `L`.  This
+contradicts the assignment of the larger value `dist[u] + 1`.  Therefore
+`dist[v]` is the minimum distance to any station.
+
+Finally, an unvisited vertex cannot be connected to a station: a path from a
+station would make BFS traverse its edges and discover it.  Its value remains
+`-1`, which is correct.  Hence all printed values are correct.
+
+## Complexity
+
+Each vertex enters the queue at most once and each undirected edge is examined
+twice.  The time complexity is `O(n + m)` and the adjacency list, distances,
+and queue use `O(n + m)` memory.
+
+## Reference implementation in C++
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m, k;
+    cin >> n >> m >> k;
+
+    vector<vector<int>> graph(n + 1);
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        cin >> u >> v;
+        graph[u].push_back(v);
+        graph[v].push_back(u);
+    }
+
+    vector<int> dist(n + 1, -1);
+    queue<int> q;
+    for (int i = 0; i < k; ++i) {
+        int station;
+        cin >> station;
+        if (dist[station] == -1) {
+            dist[station] = 0;
+            q.push(station);
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        for (int v : graph[u]) {
+            if (dist[v] == -1) {
+                dist[v] = dist[u] + 1;
+                q.push(v);
+            }
+        }
+    }
+
+    for (int v = 1; v <= n; ++v) {
+        cout << dist[v] << (v == n ? '\\n' : ' ');
+    }
+}
+```
+
+## Reference implementation in Python
+
+```python
+import sys
+from collections import deque
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    n, m, k = data[:3]
+    index = 3
+
+    graph = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = data[index], data[index + 1]
+        index += 2
+        graph[u].append(v)
+        graph[v].append(u)
+
+    dist = [-1] * (n + 1)
+    q = deque()
+    for station in data[index:index + k]:
+        if dist[station] == -1:
+            dist[station] = 0
+            q.append(station)
+
+    while q:
+        u = q.popleft()
+        for v in graph[u]:
+            if dist[v] == -1:
+                dist[v] = dist[u] + 1
+                q.append(v)
+
+    print(*dist[1:])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Tests worth checking
+
+- One station in a disconnected component: vertices in other components must
+  remain `-1`.
+- Stations at both ends of a path: the middle vertex uses the closer end.
+- Adjacent stations and duplicated station input: every station still has
+  distance `0`.
+- A long chain with one station at an endpoint: checks both linear time and
+  queue behavior.

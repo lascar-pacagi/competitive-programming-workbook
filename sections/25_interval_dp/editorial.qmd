@@ -121,7 +121,7 @@ combines two fully merged adjacent intervals `[l,k]` and `[k+1,r]` for some
 **Proof.** Immediately before the final merge, all piles in `[l,r]` have been
 merged into exactly two adjacent groups. Since merges preserve order and only
 combine adjacent groups, those groups must cover `[l,k]` and `[k+1,r]`.
-`\square`
+$\square$
 
 **Theorem.** `dp[l][r]` equals the minimum cost to merge interval `[l,r]`.
 
@@ -130,7 +130,7 @@ cost `0` is correct. For longer intervals, the lemma says every valid strategy
 has some final split `k`. By induction, the best way to prepare the left and
 right groups costs `dp[l][k]` and `dp[k+1][r]`; the final merge adds
 `sum(l..r)`. The recurrence tries every possible final split and takes the
-minimum, so it finds exactly the optimum. `\square`
+minimum, so it finds exactly the optimum. $\square$
 
 ## Complexity
 
@@ -303,7 +303,7 @@ If endpoints differ, a final palindrome must match `s[l]` with an inserted
 `s[l]` on the right side, or match `s[r]` with an inserted `s[r]` on the left
 side. These cases cost one insertion plus the optimal repair of the remaining
 substring. The recurrence takes the better of the two exhaustive choices.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -462,7 +462,7 @@ neighbors are `l-1` and `r+1`.
 **Proof.** A finite popping order has one last element. Before that final pop,
 all other balloons in `[l,r]` are gone, while the interval definition keeps
 outside balloons `l-1` and `r+1` unpopped. Therefore those are the nearest
-neighbors. `\square`
+neighbors. $\square$
 
 **Theorem.** `dp[l][r]` is the maximum score obtainable from interval `[l,r]`
 under the outside-neighbor assumption.
@@ -472,7 +472,7 @@ nonempty interval, the lemma says every valid strategy has some last balloon
 `k`. The pops before `k` split into independent left and right intervals,
 whose optimal scores are correct by induction. The final score for `k` is fixed
 by the outside neighbors. Trying every `k` and taking the maximum gives the
-optimal strategy. `\square`
+optimal strategy. $\square$
 
 ## Complexity
 
@@ -600,3 +600,173 @@ Are all resulting subproblems shorter intervals?
 When those answers are clear, the implementation is usually just increasing
 length order.
 
+# D. Endgame Advantage
+
+## Restatement
+
+Two players alternately take either the leftmost or rightmost remaining value
+from an array. Both play to maximize their own final total. Print the first
+player's final total minus the second player's final total, which can be
+negative.
+
+## Constraints and traps
+
+The array can contain negative values and is long enough that trying every
+sequence of endpoint choices is infeasible. A game of `n` turns has up to
+`2^n` possible move sequences, while interval DP considers only `O(n^2)`
+subarrays.
+
+```text
+The requested quantity is a score difference, not the first player's sum.
+Both players are optimal; taking the larger endpoint greedily is not reliable.
+The player to move changes after every pick.
+Use signed 64-bit totals because values and their sum may be large.
+```
+
+## State and transition
+
+Store the best score difference for the player whose turn it is:
+
+```text
+dp[l][r] = current player's final sum - opponent's final sum on a[l..r]
+```
+
+Taking left gives `a[l] - dp[l+1][r]`: after that move, the opponent becomes
+the player to move on the remaining interval. Taking right similarly gives
+`a[r] - dp[l][r-1]`.
+
+```text
+dp[i][i] = a[i]
+dp[l][r] = max(a[l] - dp[l+1][r], a[r] - dp[l][r-1])
+```
+
+For `1, 5, 233, 7`, optimal play gives difference `222`. Negative values need
+no special case: a one-element interval with `-9` has value `-9`.
+
+## Small trace
+
+For `a = [4, 1, 7]`, the length-one states are their values:
+
+```text
+dp[0][0] = 4, dp[1][1] = 1, dp[2][2] = 7
+```
+
+For interval `[4,1]`, taking `4` leaves the opponent an advantage of `1`, so
+the resulting advantage is `4-1 = 3`. Taking `1` leaves advantage `4`, so it
+gives `1-4 = -3`. Thus `dp[0][1] = 3`. For `[1,7]`, the analogous value is
+`6`. On `[4,1,7]`, the two choices give:
+
+```text
+take 4: 4 - dp[1][2] = 4 - 6 = -2
+take 7: 7 - dp[0][1] = 7 - 3 = 4
+```
+
+The current player takes `7` and can finish four points ahead.
+
+## Algorithm
+
+Use one array. Iterate `l` from right to left and `r` from left to right:
+
+```text
+dp[l] = a[l]
+dp[r] = max(a[l] - old dp[r], a[r] - dp[r-1])
+```
+
+Before updating, `dp[r]` is `dp[l+1][r]`; `dp[r-1]` was already updated to
+`dp[l][r-1]`.
+
+## Correctness proof
+
+**Lemma.** `dp[l][r]` is the largest advantage the player to move can force.
+
+**Proof.** A one-value interval is forced. On a longer interval the only legal
+first moves take left or right. The opponent's best advantage in the resulting
+smaller interval is subtracted, producing exactly the two transition values.
+Choosing their maximum is optimal. Induction on interval length proves the
+lemma. $\square$
+
+**Theorem.** The algorithm prints the optimal first-player-minus-second-player
+score.
+
+**Proof.** The first player is the player to move on `[0,n-1]`, so the lemma
+applies to `dp[0][n-1]`. $\square$
+
+## Complexity
+
+```text
+Time: O(n^2)
+Memory: O(n)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n; cin >> n;
+    vector<long long> a(n), dp(n);
+    for (long long &x : a) cin >> x;
+    for (int l = n - 1; l >= 0; --l) {
+        dp[l] = a[l];
+        for (int r = l + 1; r < n; ++r)
+            dp[r] = max(a[l] - dp[r], a[r] - dp[r - 1]);
+    }
+    cout << dp[n - 1] << '\\n';
+}
+```
+
+## C++ implementation notes
+
+`dp[r]` initially represents the interval whose left endpoint was one greater
+than the current `l`; save nothing separately because the first expression
+reads it before overwriting it. Processing `r` increasingly makes `dp[r-1]`
+already represent the current interval's left endpoint.
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    values = data[1:]
+    n = len(values)
+    dp = [0] * n
+    for left in range(n - 1, -1, -1):
+        dp[left] = values[left]
+        for right in range(left + 1, n):
+            dp[right] = max(values[left] - dp[right], values[right] - dp[right - 1])
+    print(dp[-1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Python implementation notes
+
+The same loop order is essential after compression: `left` decreases, then
+`right` increases. Python integers already handle large score differences, but
+the empty-input guard is unnecessary because the problem guarantees `n >= 1`.
+
+## Traps and tests
+
+- Do not greedily take the larger endpoint; it may expose a better reply.
+- Use `long long` for accumulated differences.
+- Test one negative value, all equal values, and alternating signs.
+
+# Stress testing
+
+For at most 16 values, recursively enumerate every left/right game choice
+without DP memoization. This independent game tree checks the recurrence on
+small random cases. The generator also has a direct-answer array of 3000 ones
+to exercise the quadratic bound.
+
+# What to carry forward
+
+For two-player interval games, define the state from the current player's
+viewpoint. When turns swap, the opponent's future advantage is subtracted.

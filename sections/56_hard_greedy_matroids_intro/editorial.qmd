@@ -113,7 +113,7 @@ sort by deadline; push each profit; if heap.size > deadline: pop minimum
 
 The heap has maximum total profit among feasible selected sets of its size. A
 violating set must discard one job; removing the minimum profit loses least
-value, preserving optimality by induction. `\square`
+value, preserving optimality by induction. $\square$
 
 ## Complexity
 
@@ -163,7 +163,7 @@ while cur<T: best=max right among starts<=cur; fail if best==cur; cur=best
 
 Every valid cover must choose an interval reaching the current uncovered point.
 Replacing its first such interval by the farthest-reaching greedy interval
-cannot reduce coverage of the remaining suffix, proving an exchange step. `\square`
+cannot reduce coverage of the remaining suffix, proving an exchange step. $\square$
 
 ## Complexity
 
@@ -210,7 +210,7 @@ kept weight is the MST, so total minus kept is removable weight.
 
 By the cut property, each lightest component-joining edge is safe for some MST.
 After `n-1` accepted edges the forest is connected and minimum; fewer means the
-input graph was disconnected. `\square`
+input graph was disconnected. $\square$
 
 ## Complexity
 
@@ -245,5 +245,69 @@ def main():
     print(total-keep if cnt==n-1 else -1)
 if __name__=="__main__": main()
 ```
+
+# D. Watch Schedule
+
+## Restatement and greedy choice
+
+Choose the largest number of pairwise non-overlapping half-open intervals.
+Touching endpoints are compatible, so after choosing `[a,b)`, an interval
+`[c,d)` is legal exactly when `c >= b`.
+
+Sort all intervals by increasing finishing time. Scan them in that order and
+accept an interval precisely when its start is at least the finish time of the
+last accepted interval.
+
+For the sample, the sorted scan accepts `[1,2)`, then `[2,5)`, then `[5,7)`.
+The earlier-ending interval `[0,4)` is skipped because it overlaps the chosen
+first interval.
+
+## Correctness proof
+
+**Lemma.** After the greedy algorithm chooses its next interval `g`, there is
+an optimal schedule whose next interval is `g`.
+
+**Proof.** Consider an optimal schedule compatible with the intervals already
+chosen by greedy, and let its next interval be `o`. Greedy chose `g` with the
+smallest available end time, so `end(g) <= end(o)`. Replace `o` by `g`: every
+later interval of the optimal schedule starts at least `end(o)`, hence also at
+least `end(g)`. The replacement remains feasible and has the same size.
+
+**Theorem.** The algorithm returns a maximum-size compatible schedule.
+
+**Proof.** The lemma lets an optimum agree with every greedy choice in turn.
+When greedy can no longer accept an interval, neither can an optimum that
+agrees with its prefix. Therefore greedy has optimal size.
+
+## Complexity and implementation notes
+
+Sorting costs `O(n log n)` and the scan is `O(n)`, with `O(n)` memory for the
+interval list. Sort by end time, not start time or shortest duration. Use
+`start >= available_from`, not `>`, because the intervals are half-open.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_watch_schedule/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_watch_schedule/solution.py >}}
+```
+
+## Tests that matter
+
+```text
+Intervals that touch exactly at endpoints.
+Nested intervals, where the shortest one is not necessarily first in input.
+Several equal end times.
+One interval covering many mutually compatible shorter intervals.
+200000 already compatible intervals.
+```
+
+The tiny oracle enumerates subsets and checks their sorted compatibility. The
+scale case contains 200000 mutually compatible intervals.
 
 # What to carry forward

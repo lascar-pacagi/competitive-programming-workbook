@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Sweep start/query/end events. Closed intervals need starts before queries before ends.
+    // TODO: solve the problem.
     return 0;
 }
-

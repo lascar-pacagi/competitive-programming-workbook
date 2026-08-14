@@ -2,11 +2,8 @@ import sys
 
 
 def main() -> None:
-    # TODO: dp[mask][last] = minimum cost to start at 0, visit mask, and end at last.
-    data = sys.stdin.buffer.read().split()
-    if not data:
-        return
-    raise NotImplementedError("solve.py is for your solution")
+    # TODO: solve the problem.
+    pass
 
 
 if __name__ == "__main__":

@@ -46,6 +46,22 @@ The concept is graph diagnosis.
 statement -> graph model -> known invariant -> implementation
 ```
 
+# Complete local contest set
+
+| Problem | Title |
+|---|---|
+| A | Existing Network |
+| B | Build Timeline |
+| C | One-Way Reversals |
+| D | Reliable Link |
+| E | Station Coverage Report |
+| F | Component Repair |
+| G | Alternating Road Route |
+
+The later problems are part of the contest, not optional cross-links. Problems
+E, F, and G ensure that multi-source BFS, explicit component traversal, and
+weighted state expansion are each practiced directly.
+
 # The graph pattern map
 
 Use this table as a triage tool. It is not a substitute for a proof.
@@ -57,17 +73,11 @@ Use this table as a triage tool. It is not a substitute for a proof.
 | "must happen before", dependencies, prerequisites | topological sorting |
 | earliest finish time after prerequisites | topological DP |
 | cheapest way to connect all vertices | MST / Kruskal |
-| existing free connections plus paid edges | DSU first, then Kruskal |
 | nonnegative weighted shortest path | Dijkstra |
 | all edge costs are `0` or `1` | 0-1 BFS |
-| reverse a directed edge at cost `1` | 0-1 BFS on a doubled edge model |
 
-When two signals appear together, do not panic. Decompose:
-
-```text
-existing network -> components already connected -> DSU
-pay to add cables -> choose cheapest connecting edges -> Kruskal
-```
+When several signals appear together, do not panic. Decompose the model into
+the requested graph object and the restrictions on moves, edges, and costs.
 
 # Contest triage routine
 
@@ -82,16 +92,8 @@ For each graph problem, answer these questions before coding:
 6. What complexity do the constraints demand?
 ```
 
-Then select the tool:
-
-```text
-unweighted shortest path       -> BFS
-0/1 weighted shortest path     -> 0-1 BFS
-general nonnegative shortest   -> Dijkstra
-dependencies/order             -> topological sort
-connect everything cheaply     -> MST / Kruskal
-dynamic connectivity snapshot  -> DSU
-```
+Only then compare the model with techniques learned earlier. Be able to state
+why a candidate technique's invariant matches the requested object.
 
 # Primer: DSU plus Kruskal
 
@@ -252,66 +254,22 @@ to go 1 -> 3:
 answer = 2
 ```
 
-# Local contest problems
+# Keep the local reductions private
 
-## A. Existing Network
-
-Signal:
-
-```text
-already connected for free
-pay for additional weighted undirected edges
-make all cities connected
-```
-
-Tool:
+The seven local tasks use different graph models. Do not choose an algorithm
+from a word such as "roads", "dependencies", or "reverse". First write:
 
 ```text
-DSU for the free edges
-Kruskal for paid edges
+what one vertex represents
+what one edge represents
+whether edges have direction or cost
+whether the requested object is a path, an order, or a connected structure
 ```
 
-This is not Dijkstra. We are not routing from one city to another; we are
-buying a set of edges so the whole graph becomes connected.
-
-## B. Build Timeline
-
-Signal:
-
-```text
-dependencies
-earliest finish time
-cycle means impossible
-```
-
-Tool:
-
-```text
-Kahn topological sorting
-DP over the topological order
-```
-
-This is not a shortest path problem. The edge `a -> b` means "a must finish
-before b starts", not "travel from a to b".
-
-## C. One-Way Reversals
-
-Signal:
-
-```text
-move along direction for free
-move against direction costs one
-minimize number of reversals
-```
-
-Tool:
-
-```text
-0-1 BFS
-```
-
-This is not ordinary BFS because a cost-0 move and a cost-1 move are not equal.
-It is not full Dijkstra because the only costs are `0` and `1`.
+Then test candidate methods against that model. A connectivity method cannot
+by itself justify an answer about ordering, and a path method needs a precise
+cost for every allowed move. The editorial gives the concrete reductions only
+after you have made an attempt.
 
 # Choosing between the shortest path tools
 
@@ -386,21 +344,11 @@ If either layer is missing, bugs hide easily.
 # Common wrong approaches
 
 ```text
-Running Dijkstra for Existing Network.
-  There is no single source shortest path target. The problem asks for a
-  minimum total set of connecting edges.
-
-Ignoring the free edges in Existing Network.
-  Free edges must be unioned before any paid edge is considered.
-
-Using BFS for One-Way Reversals.
-  BFS treats cost 0 and cost 1 edges equally, which changes the objective.
-
-Only checking reachability for Build Timeline.
-  You also need earliest finish values, and cycles must produce IMPOSSIBLE.
-
-Using min instead of max for earliest starts.
-  A module waits for all prerequisites, so the latest prerequisite matters.
+Choosing an algorithm before defining vertices and edges.
+Treating all costs as equal without checking the objective.
+Confusing reachability with an optimization or ordering requirement.
+Ignoring a special edge class or input condition in the model.
+Using a recurrence without proving that every prerequisite is already known.
 ```
 
 # Local judge workflow
@@ -440,4 +388,6 @@ CSES, AtCoder, Kattis, and Codeforces graph problems so the algorithm is not
 announced in advance.
 # Exercises
 
-Treat A as a minimum-network model, B as DAG scheduling, and C as shortest paths with reversible edges. Before coding, write the graph vertices and edge meaning; test a one-node graph and a disconnected component.
+Attempt A through G without assigning a technique name first. For each, write
+the vertex meaning, edge meaning, objective, and one small case that would
+falsify your proposed model.

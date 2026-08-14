@@ -199,16 +199,19 @@ bit[8] stores a[1..8]
 Diagram:
 
 ```text
-index:  1 2 3 4 5 6 7 8
-bit[1]: [1]
-bit[2]: [1 2]
-bit[3]:     [3]
-bit[4]: [1 2 3 4]
-bit[5]:         [5]
-bit[6]:         [5 6]
-bit[7]:             [7]
-bit[8]: [1 2 3 4 5 6 7 8]
+position:  1  2  3  4  5  6  7  8
+bit[1]:    X  .  .  .  .  .  .  .
+bit[2]:    X  X  .  .  .  .  .  .
+bit[3]:    .  .  X  .  .  .  .  .
+bit[4]:    X  X  X  X  .  .  .  .
+bit[5]:    .  .  .  .  X  .  .  .
+bit[6]:    .  .  .  .  X  X  .  .
+bit[7]:    .  .  .  .  .  .  X  .
+bit[8]:    X  X  X  X  X  X  X  X
 ```
+
+`X` means that the array position belongs to the range stored by that Fenwick
+entry; `.` means that it does not.
 
 ## Prefix sums
 
@@ -360,11 +363,23 @@ id  l r x   asks
 2   3 5 10  count values <= 10 in [3,5]
 ```
 
-Sort array positions by value:
+Create one pair `(value, position)` for every array element. For example, the
+value at position `1` is `4`, so it becomes `(4,1)`. Before sorting, the pairs
+are:
 
 ```text
-(1,2), (3,4), (4,1), (4,5), (7,3)
+(4,1), (1,2), (7,3), (3,4), (4,5)
 ```
+
+Now sort these pairs by their first component, the value:
+
+```text
+value,position: (1,2), (3,4), (4,1), (4,5), (7,3)
+```
+
+The sorted order lets us activate every position whose value is at most the
+current query threshold `x`. The position is kept because that is the index we
+add to the Fenwick tree.
 
 Sort queries by `x`:
 
@@ -400,40 +415,112 @@ id 2 -> 3
 
 # Worked example 2: distinct values in ranges
 
-Array:
+The task is to answer queries `[left,right]` asking how many different values
+occur in that inclusive subarray. Use this array:
 
 ```text
 index: 1 2 3 4 5 6 7
 value: 1 2 1 3 2 4 1
 ```
 
-Suppose we process positions from left to right. For every value, keep only its
-latest occurrence active.
-
-After processing position `5`, active positions are:
+and these queries:
 
 ```text
-value 1 latest at 3
-value 2 latest at 5
-value 3 latest at 4
+id  left  right   expected distinct values
+0      1      3   {1,2}       -> 2
+1      2      5   {1,2,3}     -> 3
+2      4      7   {1,2,3,4}   -> 4
 ```
 
-Active marker array:
+## Process queries when their right endpoint is reached
+
+Sort the queries by their right endpoint, then scan the array from left to right.
+After processing position `right`, maintain this invariant:
 
 ```text
-index: 1 2 3 4 5
-mark:  0 0 1 1 1
+For each distinct value in a[1..right], exactly one position is active:
+its most recent occurrence.
 ```
 
-For a query `[2,5]`, the number of distinct values is:
+When the value `x = a[right]` arrives:
+
+1. If `x` was previously active at `last[x]`, remove that old marker.
+2. Add a marker at `right`.
+3. Set `last[x] = right`.
+
+The Fenwick tree stores these zero-or-one markers.
+
+## Complete trace
 
 ```text
-sum marks in [2,5] = 3
+right  value  marker update                 active positions
+1      1      add 1                         {1}
+2      2      add 2                         {1,2}
+3      1      remove 1, add 3               {2,3}
 ```
 
-Why does this work? For every value that appears in `[l,r]`, its latest
-occurrence among positions `1..r` is inside `[l,r]`. Values that do not appear
-in `[l,r]` have no active marker inside that range.
+We have now reached the right endpoint of query `id=0`, namely `[1,3]`:
+
+```text
+marks in [1,3] = positions {2,3} -> answer 2
+```
+
+Continue the scan:
+
+```text
+right  value  marker update                 active positions
+4      3      add 4                         {2,3,4}
+5      2      remove 2, add 5               {3,4,5}
+```
+
+At `right=5`, answer query `id=1`, `[2,5]`:
+
+```text
+marks in [2,5] = positions {3,4,5} -> answer 3
+```
+
+Finish the scan:
+
+```text
+right  value  marker update                 active positions
+6      4      add 6                         {3,4,5,6}
+7      1      remove 3, add 7               {4,5,6,7}
+```
+
+At `right=7`, answer query `id=2`, `[4,7]`:
+
+```text
+marks in [4,7] = positions {4,5,6,7} -> answer 4
+```
+
+## Why the range sum is the distinct count
+
+Consider one value that occurs somewhere in `[left,right]`. Its most recent
+occurrence within the processed prefix `a[1..right]` cannot be before `left`: we
+already know it has an occurrence at or after `left`. Therefore its one active
+marker lies inside `[left,right]`.
+
+Conversely, every active marker inside `[left,right]` represents a value
+occurring in that range. Because there is only one active marker per value,
+summing the markers in `[left,right]` counts every distinct value exactly once.
+
+The resulting offline algorithm is:
+
+```text
+sort queries by increasing right
+right = 0
+
+for each query (left, query_right, id):
+    while right < query_right:
+        right += 1
+        x = a[right]
+        if x has appeared before:
+            add(last[x], -1)
+        add(right, +1)
+        last[x] = right
+
+    answer[id] = range_sum(left, query_right)
+```
 
 # Answer restoration
 

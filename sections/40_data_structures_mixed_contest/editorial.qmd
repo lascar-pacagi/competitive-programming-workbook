@@ -23,6 +23,19 @@ execute:
   enabled: false
 ---
 
+# Category coverage
+
+| Category | Coverage problem |
+|---|---|
+| Fenwick tree | B. List Removals; D. Salary Queries |
+| segment tree | A. Hotel Queries |
+| static queries and binary lifting | E. Functional Walk Minimum |
+| heaps and priority queues | F. Running Lower Median |
+
+The two additional blind-practice problems are self-contained local packages
+and are included by this section's checker. C. Mo Distinct Queries remains
+extra offline-query practice.
+
 # Editorial overview
 
 | Problem | Main idea |
@@ -30,6 +43,7 @@ execute:
 | A. Hotel Queries | See full algorithm and code below. |
 | B. List Removals | See full algorithm and code below. |
 | C. Mo Distinct Queries | See full algorithm and code below. |
+| D. Salary Queries | Compress update values, then maintain salary frequencies in a Fenwick tree. |
 # A. Hotel Queries
 
 ## Restatement
@@ -57,7 +71,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -174,7 +188,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -304,7 +318,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -419,7 +433,94 @@ if __name__ == "__main__":
     main()
 ```
 
+# D. Salary Queries
+
+## Restatement and constraint implications
+
+There are `n` employees with current integer salaries. An operation `! k x`
+changes employee `k`'s salary to `x`. A query `? a b` asks how many current
+salaries lie in the inclusive *value* interval `[a,b]`. There are up to
+`200,000` employees and operations, and salaries can be negative or as large
+as `10^9` in magnitude.
+
+The interval is about salary values, not employee indices. Scanning all
+employees per query is quadratic. A query needs only the number of occurrences
+of each ordered salary value, which is exactly what a Fenwick tree can store
+after coordinate compression.
+
+## Coordinate collection and trace
+
+Read and retain all operations first. Collect every initial salary and every
+new `x` in an update, sort the distinct values, and give each one a one-based
+rank. This preserves order: for collected salaries `u` and `v`, `u < v` if and
+only if `rank(u) < rank(v)`.
+
+For initial salaries `[10,20,30,40,50]`, query `? 15 45` has four salaries at
+most 45 and one salary below 15, so its answer is `4-1=3`. After `! 2 35`,
+remove one count at rank 20 and add one at rank 35. Then `? 30 35` returns two.
+The bounds 15 and 45 need not be coordinates: binary search locates where
+they fall among actual salary values.
+
+## Algorithm
+
+```text
+collect initial salaries and every update value; sort and deduplicate them
+insert all current salary ranks into a Fenwick frequency tree
+
+for each operation:
+    if ! k x:
+        remove the rank of current[k]
+        set current[k] = x and add its rank
+    else ? a b:
+        right = number of coordinate values <= b
+        left = number of coordinate values < a
+        print BIT.prefix(right) - BIT.prefix(left)
+```
+
+Use `upper_bound(coords,b)`/`bisect_right(coords,b)` for `right`, and
+`lower_bound(coords,a)`/`bisect_left(coords,a)` for `left`.
+
+## Correctness proof
+
+The Fenwick invariant is: the frequency at each rank equals the number of
+employees currently earning that corresponding salary. Initialization adds
+each employee once. An update removes exactly its old salary and adds exactly
+its new one, so the invariant remains true.
+
+For `[a,b]`, `right` covers exactly salaries at most `b`, while `left` covers
+exactly salaries below `a`. The two Fenwick prefix sums therefore count those
+two employee sets under the invariant. Their difference counts exactly the
+employees with `a <= salary <= b`, so every query answer is correct. QED.
+
+## Complexity, implementation notes, and tests
+
+Sorting coordinates costs `O((n+q) log(n+q))`. Each update/query uses a
+constant number of binary searches and Fenwick operations, hence
+`O(log(n+q))`; memory is `O(n+q)`. Use `long long` for C++ salary values.
+
+Test an update below every old salary, equal salaries, query endpoints absent
+from coordinates, and an empty value range. Common mistakes are using a lower
+bound for the inclusive upper endpoint, or adding the new salary without first
+removing the old one.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_salary_queries/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_salary_queries/solution.py >}}
+```
+
 # Testing discussion
+
+The small D cases keep a literal salary list and answer queries by scanning it;
+they never invoke a reference solution. The scale case combines 100,000
+updates with 100,000 range-count queries, so a linear scan cannot pass. The
+expected outputs are shared by the C++ and Python runners.
 
 # Detailed upsolve workshop
 
@@ -504,3 +605,378 @@ The fixed samples cover visible behavior. The random tests generate
 many small operation sequences and compute expected outputs from the
 reference Python implementation, then the same expected files are
 used against both the C++ and Python submissions.
+
+# E. Functional Walk Minimum
+
+## Restatement and constraint recognition
+
+Every vertex has exactly one outgoing edge. A query starts at `v`, follows
+exactly `k` edges, and asks for both the final vertex and the minimum value
+among the start and all reached vertices.
+
+Simulating a query takes `O(k)`, but `k` may be as large as `10^18`. The
+functional graph never branches during a walk, so binary lifting can precompute
+the effect of blocks of `1,2,4,8,...` steps. Alongside the destination of a
+block, store an aggregate—in this case, a minimum.
+
+## Table meaning
+
+For vertex `v` and level `j`, define:
+
+```text
+up[v][j] = vertex reached after exactly 2^j edges from v
+mn[v][j] = minimum value among the 2^j reached vertices
+           (the starting value at v is not included)
+```
+
+Excluding the block's starting value avoids double-counting concerns when
+concatenating blocks. The query initializes its answer with `value[v]`, so the
+original start is still included exactly as required.
+
+For level zero:
+
+```text
+up[v][0] = next[v]
+mn[v][0] = value[next[v]]
+```
+
+Two adjacent blocks of length `2^(j-1)` give:
+
+```text
+middle   = up[v][j-1]
+up[v][j] = up[middle][j-1]
+mn[v][j] = min(mn[v][j-1], mn[middle][j-1])
+```
+
+## Answering a query
+
+Write `k` in binary. Starting with `answer = value[v]`, inspect its set bits
+from low to high. For bit `j`, merge `mn[v][j]` into the answer and replace
+`v` by `up[v][j]`. The selected blocks concatenate to exactly `k` edges.
+Sixty-one levels cover every `k <= 10^18`.
+
+## Correctness proof
+
+By induction on `j`, `up[v][j]` reaches the endpoint of exactly `2^j` edges
+and `mn[v][j]` is the minimum over precisely the vertices reached by those
+edges. The base case is the single outgoing edge. For the induction step, the
+first stored half starts at `v`; the second starts at its endpoint `middle`.
+Their concatenation is the required full block, and taking the minimum of
+their aggregates is exact.
+
+During a query, after processing some bits, `v` is the endpoint of the
+corresponding concatenated blocks and `answer` is the minimum over the
+original start and all vertices reached so far. Processing a set bit appends
+the correct next block by the table lemma and merges exactly its values.
+After all bits, the blocks total `k`, proving both reported values correct.
+
+## Complexity and implementation notes
+
+With `L = 61`, preprocessing costs `O(nL)` time and memory, and each query
+costs `O(L)`. In asymptotic terms this is `O((n+q) log K)` time and
+`O(n log K)` memory.
+
+The Python reference stores tables in packed `array` objects rather than lists
+of Python integers; at `n = 200000`, ordinary nested lists would consume far
+more memory. Be careful that `k = 0` must return the original vertex and its
+value, and that the block minimum includes destinations but not its start.
+
+## Tests that matter
+
+```text
+k = 0                         -> unchanged vertex and starting value
+k = 1                         -> one table base block
+k with several set bits       -> block concatenation
+A self-loop                    -> repeated endpoint
+A tail entering a cycle       -> works without cycle detection
+Minimum occurs at the start, in the tail, and inside the cycle
+k = 10^18                     -> verifies the number of levels
+```
+
+For small graphs and small `k`, direct step-by-step simulation is an
+independent oracle.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_functional_walk_minimum/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_functional_walk_minimum/solution.py >}}
+```
+
+# F. Running Lower Median
+
+## Restatement and invariant choice
+
+After each insertion, output the element at sorted position
+`(length+1)//2`: the lower of the two middle values when the length is even.
+Sorting the entire prefix after every insertion would take `O(n^2 log n)`.
+
+Split the values into two heaps:
+
+```text
+lower = max-heap containing the smaller half
+upper = min-heap containing the larger half
+```
+
+Maintain two invariants:
+
+1. every value in `lower` is at most every value in `upper`;
+2. `len(lower)` equals `len(upper)` or is exactly one larger.
+
+Under these invariants, `lower.top()` is always the lower median.
+
+## Algorithm
+
+For each arriving value `x`:
+
+1. If `lower` is empty or `x <= lower.top()`, insert it into `lower`;
+   otherwise insert it into `upper`.
+2. If `lower` is smaller than `upper`, move `upper.top()` to `lower`.
+3. If `lower` has more than one extra value, move `lower.top()` to `upper`.
+4. Output `lower.top()`.
+
+Python's `heapq` is a min-heap, so store negated values in `lower`.
+
+## Correctness proof
+
+Initially both invariants hold. The insertion comparison places `x` on the
+correct side of the current boundary, preserving the ordering invariant.
+Rebalancing moves only the maximum of the lower side or the minimum of the
+upper side across that boundary, so ordering remains true while the size
+invariant is restored.
+
+If the total count is odd, `lower` contains one more element than `upper`; its
+maximum is the unique middle element. If the count is even, the heaps have
+equal size; the maximum of `lower` is the smaller middle element. Thus the
+reported top is exactly the requested lower median after every insertion.
+
+## Complexity and common mistakes
+
+Each value causes one insertion and at most one heap transfer, all
+`O(log n)`. Total time is `O(n log n)` and memory is `O(n)`.
+
+- Equal values may go into either side, but the ordering and size invariants
+  must still hold.
+- Returning the upper heap's top for even prefixes gives the upper median.
+- Rebalancing sizes without preserving the partition order is insufficient.
+- In Python, remember to negate both when pushing to and reading from the
+  lower max-heap.
+
+## Tests that matter
+
+```text
+One value.
+Strictly increasing and strictly decreasing streams.
+All values equal.
+Alternating very small and very large values.
+Negative values.
+Even prefixes where lower and upper medians differ.
+```
+
+A simple oracle sorts each short prefix and reads index `(len(prefix)-1)//2`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_running_lower_median/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_running_lower_median/solution.py >}}
+```
+
+# G. Streaming Room Count
+
+## Model and algorithm
+
+Because meetings arrive by starting time, keep the ending times of precisely
+the meetings active at the next start in a min-heap. Before inserting `[s,e)`,
+remove every ending time at most `s`. Insert `e` and update the largest heap
+size ever seen.
+
+## Why it works
+
+After the removals, every heap entry overlaps the new meeting, and every
+previous meeting not in the heap has ended. Thus the heap size after insertion
+is exactly the simultaneous load at `s`. The minimum room count is the maximum
+simultaneous load over all starts, which the running maximum records.
+
+Time is `O(n log n)` and memory is `O(n)`. The important boundary is that an
+end equal to a start is reusable because intervals are half-open.
+
+## Full solutions
+
+```cpp
+{{< include problems/g_streaming_room_count/solution.cpp >}}
+```
+
+```python
+{{< include problems/g_streaming_room_count/solution.py >}}
+```
+
+# H. Toggle K-th Active
+
+## Model and algorithm
+
+Store `1` for an active position and `0` otherwise in a Fenwick tree. Toggling
+is a point addition. A `K k` query asks for the smallest index whose prefix sum
+is at least `k`; find it by Fenwick binary lifting after checking that the total
+count reaches `k`.
+
+## Why it works
+
+Every Fenwick prefix is exactly the number of active positions in that prefix.
+Therefore the first prefix reaching `k` ends at the k-th active position.
+Binary lifting maintains the largest prefix whose count is still below `k`,
+so the following index is the answer.
+
+Each operation costs `O(log n)` and memory is `O(n)`. Test repeated toggles,
+`k=1`, `k=total`, and an invalid `k`.
+
+## Full solutions
+
+```cpp
+{{< include problems/h_toggle_kth_active/solution.cpp >}}
+```
+
+```python
+{{< include problems/h_toggle_kth_active/solution.py >}}
+```
+
+# I. Dynamic Maximum Subarray
+
+## Node state
+
+For each segment store its total sum, best nonempty prefix, best nonempty
+suffix, and best nonempty subarray. When joining left `L` and right `R`, a best
+subarray is either inside `L`, inside `R`, or `L.suffix + R.prefix`. Prefix and
+suffix have the analogous two choices.
+
+## Correctness and complexity
+
+Those cases exhaust where a contiguous interval can cross the unique boundary
+between the children. Leaves are correct for a one-element segment, so the
+merge proves every node correct by induction. A point update changes one root
+path: `O(log n)` time per update and `O(n)` memory. Use negative infinity for
+padding; using zero would incorrectly permit an empty subarray.
+
+## Full solutions
+
+```cpp
+{{< include problems/i_dynamic_maximum_subarray/solution.cpp >}}
+```
+
+```python
+{{< include problems/i_dynamic_maximum_subarray/solution.py >}}
+```
+
+# J. Sliding Median Cost
+
+## Reduction
+
+The minimizing `x` is any median. Coordinate-compress all values and maintain
+two Fenwick trees for the current window: one stores counts and the other
+stores sums. Find the lower median `m` by order statistics. If `(cL,sL)` are
+the count and sum at most `m`, and `(cR,sR)` are those above it, the cost is
+
+```text
+m*cL - sL + sR - m*cR.
+```
+
+## Correctness and complexity
+
+Moving `x` toward a median cannot increase the number of values moved away
+from compared with values moved toward; hence a median minimizes absolute
+deviation. The formula separately sums `m-a[i]` on the left and `a[i]-m` on
+the right. Each insertion, deletion, and median search is `O(log n)`, for
+`O(n log n)` total time and `O(n)` memory.
+
+## Full solutions
+
+```cpp
+{{< include problems/j_sliding_median_cost/solution.cpp >}}
+```
+
+```python
+{{< include problems/j_sliding_median_cost/solution.py >}}
+```
+
+# K. Budget Prefix Search
+
+## Segment information and guided descent
+
+Signed values destroy monotonicity: a running sum may cross the budget, fall
+back, and cross again. Store for every segment its total sum and its maximum
+nonempty prefix sum. The merge is
+
+```text
+sum  = left.sum + right.sum
+pref = max(left.pref, left.sum + right.pref).
+```
+
+During a query, maintain the sum of the already skipped part of `[l,n)`. A
+whole segment can be skipped exactly when
+`running + segment.pref <= budget`; then add its total to `running`. Otherwise
+descend left before right. The first leaf that cannot be skipped is the first
+budget breach.
+
+The stored maximum examines every prefix of a segment: it either stays in the
+left child or contains all of the left child and a prefix of the right. Thus a
+skipped node contains no breach. Descending left first returns the earliest
+node that does contain one. Point assignments and searches both cost
+`O(log n)`, with `O(n)` memory.
+
+## Full solutions
+
+```cpp
+{{< include problems/k_budget_prefix_search/solution.cpp >}}
+```
+
+```python
+{{< include problems/k_budget_prefix_search/solution.py >}}
+```
+
+# L. Dynamic Inversion Swaps
+
+## Local change formula
+
+Assume `i<j`, `x=a[i]`, and `y=a[j]`. Pairs wholly outside these positions do
+not change. If `x<y`, their mutual pair contributes `+1` after swapping. Every
+middle value `z` with `x<z<y` changes two non-inversions into two inversions;
+all other middle values have zero net change. Therefore
+
+```text
+delta = +(1 + 2*count(i<k<j and x<a[k]<y)).
+```
+
+For `x>y`, the same quantity is subtracted.
+
+## Data structure, proof, and cost
+
+Split positions into blocks and keep each block sorted. Count middle values in
+the open value interval using binary search on full blocks and direct checks
+on the two boundary fragments. After a swap, rebuild its one or two blocks.
+The formula considers every pair involving a changed position exactly once,
+so adding it preserves the exact inversion total.
+
+Compute the initial total with a Fenwick tree. With block size about
+`sqrt(n)`, a swap costs `O(sqrt(n) log n)`, initialization costs
+`O(n log n)`, and memory is `O(n)`. Open value bounds and `i=j` are essential
+edge cases.
+
+## Full solutions
+
+```cpp
+{{< include problems/l_dynamic_inversion_swaps/solution.cpp >}}
+```
+
+```python
+{{< include problems/l_dynamic_inversion_swaps/solution.py >}}
+```

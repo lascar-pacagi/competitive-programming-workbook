@@ -4,7 +4,7 @@ using namespace std;
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    // TODO: dp[r][c] = minimum cost to reach cell (r,c).
+
+    // TODO: solve the problem.
     return 0;
 }
-

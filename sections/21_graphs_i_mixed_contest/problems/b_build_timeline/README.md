@@ -17,7 +17,16 @@ am bm
 x1 x2 ... xq
 ```
 
-`1 <= n,q <= 2 * 10^5`, `0 <= m <= 2 * 10^5`.
+The integer constraints are:
+
+- `1 <= n, q <= 2 * 10^5`;
+- `0 <= m <= 2 * 10^5`;
+- `1 <= t_i <= 10^9`;
+- `1 <= a_j, b_j <= n` for every dependency;
+- `1 <= x_j <= n` for every query.
+
+When the graph is acyclic, every earliest finish day is at most
+`n * 10^9 <= 2 * 10^14`, so it must be stored in a signed 64-bit integer.
 
 ## Output
 
@@ -43,4 +52,3 @@ Output:
 ```text
 7 13 3
 ```
-

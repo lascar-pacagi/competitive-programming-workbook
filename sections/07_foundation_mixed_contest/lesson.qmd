@@ -37,9 +37,23 @@ Sections 1 through 6 introduced the foundation tools:
 Real contests do not label problems with the technique. A mixed section trains
 the missing skill: deciding which tool the statement is asking for.
 
-This section should be attempted like a short virtual contest. Read all three
+This section should be attempted like a short virtual contest. Read all five
 problems first, estimate the intended complexity, solve the easiest one, and
 then upsolve carefully.
+
+# Complete local contest set
+
+| Problem | Title |
+|---|---|
+| A | Inventory Cleanup |
+| B | Peak Load |
+| C | Best Study Streak |
+| D | Balanced Break |
+| E | Circular Patrol |
+
+Problems D and E extend the original three-problem set. Include them in the
+same triage pass: D adds another candidate-enumeration exercise, while E makes
+explicit state simulation part of the mixed contest.
 
 # Contest triage
 
@@ -56,105 +70,32 @@ for each problem:
 Do not spend 25 minutes on the first problem just because it is first. A
 contest is a scheduling problem too.
 
-For foundation problems, the technique clues are often visible:
+# A diagnosis routine, not an answer key
 
-| Statement shape | Likely tool |
-|:---|:---|
-| many equal values or distinct types | counting/frequencies |
-| many range updates | difference array |
-| contiguous segment under a limit | sliding window if values are nonnegative |
-| closest or ordered relation | sorting |
-| small explicit search space | brute force |
-
-# Problem A signal: frequencies plus sorting
-
-Inventory cleanup asks:
-
-> delete items so that at most `k` distinct colors remain.
-
-The values themselves do not matter except for equality. That points to a
-frequency table.
-
-Once you know each color's frequency, the question becomes:
-
-> which color groups should be deleted entirely?
-
-To reduce the number of distinct colors with minimum deletions, delete the
-smallest groups first. That points to sorting the frequencies.
-
-Technique stack:
+Do not read the local problem names as technique labels. For each statement,
+write down observations before choosing an algorithm:
 
 ```text
-count colors -> sort frequencies -> remove smallest groups
+1. What changes between operations or positions?
+2. What is the largest input dimension?
+3. What direct approach would be too slow, and why?
+4. Does the answer depend on values, equality classes, order, or a contiguous range?
+5. Which earlier tool has an invariant that could rule out the slow approach?
 ```
 
-# Problem B signal: range updates
+At this stage, keep two candidate ideas if necessary. Check each candidate
+against the constraints and against one deliberately awkward small example.
+The goal is to eliminate wrong models yourself, not to recognize a keyword
+and immediately reach for a memorized template.
 
-Peak load says each job contributes to every integer time in `[l, r]`.
-
-The direct simulation is:
-
-```text
-for every job:
-    for every time in its interval:
-        add load
-```
-
-That can be too slow. The phrase "add to every position in a range" should
-trigger the difference-array pattern:
-
-```text
-diff[l] += w
-diff[r + 1] -= w
-```
-
-Then a single scan reconstructs the load and finds the earliest maximum.
-
-# Problem C signal: nonnegative contiguous streak
-
-Best study streak asks for a contiguous segment with sum at most `k`, and the
-values are nonnegative.
-
-That is the sliding-window condition from Section 6. The added contest detail
-is tie-breaking:
-
-> among maximum-length streaks, choose the earliest start.
-
-So the answer update must compare:
-
-```text
-larger length first
-then smaller start
-```
-
-# Technique selection diagram
-
-```text
-Does order matter?
-    |
-    +-- no, only equality -> frequency table
-    |
-    +-- yes, contiguous range?
-            |
-            +-- many fixed range updates -> difference array
-            |
-            +-- nonnegative sum limit -> sliding window
-            |
-            +-- arbitrary signs -> prefix sums / maps
-```
-
-This diagram is not universal. It is a contest-time checklist for the tools
-covered so far.
+For this mixed section, attempt Problems A through E before continuing. Their
+statements contain enough information to diagnose them using Sections 1--6.
+Return to this lesson after your attempt to review the contest process; use the
+editorial only for a full upsolve.
 
 # Reading tie-breaking rules
 
 Tie-breaking rules are part of the problem, not output decoration.
-
-Examples:
-
-- minimum deletions;
-- earliest time of maximum load;
-- earliest start among longest streaks.
 
 For each answer variable, ask:
 
@@ -164,12 +105,10 @@ What is the secondary objective?
 What should happen if everything ties?
 ```
 
-In Problem B, the primary objective is maximum load. The secondary objective
-is earliest time. That means update only on strictly larger load during a
-left-to-right scan; the first occurrence remains stored.
-
-In Problem C, update on a longer streak, and for equal length update only if
-the start is earlier.
+Write the comparison rule explicitly before coding. For example, if the first
+objective is a maximum and the second is an earliest position, decide whether
+an equal primary value should replace the stored answer or preserve it. This
+prevents accidental tie behavior caused by `>` versus `>=`.
 
 # Upsolving workflow
 
@@ -188,10 +127,10 @@ while building the course.
 
 # Common mixed-contest mistakes
 
-- Recognizing a familiar tool but ignoring a new tie-breaker.
-- Using a sliding window when negative values are allowed.
-- Sorting values when only frequencies matter.
-- Applying range updates directly even though `n + m` is large.
+- Choosing a familiar tool before checking whether its assumptions hold.
+- Ignoring a tie-breaker because the primary objective looks familiar.
+- Accepting a complexity estimate without multiplying all nested loops.
+- Testing only samples instead of an adversarial small case.
 - Solving the first problem slowly while easier points are available later.
 - Trusting hand-written samples without an oracle.
 
@@ -212,13 +151,14 @@ If you cannot fill these in, the solution is not ready.
 
 Attempt these as a timed set:
 
-1. `a_inventory_cleanup`: counting plus sorting.
-2. `b_peak_load`: difference array plus earliest maximum.
-3. `c_best_study_streak`: sliding window plus tie-breaking.
+1. `a_inventory_cleanup`
+2. `b_peak_load`
+3. `c_best_study_streak`
+4. `d_balanced_break`
+5. `e_circular_patrol`
 
 Run:
 
 ```bash
 python3 sections/07_foundation_mixed_contest/check.py
 ```
-

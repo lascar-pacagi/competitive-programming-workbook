@@ -1,0 +1,3 @@
+#include <bits/stdc++.h>
+using namespace std;using ll=long long;const ll INF=(1LL<<62);
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,k;cin>>n>>k;vector<vector<ll>>cost(n,vector<ll>(n));for(auto&r:cost)for(ll&x:r)cin>>x;vector<ll>prev(n+1,INF),cur(n+1,INF);prev[0]=0;for(int group=1;group<=k;group++){fill(cur.begin(),cur.end(),INF);function<void(int,int,int,int)>solve=[&](int lo,int hi,int optl,int optr){if(lo>hi)return;int mid=(lo+hi)/2,best=optl;for(int j=optl;j<=min(optr,mid-1);j++)if(prev[j]!=INF&&prev[j]+cost[j][mid-1]<cur[mid])cur[mid]=prev[j]+cost[j][mid-1],best=j;solve(lo,mid-1,optl,best);solve(mid+1,hi,best,optr);};solve(group,n,group-1,n-1);prev.swap(cur);}cout<<prev[n]<<'\n';}

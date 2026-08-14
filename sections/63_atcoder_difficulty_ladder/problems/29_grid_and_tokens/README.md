@@ -1,0 +1,28 @@
+# Offline companion: ABC205_F -- Grid and Tokens
+
+This is an original, locally judgeable companion for [ABC205_F -- Grid and Tokens](https://atcoder.jp/contests/abc205/tasks/abc205_f?lang=en). It is **not** a copied AtCoder statement. Solve this package offline to practise a nearby course technique, then solve the linked official task on AtCoder.
+
+
+You have `n` positive file sizes. Repeatedly choose two current files, merge
+them into one file, and pay a cost equal to their combined size. Find the
+smallest possible total cost to end with one file.
+
+## Input
+```text
+n
+s1 s2 ... sn
+```
+`1 <= n <= 200000`, `1 <= si <= 10^9`.
+
+## Output
+Print the minimum total merge cost.
+
+## Sample
+```text
+4
+4 3 2 6
+```
+```text
+29
+```
+Merge `2+3=5`, then `4+5=9`, then `6+9=15`.

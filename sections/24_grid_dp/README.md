@@ -11,6 +11,7 @@ the state when the statement needs it.
    - `a_safe_paths`
    - `b_lowest_toll`
    - `c_limited_turns`
+   - `d_two_couriers` (blind practice: use this problem README only before the editorial)
 3. Run the checker:
 
 ```bash
@@ -25,4 +26,3 @@ CP_TARGET=solution python3 sections/24_grid_dp/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

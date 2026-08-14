@@ -35,6 +35,20 @@ Each section should contain:
 External statements are linked, not copied. Local exercises use original
 statements or short summaries plus an input/output contract for testing.
 
+### Mixed-Contest Coverage Contract
+
+Every mixed-contest checkpoint must name at least one problem for each
+algorithmic category taught since the previous checkpoint. A problem may cover
+multiple categories when its intended solution genuinely uses each one.
+Additional cumulative-review problems are welcome, but they do not replace a
+missing phase category.
+
+Every required coverage problem must be a self-contained package inside the
+mixed section's own `problems/` directory, with a statement, student stubs,
+C++ and Python references, fixed tests, and a randomized oracle when useful.
+The mixed checker must use those local packages; cross-section links may be
+additional practice but do not satisfy the coverage requirement.
+
 ## Pedagogical Pattern
 
 Each lesson follows this rhythm:

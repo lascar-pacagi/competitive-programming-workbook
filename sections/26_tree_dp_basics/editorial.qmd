@@ -30,6 +30,7 @@ execute:
 | A. Festival Invite | choose or skip node | sum child optima |
 | B. Road Pairing | match node to zero/one child | best child upgrade |
 | C. Tree Colorings | color of node | product over children |
+| D. Road Guards | activate or leave node inactive | force active children when needed |
 
 All solutions root the tree at vertex `1` and process nodes in postorder.
 
@@ -68,7 +69,7 @@ print max(take[root], skip[root])
 `u`, if `u` is taken, every child must be skipped, and child subtrees are
 independent. If `u` is skipped, every child can use its better state. By the
 induction hypothesis, the child values are optimal, so the formulas are
-optimal. `\square`
+optimal. $\square$
 
 ## Complexity
 
@@ -207,7 +208,7 @@ are independent and contribute their best values. If `u` is matched to a child
 `v`, no other child edge incident to `u` can be chosen, and `v` cannot be
 matched inside its child subtrees; hence `free[v] + 1` replaces `v`'s previous
 best contribution. Trying every child covers every possible edge incident to
-`u`. `\square`
+`u`. $\square$
 
 ## Complexity
 
@@ -344,7 +345,7 @@ answer = white[root] + black[root]
 coloring. For an internal node, fixing the color of `u` makes child subtrees
 independent. White `u` imposes no black constraint on children, while black `u`
 forces every child root white. Multiplying counts independent choices across
-children. `\square`
+children. $\square$
 
 ## Complexity
 
@@ -440,6 +441,244 @@ if __name__ == "__main__":
     main()
 ```
 
+# D. Road Guards
+
+## Restatement
+
+Every tree vertex has a positive activation cost. Activate some vertices so
+that every tree edge touches at least one activated endpoint, while minimizing
+the sum of activated costs. A one-vertex tree has no roads to cover, so its
+optimal cost is zero.
+
+## Constraints and traps
+
+`n` can be `200000` and costs can reach `10^9`. Enumerating activated subsets
+is exponential, and a recursive traversal can fail on a path-shaped tree.
+
+```text
+An activated vertex covers every incident edge, not only edges to children.
+If a parent is inactive, every child must be active to cover the parent-child road.
+If a parent is active, each child may independently be active or inactive.
+The answer may leave the root inactive.
+```
+
+Use `long long` in C++ for the total cost.
+
+## State and walk-through
+
+Root the tree at vertex `1`. Define two subtree costs:
+
+```text
+active[u]   = minimum cost in u's subtree when u is activated
+inactive[u] = minimum cost in u's subtree when u is not activated
+```
+
+If `u` is active, edge `(u,v)` is already covered for every child `v`, so that
+child can use its cheaper state. If `u` is inactive, each child must be active
+to cover edge `(u,v)`:
+
+```text
+active[u]   = cost[u] + sum(min(active[v], inactive[v]))
+inactive[u] =           sum(active[v])
+```
+
+For the sample, process leaves first:
+
+```text
+vertex 2: active=2, inactive=0
+vertex 4: active=1, inactive=0
+vertex 5: active=3, inactive=0
+
+vertex 3: active   = 4 + min(1,0) + min(3,0) = 4
+          inactive = 1 + 3 = 4
+
+vertex 1: active   = 5 + min(2,0) + min(4,4) = 9
+          inactive = 2 + 4 = 6
+```
+
+The root has no parent edge that needs coverage, so either state is legal. The
+answer is `min(9, 6) = 6`, obtained by activating vertices `2` and `3`.
+
+## Algorithm
+
+```text
+root the tree at vertex 1 and record an iterative traversal order
+active[u] = cost[u], inactive[u] = 0 for every vertex
+
+for u in reverse traversal order:
+    for every child v of u:
+        active[u] += min(active[v], inactive[v])
+        inactive[u] += active[v]
+
+print min(active[root], inactive[root])
+```
+
+Reverse traversal order is postorder: all child state pairs are ready before
+their parent uses them.
+
+## Correctness proof
+
+**Lemma 1.** For every vertex `u`, `active[u]` is the minimum cost of a valid
+activation choice inside `u`'s subtree under the condition that `u` is active.
+
+**Proof.** Induct on subtree height. For a leaf, activating it costs exactly
+`cost[u]`. For an internal `u`, every edge from `u` to a child is covered by
+the active endpoint `u`. Thus each child subtree may choose either valid child
+state independently. By the induction hypothesis, the least contribution of
+child `v` is `min(active[v], inactive[v])`; adding the mandatory `cost[u]`
+gives exactly the transition. $\square$
+
+**Lemma 2.** For every vertex `u`, `inactive[u]` is the minimum cost of a
+valid activation choice inside `u`'s subtree under the condition that `u` is
+inactive.
+
+**Proof.** A leaf needs no activated vertex in its subtree, so its cost is
+zero. For an internal inactive `u`, each edge `(u,v)` must be covered by its
+child endpoint, which forces every child `v` active. Child subtrees are
+independent, and by Lemma 1 their least valid contributions are `active[v]`.
+Their sum is precisely the transition for `inactive[u]`. $\square$
+
+**Theorem.** The algorithm prints the minimum activation cost covering every
+road in the tree.
+
+**Proof.** Lemmas 1 and 2 prove the meanings of both root states. The root has
+no parent edge, so it may be active or inactive. Taking the smaller of the two
+valid root costs is therefore the global optimum. $\square$
+
+## Complexity
+
+Each vertex and edge is processed a constant number of times.
+
+```text
+Time:   O(n)
+Memory: O(n)
+```
+
+## C++ implementation notes
+
+Build `parent` and `order` iteratively, then scan `order` backward. Initialize
+`active` with vertex costs and `inactive` with zero; this already gives the
+correct leaf base case. Use `long long` for both arrays.
+
+## Python implementation notes
+
+The pattern `for u in order:` is safe even while appending newly discovered
+children to the list. Then `reversed(order)` provides postorder without
+recursion. Python integers safely hold every possible cost total.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n;
+    cin >> n;
+    vector<long long> cost(n);
+    for (long long &value : cost) cin >> value;
+    vector<vector<int>> graph(n);
+    for (int i = 0; i + 1 < n; ++i) {
+        int u, v;
+        cin >> u >> v;
+        --u;
+        --v;
+        graph[u].push_back(v);
+        graph[v].push_back(u);
+    }
+
+    vector<int> parent(n, -1), order = {0};
+    parent[0] = 0;
+    for (int index = 0; index < static_cast<int>(order.size()); ++index) {
+        int u = order[index];
+        for (int v : graph[u]) {
+            if (parent[v] == -1) {
+                parent[v] = u;
+                order.push_back(v);
+            }
+        }
+    }
+
+    vector<long long> active = cost, inactive(n, 0);
+    for (int index = n - 1; index >= 0; --index) {
+        int u = order[index];
+        for (int v : graph[u]) {
+            if (parent[v] == u) {
+                active[u] += min(active[v], inactive[v]);
+                inactive[u] += active[v];
+            }
+        }
+    }
+
+    cout << min(active[0], inactive[0]) << '\n';
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    n = data[0]
+    cost = data[1:1 + n]
+    graph = [[] for _ in range(n)]
+    index = 1 + n
+    for _ in range(n - 1):
+        u = data[index] - 1
+        v = data[index + 1] - 1
+        index += 2
+        graph[u].append(v)
+        graph[v].append(u)
+
+    parent = [-1] * n
+    parent[0] = 0
+    order = [0]
+    for u in order:
+        for v in graph[u]:
+            if parent[v] == -1:
+                parent[v] = u
+                order.append(v)
+
+    active = cost[:]
+    inactive = [0] * n
+    for u in reversed(order):
+        for v in graph[u]:
+            if parent[v] == u:
+                active[u] += min(active[v], inactive[v])
+                inactive[u] += active[v]
+
+    print(min(active[0], inactive[0]))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Applying the independent-set recurrence, which reverses the required child
+  state when the parent is active/inactive.
+- Forcing the root active even though it has no parent road to cover.
+- Adding `min(active[v], inactive[v])` to `inactive[u]`; an inactive parent
+  forces an active child.
+- Recursing into a long path and overflowing the call stack.
+- Using a 32-bit integer for costs.
+
+## Tests that matter
+
+- a one-vertex tree, whose answer is zero;
+- a long path, which checks iterative traversal and alternating choices;
+- a star with an expensive center, which can favor activating all leaves;
+- a star with cheap center, which favors the center;
+- equal costs, where several optimal guard sets exist;
+- costs near `10^9` on a large tree, which require 64-bit totals.
+
 # Testing and carry-forward
 
 The section checker runs:
@@ -448,7 +687,9 @@ The section checker runs:
 CP_TARGET=solution python3 sections/26_tree_dp_basics/check.py
 ```
 
-Tests include single-node trees, paths, stars, and random trees.
+Tests include single-node trees, paths, stars, and random trees. For Road
+Guards, the local generator enumerates every activated subset on trees up to
+18 vertices, then uses a `200000`-vertex path as the scale case.
 
 Carry forward:
 
@@ -458,4 +699,3 @@ Define states around the node's relationship to its parent/children.
 Process children before parents.
 Combine child subtrees independently.
 ```
-

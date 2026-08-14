@@ -15,10 +15,18 @@ um vm
 x1 x2 ... xq
 ```
 
-`1 <= n <= 2 * 10^5`  
-`0 <= m <= 2 * 10^5`  
-`1 <= s, ui, vi, xi <= n`  
-`1 <= q <= 2 * 10^5`
+- `n` is the number of vertices, numbered from `1` through `n`.
+- `m` is the number of directed edges.
+- `s` is the source vertex.
+- `q` is the number of distance queries.
+- Each pair `u_i v_i` describes a directed edge from `u_i` to `v_i`.
+- Each `x_i` is a target vertex whose distance from `s` must be reported.
+
+- `1 <= n <= 2 * 10^5`
+- `0 <= m <= 2 * 10^5`
+- `1 <= s <= n`
+- `1 <= u_i, v_i, x_i <= n`
+- `1 <= q <= 2 * 10^5`
 
 Edges are directed: an edge `u v` lets you move from `u` to `v`, not
 necessarily from `v` to `u`.
@@ -47,4 +55,3 @@ Output:
 ```text
 0 1 2 3 -1 1
 ```
-

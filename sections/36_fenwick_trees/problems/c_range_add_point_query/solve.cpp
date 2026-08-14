@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: implement C. Range Add Point Query.
+    // TODO: solve the problem.
     return 0;
 }

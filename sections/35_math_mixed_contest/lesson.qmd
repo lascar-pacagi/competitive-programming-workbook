@@ -25,253 +25,116 @@ execute:
 
 # How to approach a math mixed contest
 
-Math problems rarely announce their technique. Use statement shape:
+Math tasks seldom announce their technique. The task is to turn the story into
+a precise object before reaching for a formula.
 
-| Signal | Likely tool |
+# Complete local contest set
+
+| Problem | Title |
 |---|---|
-| paths with right/down moves | combinations |
-| avoid one forbidden object | subtract bad paths |
-| gcd equals 1 | prime factors and inclusion-exclusion |
-| at least one event happens | complement probability |
-| many values up to `10^6` | sieve / SPF |
+| A | Blocked Path |
+| B | Coprime Pairs |
+| C | At Least One |
+| D | Complete Alphabet |
+| E | Modular Appointment |
+| F | Festival Synchronization |
+| G | Capped Allocation |
+| H | GCD-One Subsets |
+| I | Exactly K Colors |
+| J | Target LCM Subsets |
+| K | Weighted Coupon Collection |
+| L | Random Divisor Descent |
 
-# A. Blocked grid paths
+Problems F through L form the harder half of the contest. They deliberately
+combine tools instead of isolating one chapter at a time:
 
-Paths from `(1,1)` to `(H,W)` use:
+| Problem | Combination to recognize |
+|---|---|
+| F | recognize and apply generalized CRT from Section 30 |
+| G | stars and bars plus inclusion-exclusion over violated caps |
+| H | divisor sieve plus subtraction of larger exact gcd classes |
+| I | choose the used colors, then count surjections |
+| J | target factorization plus bitmask union of required exponents |
+| K | tail-sum expectation plus inclusion-exclusion over missing coupons |
+| L | expectation recurrence evaluated by a divisor sieve |
 
-```text
-H-1 down moves
-W-1 right moves
-```
+For these problems, first write the slow or unrestricted mathematical model.
+The efficient solution usually appears only after identifying repeated divisor
+work, symmetric bad events, or a small set of prime-factor features.
 
-so total paths:
+# A diagnosis routine, not an answer key
 
-```text
-C(H+W-2, H-1)
-```
-
-Paths through blocked cell `(R,C)`:
-
-```text
-ways start -> blocked
-* ways blocked -> finish
-```
-
-Subtract those bad paths.
-
-Worked example:
-
-```text
-H = 3, W = 4
-blocked = (2,2)
-```
-
-All paths need `2` down moves and `3` right moves:
+For each local problem, write the following on paper:
 
 ```text
-C(5,2) = 10
+What set of objects am I counting, comparing, or assigning probability to?
+What makes an object valid?
+Can the desired set be partitioned into disjoint cases?
+Would it be easier to count its complement or subtract bad objects?
+Which assumption makes multiplication or division legal?
 ```
 
-Paths from `(1,1)` to `(2,2)` need one down and one right:
+Do not infer a method merely from words such as "grid", "gcd", or "at least
+one". The same words can support different models. The editorial contains the
+local reductions after you have attempted them.
+
+# Build formulas from bijections
+
+Every multiplication should have a reason. A product is justified when every
+object is represented by one independent choice from each factor, with neither
+omissions nor duplicates. A subtraction is justified when the bad objects form
+a set whose size you can count exactly. Inclusion-exclusion is appropriate
+only after you identify the overlapping properties being counted.
+
+For probability, distinguish disjoint events from independent events. Disjoint
+probabilities add. Independent probabilities multiply. Neither property should
+be assumed because it seems intuitive.
+
+# Tiny-model validation
+
+Before coding a closed form, enumerate a tiny instance by hand or with a
+brute-force checker. Compare three things:
 
 ```text
-C(2,1) = 2
+the objects in the original statement
+the objects your formula counts
+the boundary cases excluded by the formula
 ```
 
-Paths from `(2,2)` to `(3,4)` need one down and two right:
+This is especially important for empty choices, a value with no factors,
+impossible states, and modular division.
 
-```text
-C(3,1) = 3
-```
+# Complexity and arithmetic
 
-Bad paths:
+Let the largest constraint determine the shape of the solution. If values have
+a bounded universe, preprocessing may be useful; if a formula contains many
+queries, precomputation may be necessary. State the cost of every loop and the
+largest possible intermediate value, not only the final answer.
 
-```text
-2 * 3 = 6
-```
-
-Good paths:
-
-```text
-10 - 6 = 4
-```
-
-The multiplication is valid because every bad path has a unique prefix ending
-at the blocked cell and a unique suffix starting from it.
-
-# B. Coprime pairs
-
-Two numbers are not coprime iff they share at least one prime factor.
-
-When processing a new number `x`, factor it into distinct primes:
-
-```text
-x = 2^a * 3^b * 5^c  -> distinct primes [2,3,5]
-```
-
-For every nonempty subset of these primes, store how many previous numbers were
-divisible by their product. Inclusion-exclusion gives how many previous numbers
-share at least one prime factor with `x`.
-
-```text
-previous coprime with x = previous_count - share_any_prime
-```
-
-Then add `x` to all subset-product counters.
-
-This works because the subset products are square-free: each distinct prime is
-used at most once.
-
-Example with previous numbers:
-
-```text
-previous = [6, 10, 21]
-x = 30 = 2 * 3 * 5
-```
-
-Numbers sharing a factor with `30`:
-
-```text
-divisible by 2: 6,10      -> 2
-divisible by 3: 6,21      -> 2
-divisible by 5: 10        -> 1
-```
-
-The sum `2+2+1` counts `6` twice if it has factors `2` and `3`, so subtract
-pair intersections:
-
-```text
-divisible by 2*3: 6       -> 1
-divisible by 2*5: 10      -> 1
-divisible by 3*5: none    -> 0
-```
-
-Then add triple intersections:
-
-```text
-divisible by 2*3*5: none  -> 0
-```
-
-So:
-
-```text
-share_any = 2 + 2 + 1 - 1 - 1 - 0 + 0 = 3
-```
-
-All three previous numbers are not coprime with `30`, so there are `0`
-previous coprime pairs involving this `x`.
-
-# C. At least one event
-
-For independent events:
-
-```text
-P(at least one happens) = 1 - P(none happen)
-```
-
-And:
-
-```text
-P(none happen) = product_i (1 - p_i/q_i)
-```
-
-Use modular inverses for each `q_i`.
-
-Example:
-
-```text
-P(A) = 1/2
-P(B) = 1/3
-P(C) = 1/4
-```
-
-Probability none happen:
-
-```text
-(1/2) * (2/3) * (3/4) = 1/4
-```
-
-Probability at least one happens:
-
-```text
-1 - 1/4 = 3/4
-```
-
-The events may overlap in the outcome space, so adding `1/2 + 1/3 + 1/4`
-would be wrong.
+When working modulo a prime, division means multiplying by an inverse, and
+only denominators with an inverse are legal. Use `long long` for C++ modular
+products before reducing. In Python, still reduce deliberately so values and
+intent remain clear.
 
 # Common mistakes
 
 ```text
-Subtracting paths through a blocked cell twice.
-Counting prime powers instead of distinct primes in coprime-pair inclusion-exclusion.
-Forgetting that value 1 has no prime factors and is coprime with all previous numbers.
-Adding probabilities of events directly when they overlap.
+Using a product without proving independent choices.
+Subtracting overlapping bad sets without correcting double counts.
+Treating non-disjoint events as independent.
+Forgetting empty or degenerate cases.
+Using modular division when the inverse does not exist.
 ```
 
-# Contest checklist
-
-```text
-1. Translate the story into a known counting/probability shape.
-2. Identify bad objects if subtraction or complement is easier.
-3. Check whether values need preprocessing.
-4. Verify edge cases: blocked start/end, value 1, probability 0 or 1.
-```
 # Exercises
 
-Treat A as a blocked-grid counting reduction, B as a gcd-based pair count, and C as a complement/inclusion-exclusion event. For each, write the mathematical object being counted before coding.
-
-## Paper drills before the judge
-
-1. On a `3 by 4` grid blocked at `(2,2)`, list the two binomial factors for
-   paths through the block and verify the answer is four. Hint: a prefix and
-   suffix are independent only after fixing the block.
-2. Process `[1,6,10]` with an initially empty `seen` table. Write entries for
-   `2,3,5,6,10` after every value. Answer: the new-pair contributions are
-   `0,1,1`.
-3. For probabilities `1/2` and `1/3`, compute both the complement product and
-   the incorrect direct sum. Explain which outcomes direct addition counts
-   twice.
+Attempt A through L without naming a prior technique. For each one, write the
+mathematical object, one candidate counting identity, and a tiny example that
+would falsify that identity. Open the editorial only after the identity and
+its assumptions are explicit.
 
 Run the local checker after the paper trace:
 
 ```bash
 CP_TARGET=solution python3 sections/35_math_mixed_contest/check.py
 ```
-
-For B, compare the optimized answer with a nested-loop gcd oracle on random
-arrays of length at most ten. For A and C, enumerate tiny paths/events before
-trusting the closed formula.
-# Model checks before code
-
-For a blocked grid cell, every forbidden path decomposes uniquely into a prefix
-to that cell and suffix from it, so multiplication is justified. For coprime
-pairs, factor only distinct primes: using prime powers breaks the
-inclusion-exclusion events. For probabilities, multiply complements only when
-the statement grants independence.
-# Coprime-pair invariant and trace
-
-Let `seen[d]` be the number of earlier values divisible by square-free product
-`d`. For new `x`, enumerate nonempty subsets of its distinct prime factors.
-Alternating their `seen[product]` counts gives earlier values sharing a prime;
-subtract from the processed count to get coprime pairs. Update `seen` only
-after counting, or `x` pairs with itself. Since `2*3*5*7*11*13*17 > 10^6`, a
-local value has at most seven distinct primes and at most 127 subset products.
-
-Process `[1,6,10]`: one changes no counter; six increments counters for
-`2,3,6`; ten sees `seen[2]+seen[5]-seen[10]=1`, so it is coprime only with
-one, then updates `2,5,10`. This is the implementation invariant in action.
-
-The blocked-cell subtraction applies to exactly one blocked cell; multiple
-cells require a different model. The complement product for probabilities
-requires independent events and denominators nonzero modulo `MOD`.
-
-# C++ and Python implementation notes
-
-For A, factorial and inverse-factorial arrays need indices through `H+W`; use
-`long long` for modular products in C++. For B, store SPF and `seen` in dense
-integer vectors indexed by value, but store the pair answer in `long long`.
-Generate subset products from distinct factors only. Python uses the same dense
-lists and should buffer output; do not use a dictionary for every divisor when
-the one-million value bound permits arrays. For C, normalize `1-none` after
-subtraction in C++; Python's final `% MOD` already does so.

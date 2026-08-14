@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: dp[last_activity] = minimum rests so far.
+    // TODO: solve the problem.
     return 0;
 }

@@ -30,6 +30,7 @@ execute:
 | A. Weighted Route Queries | directed graph Dijkstra |
 | B. Grid Toll Path | grid cells as weighted graph |
 | C. Discount Route | two-layer state graph |
+| D. Even-Hop Route | vertex and path-length parity state |
 
 # Dijkstra reminder
 
@@ -76,13 +77,13 @@ on that path not finalized yet, and `p` its predecessor. Vertex `p` was
 finalized earlier, so edge `p -> x` would have relaxed `x` to at most the
 shorter path prefix. Since all weights are nonnegative, that distance would be
 no larger than the alleged shorter distance to `u`, contradicting that `u` was
-the smallest popped state. `\square`
+the smallest popped state. $\square$
 
 **Theorem.** Every printed query answer is correct.
 
 **Proof.** By the lemma, Dijkstra computes every reachable shortest distance.
 Unreached vertices keep the sentinel value and are correctly printed as `-1`.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -115,7 +116,9 @@ int main() {
 
     const long long INF = (1LL << 62);
     vector<long long> dist(n, INF);
-    priority_queue<pair<long long,int>, vector<pair<long long,int>>, greater<pair<long long,int>>> pq;
+    priority_queue<pair<long long, int>,
+                   vector<pair<long long, int>>,
+                   greater<pair<long long, int>>> pq;
     dist[s] = 0;
     pq.push({0, s});
     while (!pq.empty()) {
@@ -469,6 +472,220 @@ if __name__ == "__main__":
     main()
 ```
 
+# D. Even-Hop Route
+
+## Restatement
+
+Find the least-cost directed route from vertex `1` to vertex `n`, subject to
+one extra condition: the route must use an even number of roads. Roads have
+nonnegative costs, vertices and roads may be revisited, and there can be no
+valid even-hop route even when an ordinary route exists.
+
+## Constraints and traps
+
+`n` and `m` can both be `200000`, so enumerating routes or storing a distance
+for every possible number of hops is impossible. The parity of the hop count,
+not the exact count, is all that matters. A one-road route to the destination
+is invalid, while the zero-road route from `1` to itself is valid and costs
+zero.
+
+Do not keep just one best distance per vertex. A cheaper arrival with odd
+parity might be unusable, while a more expensive even-parity arrival is the
+one that can answer the problem.
+
+## Observation and walk-through
+
+For every original vertex `u`, make two states:
+
+```text
+(u, 0): u has been reached using an even number of roads
+(u, 1): u has been reached using an odd number of roads
+```
+
+Every road flips the parity. Thus a directed road `u -> v` of cost `w`
+becomes two state transitions:
+
+```text
+(u, 0) -> (v, 1), cost w
+(u, 1) -> (v, 0), cost w
+```
+
+Start in `(1, 0)` and seek `(n, 0)`. This is an ordinary nonnegative
+shortest-path problem on `2n` states.
+
+In the sample, the tempting route `1 -> 3 -> 4 -> 5` costs `12`, but has
+three roads and therefore ends in state `(5, 1)`. The route
+`1 -> 2 -> 3 -> 4 -> 5` costs `3 + 1 + 1 + 1 = 6` and uses four roads, so it
+reaches `(5, 0)` and is valid.
+
+## Algorithm
+
+```text
+dist[u][parity] = infinity for all vertices and both parities
+dist[1][0] = 0
+push (0, 1, 0) into a min-heap
+
+while heap is not empty:
+    pop (cost, u, parity)
+    if cost is stale: continue
+    for every road u -> v with weight w:
+        next_parity = parity xor 1
+        relax dist[v][next_parity] with cost + w
+
+print dist[n][0], or -1 if it stayed infinite
+```
+
+## Correctness proof
+
+**Lemma 1.** Every route from `1` to `u` using parity `p` corresponds to a
+path from state `(1, 0)` to state `(u, p)` of the same cost, and vice versa.
+
+**Proof.** Starting at parity zero, each original road toggles parity exactly
+once. The expanded graph has precisely the matching parity-toggling transition
+with the same weight for every original road. Applying this correspondence
+road by road maps an original route to a state path of equal cost. Reversing
+the mapping reconstructs an original route from any state path. $\square$
+
+**Lemma 2.** Dijkstra computes the minimum cost for every reachable parity
+state.
+
+**Proof.** By construction every expanded transition has the original road's
+nonnegative cost. Dijkstra's usual smallest-non-stale-pop invariant therefore
+applies to the expanded graph, so each finalized state distance is shortest.
+$\square$
+
+**Theorem.** The algorithm prints the minimum cost of a valid even-hop route,
+or `-1` exactly when none exists.
+
+**Proof.** By Lemma 1, valid routes are exactly paths from `(1, 0)` to
+`(n, 0)`, with equal costs. Lemma 2 finds the cheapest such state path. If
+`(n, 0)` is unreachable, Lemma 1 says no valid route exists, so `-1` is
+correct. $\square$
+
+## Complexity
+
+The expanded graph has `2n` states and `2m` transitions.
+
+```text
+Time:   O((n + m) log n)
+Memory: O(n + m)
+```
+
+## C++ implementation notes
+
+Use `array<long long, 2>` for the two state distances per vertex. The bitwise
+expression `parity ^ 1` toggles `0` to `1` and `1` to `0`. Use `long long` for
+all path costs because a shortest route can exceed 32-bit range.
+
+## Python implementation notes
+
+Store distances as `dist[vertex][parity]`, and push `(cost, vertex, parity)`
+tuples into `heapq`. Python integers do not overflow, but the same stale-entry
+check is still essential for both correctness and running time.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    cin >> n >> m;
+    vector<vector<pair<int, long long>>> graph(n);
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        long long w;
+        cin >> u >> v >> w;
+        graph[u - 1].push_back({v - 1, w});
+    }
+
+    const long long INF = (1LL << 62);
+    vector<array<long long, 2>> dist(n, {INF, INF});
+    using State = tuple<long long, int, int>;
+    priority_queue<State, vector<State>, greater<State>> heap;
+    dist[0][0] = 0;
+    heap.push({0, 0, 0});
+
+    while (!heap.empty()) {
+        auto [cost, u, parity] = heap.top();
+        heap.pop();
+        if (cost != dist[u][parity]) continue;
+        for (auto [v, weight] : graph[u]) {
+            int next_parity = parity ^ 1;
+            long long next_cost = cost + weight;
+            if (next_cost < dist[v][next_parity]) {
+                dist[v][next_parity] = next_cost;
+                heap.push({next_cost, v, next_parity});
+            }
+        }
+    }
+
+    cout << (dist[n - 1][0] == INF ? -1 : dist[n - 1][0]) << '\n';
+}
+```
+
+## Full Python solution
+
+```python
+import heapq
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    n, m = data[:2]
+    graph = [[] for _ in range(n)]
+    index = 2
+    for _ in range(m):
+        u, v, weight = data[index:index + 3]
+        index += 3
+        graph[u - 1].append((v - 1, weight))
+
+    inf = 10**30
+    dist = [[inf, inf] for _ in range(n)]
+    dist[0][0] = 0
+    heap = [(0, 0, 0)]
+    while heap:
+        cost, u, parity = heapq.heappop(heap)
+        if cost != dist[u][parity]:
+            continue
+        for v, weight in graph[u]:
+            next_parity = parity ^ 1
+            next_cost = cost + weight
+            if next_cost < dist[v][next_parity]:
+                dist[v][next_parity] = next_cost
+                heapq.heappush(heap, (next_cost, v, next_parity))
+
+    print(-1 if dist[n - 1][0] == inf else dist[n - 1][0])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Running ordinary Dijkstra with one distance per vertex, which loses parity.
+- Printing the cheaper of `dist[n][0]` and `dist[n][1]`; only even parity is
+  valid.
+- Starting at `(1, 1)` instead of `(1, 0)`.
+- Counting total edge weight parity instead of the number of roads.
+- Marking a state final when it is pushed into the heap rather than skipping
+  stale popped entries.
+
+## Tests that matter
+
+- `n = 1` with no roads, whose answer is zero;
+- a one-road path to the target, which is unreachable with even parity;
+- an odd-hop cheap route and an even-hop more expensive route;
+- zero-cost cycles that change parity without changing the cost;
+- parallel roads of different costs;
+- a long graph with `200000` roads, to test state count and heap behavior.
+
 # Common wrong answers
 
 - Using BFS because the graph is "just shortest path".
@@ -484,6 +701,12 @@ For small graphs, compare Dijkstra to Floyd-Warshall. For grids, compare to
 Floyd-Warshall on the explicit small cell graph or to a slow repeated
 relaxation. For Discount Route, build the two-layer graph explicitly and run a
 generic Dijkstra to compare against the optimized state implementation.
+
+For Even-Hop Route, build the `2n` parity-state graph explicitly on tiny
+inputs and run Floyd-Warshall over those states. This independent oracle catches
+the two common modeling errors: starting in odd parity and accepting the
+odd-parity destination state. A separate long path with one parity-changing
+shortcut checks the `200000`-edge scale.
 
 # What to carry forward
 

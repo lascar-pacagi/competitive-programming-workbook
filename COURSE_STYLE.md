@@ -66,3 +66,18 @@ Every mature section should include a balanced external practice queue:
 - AtCoder;
 - ICPC-style or ICPC archive/Kattis problem;
 - optional stretch problem.
+
+## Blind Practice Standard
+
+Every technical section should also contain at least one local **blind
+exercise** beyond the guided exercises introduced in its lesson. A blind
+exercise may require concepts already taught by that section, but the lesson
+must not reveal its reduction, state definition, greedy choice, transition, or
+algorithmic outline.
+
+Its problem statement must stand on its own. Its editorial must be fully
+problem-specific and include the same upsolve material as other local problems:
+observations, a worked trace where useful, algorithm, correctness argument,
+complexity, implementation traps, and targeted tests. This creates a real
+attempt before the explanation while preserving a strong learning path after a
+failed attempt.

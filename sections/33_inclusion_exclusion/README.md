@@ -11,6 +11,7 @@ surjective strings, and bounded stars-and-bars.
    - `a_multiples_union`
    - `b_all_symbols`
    - `c_bounded_candies`
+   - `d_seating_without_matches` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash

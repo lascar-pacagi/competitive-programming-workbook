@@ -25,13 +25,14 @@ execute:
 
 # Editorial overview
 
-All three problems use a mask to represent a subset of small objects.
+All four problems use a mask to represent a subset of small objects.
 
 | Problem | Mask means | Extra state | Goal |
 |---|---|---|---|
 | A. Skill Coverage | skills already covered | none | minimum cost |
 | B. Assignment Profit | jobs already used | none; worker is popcount | maximum profit |
 | C. Inspection Route | locations already visited | current last location | minimum cycle cost |
+| D. Compatible Lineup | selected performers | compatibility and score | maximum score |
 
 Reminder of operations:
 
@@ -137,7 +138,7 @@ and no transition uses any unprocessed candidate. Therefore the invariant holds
 after candidate `i+1`.
 
 At the end, `dp[full]` is exactly the minimum cost to cover all skills, or
-unreachable if it is still `INF`. `\square`
+unreachable if it is still `INF`. $\square$
 
 ## Complexity
 
@@ -336,7 +337,7 @@ so it produces a valid partial assignment. Taking the maximum keeps the best
 profit for each mask.
 
 When `mask = full`, all `n` jobs have been used and all `n` workers have been
-assigned, so `dp[full]` is the optimal answer. `\square`
+assigned, so `dp[full]` is the optimal answer. $\square$
 
 ## Complexity
 
@@ -524,7 +525,7 @@ ways to reach a state gives the optimal value.
 
 After all locations are visited, a complete tour must return from its final
 location `last` to `0`. Minimizing `dp[full][last] + cost[last][0]` over all
-possible last locations gives the optimal cycle. `\square`
+possible last locations gives the optimal cycle. $\square$
 
 ## Complexity
 
@@ -565,7 +566,10 @@ int main() {
             for (int nxt = 0; nxt < n; nxt++) {
                 if ((mask & (1 << nxt)) == 0) {
                     int new_mask = mask | (1 << nxt);
-                    dp[new_mask][nxt] = min(dp[new_mask][nxt], dp[mask][last] + cost[last][nxt]);
+                    dp[new_mask][nxt] = min(
+                        dp[new_mask][nxt],
+                        dp[mask][last] + cost[last][nxt]
+                    );
                 }
             }
         }
@@ -640,11 +644,308 @@ Asymmetric matrices where reversing an edge changes the answer.
 Cases where the cheapest outgoing edge greedily gives a bad tour.
 ```
 
+# D. Compatible Lineup
+
+## Restatement
+
+Choose a subset of at most twenty performers. A listed incompatible pair may
+not be chosen together. Scores can be negative and choosing nobody is allowed,
+so the goal is the greatest total score among all compatible subsets, possibly
+zero.
+
+This is the local blind exercise for the section. Its statement does not tell
+you what information to store for a subset; this editorial develops that state
+after the attempt.
+
+## Constraints and traps
+
+The central constraint is `n <= 20`. There are `2^20 = 1,048,576` possible
+subsets: too many to inspect each pair from scratch for every subset, but small
+enough to keep one or two arrays indexed by a mask.
+
+Scores have magnitude up to `10^9`. A valid lineup can contain twenty positive
+performers, so its total can reach `2 * 10^10`. Use `long long` in C++; Python
+integers already grow as needed.
+
+An incompatible pair is undirected. If `(u, v)` is read, then choosing `u`
+forbids `v` and choosing `v` forbids `u`.
+
+Finally, negative scores matter. They do not make a compatible subset invalid,
+but the empty lineup is legal and has score zero. Initializing the answer to a
+negative infinity would incorrectly force a performer into an all-negative
+instance.
+
+## Observations
+
+Let `mask` represent the exact set of selected performers. A direct test of a
+mask could scan every input edge and reject it if both endpoints have their
+bits set. Repeating that scan for all masks costs `O(m 2^n)`. It fits only
+narrowly and does unnecessary repeated work.
+
+Instead, obtain each non-empty mask from one smaller mask. Pick one set bit,
+call its performer `p`, and remove it:
+
+```text
+bit      = mask & -mask
+p        = index of bit
+previous = mask ^ bit
+```
+
+Now the lineup represented by `mask` is compatible exactly when both facts are
+true:
+
+1. `previous` was compatible;
+2. none of `p`'s incompatible neighbours is in `previous`.
+
+The total score has the same one-item recurrence:
+
+```text
+score[mask] = score[previous] + w[p]
+```
+
+For fast neighbour tests, make `forbidden[p]` a mask containing every performer
+incompatible with `p`. Then condition 2 is simply:
+
+```text
+(forbidden[p] & previous) == 0
+```
+
+This is a useful bitmask-DP pattern: the mask itself describes the whole
+choice, while one removed bit supplies a unique smaller state from which to
+maintain a property incrementally.
+
+## Sample walk-through
+
+Number performers from zero internally. For the sample, the scores are
+`[8, 6, -3, 7]`, and performer `1` conflicts with both `0` and `3`.
+
+Consider the mask `1001`, which selects performers `0` and `3`:
+
+```text
+mask       = 1001
+bit        = 0001              (performer 0)
+previous   = 1000              (performer 3)
+score      = score[1000] + 8 = 7 + 8 = 15
+```
+
+`previous` is compatible. Performer `0` is incompatible only with performer
+`1`, and bit `1` is not set in `1000`, so the new subset is compatible.
+
+In contrast, for `0011` we remove performer `0` and get `previous = 0010`.
+That previous mask selects performer `1`; the intersection of performer `0`'s
+forbidden mask with `0010` is non-zero. Therefore `0011` is rejected. The
+best accepted total is `15`.
+
+## Algorithm
+
+```text
+read scores and build forbidden[p] for every performer p
+
+compatible[0] = true
+total[0] = 0
+answer = 0
+
+for mask from 1 to (1 << n) - 1:
+    bit = lowest set bit of mask
+    p = index of bit
+    previous = mask without bit
+
+    total[mask] = total[previous] + score[p]
+    compatible[mask] = compatible[previous] and
+                       (forbidden[p] & previous) == 0
+    if compatible[mask]:
+        answer = max(answer, total[mask])
+
+print answer
+```
+
+The recurrence always points to a numerically smaller mask, because removing a
+set bit lowers the integer. Therefore increasing mask order has already
+computed `previous`.
+
+## Correctness proof
+
+We prove that the algorithm prints the maximum score of any compatible lineup.
+
+**Lemma 1.** For every mask, `total[mask]` equals the sum of the scores of
+exactly the performers whose bits are set in `mask`.
+
+**Proof.** The claim is true for mask `0`, whose sum is zero. For a non-empty
+mask, the algorithm removes one selected performer `p` to form `previous` and
+adds `score[p]` to `total[previous]`. By induction on the number of set bits,
+`total[previous]` is the sum of every other selected performer, so the result
+is precisely the sum for `mask`. $\square$
+
+**Lemma 2.** For every mask, `compatible[mask]` is true exactly when no
+incompatible pair has both endpoints selected by `mask`.
+
+**Proof.** The empty mask is compatible, establishing the base case. Consider
+a non-empty `mask`, with removed performer `p` and `previous` as in the
+algorithm. By induction, `compatible[previous]` is true exactly when all pairs
+wholly inside `previous` are allowed. The only pairs newly relevant after
+adding `p` are pairs between `p` and a selected performer in `previous`. The
+bit intersection `forbidden[p] & previous` is zero exactly when no such pair
+exists. Thus the algorithm marks `mask` compatible exactly in the required
+case. $\square$
+
+**Theorem.** The printed `answer` is the maximum total score of a compatible
+lineup.
+
+**Proof.** Every possible lineup corresponds to exactly one mask, and every
+mask is processed once. By Lemma 2, the algorithm considers `total[mask]` for
+exactly the compatible lineups. By Lemma 1, that value is the lineup's actual
+total score. `answer` starts with the empty compatible lineup's score and takes
+the maximum over all other compatible masks, so it equals the required optimum.
+$\square$
+
+## Complexity
+
+```text
+Time:   O(n + m + 2^n)
+Memory: O(2^n + n)
+```
+
+Building the incompatibility masks costs `O(m)`. Each subset then does a
+constant number of bit operations and array accesses.
+
+## C++ implementation notes
+
+`__builtin_ctz(mask)` returns the number of trailing zero bits, which is the
+index of the least significant set bit when `mask` is non-zero. Call it only
+inside the non-empty-mask loop. `1 << n` is safe here because `n <= 20`, but
+the accumulated scores still need `long long`.
+
+`vector<char>` is a compact, ordinary boolean-like array. It avoids the
+special proxy behavior of `vector<bool>` without changing the recurrence.
+
+## Python implementation notes
+
+Python has no built-in trailing-zero operation, but `lowest_bit.bit_length() -
+1` gives the index after computing `lowest_bit = mask & -mask`. A `bytearray`
+stores compatibility flags compactly; values `0` and `1` work directly in an
+`if` condition.
+
+Use `not (forbidden[performer] & previous)` for the zero-intersection test.
+Parentheses keep the intended precedence clear.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+
+    vector<long long> score(n);
+    for (long long& value : score) cin >> value;
+
+    vector<int> forbidden(n, 0);
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        cin >> u >> v;
+        --u;
+        --v;
+        forbidden[u] |= 1 << v;
+        forbidden[v] |= 1 << u;
+    }
+
+    int total_masks = 1 << n;
+    vector<long long> total(total_masks, 0);
+    vector<char> compatible(total_masks, false);
+    compatible[0] = true;
+    long long answer = 0;
+
+    for (int mask = 1; mask < total_masks; ++mask) {
+        int performer = __builtin_ctz(mask);
+        int previous = mask ^ (1 << performer);
+        total[mask] = total[previous] + score[performer];
+        compatible[mask] = compatible[previous] &&
+                           ((forbidden[performer] & previous) == 0);
+        if (compatible[mask]) answer = max(answer, total[mask]);
+    }
+
+    cout << answer << '\n';
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+
+    it = iter(data)
+    n = next(it)
+    m = next(it)
+    score = [next(it) for _ in range(n)]
+    forbidden = [0] * n
+    for _ in range(m):
+        u = next(it) - 1
+        v = next(it) - 1
+        forbidden[u] |= 1 << v
+        forbidden[v] |= 1 << u
+
+    total_masks = 1 << n
+    total = [0] * total_masks
+    compatible = bytearray(total_masks)
+    compatible[0] = 1
+    answer = 0
+
+    for mask in range(1, total_masks):
+        lowest_bit = mask & -mask
+        performer = lowest_bit.bit_length() - 1
+        previous = mask ^ lowest_bit
+        total[mask] = total[previous] + score[performer]
+        if compatible[previous] and not (forbidden[performer] & previous):
+            compatible[mask] = 1
+            if total[mask] > answer:
+                answer = total[mask]
+
+    print(answer)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+```text
+Checking only whether the last performer has a conflict and forgetting whether
+the previous subset was already invalid.
+Treating an incompatible pair as directed and setting only one forbidden bit.
+Using int for totals, which overflows on twenty scores of 10^9.
+Starting answer at the smallest score instead of allowing the empty lineup.
+Calling __builtin_ctz(0), which is undefined in C++.
+```
+
+## Tests that matter
+
+```text
+All scores negative and no conflicts: answer must be 0.
+A complete incompatibility graph: at most one performer can be chosen.
+No conflicts and twenty scores of 10^9: checks 64-bit accumulation and scale.
+A conflict graph with disconnected components: compatible choices may combine
+performers from different components.
+```
+
 # Testing discussion
 
 The random generators intentionally use small `n` so that the expected outputs
-can be checked by brute force for assignment and route problems. This matters:
-bitmask DP bugs often pass samples while failing on a single missing bit test.
+can be checked by brute force for assignment, route, and lineup problems. This
+matters: bitmask DP bugs often pass samples while failing on a single missing
+bit test.
 
 For your own stress tests:
 

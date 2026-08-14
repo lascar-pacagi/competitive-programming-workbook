@@ -30,6 +30,7 @@ execute:
 | A. Choose Queries | `C(n,k)` | maximum `n` |
 | B. Rearrange Letters | `n! / product(c!)` | string length |
 | C. Distribute Candies | `C(n+s-1,n-1)` | maximum `n+s-1` |
+| D. Separated Lineup | choose gaps, then order distinct people | maximum `b+1` |
 
 # Shared tool: factorials under a prime modulus
 
@@ -90,7 +91,7 @@ for each (n,k): print C(n,k)
 The shared invariant gives `fact[n]=n!` and inverse factorials for both
 denominator terms. Since all indices are below prime `MOD`, those denominator
 factorials are invertible. Their product with `fact[n]` is exactly
-`n!/(k!(n-k)!)` in modular arithmetic, which is `C(n,k)`. `\square`
+`n!/(k!(n-k)!)` in modular arithmetic, which is `C(n,k)`. $\square$
 
 ## Complexity
 
@@ -198,7 +199,7 @@ visible arrangement, the copies of each character can be permuted in `c!` ways
 without changing it; independent character groups multiply these counts.
 Therefore each visible arrangement has exactly `product(c!)` labelled
 preimages, and multiplying by inverse factorials computes the quotient.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -303,7 +304,7 @@ for each query: print C(n+s-1, n-1)
 Map a distribution to a row containing `x1` stars, a bar, `x2` stars, and so
 on. This mapping is reversible: the stars in each gap recover the unique
 distribution. There are `s+n-1` positions and selecting the `n-1` bar positions
-therefore counts all and only valid distributions. `\square`
+therefore counts all and only valid distributions. $\square$
 
 ## Complexity
 
@@ -384,17 +385,222 @@ if __name__ == "__main__":
     main()
 ```
 
+# D. Separated Lineup
+
+## Restatement
+
+There are `r` distinct red performers and `b` distinct blue performers. Count
+the full lineups in which every performer appears exactly once and no adjacent
+pair is red-red. The answer is required modulo `1,000,000,007` for up to
+`200,000` queries.
+
+This is the section's blind exercise. The statement describes the restriction
+but deliberately does not state how to turn it into a binomial coefficient.
+
+## Constraints and traps
+
+`r` and `b` are each at most one million. Any one query can have far more
+than `10^6` valid lineups, so enumeration is impossible and ordinary division
+is not valid after taking a modulus.
+
+The performers are **distinct** even when they share a color. Swapping `R1`
+and `R2` produces a different lineup. It is therefore not enough to count
+color patterns.
+
+When `r > b+1`, no valid lineup exists: even if every blue performer separates
+two red performers, there are only `b+1` places in which to put one red. That
+case must produce zero before indexing a binomial coefficient with an invalid
+lower argument.
+
+The largest factorial index used is `b+1`, at most `1,000,001`, safely below
+the prime modulus. Precomputing to `r+b` is unnecessary and can double the
+memory used by the factorial arrays.
+
+## Observations
+
+First place only the blue performers. They can be ordered in `b!` ways. Once a
+blue order is fixed, it creates exactly `b+1` visible slots:
+
+```text
+_ B _ B _ B _
+```
+
+At most one red performer may occupy a slot, otherwise two reds would become
+adjacent. Choose which `r` of the `b+1` slots receive a red in:
+
+```text
+C(b+1, r)
+```
+
+ways. Finally, arrange the `r` distinct red performers in their selected slots
+in `r!` ways. The independent choices multiply, giving:
+
+```text
+answer = b! * C(b+1, r) * r!
+```
+
+when `r <= b+1`, and zero otherwise.
+
+The useful discipline is the order of construction: reserve separators first,
+then choose legal gaps, then assign labels. It prevents both accidental
+red-red adjacency and accidental treatment of same-colored performers as
+identical.
+
+## Sample walk-through
+
+For `r=2, b=2`, first arrange the two blue performers. There are `2! = 2`
+orders. Consider one of them:
+
+```text
+_ B1 _ B2 _
+```
+
+There are three slots and we choose two, so `C(3,2)=3` slot choices. For each
+choice, the two red performers can be assigned in `2!=2` orders. The total is:
+
+```text
+2! * C(3,2) * 2! = 2 * 3 * 2 = 12.
+```
+
+For `r=3,b=1`, the blue performer gives only two slots:
+
+```text
+_ B1 _
+```
+
+Three reds cannot occupy distinct slots, so the answer is zero.
+
+## Algorithm
+
+```text
+read all (r,b) queries
+limit = maximum over queries of max(r, b+1)
+precompute fact[0..limit] and invfact[0..limit]
+
+for each (r,b):
+    if r > b+1:
+        print 0
+    else:
+        slots = C(b+1, r)
+        print fact[b] * slots * fact[r] modulo MOD
+```
+
+The `max(r, b+1)` limit also covers malformed-but-guarded impossible queries:
+the arrays remain valid even before the `r > b+1` test.
+
+## Correctness proof
+
+We prove that the algorithm returns the number of valid lineups for one query.
+
+**Lemma 1.** After a blue-performer order is fixed, every valid lineup places
+at most one red performer in each of the `b+1` slots around that order.
+
+**Proof.** The slots are exactly the positions before the first blue, between
+successive blues, and after the last blue. Two reds placed in one slot would
+have no blue performer between them and would be adjacent, contradicting
+validity. Conversely, reds in distinct slots always have at least one blue
+performer between consecutive selected slots, so they are not adjacent.
+$\square$
+
+**Lemma 2.** For a fixed blue order, the number of valid completions is
+`C(b+1,r) * r!` when `r <= b+1`, and zero otherwise.
+
+**Proof.** By Lemma 1, a valid completion chooses exactly `r` distinct slots
+from `b+1`, which can be done in `C(b+1,r)` ways. The `r` red performers are
+distinct, so each selected slot set has `r!` label assignments. The mapping
+from a slot set and assignment to a lineup is reversible. If `r>b+1`, no such
+slot set exists. $\square$
+
+**Theorem.** The algorithm prints exactly the number of valid lineups.
+
+**Proof.** There are `b!` possible orders of the distinct blue performers.
+For each such order, Lemma 2 counts all and only its valid completions. The
+blue order is uniquely recoverable from any completed lineup, so completions
+from different blue orders do not overlap. Multiplying `b!` by the count from
+Lemma 2 produces exactly every valid lineup once. The algorithm computes this
+product modulo `MOD`, as requested. $\square$
+
+## Complexity
+
+Let `L = max max(r, b+1)` over all queries.
+
+```text
+Preprocessing: O(L) time, O(L) memory
+Each query:    O(1) time
+```
+
+The one modular exponentiation used to make the inverse-factorial table costs
+`O(log MOD)`.
+
+## C++ implementation notes
+
+Use `long long` for every modular product. Each factor is below `MOD`, and the
+product of two such values is below about `10^18`, which fits in signed
+64-bit. The C++ reference reads every query before allocating, then computes
+the inverse factorial table by one Fermat inverse and a backward pass.
+
+The formula has three factors. Reduce after each multiplication:
+
+```cpp
+answer = fact[blue] * slots % MOD * fact[red] % MOD;
+```
+
+## Python implementation notes
+
+Use `pow(fact[limit], MOD - 2, MOD)` for the one modular inverse. Keep output
+in a list of strings and write it once; repeated printing is unnecessarily
+slow for the largest query count.
+
+The value `blue + 1` is an ordinary Python integer, but it still must be
+included in the preprocessing limit before indexing the factorial tables.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_separated_lineup/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_separated_lineup/solution.py >}}
+```
+
+## Common wrong answers
+
+```text
+Counting only color patterns and forgetting the r! and b! label permutations.
+Using C(r+b,r), which counts all lineups and ignores the adjacency restriction.
+Returning zero only when r > b instead of the correct r > b+1 condition.
+Precomputing only through b, then indexing fact[b+1].
+Dividing factorials with / after taking a modulo instead of multiplying by
+inverse factorials.
+```
+
+## Tests that matter
+
+```text
+r=0,b=0: the empty lineup is one valid lineup.
+r=1,b=0: exactly one lineup; r=2,b=0: none.
+r=b+1: every gap must contain one red.
+r>b+1: impossible without any factorial formula.
+r=1,b=1,000,000: checks the b+1 preprocessing boundary.
+200,000 impossible queries: checks input/output throughput.
+```
+
 # Testing and stress discussion
 
 For A, compare small values with `math.comb`. For B, enumerate permutations of
 short strings and compare the number of unique strings. For C, enumerate small
-nonnegative vectors recursively, then compare with the formula. Important
-fixed tests are:
+nonnegative vectors recursively, then compare with the formula. For D,
+enumerate all labeled orders for at most eight people and reject adjacent-red
+orders directly. Important fixed tests are:
 
 ```text
 A: k=0, k=n, and the largest n
 B: all equal letters and all distinct letters
 C: s=0, n=1, and a query that determines the global maximum n+s-1
+D: r=0, r=b+1, r>b+1, and b=1,000,000
 ```
 
 Run the supplied checks with:

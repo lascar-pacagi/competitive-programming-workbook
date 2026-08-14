@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: use linearity of expectation: sum v_i * p_i / q_i.
+    // TODO: solve the problem.
     return 0;
 }

@@ -39,6 +39,10 @@ giving `D[n]=(n-1)(D[n-1]+D[n-2])`.
 rotation. A rotation by `r` has `gcd(n,r)` cycles, hence fixes `k^gcd(n,r)`
 colorings.
 
+**D. Unlabeled Teams.** For the final labeled person, either create one new
+singleton team or join one of the existing teams. This produces the Stirling
+recurrence `S(n,k)=S(n-1,k-1)+k*S(n-1,k)`.
+
 ## Detailed solution guide
 
 **A. Catalan Numbers.** The number of balanced parenthesis strings with `n`
@@ -86,7 +90,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -128,7 +132,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -168,7 +172,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -198,6 +202,97 @@ def main():
 if __name__=="__main__": main()
 ```
 
+# D. Unlabeled Teams
+
+## Restatement and model
+
+Split `n` distinct people into exactly `k` nonempty teams. Teams are unlabeled:
+swapping two whole teams does not make a new partition. Count the partitions
+modulo `1,000,000,007`, with `1 <= k <= n <= 2000`.
+
+This is not `k^n`, because that assigns labels to teams and permits empty teams.
+It is also not simply `k!` times a value after the fact unless every labeled
+assignment uses all teams. We build the count directly by the number of people
+and the number of nonempty unlabeled teams.
+
+## Recurrence and trace
+
+Let `S(i,j)` be the number of partitions of the first `i` people into exactly
+`j` nonempty teams. Focus on person `i`:
+
+1. They form a singleton team. The first `i-1` people must form `j-1` teams,
+   giving `S(i-1,j-1)` choices.
+2. They join an existing team. The first `i-1` people form `j` teams, and
+   there are `j` teams to join, giving `j*S(i-1,j)` choices.
+
+Thus:
+
+```text
+S(i,j) = S(i-1,j-1) + j * S(i-1,j)
+S(0,0) = 1
+```
+
+For `S(4,2)`:
+
+```text
+S(1,1) = 1
+S(2,1) = 1,  S(2,2) = 1
+S(3,2) = S(2,1) + 2*S(2,2) = 3
+S(4,2) = S(3,1) + 2*S(3,2) = 1 + 6 = 7
+```
+
+## Algorithm
+
+Use a one-dimensional array where `dp[j]` holds the previous/current row for
+`S(_,j)`. Update `j` in decreasing order so `dp[j-1]` still represents the
+previous row:
+
+```text
+dp[0] = 1
+for people from 1 to n:
+    for teams from min(people,k) down to 1:
+        dp[teams] = dp[teams-1] + teams * dp[teams] modulo MOD
+    dp[0] = 0
+print dp[k]
+```
+
+Setting `dp[0]` to zero after the first row matters: no positive number of
+people can be split into zero nonempty teams.
+
+## Correctness proof
+
+Consider any partition of `i` people into `j` nonempty teams. Person `i` is
+either alone in their team or is not. In the first case, deleting them leaves
+one and only one partition of the first `i-1` people into `j-1` teams. In the
+second case, deleting them leaves a partition into `j` teams and records one
+of its `j` teams as the one they rejoin. These cases are disjoint and cover all
+partitions, proving the recurrence.
+
+The descending update computes exactly that recurrence from the prior row, and
+the base `S(0,0)=1` is the unique empty partition. By induction over `people`,
+after the final row `dp[k]=S(n,k)`, so the algorithm prints the required count.
+QED.
+
+## Complexity, implementation notes, and tests
+
+The DP takes `O(nk)` time and `O(k)` memory. Multiply in 64-bit before taking
+the modulus in C++; Python integers are exact. Test `k=1`, `k=n`, small values
+such as `S(4,2)=7`, and a middle-sized `k` where no closed-form shortcut is
+available. A common bug is iterating teams upward, which overwrites the
+previous-row value needed for `S(i-1,j-1)`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_unlabeled_teams/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_unlabeled_teams/solution.py >}}
+```
+
 # What to carry forward
 
 # Complete upsolve notes
@@ -223,3 +318,7 @@ test n=1, prime n, and composite n. Fermat inverse requires the stated prime
 modulus and n nonzero modulo it.
 
 Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.
+
+For D, tiny tests enumerate canonical restricted-growth representations of
+set partitions, independently of the recurrence. The scale case is a fixed
+`n=2000, k=1000` instance with a precomputed expected residue.

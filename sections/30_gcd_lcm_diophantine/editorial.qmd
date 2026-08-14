@@ -30,8 +30,11 @@ execute:
 | A. GCD LCM Queries | `q <= 2*10^5`, positive `a,b <= 10^9` | Euclid, then `(a/g)*b` |
 | B. General Inverse | `q <= 2*10^5`, arbitrary positive `m <= 10^9` | extended Euclid, not Fermat |
 | C. Linear Diophantine | `q <= 2*10^5`, positive `a,b,c <= 10^9` | gcd divisibility, then Bezout scaling |
+| D. Clock Offset | `q <= 2*10^5`, arbitrary positive `a,b,m <= 10^9` | reduce a linear congruence by its gcd |
+| E. Merge Congruences | two arbitrary moduli up to `10^9` | generalized CRT derived from Diophantine solving |
+| F. Shared Maintenance Window | periodic events plus `earliest <= 10^18` | recognize CRT, then advance by its lcm period |
 
-All three problems are designed for `O(log value)` work per query. A linear
+All six problems are designed for `O(log value)` work per query. A linear
 search for a divisor, inverse, or coefficient pair is not competitive at these
 limits.
 
@@ -370,6 +373,391 @@ Always test the exact equation after printing. Include a case with `gcd=1`, a
 case where `gcd` does not divide `c`, and a case whose valid output has a
 negative coordinate.
 
+# D. Clock Offset
+
+## Restatement
+
+For every query, find the least non-negative `x` satisfying:
+
+```text
+a*x == b (mod m).
+```
+
+The output is `-1` when no such residue exists. Unlike the inverse problem,
+the right-hand side is not necessarily one and `a` need not be coprime with
+`m`.
+
+This is the blind exercise for the section. The statement gives only the
+congruence; it does not reveal the reduction needed to solve it.
+
+## Constraints and traps
+
+With up to `2 * 10^5` queries and values up to `10^9`, trying candidates `x =
+0, 1, 2, ...` can take a billion checks for one query. The intended work is a
+single gcd computation per query.
+
+The case `gcd(a, m) > 1` is not automatically impossible. For example,
+`6x == 8 (mod 14)` has the answer `6`. The correct divisibility test involves
+the right-hand side too.
+
+When a solution exists there are generally several integer solutions, but they
+are all equal modulo a smaller modulus. The problem asks for the representative
+in `[0, m/g - 1]`, where `g = gcd(a,m)`, not merely any signed Bezout
+coefficient.
+
+If `m/g = 1`, every integer is equivalent modulo one, and the requested least
+non-negative answer is `0`. Both `% 1` in C++ and Python's `% 1` produce zero,
+so no separate special case is required.
+
+## Observations
+
+The congruence means that `m` divides `a*x-b`. Equivalently, there is some
+integer `y` such that:
+
+```text
+a*x + m*y = b.
+```
+
+This is a linear Diophantine equation. Let `g = gcd(a,m)`. It has a solution
+exactly when `g` divides `b`.
+
+When it does, divide every term by `g`:
+
+```text
+(a/g)*x + (m/g)*y = b/g.
+```
+
+Now `a/g` and `m/g` are coprime. Extended Euclid on the original pair gives
+coefficients `p,q` with `a*p + m*q = g`. Multiplying by `b/g` gives one
+solution:
+
+```text
+x0 = p * (b/g).
+```
+
+It remains to prove which other values of `x` work. Set:
+
+```text
+A = a/g
+M = m/g
+B = b/g
+```
+
+The reduced congruence is:
+
+```text
+A*x == B (mod M), with gcd(A,M)=1.
+```
+
+Let `x0` be the particular solution constructed above, and let `x` be any
+other solution. Then both satisfy the congruence. Subtract them:
+
+```text
+A*x  == B (mod M)
+A*x0 == B (mod M)
+-------------------
+A*(x-x0) == 0 (mod M)
+```
+
+Thus `M` divides `A*(x-x0)`. Since `A` and `M` are coprime, Euclid's lemma
+forces `M` to divide `x-x0`. Therefore every solution has the form:
+
+```text
+x = x0 + M*t = x0 + (m/g)*t
+```
+
+for some integer `t`. Conversely, adding `M*t` always preserves the original
+congruence because:
+
+```text
+a*(M*t) = a*(m/g)*t = m*(a/g)*t,
+```
+
+which is a multiple of `m`. Hence this formula gives all solutions and no
+others.
+
+Now divide `x0` by the positive period `M`:
+
+```text
+x0 = M*k + r, where 0 <= r < M.
+```
+
+The value `r = x0 mod M` belongs to the solution family. It is also the
+smallest non-negative member: subtracting one more `M` makes it negative,
+while adding `M` only makes it larger. Therefore the required answer is:
+
+```text
+x0 mod (m/g).
+```
+
+## Sample walk-through
+
+Consider `6x == 8 (mod 14)`.
+
+```text
+gcd(6,14) = 2, and 2 divides 8, so a solution may exist.
+6*5 + 14*(-2) = 2.
+```
+
+Scale this Bezout identity by `8/2 = 4`:
+
+```text
+6*20 + 14*(-8) = 8.
+```
+
+Thus `x = 20` works. The reduced modulus is `14/2 = 7`, and `20 mod 7 = 6`.
+Indeed, `6*6 = 36`, which is `8` modulo `14`. The complete solution family is
+`x = 6 + 7t`, so `6` is the requested smallest non-negative value.
+
+For `6x == 7 (mod 14)`, the gcd is still two, but two does not divide seven.
+The associated equation `6x + 14y = 7` therefore has no integer solution.
+
+## Algorithm
+
+```text
+for each query (a, b, m):
+    (g, p, q) = extended_gcd(a, m)
+    if b mod g != 0:
+        print -1
+        continue
+
+    reduced_modulus = m / g
+    x0 = p * (b / g)
+    answer = x0 mod reduced_modulus, normalized into [0, reduced_modulus)
+    print answer
+```
+
+For the positive inputs in this task, the standard extended-gcd helper returns
+the positive `g`. In C++, normalize a potentially negative remainder with:
+
+```cpp
+answer %= reduced_modulus;
+if (answer < 0) answer += reduced_modulus;
+```
+
+Python's `%` already returns a non-negative remainder for a positive modulus.
+
+## Correctness proof
+
+We prove that the algorithm prints the required answer for each query.
+
+**Lemma 1.** The congruence `a*x == b (mod m)` has an integer solution if and
+only if `gcd(a,m)` divides `b`.
+
+**Proof.** The congruence is equivalent to the existence of `y` with
+`a*x + m*y = b`. Every left-hand side is divisible by `gcd(a,m)`, proving
+necessity. Conversely, extended Euclid produces `p,q` such that
+`a*p + m*q = g`, where `g = gcd(a,m)`. If `g` divides `b`, multiplying this
+identity by `b/g` produces an equation with right-hand side `b`, proving
+sufficiency. $\square$
+
+**Lemma 2.** If a solution exists, `x0 = p*(b/g)` produced by the algorithm is
+a solution, and every solution has the same residue modulo `m/g`.
+
+**Proof.** The scaled Bezout identity in Lemma 1 gives
+`a*x0 + m*(q*b/g) = b`, so `x0` satisfies the congruence. For any two
+solutions `x1,x2`, subtract their congruences to get `m` divides
+`a*(x1-x2)`. Dividing `a` and `m` by their gcd leaves coprime integers, so
+`m/g` divides `x1-x2`. Thus all solutions share one residue modulo `m/g`.
+$\square$
+
+**Theorem.** For each query, the algorithm prints `-1` exactly when no
+solution exists; otherwise it prints the smallest non-negative solution.
+
+**Proof.** By Lemma 1, the algorithm prints `-1` exactly in the impossible
+case. In the solvable case, Lemma 2 says `x0` is a solution and all solutions
+are congruent modulo `m/g`. Normalizing `x0` produces the unique representative
+of that residue in `[0, m/g)`, which is necessarily the smallest
+non-negative solution. $\square$
+
+## Complexity
+
+Each query runs extended Euclid once:
+
+```text
+Time:   O(log min(a, m)) per query
+Memory: O(log min(a, m)) recursion stack, or O(1) with iterative Euclid
+```
+
+The aggregate time is `O(q log 10^9)`, which is appropriate for the query
+limit.
+
+## C++ implementation notes
+
+The scaled coefficient has magnitude below the signed 64-bit limit under the
+local bounds: both the Bezout coefficient and `b/g` are at most on the order
+of `10^9`. Keep all arithmetic in `long long`, never `int`.
+
+Do not compute `a * answer` merely to verify the result in a 32-bit type. For
+a debug assertion with larger bounds, use `__int128` for that product.
+
+## Python implementation notes
+
+Use an output list and one final `"\n".join(...)` for `2 * 10^5` answers.
+Python integers make the scale multiplication exact. Its positive-modulus
+remainder rule means `(coefficient * scale) % reduced_modulus` is already the
+required representative.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_clock_offset/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_clock_offset/solution.py >}}
+```
+
+## Common wrong answers
+
+```text
+Requiring gcd(a,m) = 1, which rejects valid cases such as 6x == 8 (mod 14).
+Checking gcd(a,m) divides a rather than the right-hand side b.
+Using an inverse of a modulo m before dividing out the gcd.
+Printing a negative Bezout-derived x instead of normalizing by m/g.
+Normalizing by m instead of m/g, which can return a valid but non-minimal x.
+```
+
+## Tests that matter
+
+```text
+6x == 8 (mod 14): solvable even though gcd is 2.
+6x == 7 (mod 14): impossible because 2 does not divide 7.
+Any solvable query with m = gcd(a,m): the answer must be 0.
+A coprime query with a negative Bezout coefficient: checks normalization.
+200,000 queries with a = 1: checks input/output throughput.
+```
+
+## D-specific stress testing
+
+For tiny moduli, an independent oracle needs no number theory: scan every
+candidate `x` from `0` through `m-1` and keep the first for which
+`a*x mod m == b mod m`. If none works, the expected answer is `-1`. This
+direct enumeration cross-checks both the divisibility rejection and the
+minimal-residue normalization without reusing extended Euclid.
+
+The separate scale case uses `a = 1`. Then `x == b (mod m)`, so the known
+smallest answer is simply `b mod m` for each of `200000` queries. It exercises
+input/output and the logarithmic extended-gcd loop while retaining a direct
+expected output.
+
+# E. Merge Congruences
+
+## Restatement and compatibility
+
+Write a value satisfying the first congruence as `x=r1+m1*k`. Requiring the
+second congruence gives
+
+```text
+m1*k - m2*t = r2-r1
+```
+
+for some integer `t`. Therefore a solution exists exactly when
+`gcd(m1,m2)` divides `r2-r1`.
+
+## Construction
+
+If extended Euclid returns
+
+```text
+m1*p + m2*q = g,
+```
+
+then `k=p*(r2-r1)/g` satisfies the needed equation. Construct
+`x0=r1+m1*k` and normalize it modulo
+
+```text
+period = lcm(m1,m2) = (m1/g)*m2.
+```
+
+For safer arithmetic, the reference first normalizes `k` modulo `m2/g` and
+uses a widened type for multiplication.
+
+## Correctness proof
+
+The gcd divisibility condition is necessary and sufficient because the merge
+equation is linear Diophantine. When it holds, the scaled Bezout coefficients
+construct a value satisfying both original congruences. Any two common values
+differ by a multiple of both moduli, hence by their lcm; adding the lcm also
+preserves both remainders. Reducing the constructed value modulo that period
+therefore gives the unique common value in `[0,period)`, which is the smallest
+nonnegative solution.
+
+## Complexity and tests
+
+Each query takes `O(log min(m1,m2))` time and `O(log min(m1,m2))` recursion
+depth; extra memory is logarithmic. Test coprime moduli, compatible and
+incompatible noncoprime moduli, equal moduli, modulus one, a negative initial
+construction, and moduli near `10^9`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_merge_congruences/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_merge_congruences/solution.py >}}
+```
+
+# F. Shared Maintenance Window
+
+## Finding the hidden congruences
+
+Machine A signals at exactly the nonnegative times congruent to `offsetA`
+modulo `periodA`; machine B gives the second congruence. First merge those two
+classes exactly as in E. If they are incompatible, no lower bound can make a
+common signal appear.
+
+If they merge to smallest value `first` with common period `period`, every
+common signal time is
+
+```text
+first + period*z
+```
+
+for a nonnegative integer `z`. We need the smallest one at least `earliest`.
+If `first` is already large enough, keep it. Otherwise use ceiling division:
+
+```text
+jumps = ceil((earliest-first)/period)
+answer = first + jumps*period.
+```
+
+For nonnegative integers, compute the ceiling as
+`(needed+period-1)/period`.
+
+## Correctness proof
+
+The CRT merge proves that the generated arithmetic progression contains every
+and only common signal time. When advancing is necessary, `jumps` is the
+smallest integer whose added periods reach the lower bound. The reported time
+is therefore valid, while using one fewer jump would remain below `earliest`.
+Thus it is the earliest permitted common signal.
+
+## Complexity and tests
+
+Extended Euclid dominates at `O(log min(periodA,periodB))` time per query.
+Memory is logarithmic. Test a lower bound before, equal to, and after the first
+common time; a jump across several periods; incompatible cycles; period one;
+and `earliest` near `10^18`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_shared_maintenance_window/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_shared_maintenance_window/solution.py >}}
+```
+
 # Formative upsolve exercises
 
 1. For A, explain why computing `(a/g)*b` is safer than `a*b/g`, then evaluate
@@ -408,6 +796,9 @@ Then run focused cases while developing:
 A: (12,18), (7,5), (10^9,10^9)
 B: (3,11), (10,17), (6,9), (25,1)
 C: (6,10,14), (6,10,15), (7,5,1)
+D: (6,8,14), (6,7,14), (10,1,17)
+E: (2,6,5,9), (1,4,2,6), equal moduli
+F: the same compatible cycles with earliest before and after the first match
 ```
 
 For C, a valid judge must check the equation itself rather than require one
@@ -421,6 +812,9 @@ particular Bezout parameterization. Different valid pairs are expected.
 3. A modular inverse is a gcd-one statement, not automatically a Fermat statement.
 4. For ax+by=c, gcd divisibility is both the impossibility test and the bridge to construction.
 5. Treat negative coefficients as normal integer solutions, then verify by substitution.
+6. For `a*x == b (mod m)`, divide by `gcd(a,m)` only after checking that it divides `b`.
+7. Two congruences are compatible iff their residue difference is divisible by the moduli gcd.
+8. After a CRT merge, normalize by the lcm; that lcm is also the complete solution period.
 ```
 # Full reference implementations
 
@@ -447,4 +841,28 @@ particular Bezout parameterization. Different valid pairs are expected.
 ## C. Linear Diophantine: Python
 ```python
 {{< include problems/c_linear_diophantine/solution.py >}}
+```
+## D. Clock Offset: C++
+```cpp
+{{< include problems/d_clock_offset/solution.cpp >}}
+```
+## D. Clock Offset: Python
+```python
+{{< include problems/d_clock_offset/solution.py >}}
+```
+## E. Merge Congruences: C++
+```cpp
+{{< include problems/e_merge_congruences/solution.cpp >}}
+```
+## E. Merge Congruences: Python
+```python
+{{< include problems/e_merge_congruences/solution.py >}}
+```
+## F. Shared Maintenance Window: C++
+```cpp
+{{< include problems/f_shared_maintenance_window/solution.cpp >}}
+```
+## F. Shared Maintenance Window: Python
+```python
+{{< include problems/f_shared_maintenance_window/solution.py >}}
 ```

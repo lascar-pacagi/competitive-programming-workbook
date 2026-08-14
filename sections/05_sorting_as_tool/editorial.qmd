@@ -587,3 +587,99 @@ Sorting is useful when it changes the geometry of the problem:
 Later sections will use sorting inside greedy algorithms, sweep lines,
 offline queries, coordinate compression, and graph construction.
 
+# Problem D: Compact Team
+
+## Restatement and constraints
+
+Choose exactly `k` values whose maximum minus minimum is as small as possible.
+With total `n` up to `200000`, enumerating all `k`-subsets is impossible even
+though it is a useful tiny-input oracle. Values may be negative, and the answer
+can exceed 32-bit range.
+
+## Observation and walk-through
+
+Sort the values. In an optimal chosen team, consider its smallest and largest
+chosen values. Every sorted value between them can replace an interior chosen
+value without increasing the spread, so some optimum is a consecutive block of
+exactly `k` sorted values.
+
+For `[4,1,9,7,5]` and `k=3`, sorting gives `[1,4,5,7,9]`:
+
+```text
+[1,4,5] spread 4
+[4,5,7] spread 3
+[5,7,9] spread 4
+```
+
+The answer is three.
+
+## Algorithm
+
+```text
+sort a
+answer = a[k-1] - a[0]
+for left from 1 through n-k:
+    answer = min(answer, a[left+k-1] - a[left])
+print answer
+```
+
+## Correctness proof
+
+Let S be an optimal team and let its minimum and maximum values occupy sorted
+positions L and R. The interval `[L,R]` contains at least k values because it
+contains S. Choose any k consecutive values inside that interval including its
+endpoints when necessary; their minimum is no smaller than S's minimum and
+their maximum is no larger than S's maximum. Their spread is therefore at most
+the optimal spread, hence equal to it. The algorithm evaluates every
+consecutive block of k sorted values, including this optimal block, and returns
+the smallest evaluated spread. Thus it is correct.
+
+## Complexity and implementation notes
+
+Sorting costs `O(n log n)` and the scan costs `O(n)`; memory is `O(n)`. Use
+`long long` in C++ for subtraction. Python integers are exact. For `k=1`, every
+block has spread zero and the same loop handles it.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    ios::sync_with_stdio(false); cin.tie(nullptr);
+    int t; cin >> t;
+    while (t--) {
+        int n, k; cin >> n >> k;
+        vector<long long> a(n);
+        for (auto& x : a) cin >> x;
+        sort(a.begin(), a.end());
+        long long answer = a[k - 1] - a[0];
+        for (int left = 1; left + k <= n; ++left)
+            answer = min(answer, a[left + k - 1] - a[left]);
+        cout << answer << '\n';
+    }
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+index, out = 1, []
+for _ in range(data[0]):
+    n, k = data[index], data[index + 1]
+    index += 2
+    a = sorted(data[index:index + n])
+    index += n
+    out.append(str(min(a[i + k - 1] - a[i] for i in range(n - k + 1))))
+print("\n".join(out))
+```
+
+## Tests that matter
+
+Test `k=1`, `k=n`, all equal values, negative values, duplicate values, and
+two values whose difference exceeds signed 32-bit range. The random generator
+uses combinations as an independent small oracle and includes a 200000-value
+case to enforce the intended sorting complexity.

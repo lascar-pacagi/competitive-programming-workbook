@@ -156,70 +156,149 @@ Window maximums:
 
 # Deque over prefix sums
 
-With only nonnegative numbers, a two-pointer window can find short subarrays
-with sum at least `K`. Negative numbers break that, because extending the right
-endpoint can make the sum smaller.
-
-Use prefix sums:
+This is for a harder-looking task:
 
 ```text
-sum(l, r) = pref[r] - pref[l]
+Find the shortest non-empty subarray whose sum is at least K.
 ```
 
-For each right endpoint `r`, we want the largest possible `l` among candidates
-with:
+If every number were nonnegative, ordinary two pointers would work. With a
+negative number, moving the right end rightward can *decrease* the sum, so that
+usual reasoning breaks.
+
+## Turn subarrays into pairs of prefix indices
+
+Build a prefix array with one extra entry. For `0 <= i < n`:
 
 ```text
-pref[r] - pref[l] >= K
+pref[0] = 0
+pref[i + 1] = pref[i] + a[i]
 ```
 
-But we also want small prefix sums, because smaller `pref[l]` makes the
-difference larger.
+For example, if the array begins `a[0], a[1], a[2], ...`, then:
 
-Keep prefix indices in a deque with increasing prefix values.
+```text
+pref = [0, a[0], a[0] + a[1], a[0] + a[1] + a[2], ...]
+```
 
-For current prefix `pref[i]`:
+So `pref[i]` equals `a[0] + ... + a[i - 1]`: the sum of the first `i`
+elements. For an ordinary inclusive subarray from `start` through `end`:
 
-1. While the front gives a valid sum, update the answer and pop it. Popping is
-   safe because later `i` values only make the length longer for that same
-   front.
-2. While the back prefix is `>= pref[i]`, pop it. The current index is later and
-   has a smaller or equal prefix sum, so the old back is dominated.
-3. Push `i`.
+```text
+sum(a[start ... end]) = pref[end + 1] - pref[start]
+length                 = end - start + 1
+```
+
+For the deque algorithm, it is more convenient to process every prefix index
+`right` from `0` through `n`. Pairing an earlier index `start` with `right`
+means the subarray `a[start ... right - 1]`:
+
+```text
+sum:    pref[right] - pref[start]
+length: right - start
+```
+
+So, while processing `pref[right]`, we seek earlier indices `start` satisfying:
+
+```text
+pref[right] - pref[start] >= K
+```
+
+Among valid `start` values, a later one gives a shorter subarray. We need
+candidates that are both useful for the sum and as far right as possible.
+
+## What the deque stores
+
+The deque stores **prefix indices**, not array values. Their prefix sums are
+strictly increasing from front to back:
+
+```text
+dq = [j0, j1, j2, ...]
+pref[j0] < pref[j1] < pref[j2] < ...
+```
+
+At the current prefix index `right`, do these operations in this order:
+
+1. While `pref[right] - pref[dq.front()] >= K`, record the length
+   `right - dq.front()` and pop the front.
+2. While `pref[dq.back()] >= pref[right]`, pop the back.
+3. Append `right`.
+
+The two kinds of pop have different reasons.
+
+**Pop from the front after finding a valid subarray.** The front is the oldest
+candidate. It has just formed a valid subarray ending at index `right - 1`.
+Any later `right` would make that candidate's length larger, never smaller. It
+has no future use, so discard it and try the next candidate; that next candidate
+is later and therefore gives a shorter length if it is also valid.
+
+**Pop from the back before appending `right`.** Suppose an old back index `j`
+has `pref[j] >= pref[right]`. Index `right` is later and has an equal or smaller
+prefix sum. For every future prefix index `future`:
+
+```text
+pref[future] - pref[right] >= pref[future] - pref[j]
+future - right < future - j
+```
+
+Thus `right` gives at least as much sum and a strictly shorter subarray. Index
+`j` is dominated forever and can be removed.
 
 # Worked prefix example
 
-Array:
+Find the shortest subarray with sum at least `K = 5`:
 
 ```text
-2 -1 2 -1 2 4
-K = 5
+index:  0   1   2   3  4  5
+a:      2  -1   2  -1  2  4
 ```
 
 Prefix sums:
 
 ```text
-index: 0  1  2  3  4  5  6
-pref:  0  2  1  3  2  4  8
+prefix index:  0  1  2  3  4  5  6
+pref:          0  2  1  3  2  4  8
 ```
 
-At `i = 6`, `pref[i] = 8`.
-
-The deque contains useful low prefix sums. If the front is index `4` with
-`pref[4] = 2`, then:
+Start with an empty deque. The following trace writes the prefix indices in the
+deque, followed by their prefix values in parentheses.
 
 ```text
-8 - 2 = 6 >= 5
-length = 6 - 4 = 2
+i = 0, pref = 0: append 0
+dq = [0]                         (0)
+
+i = 1, pref = 2: no valid front; append 1
+dq = [0, 1]                      (0, 2)
+
+i = 2, pref = 1: no valid front; pop 1 because 2 >= 1; append 2
+dq = [0, 2]                      (0, 1)
+
+i = 3, pref = 3: no valid front; append 3
+dq = [0, 2, 3]                   (0, 1, 3)
+
+i = 4, pref = 2: no valid front; pop 3 because 3 >= 2; append 4
+dq = [0, 2, 4]                   (0, 1, 2)
+
+i = 5, pref = 4: no valid front; append 5
+dq = [0, 2, 4, 5]                (0, 1, 2, 4)
 ```
 
-The subarray is:
+Now process `i = 6`, where `pref[6] = 8`. The deque front is truly index `0`,
+not index `4`. Repeatedly use the front while it gives a sum of at least 5:
 
 ```text
-a[4] + a[5] = 2 + 4 = 6
+front 0: 8 - pref[0] = 8  -> length 6 - 0 = 6; pop 0
+front 2: 8 - pref[2] = 7  -> length 6 - 2 = 4; pop 2
+front 4: 8 - pref[4] = 6  -> length 6 - 4 = 2; pop 4
+front 5: 8 - pref[5] = 4  -> stop: this sum is too small
 ```
 
-So the answer can be `2`.
+The best length is `2`. Here `start = 4` and `i = 6`, so the actual subarray is
+`a[4:6]`, namely `2 + 4 = 6`.
+
+The important pattern is: a prefix index enters the deque once, then can leave
+once from the front or once from the back. Therefore the deque work is linear;
+sorting is not needed.
 
 # Common recognition signals
 
@@ -354,4 +433,3 @@ Practice a decreasing deque of indices.
 ## C. Shortest Subarray At Least K
 
 Practice a monotonic deque over prefix sums, including negative values.
-

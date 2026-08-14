@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Sort intervals by start, then merge overlapping/touching ranges.
+    // TODO: solve the problem.
     return 0;
 }
-

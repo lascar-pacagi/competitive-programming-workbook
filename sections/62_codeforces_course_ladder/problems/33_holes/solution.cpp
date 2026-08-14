@@ -1,0 +1,2 @@
+#include <bits/stdc++.h>
+using namespace std;const long long M=1000000007;long long pw(long long a,long long b){long long r=1;for(;b;b>>=1,a=a*a%M)if(b&1)r=r*a%M;return r;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;cin>>n;vector<long long>f(n+1),iv(n+1);f[0]=1;for(int i=1;i<=n;i++)f[i]=f[i-1]*i%M;iv[n]=pw(f[n],M-2);for(int i=n;i;i--)iv[i-1]=iv[i]*i%M;long long ans=0;for(int k=0;k<=n;k++){long long term=f[n]*iv[k]%M;if(k&1)ans=(ans-term+M)%M;else ans=(ans+term)%M;}cout<<ans<<'\n';}

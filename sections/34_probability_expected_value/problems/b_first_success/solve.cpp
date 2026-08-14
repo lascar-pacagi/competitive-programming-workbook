@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: geometric expectation is 1/probability = q/p.
+    // TODO: solve the problem.
     return 0;
 }

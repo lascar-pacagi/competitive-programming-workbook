@@ -4,6 +4,7 @@ using namespace std;
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    // TODO: implement B. All Borders.
+
+    // TODO: solve the problem.
     return 0;
 }

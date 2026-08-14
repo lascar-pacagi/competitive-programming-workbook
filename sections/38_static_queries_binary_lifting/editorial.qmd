@@ -30,6 +30,7 @@ execute:
 | A. Static Range Minimum | See full algorithm and code below. |
 | B. Static Range GCD | See full algorithm and code below. |
 | C. Kth Ancestor | See full algorithm and code below. |
+| D. Ancestor Minimum | Binary-lift an ancestor path while merging minimum labels. |
 # A. Static Range Minimum
 
 ## Restatement
@@ -57,7 +58,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -158,7 +159,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -260,7 +261,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -333,6 +334,169 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
+
+# D. Ancestor Minimum
+
+## Restatement
+
+For each `(v,k)`, inspect `v`, its parent, and every ancestor through the
+`k`-th ancestor. Print their smallest label, or `-1` if that ancestor does not
+exist. This blind exercise looks like kth-ancestor queries, but it asks for an
+aggregate over the nodes crossed by the jumps.
+
+## Constraints and traps
+
+`n,q <= 200,000`, so climbing one edge at a time is quadratic on a chain.
+Labels can be negative, so zero is not a valid missing-value sentinel. The
+path includes `v` itself: a query with `k=0` returns `label[v]`. A one-edge
+aggregate must include both `v` and its parent, not just the start node.
+
+## Observations
+
+Keep the normal binary-lifting table:
+
+```text
+up[t][v] = node exactly 2^t parent edges above v, or 0 if absent.
+```
+
+Also store an inclusive path aggregate whenever that jump exists:
+
+```text
+best[t][v] = minimum label from v through up[t][v], inclusive.
+```
+
+For one edge:
+
+```text
+best[0][v] = min(label[v], label[parent[v]]).
+```
+
+For a larger jump, let `mid = up[t-1][v]`. Two adjacent half-jumps form the
+whole path:
+
+```text
+up[t][v] = up[t-1][mid]
+best[t][v] = min(best[t-1][v], best[t-1][mid])
+```
+
+To answer `(v,k)`, start `answer = label[v]`. Decompose `k` into set bits. For
+each selected bit `t`, reject if `up[t][v]` is zero; otherwise merge
+`best[t][v]` and move `v` to `up[t][v]`. Consecutive segments may repeat an
+endpoint, but minimum is idempotent, so that overlap changes nothing.
+
+## Sample walk-through
+
+For `(5,2)`, the path is `5 -> 2 -> 1` with labels `6,5,8`. Bit one is set,
+so take a two-edge jump:
+
+```text
+best[1][5] = min(best[0][5], best[0][2])
+           = min(min(6,5), min(5,8)) = 5.
+```
+
+The answer is `5`. For `(4,3)`, the third parent edge would leave the root, so
+the answer is `-1`, not the minimum on the shorter existing prefix.
+
+## Algorithm
+
+```text
+build up[0][v] = parent[v]
+build best[0][v] = min(label[v], label[parent[v]])
+
+for t = 1..LOG-1:
+    mid = up[t-1][v]
+    up[t][v] = up[t-1][mid]
+    best[t][v] = min(best[t-1][v], best[t-1][mid])
+
+for query (v,k):
+    answer = label[v]
+    for every set bit t of k:
+        if up[t][v] is zero: print -1
+        otherwise merge best[t][v], then v = up[t][v]
+    print answer if all selected jumps existed
+```
+
+Use a large positive `INF` for aggregate entries involving sentinel node zero.
+The query checks the jump before using its aggregate, so `INF` never becomes a
+real answer.
+
+## Correctness proof
+
+**Lemma 1.** If `up[t][v]` exists, it is the `2^t`-th ancestor of `v`, and
+`best[t][v]` is the minimum on the inclusive path between them.
+
+**Proof.** At `t=0`, the table stores the parent and the minimum of its two
+endpoint labels. For larger `t`, the recurrence joins the path from `v` to
+`mid` and the adjacent path from `mid` to `up[t-1][mid]`. By induction both
+half aggregates are correct; their minimum is exactly the aggregate on the
+combined `2^t`-edge path. $\square$
+
+**Lemma 2.** After processing selected query bits totaling `d`, the current
+node is the `d`-th ancestor of the original node and `answer` is the minimum
+on the path to it.
+
+**Proof.** It holds initially for `d=0`. Lemma 1 moves the node by each
+selected power-of-two distance and merges exactly the labels crossed. Induction
+over the bit loop proves the claim. $\square$
+
+**Theorem.** The algorithm prints `-1` exactly for impossible queries and the
+requested path minimum for all other queries.
+
+**Proof.** A missing selected jump proves that the requested ancestor is absent.
+Otherwise the selected powers sum to `k`, and Lemma 2 gives the minimum from
+the starting node through its `k`-th ancestor. $\square$
+
+## Complexity
+
+With `L = ceil(log2(n+1))`:
+
+```text
+Preprocessing: O(n L) time and memory
+Each query:    O(L) time
+```
+
+## C++ implementation notes
+
+Use zero as the missing-parent sentinel and initialize `minimum[*][0]` to
+`INF`. Keep labels and table aggregates in `long long`. Before merging a
+selected jump, test `up[bit][node] != 0`; this distinguishes an impossible
+query from a valid path with a negative answer.
+
+## Python implementation notes
+
+Use `10**30` as `INF` and an output list for all query answers. The loop that
+consumes `k` must advance its bit counter for both zero and one bits.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_ancestor_minimum/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_ancestor_minimum/solution.py >}}
+```
+
+## Common wrong answers
+
+```text
+Storing only label[v] in best[0][v] and omitting the parent endpoint.
+Returning a partial-path minimum after discovering a missing ancestor.
+Using zero as the missing aggregate despite negative labels.
+Forgetting that k=0 includes the starting node.
+Choosing too few lifting rows for a deepest valid path.
+```
+
+## Tests that matter
+
+```text
+A one-node tree with k=0 and positive k.
+Negative labels along a path.
+A query that reaches exactly the root and one edge beyond it.
+A long chain with 200,000 queries, to reject literal climbing.
 ```
 
 # Testing discussion

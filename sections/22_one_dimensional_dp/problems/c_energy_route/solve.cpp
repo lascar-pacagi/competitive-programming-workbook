@@ -4,7 +4,7 @@ using namespace std;
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    // TODO: dp[i] = minimum energy needed to reach platform i.
+
+    // TODO: solve the problem.
     return 0;
 }
-

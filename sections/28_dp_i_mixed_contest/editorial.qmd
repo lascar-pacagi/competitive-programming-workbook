@@ -23,6 +23,21 @@ execute:
   enabled: false
 ---
 
+# Category coverage
+
+| Category | Coverage problem |
+|---|---|
+| one-dimensional DP | A. Training Schedule; H. Sliding Jump Cost |
+| knapsack and subset DP | B. Two Carts; I. Grouped Cargo |
+| grid DP | E. One Diagonal Path; J. Minimum Starting Energy |
+| interval DP | F. Matrix Chain; K. Last Crystal Removed |
+| tree DP | C. Prerequisite Tree; L. Weighted Tree Guards |
+| bitmask DP | G. Hamiltonian Route |
+
+All twelve problems are self-contained local packages and are included by this
+section's checker. D. Circular Exhibition remains additional one-dimensional
+boundary-case practice.
+
 # Editorial overview
 
 | Problem | Main idea | State |
@@ -30,6 +45,15 @@ execute:
 | A. Training Schedule | previous action DP | `dp[last]` |
 | B. Two Carts | 2D 0/1 knapsack | `dp[a][b]` |
 | C. Prerequisite Tree | tree knapsack | `dp[u][budget]` |
+| D. Circular Exhibition | split a cyclic boundary case | `dp[index][taken]` |
+| E. One Diagonal Path | grid DP with resource state | `dp[row][column][used]` |
+| F. Matrix Chain | interval split DP | `dp[left][right]` |
+| G. Hamiltonian Route | endpoint-and-mask DP | `dp[mask][last]` |
+| H. Sliding Jump Cost | sliding transition minimum | `dp[index]` plus deque |
+| I. Grouped Cargo | group-layer knapsack | `dp[weight]` |
+| J. Minimum Starting Energy | reverse requirement DP | `need[row][column]` |
+| K. Last Crystal Removed | choose the final interval action | `dp[left][right]` |
+| L. Weighted Tree Guards | parent-dependence tree DP | `dp[node][state]` |
 
 # A. Training Schedule
 
@@ -85,7 +109,7 @@ day, every valid schedule either rests, does C++, or does Python. The transition
 checks exactly the legal previous actions for each choice and adds one rest day
 only in the rest case. Therefore it keeps the minimum cost for each possible
 last action. After all days, the best final last action gives the answer.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -216,7 +240,7 @@ represent placing the item into a cart if capacity allows. Decreasing iteration
 ensures each update uses a state from before the current item was placed, so
 the item cannot be counted twice. Thus the invariant is preserved. Taking the
 maximum over capacities gives the best value with capacity at most the limits.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -374,7 +398,7 @@ taking the maximum gives the best merged table.
 By postorder, every child table is correct before it is merged. After all
 children are processed, the invariant gives the correct table for `u`. Applying
 this to the root and taking the best budget at most `B`, plus the option of
-choosing nothing, gives the answer. `\square`
+choosing nothing, gives the answer. $\square$
 
 ## Complexity
 
@@ -530,3 +554,831 @@ If two resources constrain the future, keep both.
 If choices live under a tree, solve children before parents.
 If a budget is attached to each subtree, merge budgets like knapsack.
 ```
+
+# D. Circular Exhibition
+
+## Restatement and reduction
+
+Choose non-adjacent booths on a circle for maximum reward. On a line, let
+`best[i]` be the best reward through position `i`; then:
+
+```text
+best[i] = max(best[i-1], best[i-2] + a[i])
+```
+
+The circle only adds one conflict: the first and last booths cannot both be
+chosen. Every valid choice either excludes the last booth or excludes the
+first booth. Solve those two lines and take the larger answer. For one booth,
+return `max(0, a[0])` directly.
+
+For sample `2 7 9 3 1`, excluding the last permits `2 + 9 = 11`; no valid
+circular selection is better.
+
+## Constraints and traps
+
+`n` can be `200000`, so subset enumeration and a two-dimensional DP are out
+of scope. Rewards may be negative and can be as large as `10^9` in magnitude.
+
+```text
+Selecting no booth is allowed, so the answer is never negative.
+Booth 1 conflicts with booth n as well as with booth 2.
+n = 1 is not two ordinary line cases; handle it directly.
+Use 64-bit totals in C++.
+```
+
+## Worked trace
+
+For the sample `[2, 7, 9, 3, 1]`, first exclude the last booth and solve
+`[2, 7, 9, 3]`:
+
+```text
+value:       2  7  9  3
+best so far: 2  7 11 11
+```
+
+Now exclude the first booth and solve `[7, 9, 3, 1]`:
+
+```text
+value:       7  9  3  1
+best so far: 7  9 10 10
+```
+
+The larger case result is `11`. For `n = 1`, say `[-4]`, neither line case is
+used: the legal choices are take `-4` or take nothing, giving `0`.
+
+## Algorithm
+
+```text
+line(l, r):
+    previous_two = previous_one = 0
+    for i from l to r:
+        current = max(previous_one, previous_two + a[i])
+        shift values forward
+    return previous_one
+
+if n == 1: answer = max(0, a[0])
+else:      answer = max(line(0, n-2), line(1, n-1))
+```
+
+## Correctness proof
+
+**Lemma 1.** `line(l,r)` returns the maximum reward from non-adjacent booths
+in that line interval.
+
+**Proof.** For each position, an optimal choice either skips it, giving the
+previous optimum, or takes it and must combine it with the optimum ending two
+positions earlier. The recurrence considers both cases. Induction over the
+line positions proves the result. $\square$
+
+**Lemma 2.** Every valid circular selection belongs to at least one of the two
+line cases.
+
+**Proof.** A valid selection cannot contain both first and last booths. Thus it
+omits the last (first line case), or omits the first (second line case), or
+both. $\square$
+
+**Theorem.** The algorithm prints the maximum valid circular reward.
+
+**Proof.** Lemma 2 places every valid selection in a solved line case. Lemma 1
+optimizes each case, so their maximum is optimal. The single-booth branch has
+exactly the allowed choices: take it or take nothing. $\square$
+
+## Complexity
+
+```text
+Time: O(n)
+Memory: O(1)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long line(const vector<long long>& a, int left, int right) {
+    long long two_back = 0, one_back = 0;
+    for (int i = left; i <= right; ++i) {
+        long long current = max(one_back, two_back + a[i]);
+        two_back = one_back;
+        one_back = current;
+    }
+    return one_back;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n; cin >> n;
+    vector<long long> a(n);
+    for (long long& x : a) cin >> x;
+    if (n == 1) cout << max(0LL, a[0]) << '\\n';
+    else cout << max(line(a, 0, n - 2), line(a, 1, n - 1)) << '\\n';
+}
+```
+
+## C++ implementation notes
+
+Pass the original vector plus inclusive `left,right` indices to `line`; this
+does not copy either case. Initialize both rolling values to zero so skipping
+all negative booths stays legal.
+
+## Full Python solution
+
+```python
+import sys
+
+
+def line(values: list[int], left: int, right: int) -> int:
+    two_back = one_back = 0
+    for index in range(left, right + 1):
+        two_back, one_back = one_back, max(one_back, two_back + values[index])
+    return one_back
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    values = data[1:]
+    if len(values) == 1:
+        print(max(0, values[0]))
+    else:
+        print(max(line(values, 0, len(values) - 2),
+                  line(values, 1, len(values) - 1)))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Python implementation notes
+
+Avoid `values[:-1]` and `values[1:]`: each slice creates a new list. Passing
+the same list with endpoint indices preserves the advertised `O(1)` auxiliary
+DP memory (besides the unavoidable input list).
+
+## Traps and tests
+
+- Treating the circle as a line allows selecting both endpoints.
+- Forgetting the one-booth special case makes its two line intervals empty.
+- Negative rewards mean taking no booth can be best.
+- Test one booth, all equal rewards, endpoint-heavy values, and all negatives.
+
+# Stress testing
+
+For at most 18 booths, enumerate every subset and reject any subset containing
+adjacent circular positions. This independent oracle checks the two-case DP.
+The local generator also includes 200000 booths of reward one, whose direct
+answer is 100000.
+
+# What to carry forward
+
+When a cycle blocks a simple path DP only at its endpoints, split on one
+endpoint's inclusion/exclusion and solve the remaining path cases.
+
+# E. One Diagonal Path
+
+## Restatement and state design
+
+We move from the top-left cell to the bottom-right using right and down moves,
+but exactly one move must be diagonal down-right. Cell values may be negative,
+so an unreachable state cannot be represented by zero.
+
+Position alone does not describe a partial route: two routes reaching the same
+cell differ in whether the mandatory diagonal is still available. Add one bit:
+
+```text
+dp[r][c][0] = best sum reaching (r,c) without a diagonal
+dp[r][c][1] = best sum reaching (r,c) after exactly one diagonal
+```
+
+The answer is state `1` at the destination; taking the maximum over both states
+would incorrectly permit no diagonal.
+
+## Transitions
+
+For either `used` value, a route may arrive from above or from the left:
+
+```text
+dp[r][c][used] =
+    value[r][c] + max(dp[r-1][c][used], dp[r][c-1][used])
+```
+
+The diagonal transition is different:
+
+```text
+dp[r][c][1] =
+    max(dp[r][c][1], dp[r-1][c-1][0] + value[r][c])
+```
+
+It must originate from state zero; a transition from state one would use a
+second diagonal. Initialize only `dp[0][0][0]` with the starting cell.
+
+## Correctness proof
+
+We prove by row-major induction that each state equals the maximum sum of all
+routes satisfying its definition. The base state represents the unique
+zero-move route at `(0,0)`.
+
+Any route reaching `(r,c)` ends with exactly one of three moves. If the final
+move is down or right, removing it leaves a route to the corresponding
+predecessor with the same `used` bit; the first transition considers it. If
+the final move is diagonal, the preceding route used no diagonal and the
+second transition considers it. These cases are exhaustive and disjoint.
+Conversely, appending the indicated move to any reachable predecessor produces
+a valid route for the destination state. Taking the maximum therefore gives
+the optimal sum for each state. In particular, destination state one is the
+best route using exactly one diagonal.
+
+## Complexity and implementation notes
+
+There are `2nm` states and constant work per state, so time is `O(nm)`.
+Keeping only the previous and current row reduces memory from `O(nm)` to
+`O(m)`.
+
+Use a genuine negative-infinity sentinel and never add a cell value to an
+unreachable state. With negative grid values, zero is not a safe sentinel.
+If `n = 1` or `m = 1`, no diagonal move is possible and the output is `-1`.
+
+## Tests that matter
+
+```text
+1 x 1 and 1 x m grids -> impossible.
+2 x 2 -> the diagonal route is forced.
+All-negative values -> catches zero initialization.
+A tempting second diagonal -> verifies the used bit.
+Best route delays the diagonal until near the destination.
+```
+
+For small dimensions, enumerate every legal move sequence and retain only
+those containing exactly one diagonal.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_one_diagonal_path/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_one_diagonal_path/solution.py >}}
+```
+
+# F. Matrix Chain
+
+## Why parenthesization matters
+
+Matrix multiplication is associative, but its cost depends on the order. If
+matrices `A_i` have dimensions `d[i-1] x d[i]`, every product of matrices
+`l..r` has fixed final dimensions `d[l-1] x d[r]`, regardless of how that
+interval is parenthesized. This fixed boundary information makes an interval
+DP possible.
+
+Define:
+
+```text
+dp[l][r] = minimum scalar multiplications needed for A_l ... A_r
+```
+
+A single matrix needs no multiplication, so `dp[i][i] = 0`.
+
+## Recurrence and evaluation order
+
+Every parenthesization of `[l,r]` has a unique final multiplication, splitting
+after some `k`:
+
+```text
+(A_l ... A_k) * (A_{k+1} ... A_r)
+```
+
+The two results have dimensions `d[l-1] x d[k]` and `d[k] x d[r]`. Therefore:
+
+```text
+dp[l][r] = min over l <= k < r of
+    dp[l][k] + dp[k+1][r] + d[l-1] * d[k] * d[r]
+```
+
+Fill intervals by increasing length so both smaller intervals are already
+known when evaluating a split.
+
+## Correctness proof
+
+Take an optimal parenthesization of `[l,r]` and let `k` be its final split.
+Its left and right subexpressions must themselves be optimally parenthesized;
+otherwise replacing either with a cheaper parenthesization improves the whole
+solution. Thus its cost appears among the recurrence candidates.
+
+Conversely, for every candidate `k`, combine optimal parenthesizations for the
+two subintervals and perform their final multiplication. This constructs a
+valid parenthesization with exactly the candidate cost. The minimum over all
+final splits is therefore exactly optimal.
+
+## Complexity and pitfalls
+
+There are `O(n^2)` intervals and up to `O(n)` splits per interval, giving
+`O(n^3)` time and `O(n^2)` memory. Products and totals require signed 64-bit
+integers under the stated dimensions.
+
+Frequent mistakes include shifting the dimension indices incorrectly, using
+`d[k+1]` for the shared dimension in one-based notation, initializing
+nontrivial intervals to zero, or filling by decreasing rather than increasing
+interval size.
+
+## Tests that matter
+
+```text
+n = 1                         -> 0
+Two matrices                  -> one forced multiplication
+10 30 5 60                    -> split choice changes the answer
+All dimensions equal          -> every parenthesization ties
+Large dimensions              -> catches 32-bit overflow
+```
+
+A recursive exhaustive enumeration of all split positions is a suitable
+oracle for small `n`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_matrix_chain/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_matrix_chain/solution.py >}}
+```
+
+# G. Hamiltonian Route
+
+## Constraint-driven recognition
+
+Visiting every vertex exactly once suggests permutations, but `n!` is already
+too large for `n = 18`. The important constraint is small `n`, which permits
+`2^n` subsets. A subset records which vertices have been used; the final
+vertex records enough order information to extend the route.
+
+Define:
+
+```text
+dp[mask][u] = minimum cost of a route that
+              starts at vertex 1,
+              visits exactly the vertices in mask,
+              and currently ends at u
+```
+
+The base state is `dp[1 << 0][0] = 0`.
+
+## Transition
+
+From a reachable `(mask,u)`, try every vertex `v` not in `mask`. If the
+directed edge `u -> v` exists, append it:
+
+```text
+new_mask = mask | (1 << v)
+dp[new_mask][v] =
+    min(dp[new_mask][v], dp[mask][u] + cost[u][v])
+```
+
+The answer is `dp[(1 << n)-1][n-1]`. Although one may skip transitions into
+vertex `n` before the last step as an optimization, it is not required:
+because vertices cannot be revisited, a state that visits `n` early can never
+finish at `n` with the full mask.
+
+## Correctness proof
+
+We prove by the number of set bits in `mask` that every DP state stores the
+cheapest route matching its definition. The base state is the unique route
+containing only vertex `1`.
+
+For a larger state `(mask,v)`, every matching route has a unique penultimate
+vertex `u`. Removing its last edge gives a route represented by
+`(mask without v,u)`, and the transition from that state considers the route's
+exact cost. Conversely, every transition appends an existing directed edge to
+an unvisited vertex, so it creates a route with no repeated vertex and the
+claimed mask and endpoint. Minimizing over all possible penultimate vertices
+therefore yields the optimal state value. The full-mask state ending at `n`
+is exactly the required Hamiltonian route.
+
+## Complexity and implementation notes
+
+There are `n 2^n` states and up to `n` outgoing choices per state, for
+`O(n^2 2^n)` time and `O(n 2^n)` memory. Use 64-bit costs and an infinity
+value safely above every valid route cost.
+
+Do not treat `-1` as an edge weight; it means no edge. The matrix is directed,
+so `cost[u][v]` and `cost[v][u]` are unrelated. Ensure the start bit is present
+in every reachable mask.
+
+## Tests that matter
+
+```text
+n = 2 with and without edge 1 -> 2.
+A unique Hamiltonian route.
+All vertices reachable, but no Hamiltonian route ending at n.
+An asymmetric matrix where reversing an edge is invalid.
+A cheap route that reaches n too early and becomes unusable.
+Large edge costs -> verifies 64-bit accumulation.
+```
+
+For `n <= 9`, enumerate all permutations of the intermediate vertices as an
+independent oracle.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/g_hamiltonian_route/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/g_hamiltonian_route/solution.py >}}
+```
+
+# H. Sliding Jump Cost
+
+## Derive the slow recurrence first
+
+Let `dp[i]` be the minimum cost of a route ending at checkpoint `i`, including
+the cost of `i`. The final jump comes from one of the preceding `k`
+checkpoints, so
+
+```text
+dp[0] = cost[0]
+dp[i] = cost[i] + min(dp[j]) for max(0,i-k) <= j < i
+```
+
+This is a correct `O(nk)` DP. The state is already small; the repeated scan of
+an overlapping window is the bottleneck.
+
+## Maintain the transition minimum
+
+Keep candidate indices in a deque whose `dp` values are increasing.
+
+Before computing `dp[i]`:
+
+1. remove indices smaller than `i-k` from the front;
+2. the front now has the minimum DP value in the legal predecessor window;
+3. after computing `dp[i]`, remove from the back every candidate with value at
+   least `dp[i]`, then append `i`.
+
+An older candidate with a no-smaller DP value is dominated by `i`: every future
+window containing the older index also contains `i` for at least as long.
+Negative checkpoint costs do not change this argument; the deque orders DP
+values, not raw costs.
+
+## Correctness proof
+
+Assume all states before `i` equal the recurrence. Expired indices cannot jump
+to `i` and are removed. Every candidate removed from the back has a later
+candidate with no greater DP value, so it can never be the unique best choice
+for a future state. Thus the deque front is exactly a minimum over all legal
+predecessors of `i`, and the computed value equals the recurrence. Induction
+proves all DP values, including the destination, are optimal.
+
+## Complexity, pitfalls, and tests
+
+Each index is inserted once and removed at most once from each end, giving
+`O(n)` time and `O(n)` memory. The DP array can also be reduced, but retaining
+it makes the invariant easier to inspect. Include the start and destination
+costs, expire before reading the front, and use 64-bit totals.
+
+```text
+n = 1.
+k = 1 and k >= n.
+Negative costs that make a longer route cheaper.
+Equal DP values in the deque.
+```
+
+The oracle evaluates the direct `O(nk)` recurrence.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/h_sliding_jump_cost/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/h_sliding_jump_cost/solution.py >}}
+```
+
+# I. Grouped Cargo
+
+## The decision unit is a group
+
+Ordinary 0/1 knapsack processes one item at a time. Here that would lose the
+fact that two items from the same group are mutually exclusive.
+
+After processing complete groups, define
+
+```text
+dp[c] = maximum value obtainable with total weight at most c
+```
+
+For the next group, begin with `next = dp`, representing the choice of no item.
+For each item `(weight,value)` in the group and each old capacity `c`, update
+
+```text
+next[c + weight] = max(next[c + weight], dp[c] + value)
+```
+
+Crucially, every transition reads from `dp`, the previous group layer. Reading
+from `next` could combine two items from the current group.
+
+## Correctness proof
+
+Induct on the number of processed groups. A valid selection after the new group
+either chooses no item from it, covered by copying `dp`, or chooses exactly one
+specific item. Removing that item leaves a valid selection from all previous
+groups and is considered by its transition. Conversely, copied states choose
+nothing new, and every transition adds only one item to a previous-layer state,
+so no group contributes twice. Taking maxima therefore produces precisely the
+best valid value for every capacity.
+
+## Complexity, pitfalls, and tests
+
+If `T` is the total number of items, time is `O(TW)` and memory is `O(W)`.
+Copy once per group, not once per item. A backward capacity loop alone does not
+repair an in-place update: different items in the same group could still be
+combined.
+
+```text
+One group with two individually attractive items.
+Skipping an entire group is optimal.
+Two groups contain items with equal weights.
+Capacity smaller than every item.
+```
+
+The oracle enumerates one choice—possibly none—from each group.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/i_grouped_cargo/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/i_grouped_cargo/solution.py >}}
+```
+
+# J. Minimum Starting Energy
+
+## Why a forward maximum is the wrong summary
+
+Two paths reaching the same cell can have different current energies and
+different lowest energies seen earlier. Keeping only the largest accumulated
+sum does not directly minimize the initial energy needed to survive every
+prefix.
+
+Turn the question around:
+
+```text
+need[r][c] = minimum energy required immediately before entering (r,c)
+             to reach the destination without becoming negative
+```
+
+If the chosen next cell requires `after` energy, entering the current cell
+changes energy by `grid[r][c]`. Therefore
+
+```text
+need[r][c] = max(0, after - grid[r][c])
+```
+
+Choose the smaller requirement of the right and down successors. At the
+destination, `after` is conceptually `0` after processing its value, giving
+`max(0, -grid[last])`.
+
+## Evaluation order and compression
+
+Dependencies point right and down, so iterate rows and columns backward. A
+one-dimensional array stores the current row: before updating `need[c]` it is
+the value from below, while `need[c+1]` has already been updated for the cell
+to the right.
+
+## Correctness proof
+
+At the destination the formula is exactly the least energy that remains
+nonnegative after applying its cell value. For another cell, every valid path
+chooses right or down next. By induction, the successor DP value is its exact
+required energy. Subtracting the current cell contribution and clamping at zero
+gives the exact requirement for that successor; taking the minimum considers
+both possible final choices. Thus every state and `need[0][0]` are optimal.
+
+## Complexity, pitfalls, and tests
+
+Time is `O(nm)` and compressed memory is `O(m)`. Clamp at zero because zero
+energy is valid but negative energy is not. Include the value of both endpoint
+cells, and use a wide type for long negative paths.
+
+```text
+A single positive, zero, or negative cell.
+All positive cells -> answer 0.
+A large reward after an unavoidable early loss.
+Two routes trading an early loss against a later reward.
+```
+
+The oracle enumerates small paths and calculates the smallest initial energy
+required by each sequence of prefix sums.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/j_minimum_starting_energy/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/j_minimum_starting_energy/solution.py >}}
+```
+
+# K. Last Crystal Removed
+
+## Choosing the first removal does not isolate intervals
+
+If a crystal is removed first, its nearest remaining neighbors later depend on
+how both surrounding regions are removed. The natural-looking first action
+does not create independent subproblems.
+
+Instead, fix two crystals `left` and `right` that remain present and ask which
+interior crystal is removed *last*. At that moment all other interior crystals
+are gone, so its neighbors are known exactly: `left` and `right`.
+
+After adding permanent boundary values at indices `0` and `n+1`, define
+
+```text
+dp[left][right] = maximum gain from removing every crystal
+                  strictly between left and right
+```
+
+If `last` is the final interior crystal removed:
+
+```text
+dp[left][right] = max over last of
+    dp[left][last] + dp[last][right]
+    + value[left] * value[last] * value[right]
+```
+
+Evaluate by increasing interval length.
+
+## Correctness proof
+
+Every removal order for an interval has a unique final removed crystal. Before
+that final action, crystals on its left and right have been removed
+independently, giving the two smaller interval states; its final gain uses the
+fixed boundaries. Thus the recurrence considers every removal order with its
+exact gain. Conversely, combining optimal orders for both subintervals and
+then removing `last` is a legal order for the larger interval. Maximizing over
+`last` is therefore optimal.
+
+## Complexity, pitfalls, and tests
+
+There are `O(n^2)` intervals and `O(n)` final choices per interval, for
+`O(n^3)` time and `O(n^2)` memory. The permanent boundary crystals are never
+removed. Use 64-bit multiplication before adding interval totals.
+
+```text
+One crystal.
+All values equal to one.
+A small value between two large values.
+Orders whose best first action is not locally largest.
+```
+
+The oracle tries every next removal on small tuples and memoizes the remaining
+sequence.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/k_last_crystal_removed/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/k_last_crystal_removed/solution.py >}}
+```
+
+# L. Weighted Tree Guards
+
+## A Boolean state loses necessary boundary information
+
+Knowing only whether `u` has a guard is insufficient. When `u` has no guard,
+it may already be protected by a child, or it may still require its parent to
+have a guard. Those cases impose different conditions above the subtree.
+
+Root the tree and define three states:
+
+```text
+dp[u][0] = u has a guard
+dp[u][1] = u has no guard and is protected by a child
+dp[u][2] = u is not yet protected and requires a guard at its parent
+```
+
+If `u` has a guard, each child may use any state because `u` protects a child
+waiting in state 2. If `u` waits for its parent, no child may have a guard
+(that would already protect `u`), and every child must be safely protected in
+state 1. If `u` is protected by a child, every child must be in state 0 or 1,
+and at least one must be in state 0.
+
+## Enforcing at least one guarded child
+
+For state 1, first choose `min(dp[v][0],dp[v][1])` independently for every
+child. Then force one child into state 0 by adding the smallest penalty
+
+```text
+dp[v][0] - min(dp[v][0],dp[v][1])
+```
+
+A leaf has no candidate child, so state 1 is impossible for it. At the root,
+state 2 is impossible because no parent exists.
+
+## Correctness proof
+
+Proceed in postorder. The three states partition all possible relationships
+between a subtree root and its parent. Under a fixed state of `u`, child
+subtrees share no vertices or edges, so their optimal compatible costs add.
+The transitions list exactly the child states compatible with whether `u` has
+a guard and whether some child must guard it. Therefore, by induction, each
+state stores its minimum valid cost. The root must be guarded or protected by
+a child, so the answer is `min(dp[root][0],dp[root][1])`.
+
+## Complexity, pitfalls, and tests
+
+Every edge is inspected a constant number of times, giving `O(n)` time and
+`O(n)` memory. Use iterative rooting/postorder for a path of length `200000`.
+Do not allow a child in state 2 when `u` has no guard, and do not accept state
+1 unless at least one child actually has a guard.
+
+```text
+One vertex.
+Two vertices with very different costs.
+A path, a star, and a branching tree.
+A cheap child that can protect an expensive parent.
+```
+
+The oracle enumerates all guard subsets for small trees and checks coverage
+directly.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/l_weighted_tree_guards/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/l_weighted_tree_guards/solution.py >}}
+```
+
+# DP I closing checklist
+
+After completing the twelve problems, check that you can answer these without
+looking at an implementation:
+
+```text
+What does one state promise?
+What facts about the partial solution can affect choices made later?
+If I take any valid solution, is its last decision one of the choices tried by
+the recurrence?
+Does every choice tried by the recurrence preserve all the problem's rules?
+Which dependency determines the iteration order?
+Can the transition cost be reduced without changing the recurrence?
+Which old layer must remain untouched during an update?
+What is the smallest independent brute-force oracle?
+```
+
+The three middle questions check whether the state and transition are
+complete and safe:
+
+- **What facts can affect later choices?** Imagine hiding the inside of the
+  solved subproblem. The state must retain every fact that the unsolved part
+  still needs to know. For Hamiltonian Route, these facts are the visited set
+  and the current endpoint. For Weighted Tree Guards, the parent needs to know
+  whether the subtree root has a guard, is already protected, or still needs
+  protection from above.
+- **Does the recurrence include every valid solution?** Take an arbitrary
+  valid solution represented by the current state and inspect its final
+  decision. Matrix Chain tries every possible final split, so whichever split
+  that solution uses appears in the transition. This proves that the DP does
+  not overlook a valid candidate.
+- **Can a transition create an invalid solution?** Inspect each candidate
+  produced by the recurrence and verify that it preserves every constraint.
+  Hamiltonian Route adds only an unvisited vertex connected by an existing
+  edge. Grouped Cargo reads from the previous group layer, so one transition
+  cannot select two items from the same group. This proves that the DP does
+  not optimize over forbidden candidates.
+
+The second question is often called **completeness**: every valid solution is
+considered. The third is often called **soundness**: every considered solution
+is valid. A correct transition needs both.
+
+If a recurrence is difficult to prove, return to the state sentence. Most DP
+proof failures begin because the state forgot a boundary condition or because
+its meaning changes between initialization, transition, and final answer.

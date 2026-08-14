@@ -17,6 +17,7 @@ After this section, you should be able to:
    - `a_sorted_two_sum`
    - `b_longest_bounded_window`
    - `c_count_subarrays_at_most`
+   - `d_cover_all_labels` (blind practice)
 3. Run this section's checker after each problem.
 4. Read `editorial.pdf` only after a serious attempt.
 
@@ -45,4 +46,3 @@ CP_TARGET=solution python3 sections/06_two_pointers_sliding_windows/check.py
 
 See [`PRACTICE.md`](PRACTICE.md). Their statements are external; this
 repository does not copy them.
-

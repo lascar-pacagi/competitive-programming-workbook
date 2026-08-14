@@ -1,0 +1,2 @@
+#include <bits/stdc++.h>
+using namespace std;long long line(const vector<long long>&a,int l,int r){long long prev2=0,prev=0;for(int i=l;i<=r;i++){long long cur=max(prev,prev2+a[i]);prev2=prev;prev=cur;}return prev;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;cin>>n;vector<long long>a(n);for(auto&x:a)cin>>x;if(n==1){cout<<max(0LL,a[0])<<'\n';return 0;}cout<<max(line(a,0,n-2),line(a,1,n-1))<<'\n';}

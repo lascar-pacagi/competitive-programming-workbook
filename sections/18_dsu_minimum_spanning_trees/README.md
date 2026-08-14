@@ -11,6 +11,7 @@ minimum spanning tree or forest.
    - `a_network_growth`
    - `b_minimum_network`
    - `c_cluster_split`
+   - `d_cable_savings` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -25,4 +26,3 @@ CP_TARGET=solution python3 sections/18_dsu_minimum_spanning_trees/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

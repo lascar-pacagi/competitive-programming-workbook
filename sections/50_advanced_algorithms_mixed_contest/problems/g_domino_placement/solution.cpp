@@ -1,0 +1,3 @@
+#include <bits/stdc++.h>
+using namespace std;
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;cin>>n>>m;vector<string>g(n);for(auto&s:g)cin>>s;vector<int>match(n*m,-1),seen(n*m);int stamp=0;int dr[4]={1,-1,0,0},dc[4]={0,0,1,-1};function<bool(int)>dfs=[&](int id){if(seen[id]==stamp)return false;seen[id]=stamp;int r=id/m,c=id%m;for(int k=0;k<4;k++){int nr=r+dr[k],nc=c+dc[k];if(nr<0||nr>=n||nc<0||nc>=m||g[nr][nc]=='#')continue;int v=nr*m+nc;if(match[v]==-1||dfs(match[v])){match[v]=id;return true;}}return false;};int ans=0;for(int r=0;r<n;r++)for(int c=0;c<m;c++)if(g[r][c]=='.'&&(r+c)%2==0){++stamp;ans+=dfs(r*m+c);}cout<<ans<<'\n';}

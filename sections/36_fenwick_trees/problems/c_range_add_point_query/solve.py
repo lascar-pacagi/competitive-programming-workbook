@@ -2,9 +2,8 @@ import sys
 
 
 def main() -> None:
-    data = sys.stdin.buffer.read()
-    # TODO: implement C. Range Add Point Query.
-    _ = data
+    # TODO: solve the problem.
+    pass
 
 
 if __name__ == "__main__":

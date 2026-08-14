@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: SPF factorization plus inclusion-exclusion over distinct primes.
+    // TODO: solve the problem.
     return 0;
 }

@@ -11,6 +11,7 @@ and deques for sliding-window and prefix-sum optimization.
    - `a_next_greater`
    - `b_sliding_window_max`
    - `c_shortest_subarray_at_least`
+   - `d_bounded_spread_subarrays` (blind practice)
 3. Run the checker:
 
 ```bash
@@ -25,4 +26,3 @@ CP_TARGET=solution python3 sections/12_stacks_queues_deques/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

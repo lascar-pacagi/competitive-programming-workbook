@@ -16,6 +16,8 @@ um vm wm
 ```
 
 `1 <= n <= 2 * 10^5`, `0 <= m <= 2 * 10^5`, `0 <= wi <= 10^9`.
+Parallel directed edges and self-loops may appear. Each input edge is a
+separate travel option.
 
 ## Output
 
@@ -38,4 +40,3 @@ Output:
 ```text
 15
 ```
-

@@ -17,6 +17,7 @@ After this section, you should be able to:
    - `a_square_threshold`
    - `b_max_min_distance`
    - `c_minimum_capacity`
+   - `d_factory_deadline` (blind practice: use its README only)
 3. Run this section's checker after each problem.
 4. Read `editorial.pdf` only after a serious attempt.
 
@@ -45,4 +46,3 @@ CP_TARGET=solution python3 sections/08_binary_search_answer/check.py
 
 See [`PRACTICE.md`](PRACTICE.md). Their statements are external; this
 repository does not copy them.
-

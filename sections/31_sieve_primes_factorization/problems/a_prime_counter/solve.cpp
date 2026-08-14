@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: sieve primes up to n, then prefix counts.
+    // TODO: solve the problem.
     return 0;
 }

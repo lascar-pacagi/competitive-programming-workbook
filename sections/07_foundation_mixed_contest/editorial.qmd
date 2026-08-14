@@ -23,6 +23,20 @@ execute:
   enabled: false
 ---
 
+# Category coverage
+
+| Category | Problem |
+|---|---|
+| simulation and brute force | E. Circular Patrol |
+| counting and maps | A. Inventory Cleanup |
+| prefix sums and difference arrays | B. Peak Load; D. Balanced Break |
+| sorting | A. Inventory Cleanup |
+| two pointers and sliding windows | C. Best Study Streak |
+
+Circular Patrol is the local blind-practice representative for explicit state
+simulation and is included by this section's checker. Balanced Break remains
+useful exhaustive candidate checking with a constant-time prefix update.
+
 # How to read this editorial
 
 This is a mixed-contest editorial. For each problem, first identify the clue
@@ -513,6 +527,181 @@ sys.stdout.write("\n".join(out))
 - Applying the method to arrays with negative values.
 - Updating the answer before shrinking.
 
+# Problem D: Balanced Break
+
+## Restatement and traps
+
+Choose a nonempty-prefix/nonempty-suffix split minimizing the absolute
+difference of their sums. The smallest split index wins ties. With total `n`
+up to `200000`, recomputing both sums for every split is quadratic; signed
+values mean the running difference need not move monotonically.
+
+## Trace and algorithm
+
+For `3 1 4 1 5`, total is 14. Prefix sums at split positions 1,2,3,4 are
+3,4,8,9, so differences are 8,6,2,4. The answer is `2 3`.
+
+```text
+total = sum(a); left = 0; best = infinity
+for i = 1..n-1:
+    left += a[i]
+    difference = abs(left - (total-left))
+    if difference < best: store difference and i
+```
+
+## Correctness proof
+
+After processing index i, `left` is exactly the sum of positions 1 through i,
+so `total-left` is exactly the suffix sum for that split. The loop evaluates
+every legal split once. Strict replacement preserves the first index among
+equal minima. Therefore the stored pair is the required minimum difference and
+smallest position. $\square$
+
+## Complexity and language notes
+
+Time is `O(n)` and extra memory is `O(1)` beyond input storage. C++ needs
+`long long` for totals and differences; Python integers are exact. Do not stop
+early when the difference rises: negative values destroy that shortcut.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int t;
+    cin >> t;
+
+    while (t--) {
+        int n;
+        cin >> n;
+
+        vector<long long> a(n);
+        long long total = 0;
+        for (long long& x : a) {
+            cin >> x;
+            total += x;
+        }
+
+        long long left = 0;
+        long long best = LLONG_MAX;
+        int position = 1;
+
+        for (int i = 0; i < n - 1; ++i) {
+            left += a[i];
+            long long difference = llabs(left - (total - left));
+
+            if (difference < best) {
+                best = difference;
+                position = i + 1;
+            }
+        }
+
+        cout << best << ' ' << position << '\n';
+    }
+}
+```
+
+# Problem E: Circular Patrol
+
+## Restatement and constraint reading
+
+A robot starts at position `p` on a circle of `n` positions. Every command
+moves it exactly one position left or right, with wraparound. We must output
+both its final position and the number of different positions seen, counting
+the start.
+
+The total of `n + |commands|` over all test cases is at most `200000`. This
+rules out rescanning the walk for every position, but direct simulation is
+comfortably fast: each command should cause one constant-time state update.
+
+## State and representation
+
+The complete state needed after a prefix of commands is:
+
+```text
+position = the robot's current zero-based position
+seen[x]  = whether position x has appeared at least once
+distinct = the number of true entries in seen
+```
+
+Zero-based positions make wraparound convenient. A right move is
+`(position + 1) % n`. A left move could use
+`(position - 1 + n) % n`; the implementation equivalently adds `n - 1`.
+
+## Algorithm
+
+1. Convert `p` to zero-based indexing.
+2. Mark `p` as seen and initialize `distinct = 1`.
+3. For each command:
+   - update the position by one step with wraparound;
+   - if the new position was unseen, mark it and increment `distinct`.
+4. Convert the final position back to one-based indexing and print it with
+   `distinct`.
+
+## Correctness proof
+
+We prove the following invariant after processing any prefix of the command
+string:
+
+1. `position` is the robot's true position after that prefix;
+2. `seen[x]` is true exactly for positions visited during the start and that
+   prefix;
+3. `distinct` equals the number of such positions.
+
+Before processing commands, the robot is at `p`, only `p` has been marked, and
+`distinct` is one, so the invariant holds. For the next command, the modular
+update performs exactly the stated left or right move, proving condition 1.
+The reached position is then marked. If it was new, `distinct` is increased
+once; if it was already present, the count is unchanged. Conditions 2 and 3
+therefore remain true. By induction, the invariant holds after all commands,
+so the two printed values are exactly the requested answers.
+
+## Complexity
+
+For a test case, every command is processed once, so the time is `O(|s|)`.
+The boolean array uses `O(n)` memory. Across all test cases, the stated input
+bound makes the total work `O(200000)`.
+
+## Implementation notes and common mistakes
+
+- Mark the starting position before reading any move.
+- Convert back to one-based indexing only when printing.
+- In C++, do not write `(position - 1) % n` without first adding `n`; a
+  negative remainder is possible.
+- The answer asks for distinct positions, not the number of visits or moves.
+- The case `n = 1` requires no special branch when modular arithmetic is used.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_circular_patrol/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_circular_patrol/solution.py >}}
+```
+
+## Tests that matter
+
+```text
+n = 1 with several commands -> final 1, distinct 1.
+Start at 1 and move left -> verifies wraparound to n.
+Move around the full circle and return -> distinct n, not |s| + 1.
+Alternate L and R -> many visits but very few distinct positions.
+No repeated position until the final move -> checks the first-visit counter.
+```
+
+The randomized oracle deliberately uses explicit one-based movement rather
+than the solution's zero-based formula, reducing the chance that both share
+the same indexing mistake.
+
 # Contest testing strategy
 
 For a mixed set, each problem should get a different oracle:
@@ -531,4 +720,3 @@ Phase 0 is now complete. The foundation tools are useful only if you can
 select them under time pressure. The next phase begins with binary search on
 the answer, where the same habits continue: read constraints, identify
 monotonicity, prove the predicate, and test edge cases.
-

@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: dp[mask] = minimum cost to cover the skills in mask.
+    // TODO: solve the problem.
     return 0;
 }

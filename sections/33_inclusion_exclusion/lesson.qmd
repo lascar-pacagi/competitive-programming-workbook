@@ -49,8 +49,54 @@ Odd-size subsets are added; even-size subsets are subtracted.
 
 # Why the alternating signs count each object once
 
-Take one object that belongs to exactly `t >= 1` events. It occurs in
-`C(t,j)` intersections of size `j`, so its total coefficient is
+Instead of trying to understand the whole union at once, follow one fixed
+object and ask how many times the formula counts it.
+
+Suppose an object belongs to exactly three events: `E1`, `E2`, and `E3`.
+It contributes:
+
+```text
++1 from E1
++1 from E2
++1 from E3
+-1 from E1 intersection E2
+-1 from E1 intersection E3
+-1 from E2 intersection E3
++1 from E1 intersection E2 intersection E3
+```
+
+Its total coefficient is therefore:
+
+```text
+3 - 3 + 1 = 1
+```
+
+Although the object belongs to three events, the complete formula counts it
+exactly once in the union.
+
+For comparison:
+
+```text
+belongs to 1 event:  1                         = 1
+belongs to 2 events: 2 - 1                     = 1
+belongs to 3 events: 3 - 3 + 1                 = 1
+belongs to 4 events: 4 - 6 + 4 - 1             = 1
+```
+
+Why are the numbers for four events `4,6,4,1`? If the object belongs to four
+events, it appears in:
+
+```text
+C(4,1) = 4 single-event terms,
+C(4,2) = 6 pair intersections,
+C(4,3) = 4 triple intersections,
+C(4,4) = 1 quadruple intersection.
+```
+
+More generally, take an object that belongs to exactly `t >= 1` events. To
+find an intersection of `j` events containing this object, choose any `j` of
+those `t` events. Therefore, it occurs in `C(t,j)` intersections of size `j`,
+and its total coefficient is
 
 ```text
 C(t,1) - C(t,2) + C(t,3) - ... + (-1)^(t+1) C(t,t).
@@ -62,9 +108,25 @@ From the binomial theorem,
 (1 - 1)^t = C(t,0) - C(t,1) + C(t,2) - ... + (-1)^t C(t,t) = 0.
 ```
 
-Move `C(t,0)=1` to the other side: the alternating coefficient is exactly
-`1`. An object in no event occurs in no term, so it contributes `0`. This is
-the reusable proof, not a fact to memorize.
+Move `C(t,0)=1` to the other side:
+
+```text
+C(t,1) - C(t,2) + ... + (-1)^(t+1) C(t,t) = 1.
+```
+
+Thus every object belonging to at least one event has coefficient exactly
+one. An object belonging to no event appears in no intersection and has
+coefficient zero. Consequently, the alternating sum counts precisely the
+objects in the union, each once.
+
+The important intuition is:
+
+```text
+adding the individual events overcounts shared objects;
+subtracting pairs corrects too much for objects shared three or more ways;
+adding triples repairs that overcorrection;
+the alternating corrections continue until every object has coefficient one.
+```
 
 # Diagnosis before formula
 
@@ -85,8 +147,64 @@ Ask these four questions before coding:
 
 # Pattern 1: union of divisibility sets
 
-For `1 <= x <= N`, let event `Ei` mean that `d[i]` divides `x`. If a selected
-subset has LCM `L`, its intersection contains exactly `floor(N/L)` numbers.
+We want to count integers `x` in `[1,N]` that are divisible by at least one
+listed divisor. For each divisor `d[i]`, define the set:
+
+```text
+Ei = {x in [1,N] such that d[i] divides x}.
+```
+
+For example, if `N=20`, `d[1]=4`, and `d[2]=6`, then:
+
+```text
+E1 = {4,8,12,16,20}
+E2 = {6,12,18}
+```
+
+In inclusion-exclusion, selecting the event subset `{E1,E2}` means counting
+their **intersection**: numbers belonging to both sets. Such an `x` must be
+divisible by both `4` and `6`.
+
+The least positive integer divisible by both is:
+
+```text
+LCM(4,6) = 12.
+```
+
+Moreover, an integer is divisible by both `4` and `6` exactly when it is
+divisible by `12`. Therefore:
+
+```text
+E1 intersection E2 = {12}
+```
+
+inside `[1,20]`.
+
+The same reasoning works for any selected subset of divisors. If their least
+common multiple is `L`, then:
+
+```text
+x belongs to every selected event
+<=> every selected divisor divides x
+<=> L divides x.
+```
+
+Thus the intersection consists of the positive multiples of `L` not exceeding
+`N`:
+
+```text
+L, 2L, 3L, ..., kL
+```
+
+where `k` is the largest integer satisfying `kL <= N`. By the definition of
+integer division:
+
+```text
+k = floor(N/L).
+```
+
+So that intersection contains exactly `floor(N/L)` integers. For `N=20` and
+`L=6`, they are `6,12,18`, and `floor(20/6)=3`.
 
 ```text
 count = sum(nonempty subset S) sign(S) * floor(N / lcm(S))

@@ -1,0 +1,3 @@
+#include <bits/stdc++.h>
+using namespace std;using ll=long long;
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n;cin>>n;vector<ll>w(n);for(ll&x:w)cin>>x;vector<vector<int>>g(n);for(int i=1,u,v;i<n;i++){cin>>u>>v;--u;--v;g[u].push_back(v);g[v].push_back(u);}vector<int>par(n,-1),order{0},depth(n);for(int i=0;i<n;i++){int u=order[i];for(int v:g[u])if(v!=par[u])par[v]=u,depth[v]=depth[u]+1,order.push_back(v);}vector<ll>sub=w,ans(n);ll total=accumulate(w.begin(),w.end(),0LL);for(int i=0;i<n;i++)ans[0]+=w[i]*depth[i];for(int i=n-1;i>0;i--)sub[par[order[i]]]+=sub[order[i]];for(int u:order)for(int v:g[u])if(par[v]==u)ans[v]=ans[u]+total-2*sub[v];for(int i=0;i<n;i++)cout<<ans[i]<<(i+1==n?'\n':' ');}

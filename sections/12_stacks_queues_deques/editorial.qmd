@@ -112,7 +112,7 @@ the next greater value for position `i` or any earlier position.
 `a[i]`, so it cannot answer position `i`. For any earlier position `j < i`,
 `a[i]` is closer to `j` than `y` is, and `a[i] >= y`. If `y` were greater than
 `a[j]`, then `a[i]` would also be greater than `a[j]` and would appear earlier
-to the right, so `y` could not be the first greater value. `\square`
+to the right, so `y` could not be the first greater value. $\square$
 
 **Lemma 2.** After popping, if the stack is nonempty, its top is the first value
 to the right that is strictly greater than `a[i]`.
@@ -120,14 +120,14 @@ to the right that is strictly greater than `a[i]`.
 **Proof.** All values on top that are not strictly greater have been removed.
 The stack keeps candidates in the order they would be encountered from left to
 right among the surviving right-side elements; the top is the closest surviving
-greater value. By Lemma 1, removed values cannot be valid answers. `\square`
+greater value. By Lemma 1, removed values cannot be valid answers. $\square$
 
 **Theorem.** The algorithm outputs the correct next greater value for every
 position.
 
 **Proof.** By Lemma 2, each position receives the correct stack top if a greater
 value exists. If the stack is empty, all right-side values have been either
-removed as not useful or do not exist, so no greater value exists. `\square`
+removed as not useful or do not exist, so no greater value exists. $\square$
 
 ## Complexity
 
@@ -214,7 +214,6 @@ def main() -> None:
         idx += n
         out.append(" ".join(map(str, solve_case(a))))
     sys.stdout.write("\n".join(out))
-
 
 if __name__ == "__main__":
     main()
@@ -307,14 +306,14 @@ the expiration step.
 
 **Proof.** An index is outside the current window exactly when it is at most
 `i-k`. The algorithm removes such indices from the front. Since indices in the
-deque are increasing, no later index can expire before the front. `\square`
+deque are increasing, no later index can expire before the front. $\square$
 
 **Lemma 2.** Values in the deque are strictly decreasing after the insertion
 step.
 
 **Proof.** Before inserting `i`, the deque already has decreasing values. The
 algorithm removes every back index whose value is `<= a[i]`, then appends `i`.
-Therefore the previous back, if any, has value greater than `a[i]`. `\square`
+Therefore the previous back, if any, has value greater than `a[i]`. $\square$
 
 **Lemma 3.** The front of the deque is the index of the maximum value in the
 current window.
@@ -322,12 +321,12 @@ current window.
 **Proof.** By Lemma 1, every deque index is inside the window. By Lemma 2, the
 front has value at least every other deque candidate. Any removed index was
 either expired or dominated by a newer index with value at least as large, so no
-removed index can be the maximum of the current or future window. `\square`
+removed index can be the maximum of the current or future window. $\square$
 
 **Theorem.** The algorithm outputs every window maximum correctly.
 
 **Proof.** Whenever a full window exists, Lemma 3 says `a[dq.front]` is exactly
-the window maximum. The algorithm appends that value for every window. `\square`
+the window maximum. The algorithm appends that value for every window. $\square$
 
 ## Complexity
 
@@ -560,14 +559,14 @@ pref[i] - pref[j1]
 ```
 
 because `pref[j2] <= pref[j1]`. The length `i-j2` is also shorter than `i-j1`.
-So `j2` is at least as good in sum and better in length. `\square`
+So `j2` is at least as good in sum and better in length. $\square$
 
 **Lemma 2.** The deque stores prefix indices with strictly increasing prefix
 values.
 
 **Proof.** Before pushing `i`, the algorithm removes every back index whose
 prefix value is at least `pref[i]`. Therefore the remaining back, if any, has a
-smaller prefix value than `pref[i]`. `\square`
+smaller prefix value than `pref[i]`. $\square$
 
 **Lemma 3.** When the front of the deque forms a valid subarray with current
 index `i`, popping it after updating the answer is safe.
@@ -575,7 +574,7 @@ index `i`, popping it after updating the answer is safe.
 **Proof.** Once `pref[i] - pref[dq.front] >= K`, the subarray ending at `i` is
 valid. For any later right endpoint, using the same front index gives a longer
 subarray. Therefore the best answer involving that front index has already been
-recorded. `\square`
+recorded. $\square$
 
 **Theorem.** The algorithm returns the length of the shortest subarray with sum
 at least `K`.
@@ -585,7 +584,7 @@ justifies removing valid front candidates after recording their best possible
 length. Every undominated candidate remains in the deque until it is either
 used or dominated. Therefore every possible optimal left endpoint is considered
 at the first right endpoint where it can give a valid subarray, and the minimum
-recorded length is optimal. `\square`
+recorded length is optimal. $\square$
 
 ## Complexity
 
@@ -702,6 +701,208 @@ answer is a single element
 answer does not exist
 ```
 
+# Problem D: Bounded Spread Subarrays
+
+## Restatement
+
+Count the nonempty contiguous subarrays whose maximum value minus minimum value
+is at most `k`. Array values may be negative; only the spread is constrained.
+
+This is the section's blind-practice exercise. It needs two monotonic deques at
+once: one to expose the current maximum and one to expose the current minimum.
+
+## Observation and trace
+
+For a fixed right endpoint, if `[left,right]` has acceptable spread, every
+shorter suffix ending at `right` is also acceptable: removing values cannot
+increase the maximum or decrease the minimum. Therefore after shrinking to a
+valid window, all `right-left+1` starts from `left` through `right` contribute.
+
+Keep decreasing values in the maximum deque and increasing values in the
+minimum deque. Store indices, so expired positions can be removed when `left`
+moves.
+
+For `1 3 2 5` and `k=2`:
+
+| right value | valid window after shrinking | new subarrays | answer |
+|---:|:---|---:|---:|
+| 1 | `[1]` | 1 | 1 |
+| 3 | `[1,3]` | 2 | 3 |
+| 2 | `[1,3,2]` | 3 | 6 |
+| 5 | `[5]` | 1 | 7 |
+
+At the last step the spread exceeds two until the left pointer has passed the
+earlier values.
+
+## Algorithm
+
+```text
+left = 0
+max_deque = empty decreasing deque of indices
+min_deque = empty increasing deque of indices
+answer = 0
+
+for right from 0 to n-1:
+    remove dominated back indices from max_deque
+    append right to max_deque
+    remove dominated back indices from min_deque
+    append right to min_deque
+
+    while a[max_deque.front] - a[min_deque.front] > k:
+        remove left from either deque when it is at the front
+        left += 1
+
+    answer += right-left+1
+```
+
+## Correctness proof
+
+**Lemma 1.** After each update, the front of `max_deque` is an index of the
+maximum value in the current window, and the front of `min_deque` is an index
+of its minimum value.
+
+**Proof.** When a new value arrives, every older maximum-deque back value no
+larger than it is dominated: the new index lasts longer and is at least as
+large. Removing those backs preserves all possible future maxima. The minimum
+argument is symmetric for values no smaller than the new value. Expired front
+indices are removed when the left endpoint passes them. Thus the surviving
+fronts are exactly the needed extrema. $\square$
+
+**Lemma 2.** After the shrinking loop, `[left,right]` has spread at most `k`,
+and every subarray ending at `right` that starts before `left` is invalid.
+
+**Proof.** Lemma 1 makes the loop condition exactly the current window's
+spread. The loop stops only when it is at most `k`. Each discarded left index
+belongs to a window whose spread was greater than `k`; extending that discarded
+window farther left cannot reduce its spread, so any earlier start is invalid.
+$\square$
+
+**Theorem.** The algorithm returns the required number of subarrays.
+
+**Proof.** By Lemma 2, exactly the `right-left+1` suffixes ending at each
+right endpoint are valid. The algorithm adds this number once per endpoint.
+Every nonempty subarray has one right endpoint, so all and only valid subarrays
+are counted once. $\square$
+
+## Complexity
+
+Each index enters and leaves each deque at most once. Time is `O(n)` per test
+case and memory is `O(n)` in the worst case. The answer can be
+`n(n+1)/2`, so use `long long` in C++.
+
+## Implementation traps and tests
+
+- Store indices, not just values, so you can remove expired endpoints.
+- Use `<=` for the decreasing maximum deque and `>=` for the increasing
+  minimum deque; retaining only the newest equal value is safe.
+- Shrink before adding the count for the current right endpoint.
+- Negative values are valid, so do not use a sum-based sliding window.
+
+Test `k=0`, all equal values, alternating extreme values, a one-element array,
+and the all-equal `200000`-element case that forces a 64-bit answer. The random
+generator uses direct quadratic enumeration on small arrays.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int t;
+    cin >> t;
+    while (t--) {
+        int n;
+        long long k;
+        cin >> n >> k;
+
+        vector<long long> values(n);
+        for (long long &value : values) cin >> value;
+
+        deque<int> max_deque, min_deque;
+        int left = 0;
+        long long answer = 0;
+        for (int right = 0; right < n; ++right) {
+            while (!max_deque.empty() &&
+                   values[max_deque.back()] <= values[right]) {
+                max_deque.pop_back();
+            }
+            max_deque.push_back(right);
+            while (!min_deque.empty() &&
+                   values[min_deque.back()] >= values[right]) {
+                min_deque.pop_back();
+            }
+            min_deque.push_back(right);
+            while (values[max_deque.front()] - values[min_deque.front()] > k) {
+                if (max_deque.front() == left) {
+                    max_deque.pop_front();
+                }
+                if (min_deque.front() == left) {
+                    min_deque.pop_front();
+                }
+                ++left;
+            }
+            answer += right - left + 1;
+        }
+        cout << answer << '\n';
+    }
+    return 0;
+}
+```
+
+## Full Python solution
+
+```python
+from collections import deque
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    index = 1
+    out: list[str] = []
+    for _ in range(data[0]):
+        n = data[index]
+        k = data[index + 1]
+        index += 2
+        values = data[index:index + n]
+        index += n
+
+        max_deque: deque[int] = deque()
+        min_deque: deque[int] = deque()
+        left = 0
+        answer = 0
+
+        for right, value in enumerate(values):
+            while max_deque and values[max_deque[-1]] <= value:
+                max_deque.pop()
+            max_deque.append(right)
+
+            while min_deque and values[min_deque[-1]] >= value:
+                min_deque.pop()
+            min_deque.append(right)
+
+            while values[max_deque[0]] - values[min_deque[0]] > k:
+                if max_deque[0] == left:
+                    max_deque.popleft()
+                if min_deque[0] == left:
+                    min_deque.popleft()
+                left += 1
+
+            answer += right - left + 1
+
+        out.append(str(answer))
+
+    sys.stdout.write("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
+```
+
 # Stress testing
 
 For next greater:
@@ -738,4 +939,3 @@ Ask:
 
 These questions are the bridge from simple stacks and queues to later graph
 BFS, DP optimization, and advanced monotonic data structures.
-

@@ -39,6 +39,11 @@ pairs. Thus the maximum flow value is the maximum matching size.
 exactly the source side of the minimum cut: any forward edge leaving it has
 zero residual capacity, while all reachable edges stay on that side.
 
+**D. Project Selection.** A source-side project is selected. Positive project
+values become source edges, negative values become sink edges, and each
+prerequisite becomes an infinite-capacity implication edge. The lost positive
+value plus selected negative cost is precisely a cut capacity.
+
 ## Detailed solution guide
 
 **A. Maximum Flow.** Dinic's algorithm works on the residual graph. A BFS builds
@@ -298,6 +303,102 @@ if __name__=="__main__": main()
 Test source-only reachability, zero flow, and parallel cut edges. Use the final
 residual graph, never the original graph.
 
+# D. Project Selection
+
+## Restatement and reduction target
+
+Each project has a possibly negative profit. A directed rule `a b` means that
+selecting project `a` requires selecting project `b`. Choose any feasible set
+of projects, including the empty set, with maximum total profit. There can be
+up to `200` projects and `1,000` rules, so enumerating all subsets is impossible.
+
+This is a maximum-closure problem. A cut represents which projects are chosen:
+put a project on the source side exactly when it is selected. We will construct
+the network so that a finite cut is exactly a feasible choice, and its capacity
+is the profit lost by that choice.
+
+## Network construction and trace
+
+Let `P` be the sum of all positive project profits. Build a source `s` and sink
+`t` around the project vertices:
+
+```text
+profit w > 0:  add s -> project with capacity w
+profit w < 0:  add project -> t with capacity -w
+rule a requires b: add a -> b with capacity INF
+```
+
+Choose `INF = P + 1`. No optimum cut can afford an `INF` edge because cutting
+every positive source edge costs at most `P`. Therefore a finite minimum cut
+never puts `a` on the source side while `b` is on the sink side: it obeys every
+requirement.
+
+For profits `[9,-5,7,-3]` with rules `1->2`, `3->4`, and `3->2`, selecting all
+projects earns `9-5+7-3=8`. In the corresponding cut, no positive source edge
+is cut and the two negative project-to-sink edges cost `5+3=8`. Since
+`P=16`, `P-cut=8`. Selecting only project 1 and its prerequisite 2 has profit
+4 and cuts source edge for project 3 (cost 7) plus project 2's sink edge
+(cost 5), again `16-12=4`.
+
+## Algorithm
+
+```text
+P = sum of positive profits
+INF = P + 1
+build the stated flow network
+min_cut = maximum_flow(s, t)
+print P - min_cut
+```
+
+The max-flow/min-cut theorem supplies the minimum cut value. Use `long long`
+for `P`, `INF`, capacities, and the result.
+
+## Correctness proof
+
+Consider any feasible selected set `S` and place exactly its projects with the
+source. No prerequisite edge crosses from source to sink because feasibility
+ensures every requirement of a selected project is also selected. The cut
+crosses `s -> v` for every unselected positive project, and `v -> t` for every
+selected negative project. Its capacity is therefore
+
+```text
+sum(positive profits of unselected projects)
++ sum(absolute negative profits of selected projects)
+= P - profit(S).
+```
+
+Conversely, a minimum cut cannot cross an `INF` edge: cutting all source edges
+has cost `P < INF`. Thus its source-side projects satisfy every prerequisite,
+so they form a feasible set, and the same equality shows their profit is
+`P - cut_capacity`. Minimizing cut capacity therefore maximizes feasible profit.
+By max-flow/min-cut, the computed maximum flow is that minimum capacity, so
+the algorithm prints the optimal profit. QED.
+
+## Complexity, implementation notes, and tests
+
+The network has `n+2` vertices and `n+m` forward edges. It uses `O(n+m)` memory.
+With arbitrary integral capacities, Dinic has worst-case `O(V^2 E)` time;
+the deliberately moderate local bound (`n <= 200`, `m <= 1000`) makes this
+implementation appropriate in both supplied languages. For substantially
+larger arbitrary-capacity maximum-closure networks, use a flow implementation
+and limits whose performance guarantee has been analyzed for that setting.
+`INF` must be strictly larger than the total positive profit, not a small magic
+constant. Test all-negative projects (answer zero), a profitable project whose
+requirements make it unprofitable, independent profitable projects, and rules
+forming a cycle.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_project_selection/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_project_selection/solution.py >}}
+```
+
 # What to carry forward
 
 Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.
@@ -362,7 +463,8 @@ when flow is zero, and parallel crossing edges.
 For tiny random networks, compare with a slow augmenting-path implementation;
 for matching, compare with brute force over small left vertices. Verify cut
 output by checking every residual-reachable edge and summing original capacities
-leaving the reached set. Run:
+leaving the reached set. For D, enumerate small project subsets and reject ones
+that violate a prerequisite before comparing their total profit. Run:
 
 ```bash
 CP_TARGET=solution python3 sections/45_flows_and_matchings/check.py

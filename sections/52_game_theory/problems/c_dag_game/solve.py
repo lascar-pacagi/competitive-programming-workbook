@@ -2,8 +2,8 @@ import sys
 
 
 def main() -> None:
-    _ = sys.stdin.buffer.read()
-    # TODO: implement C. DAG Game.
+    # TODO: solve the problem.
+    pass
 
 
 if __name__ == "__main__":

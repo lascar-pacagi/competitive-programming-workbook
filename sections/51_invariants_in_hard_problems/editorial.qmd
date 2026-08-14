@@ -39,6 +39,11 @@ equals `total`; one left-to-right scan counts those positions in `O(n)`.
 residue modulo `k` is invariant. Equal residues are sufficient because each
 difference can be repaired by repeated `k`-steps.
 
+**D. Adjacent Flip Distance.** The desired mismatch at the first unresolved
+position forces whether the adjacent operation starting there is used. A
+left-to-right XOR recurrence both constructs the only reduced operation set
+and verifies the final position.
+
 ## Detailed solution guide
 
 **A. Parity Invariant.** Each allowed operation changes the state but preserves
@@ -89,7 +94,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -125,7 +130,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -167,7 +172,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -189,6 +194,104 @@ def main():
     if not data: return
     n,k=data[0],data[1]; a=data[2:]; print("YES" if len({x%k for x in a})==1 else "NO")
 if __name__=="__main__": main()
+```
+
+# D. Adjacent Flip Distance
+
+## Restatement and first invariant
+
+Two binary strings `A` and `B` have equal length `n`. One operation chooses an
+adjacent pair and flips both bits. Find the minimum number of operations needed
+to turn `A` into `B`, or `-1` if it is impossible. Here `n` can be 200,000, so
+searching over strings is not viable.
+
+Every operation changes exactly two bits, so the parity of the number of ones
+is invariant. Equivalently, the XOR of all bits is invariant. This gives a
+necessary condition, but it does not yet identify a shortest construction. The
+path shape of the allowed pairs gives a stronger left-to-right recurrence.
+
+## Forced recurrence and trace
+
+Let `d[i] = A[i] xor B[i]`; it says whether position `i` must be flipped an
+odd number of times. After cancelling pairs of identical operations, use each
+edge operation zero or one time. Let `x[i]` denote whether the operation
+flipping positions `i` and `i+1` is used.
+
+Position 1 is touched only by `x[1]`, so `x[1] = d[1]`. For every interior
+position, the two touching operations must satisfy:
+
+```text
+x[i-1] xor x[i] = d[i]
+x[i] = d[i] xor x[i-1]
+```
+
+For `A=0000` and `B=1001`, the mismatch vector is `1,0,0,1`:
+
+```text
+x[1] = 1
+x[2] = 0 xor 1 = 1
+x[3] = 0 xor 1 = 1
+```
+
+The final position is touched only by `x[3]`; it needs `d[4]=1`, so this
+construction works and uses three operations. If the final check disagrees,
+no choice remains to repair it.
+
+## Algorithm
+
+```text
+previous_operation = 0
+answer = 0
+for i from 1 to n-1:
+    mismatch = A[i] xor B[i]
+    current_operation = mismatch xor previous_operation
+    answer += current_operation
+    previous_operation = current_operation
+
+if previous_operation != (A[n] xor B[n]):
+    print -1
+else:
+    print answer
+```
+
+For `n=1`, the loop is empty and the final check correctly says that only
+identical strings are reachable.
+
+## Correctness proof
+
+Cancelling two uses of the same adjacent operation changes no bit, so an
+optimal sequence uses each operation at most once. In such a sequence,
+position 1 forces `x[1]=d[1]`. Assuming `x[i-1]` is forced, position `i` is
+correct exactly when `x[i-1] xor x[i]=d[i]`, which forces the stated value of
+`x[i]`. By induction, the algorithm produces the only possible reduced choice
+for all operations through `x[n-1]`.
+
+The final position is touched only by `x[n-1]`. If its value differs from
+`d[n]`, no reduced sequence can reach `B`, so `-1` is correct. Otherwise every
+position satisfies its mismatch equation, so applying exactly the selected
+operations transforms `A` into `B`. Any sequence has the same forced parity
+for each operation; after cancellation it has exactly this selected set, so no
+sequence can use fewer operations. The reported count is therefore minimal.
+QED.
+
+## Complexity, implementation notes, and tests
+
+The scan is `O(n)` time and `O(1)` extra space. Treat `0` and `1` characters as
+bits; no integer conversion of the entire strings is necessary. Test `n=1`,
+an odd mismatch count, endpoint-only mismatches, and a target produced by
+flipping alternating adjacent pairs. A common mistake is to check only the
+global XOR invariant and assume that it also constructs the minimum.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_adjacent_flip_distance/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_adjacent_flip_distance/solution.py >}}
 ```
 
 # What to carry forward
@@ -217,3 +320,7 @@ Use `long long` for values in C++ and direct integers in Python. Run the local
 suite and brute-force very small states to test the claimed reachability class.
 
 Red-level improvement comes from making the invariant explicit, stress-testing it, and then upsolving the stronger external versions.
+
+For D, tiny tests use BFS over all `2^n` binary strings to obtain the true
+shortest distance, not a copy of the recurrence. The scale case uses 200,000
+bits and a directly known all-edge operation pattern.

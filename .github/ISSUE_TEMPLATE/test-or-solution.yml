@@ -1,0 +1,25 @@
+name: Test or reference-solution problem
+description: Report a wrong expected output, weak test, or reference bug.
+title: "[Tests/solution] "
+labels: [tests]
+body:
+  - type: input
+    id: problem
+    attributes:
+      label: Problem
+      placeholder: sections/30_gcd_lcm_diophantine/problems/e_merge_congruences
+    validations:
+      required: true
+  - type: textarea
+    id: case
+    attributes:
+      label: Reproduction
+      description: Include the input, expected behavior, actual behavior, and command used.
+    validations:
+      required: true
+  - type: textarea
+    id: reasoning
+    attributes:
+      label: Why do you believe it is incorrect?
+    validations:
+      required: true

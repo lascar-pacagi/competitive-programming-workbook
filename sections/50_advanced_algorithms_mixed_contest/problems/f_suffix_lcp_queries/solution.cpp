@@ -1,0 +1,3 @@
+#include <bits/stdc++.h>
+using namespace std;using ll=long long;
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;cin>>s;int n=s.size();const ll M1=1000000007,M2=1000000009,B=911382323;vector<ll>p1(n+1,1),p2(n+1,1),h1(n+1),h2(n+1);for(int i=0;i<n;i++){p1[i+1]=p1[i]*B%M1;p2[i+1]=p2[i]*B%M2;h1[i+1]=(h1[i]*B+s[i])%M1;h2[i+1]=(h2[i]*B+s[i])%M2;}auto hash=[&](int l,int r){return pair<ll,ll>{(h1[r]-h1[l]*p1[r-l]%M1+M1)%M1,(h2[r]-h2[l]*p2[r-l]%M2+M2)%M2};};int q;cin>>q;while(q--){int i,j;cin>>i>>j;--i;--j;int lo=0,hi=n-max(i,j);while(lo<hi){int mid=(lo+hi+1)/2;if(hash(i,i+mid)==hash(j,j+mid))lo=mid;else hi=mid-1;}cout<<lo<<'\n';}}

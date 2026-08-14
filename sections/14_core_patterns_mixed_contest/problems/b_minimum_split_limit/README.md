@@ -17,9 +17,14 @@ a1 a2 ... an
 ...
 ```
 
-The sum of `n` over all test cases is at most `200000`.
+The constraints are:
+
+```text
+1 <= d <= n
+1 <= a_i <= 10^9
+sum of n over all test cases <= 200000
+```
 
 ## Output
 
 For each test case, print the minimum possible maximum group cost.
-

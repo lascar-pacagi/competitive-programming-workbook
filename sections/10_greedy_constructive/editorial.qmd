@@ -118,14 +118,14 @@ operations on the current element.
 
 **Proof.** The repaired current value must be at least `need` to preserve the
 non-decreasing property. Since the value starts at `x` and each operation
-increases it by `1`, at least `need - x` operations are necessary. `\square`
+increases it by `1`, at least `need - x` operations are necessary. $\square$
 
 **Lemma 2.** Raising a current element above `need` is never better than raising
 it exactly to `need`.
 
 **Proof.** Raising above `need` costs more immediately. It also increases or
 keeps the lower bound required for future elements. Therefore it cannot reduce
-future cost and cannot improve total cost. `\square`
+future cost and cannot improve total cost. $\square$
 
 **Theorem.** The algorithm computes the minimum number of operations.
 
@@ -133,7 +133,7 @@ future cost and cannot improve total cost. `\square`
 operations, which is clearly optimal. If repair is needed, Lemma 1 gives a lower
 bound of `need - x`, and the algorithm achieves exactly that lower bound.
 Lemma 2 shows that spending more cannot help. Summing these forced optimal
-choices over all positions gives the global minimum. `\square`
+choices over all positions gives the global minimum. $\square$
 
 ## Complexity
 
@@ -363,7 +363,7 @@ else:
 **Proof.** A regular bracket sequence has final balance zero. Each opening
 bracket contributes `+1`, and each closing bracket contributes `-1`. Therefore
 the two counts are equal. Since their sum is `n`, each count is `n/2`.
-`\square`
+$\square$
 
 **Lemma 2.** Among all completions satisfying the required bracket counts, the
 algorithm constructs the lexicographically smallest string.
@@ -372,7 +372,7 @@ algorithm constructs the lexicographically smallest string.
 Since `'('` is smaller than `')'`, a lexicographically smallest count-respecting
 string must place opening brackets at the earliest possible question-mark
 positions until the opening quota is used. That is exactly what the algorithm
-does. `\square`
+does. $\square$
 
 **Lemma 3.** If the algorithm's count-respecting candidate fails the balance
 validation, no valid completion exists.
@@ -388,7 +388,7 @@ candidate has balance no larger there, so every other candidate is also invalid.
 If the candidate has balance zero at a strict prefix, every other candidate has
 balance at most zero there, but a valid single-block sequence needs positive
 balance at every strict prefix. Therefore no other candidate can be valid.
-`\square`
+$\square$
 
 **Theorem.** The algorithm prints the required string if it exists under this
 canonical rule, otherwise `IMPOSSIBLE`.
@@ -396,7 +396,7 @@ canonical rule, otherwise `IMPOSSIBLE`.
 **Proof.** Feasibility of counts is necessary by Lemma 1. The fill step gives
 the lexicographically smallest count-respecting candidate by Lemma 2. The
 balance scan exactly checks the two prefix conditions and final balance. If it
-passes, the candidate is the answer. If it fails, Lemma 3 applies. `\square`
+passes, the candidate is the answer. If it fails, Lemma 3 applies. $\square$
 
 ## Complexity
 
@@ -622,7 +622,7 @@ print sequence
 **Proof.** The minimum possible sum is `n`, achieved by all ones. The maximum
 possible sum is `n*m`, achieved by all `m`. Every integer sum between these
 values is achievable by starting from all ones and distributing the remaining
-sum across positions, adding at most `m-1` to each. `\square`
+sum across positions, adding at most `m-1` to each. $\square$
 
 **Lemma 2.** At each position, the algorithm chooses the smallest value that
 allows the remaining suffix to be completed.
@@ -648,13 +648,13 @@ Together with `x >= 1`, the smallest possible choice is:
 max(1, remaining - left*m)
 ```
 
-which is exactly the algorithm's choice. `\square`
+which is exactly the algorithm's choice. $\square$
 
 **Lemma 3.** After every chosen value, the remaining suffix is feasible.
 
 **Proof.** By Lemma 2, the chosen value is selected specifically to satisfy the
 suffix feasibility interval. The remaining sum is therefore between `left` and
-`left*m`. `\square`
+`left*m`. $\square$
 
 **Theorem.** The algorithm prints the lexicographically smallest valid sequence.
 
@@ -664,7 +664,7 @@ the smallest value that still permits some valid completion. Any smaller value
 would make completion impossible. By Lemma 3, the greedy prefix always remains
 extendable. Therefore no valid sequence can be lexicographically smaller than
 the algorithm's sequence, and the algorithm's sequence is valid at the end.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -769,6 +769,187 @@ n=3, m=5, s=9  -> 1 3 5
 n=4, m=2, s=3  -> IMPOSSIBLE
 n=5, m=10, s=5 -> 1 1 1 1 1
 n=2, m=4, s=8  -> 4 4
+```
+
+# Problem D: Pattern Permutation
+
+## Restatement
+
+Given a pattern of `<` and `>` comparisons, construct the lexicographically
+smallest permutation of `1..n` satisfying it. A comparison is local, but a run
+of `>` creates a global-looking obligation: its values must be strictly
+decreasing, so we cannot safely print the first value of that run immediately.
+
+For example, the pattern `><<>>` asks for
+
+```text
+a[0] > a[1] < a[2] < a[3] > a[4] > a[5].
+```
+
+The answer is `2 1 3 6 5 4`.
+
+## The forced descending runs
+
+Consider a maximal run of `r` consecutive `>` symbols. It involves `r + 1`
+positions, and those positions must be strictly decreasing. If the smallest
+unused labels are `k, k+1, ..., k+r`, the smallest possible first value of this
+run is `k+r`: it needs `r` smaller distinct values after it. Therefore the
+lexicographically smallest way to fill the run is
+
+```text
+k+r, k+r-1, ..., k.
+```
+
+At a `<`, the run ends. We may now safely print the whole pending descending
+run and start a new one with the next unused label.
+
+## Stack construction and trace
+
+Read the labels `1, 2, ..., n` in increasing order. Push each label onto a
+stack. When the current comparison is `<`, reverse the pending run by popping
+the whole stack into the answer. Also flush at the end, because the last run
+has no later `<` to trigger it.
+
+For `><<>>`:
+
+```text
+push 1, see '>'       pending = [1]
+push 2, see '<'       pop: 2 1       answer = 2 1
+push 3, see '<'       pop: 3         answer = 2 1 3
+push 4, see '>'       pending = [4]
+push 5, see '>'       pending = [4, 5]
+push 6, end           pop: 6 5 4     answer = 2 1 3 6 5 4
+```
+
+The stack is not searching for a solution. It only delays the output exactly
+while a `>` run prevents us from knowing its smallest legal first value.
+
+## Algorithm
+
+```text
+pending = empty stack
+answer = empty list
+
+for value from 1 to n:
+    push value onto pending
+    if value is n or pattern[value - 1] is '<':
+        pop all of pending into answer
+
+print answer
+```
+
+## Correctness proof
+
+**Lemma 1.** The constructed permutation satisfies every comparison.
+
+**Proof.** Within one flushed stack block, labels are popped in decreasing
+order, so every comparison inside that block is `>`. A block is flushed only
+after a `<` or at the end. Consecutive blocks use consecutive increasing label
+ranges. The last value of one block is its smallest label, while the first
+value of the next block is its largest label and is strictly larger. Thus every
+boundary comparison is `<`. The answer contains every label from `1` through
+`n` exactly once, so it is a valid permutation. $\square$
+
+**Lemma 2.** For any pending `>` run, the algorithm chooses the smallest
+possible first value for that run.
+
+**Proof.** Suppose the run has `r` `>` symbols and begins when `k` is the
+smallest unused label. Its first value must have `r` distinct smaller unused
+values available after it. No value below `k+r` has enough such values. The
+algorithm uses `k+r` first and then `k+r-1, ..., k`, so it attains that lower
+bound. $\square$
+
+**Theorem.** The algorithm outputs the lexicographically smallest valid
+permutation.
+
+**Proof.** Process the maximal `>` runs from left to right. Lemma 2 fixes the
+smallest possible first value of the current run; once that value is fixed,
+the same reasoning fixes each later value in the run. A `<` boundary then
+forces the next block to use only larger unused labels. By induction over the
+blocks, no valid permutation can have a smaller value at the first position
+where it differs from the algorithm's output. $\square$
+
+## Complexity and tests
+
+Every label is pushed and popped once, so time is `O(n)` and auxiliary memory
+is `O(n)`. Test a single `<`, a single `>`, an all-`<` pattern, an all-`>`
+pattern, alternating comparisons, and long descending runs at the start or
+end. The randomized test enumerates all permutations for tiny patterns and
+checks the lexicographically first valid one.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int tests;
+    cin >> tests;
+    while (tests--) {
+        int n;
+        string pattern;
+        cin >> n >> pattern;
+
+        vector<int> pending, answer;
+        for (int value = 1; value <= n; ++value) {
+            pending.push_back(value);
+            if (value == n || pattern[value - 1] == '<') {
+                while (!pending.empty()) {
+                    answer.push_back(pending.back());
+                    pending.pop_back();
+                }
+            }
+        }
+
+        for (int i = 0; i < n; ++i) {
+            if (i) cout << ' ';
+            cout << answer[i];
+        }
+        cout << '\n';
+    }
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def construct(pattern: str) -> list[int]:
+    pending: list[int] = []
+    answer: list[int] = []
+    n = len(pattern) + 1
+
+    for value in range(1, n + 1):
+        pending.append(value)
+        if value == n or pattern[value - 1] == "<":
+            answer.extend(reversed(pending))
+            pending.clear()
+    return answer
+
+
+def main() -> None:
+    data = sys.stdin.read().split()
+    if not data:
+        return
+    it = iter(data)
+    tests = int(next(it))
+    out: list[str] = []
+    for _ in range(tests):
+        n = int(next(it))
+        pattern = next(it)
+        assert len(pattern) == n - 1
+        out.append(" ".join(map(str, construct(pattern))))
+    sys.stdout.write("\n".join(out))
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 # Stress testing constructive greedy

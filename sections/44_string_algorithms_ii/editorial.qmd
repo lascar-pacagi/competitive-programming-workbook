@@ -242,6 +242,125 @@ if __name__=="__main__": main()
 
 Test `a`, `aaa`, all distinct characters, and an alternating string.
 
+# D. Unique Prefix Lengths
+
+## Restatement
+
+For every input word, find the shortest nonempty prefix shared by exactly one
+input occurrence. Equal words are still separate occurrences, so no prefix can
+distinguish one copy from another. A word that is a prefix of a longer word may
+also have no answer.
+
+This is the blind trie exercise for the section: the task asks for a property
+of all prefixes of each word, not merely a count for one supplied prefix.
+
+## Constraints and traps
+
+There are up to `200,000` words and the same bound on total characters. Testing
+every prefix against every word is quadratic. The answer is an input-order
+answer, so duplicate words need repeated `-1` lines rather than being merged.
+
+Do not mistake "the word ends here" for "the prefix is unique." For `do` and
+`dog`, the prefix `do` is a prefix of both input words even though only one
+word ends at that trie node.
+
+## Observations and trace
+
+In a trie, store `pass[node]`: the number of input words whose path visits the
+node. During insertion, increment it after every character. Then a prefix is
+unique exactly when the node reached by that prefix has `pass == 1`.
+
+Insert the sample's `cat`, `car`, `dog`, `do`, `cat`. The node for `ca` has
+`pass=3` because it serves both copies of `cat` and `car`. The node for `car`
+has `pass=1`, so `car` needs length three. The node for `do` has `pass=2`, and
+there is no later node for the shorter word `do`, so its answer is `-1`.
+
+## Algorithm
+
+```text
+make a trie whose nodes store child links and pass counts
+for every word:
+    walk/create its character path
+    increment pass at each reached node
+
+for every word in input order:
+    walk its trie path from the root
+    print the first position whose node has pass = 1
+    print -1 if no such position occurs
+```
+
+## Correctness proof
+
+**Lemma.** For every trie node representing prefix `p`, `pass[node]` equals
+the number of input words beginning with `p`.
+
+**Proof.** A word visits exactly the nodes for its nonempty prefixes during
+insertion. The algorithm increments this node once for that word and never for
+a word that does not have the prefix. Summing over all input occurrences gives
+the stated count. $\square$
+
+**Theorem.** The algorithm prints the required shortest unique-prefix length
+for every word.
+
+**Proof.** By the lemma, a scanned prefix is unique exactly when its node has
+`pass=1`. The second traversal checks prefixes in increasing length order, so
+the first such node is the shortest valid prefix. If none is found, every
+nonempty prefix is shared by at least two occurrences and `-1` is correct.
+$\square$
+
+## Complexity
+
+Let `L` be the total input length.
+
+```text
+Time:   O(L)
+Memory: O(L)
+```
+
+## C++ implementation notes
+
+An `array<int,26>` gives fixed lowercase transitions. A node index of zero is
+the root; newly allocated children receive positive indices. Increment only
+the destination node's `pass` count, because the empty prefix is not allowed.
+
+## Python implementation notes
+
+A list of dictionaries keeps the implementation direct. Use byte input for
+large files if desired; the reference decodes after splitting because input is
+restricted to lowercase ASCII.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_unique_prefix_lengths/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_unique_prefix_lengths/solution.py >}}
+```
+
+## Common wrong answers
+
+```text
+Counting only words ending at a node instead of every word passing through it.
+Deduplicating equal strings before answering.
+Returning a prefix for do when dog is also present.
+Using the root count as an empty-prefix answer.
+Scanning all words for every candidate prefix.
+```
+
+## Tests that matter
+
+```text
+Identical words: every copy must print -1.
+A word that is a prefix of another word.
+Words sharing a long prefix before branching.
+A one-word input: answer is 1 for a nonempty word.
+200,000 identical one-letter words: checks linear memory and output.
+```
+
 # What to carry forward
 
 Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.

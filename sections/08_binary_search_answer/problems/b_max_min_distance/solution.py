@@ -16,7 +16,6 @@ def can_place(pos: list[int], k: int, dist: int) -> bool:
 
 
 def solve_case(pos: list[int], k: int) -> int:
-    pos.sort()
     lo = 0
     hi = pos[-1] - pos[0] + 1
     while lo + 1 < hi:
@@ -47,4 +46,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

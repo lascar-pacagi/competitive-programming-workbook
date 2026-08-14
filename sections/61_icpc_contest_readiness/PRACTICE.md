@@ -1,5 +1,12 @@
 # Practice for Section 61: ICPC Contest Readiness
 
+## Primary ladder
+
+The ordered 20-problem [offline sheet](problem_sheet.pdf) is the primary
+progression for this section. Complete its rounds in order, keeping one
+pre-code contract and one post-attempt record per task. The external queue
+below is supplementary practice after the corresponding ladder round.
+
 ## External queue
 
 Use these as preparation drills, not as a replacement for full virtual

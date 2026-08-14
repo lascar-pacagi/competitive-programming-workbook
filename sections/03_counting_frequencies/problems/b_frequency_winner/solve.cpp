@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Count values and print the most frequent value, tie by smallest.
+    // TODO: solve the problem.
     return 0;
 }
-

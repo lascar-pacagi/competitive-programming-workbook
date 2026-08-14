@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: implement A. Point Add Range Sum.
+    // TODO: solve the problem.
     return 0;
 }

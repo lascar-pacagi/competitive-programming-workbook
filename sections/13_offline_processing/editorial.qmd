@@ -113,18 +113,18 @@ In Python, building a dictionary from value to rank is simpler.
 **Lemma 1.** Equal original values receive equal ranks.
 
 **Proof.** Equal values map to the same entry in the sorted distinct list, so
-the algorithm returns the same index for all equal occurrences. `\square`
+the algorithm returns the same index for all equal occurrences. $\square$
 
 **Lemma 2.** If `x < y`, then `rank(x) < rank(y)`.
 
 **Proof.** The sorted distinct list is in increasing order. Therefore `x`
-appears before `y`, and its index is smaller. `\square`
+appears before `y`, and its index is smaller. $\square$
 
 **Theorem.** The algorithm outputs exactly the required coordinate compression.
 
 **Proof.** By Lemma 1, equality is preserved. By Lemma 2, order is preserved.
 The ranks are zero-based indices in the distinct sorted list, so they are
-exactly the required ranks. `\square`
+exactly the required ranks. $\square$
 
 ## Complexity
 
@@ -352,14 +352,14 @@ print ans in id order
 **Proof.** Values are processed in increasing order. The pointer advances while
 the next value is `<= x`, adding exactly those positions. Since queries are also
 processed in nondecreasing `x`, no previously added value ever becomes invalid,
-and no value greater than `x` has been added. `\square`
+and no value greater than `x` has been added. $\square$
 
 **Lemma 2.** For a query `l r x`, `bit.range_sum(l,r)` equals the number of
 values in `a[l..r]` that are `<= x`.
 
 **Proof.** By Lemma 1, active Fenwick positions are exactly positions with
 values `<= x`. Summing active positions over `[l,r]` counts exactly such values
-inside the query range. `\square`
+inside the query range. $\square$
 
 **Theorem.** The algorithm returns the correct answer for every query in the
 original order.
@@ -367,7 +367,7 @@ original order.
 **Proof.** Lemma 2 proves every computed query answer is correct. Each query
 stores its original id, and the algorithm writes the result to `ans[id]`.
 Printing `ans` from left to right therefore restores the original query order.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -657,7 +657,7 @@ occurrence of that value.
 **Proof.** When a value appears for the first time, the algorithm adds a marker
 at its position. When it appears again, the algorithm removes the previous
 marker and adds a marker at the new position. Therefore exactly the latest
-occurrence remains active. `\square`
+occurrence remains active. $\square$
 
 **Lemma 2.** For a query `[l,r]`, after processing positions through `r`, a
 distinct value appears in `a[l..r]` if and only if its active marker lies inside
@@ -665,7 +665,7 @@ distinct value appears in `a[l..r]` if and only if its active marker lies inside
 
 **Proof.** If a value appears in `a[l..r]`, then its latest occurrence within
 the prefix `1..r` is at least `l`, so its marker lies in `[l,r]`. If its marker
-lies in `[l,r]`, then that value clearly appears in the query range. `\square`
+lies in `[l,r]`, then that value clearly appears in the query range. $\square$
 
 **Theorem.** The algorithm answers every distinct range query correctly and in
 original order.
@@ -673,7 +673,7 @@ original order.
 **Proof.** Queries are processed after the pointer reaches their right endpoint.
 By Lemma 2, summing active markers in `[l,r]` gives exactly the number of
 distinct values in that range. Writing to `ans[id]` restores original query
-order. `\square`
+order. $\square$
 
 ## Complexity
 
@@ -897,3 +897,109 @@ You choose a sort key so that something only moves forward:
 Then you keep the final output honest by storing original ids. This idea will
 reappear in graph algorithms, data structures, computational geometry, and
 advanced range-query techniques.
+
+# Problem D: Activation Totals
+
+## Restatement
+
+Every item has an activation level and a possibly negative weight. For each
+query limit `x`, output the sum of weights of all items whose level is at most
+`x`, preserving the input query order.
+
+## Constraints and traps
+
+Both `n` and `q` can be `200000`, so scanning all items for every query is
+`O(nq)` and impossible. Query limits arrive in arbitrary order, and equal item
+levels must all be included. Totals require `long long` in C++.
+
+## Observation and walk-through
+
+Sort items by level and queries as `(limit, original_id)`. Query limits then
+only increase, so an item that has become active never needs removal.
+
+For items `(5,10),(1,-3),(3,7),(5,2)`, the sorted sweep answers limits
+`0,1,4,5` with `0,-3,4,16`. At limit `4`, exactly levels `1` and `3` have
+entered the running sum. Store each answer by its original id before printing.
+
+## Algorithm
+
+```text
+sort items by level
+sort (query_limit, original_id) pairs by query_limit
+sum = 0, item = 0
+for (limit, id) in sorted queries:
+    while item exists and items[item].level <= limit:
+        sum += items[item].weight
+        item += 1
+    answer[id] = sum
+print answers in id order
+```
+
+## Correctness proof
+
+Before each sorted query limit `x`, the invariant is that `sum` contains
+exactly the weights of items with level at most the previous processed limit.
+The while-loop adds precisely the remaining items whose level is at most `x`;
+because items are sorted, it adds no level above `x`. Thus `sum` is exactly the
+required total for `x`. Saving it at the original id restores the answer to its
+input position. Induction over sorted queries proves every printed total is
+correct.
+
+## Complexity
+
+Sorting costs `O((n+q) log(n+q))`; the two pointers move forward at most `n+q`
+times. Memory is `O(n+q)`.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q; cin >> n >> q;
+    vector<pair<long long, long long>> items(n);
+    for (auto &item : items) cin >> item.first >> item.second;
+    vector<pair<long long, int>> queries(q);
+    for (int i = 0; i < q; ++i) cin >> queries[i].first, queries[i].second = i;
+    sort(items.begin(), items.end());
+    sort(queries.begin(), queries.end());
+    vector<long long> answer(q);
+    long long sum = 0;
+    int item = 0;
+    for (auto [limit, id] : queries) {
+        while (item < n && items[item].first <= limit) sum += items[item++].second;
+        answer[id] = sum;
+    }
+    for (int i = 0; i < q; ++i) cout << answer[i] << " \n"[i + 1 == q];
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+n, q = data[0], data[1]
+index = 2
+items = sorted((data[i], data[i + 1]) for i in range(index, index + 2 * n, 2))
+index += 2 * n
+queries = sorted((data[index + i], i) for i in range(q))
+answer = [0] * q
+total = item = 0
+for limit, query_id in queries:
+    while item < n and items[item][0] <= limit:
+        total += items[item][1]
+        item += 1
+    answer[query_id] = total
+print(*answer)
+```
+
+## Tests that matter
+
+Test queries below every level, duplicate levels, negative weights, and limits
+that arrive in descending input order. The random oracle directly checks each
+query against every small item; the scale case validates the offline sweep.

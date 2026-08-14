@@ -10,6 +10,7 @@ and using smallest prime factors to factor many numbers quickly.
    - `a_prime_counter`
    - `b_factor_signature`
    - `c_divisor_queries`
+   - `d_square_completion` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash

@@ -107,11 +107,28 @@ hi is feasible
 
 Use this when smaller candidates remain feasible after the last feasible point.
 
-Example:
+Example: imagine allowed positions `1, 2, 4, 8, 9` and three routers to place.
+We must choose three of those positions. The **minimum distance** of a choice
+is the smallest gap between two consecutive chosen routers. For example,
+choosing positions `1, 4, 8` gives gaps `3` and `4`, so its minimum distance is
+`3`.
 
-> largest minimum distance `d` such that we can place `k` objects
+The goal is to make that smallest gap as large as possible. For a candidate
+`d`, define:
 
-If distance `d` works, every smaller distance also works.
+```text
+feasible(d) = can we choose at least k positions so that every consecutive
+              pair we choose is at distance at least d?
+```
+
+For the positions above, `feasible(3)` is true because we can choose `1, 4, 8`.
+But `feasible(4)` is false: after choosing one allowed position, there is no
+way to choose two more while keeping every gap at least four. Therefore the
+best answer is `3`.
+
+If distance `d` works, every smaller distance also works: relaxing a required
+gap can never make an existing placement invalid. This gives the pattern
+`True, True, ..., False, False`, so we search for the last `True`.
 
 Template with an exclusive bad upper bound:
 
@@ -176,7 +193,16 @@ can_place(d):
 
 This greedy check works because choosing earlier never hurts future placement.
 
-For minimum capacity:
+For minimum shipping capacity, the input is a sequence of package weights and
+a number of available days. Packages must be shipped in their given order; each
+day ships one consecutive block of not-yet-shipped packages; a package cannot
+be split. A candidate capacity `C` is feasible if all packages can be shipped
+in **at most** the allowed number of days.
+
+For example, with weights `1, 2, 3, 4, 5` and two days, capacity `C = 9` is
+feasible because we can ship `1, 2, 3` on day one and `4, 5` on day two.
+
+The feasibility check is:
 
 ```text
 days_needed(C):
@@ -308,4 +334,3 @@ Run:
 ```bash
 python3 sections/08_binary_search_answer/check.py
 ```
-

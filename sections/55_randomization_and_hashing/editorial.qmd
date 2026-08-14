@@ -85,7 +85,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -122,7 +122,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -159,7 +159,7 @@ The proof map above states the invariant or reduction for this task. The impleme
 
 ## Correctness proof
 
-The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. `\square`
+The task-specific invariant in the proof map holds at initialization and is preserved by every stated transition. The final state therefore represents the requested answer. $\square$
 
 ## Complexity
 
@@ -183,6 +183,99 @@ def main():
     print("\n".join(out))
 if __name__=="__main__": main()
 ```
+
+# D. Longest Repeat
+
+## Restatement and monotonicity
+
+Find the maximum length `L` for which two different starting positions contain
+the same length-`L` substring. Overlap is allowed. Comparing every pair of
+substrings directly is cubic in the worst case.
+
+Define `possible(L)` to mean that some length-`L` substring occurs twice. This
+predicate is monotone: if a repeated substring of length `L` exists, its prefix
+of every smaller positive length is also repeated. Therefore binary search can
+find the largest true length.
+
+## Hash check for one length
+
+Precompute two polynomial prefix hashes and powers. For every start position,
+extract the pair of normalized hashes for its length-`L` substring and insert
+the pair into a set. A pair already in the set proves a repeated candidate.
+
+For `banana` and `L=3`, the windows are `ban`, `ana`, `nan`, `ana`; the second
+`ana` produces the first duplicate. Since `possible(3)` is true and
+`possible(4)` is false, the answer is three.
+
+## Algorithm
+
+```text
+precompute two prefix-hash arrays and two power arrays
+binary search L from 1 through n:
+    scan all length-L windows
+    return true as soon as a double-hash pair repeats
+print the largest L whose scan returned true
+```
+
+The two-modulus hash is probabilistic: a collision could make two unequal
+substrings look equal. With independent large prime moduli this risk is
+negligible for normal contest use. A suffix array is the deterministic
+alternative when the problem requires a proof without that assumption.
+
+## Correctness proof
+
+**Lemma 1.** Ignoring hash collisions, `possible(L)` returns true exactly when
+a repeated length-`L` substring exists.
+
+**Proof.** The scan inserts the hash of every length-`L` window. Equal
+substrings have equal normalized hash pairs, so a second occurrence is found.
+Conversely, if no pair repeats, no two windows are equal under collision-free
+hashing, so no repeated substring exists.
+
+**Lemma 2.** `possible(L)` is monotone.
+
+**Proof.** If two length-`L` substrings are equal, their first `K` characters
+are equal for every `1 <= K <= L`. Thus `possible(L)` implies `possible(K)`.
+
+**Theorem.** Subject to the stated negligible collision probability, the
+algorithm prints the longest repeated-substring length.
+
+**Proof.** Lemma 1 evaluates the predicate correctly. Lemma 2 makes its true
+lengths an initial interval, so binary search returns its largest member.
+That member is exactly the requested maximum length.
+
+## Complexity and implementation notes
+
+One check scans `O(n)` windows; binary search performs `O(log n)` checks, for
+`O(n log n)` expected time and `O(n)` memory. Store hash pairs rather than only
+one modulus. Normalize a substring using the power for its **length**, not its
+right endpoint. The answer may be `0`, and a repeated length `n` is impossible
+because there is only one whole-string window.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_longest_repeat/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_longest_repeat/solution.py >}}
+```
+
+## Tests that matter
+
+```text
+One character and all distinct characters: answer 0.
+All equal characters: answer n-1.
+Overlapping repetitions: banana and aaaaa.
+Two long equal blocks at different positions.
+Near-equal windows that differ only at their final character.
+```
+
+The tiny random oracle compares real slices, not hashes. The scale case is a
+200000-character uniform string, which makes every binary-search scan large.
 
 # What to carry forward
 

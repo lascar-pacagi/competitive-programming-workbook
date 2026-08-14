@@ -17,6 +17,7 @@ After this section, you should be able to:
    - `a_robot_walk`
    - `b_ticket_split`
    - `c_best_subset`
+   - `d_carousel_visits` (blind practice: attempt before opening the editorial)
 3. Run this section's checker after each problem.
 4. Read `editorial.pdf` only after a serious attempt.
 
@@ -45,4 +46,3 @@ CP_TARGET=solution python3 sections/02_simulation_bruteforce/check.py
 
 See [`PRACTICE.md`](PRACTICE.md). Their statements are external; this
 repository does not copy them.
-

@@ -30,9 +30,15 @@ x1 x2 ... xq
 ...
 ```
 
-The sum of `n + q` over all test cases is at most `200000`.
+The constraints are:
+
+```text
+-10^18 <= l_i < r_i <= 10^18
+1 <= c_i <= 10^18
+-10^18 <= x_j <= 10^18
+sum of n + q over all test cases <= 200000
+```
 
 ## Output
 
 For each test case, print `q` integers on one line.
-

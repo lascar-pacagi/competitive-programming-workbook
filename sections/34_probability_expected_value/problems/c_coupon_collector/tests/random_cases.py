@@ -7,6 +7,20 @@ from pathlib import Path
 
 
 MOD = 1_000_000_007
+LIMIT = 1_000_000
+
+
+def prepare_answers(limit: int) -> list[int]:
+    inverse = [0] * (limit + 1)
+    harmonic = [0] * (limit + 1)
+    inverse[1] = 1
+    for value in range(1, limit + 1):
+        if value >= 2:
+            inverse[value] = (
+                MOD - (MOD // value) * inverse[MOD % value] % MOD
+            ) % MOD
+        harmonic[value] = (harmonic[value - 1] + inverse[value]) % MOD
+    return [value * harmonic[value] % MOD for value in range(limit + 1)]
 
 
 def solve(case: str) -> str:
@@ -35,10 +49,20 @@ def main() -> None:
     args = parser.parse_args()
     rng = random.Random(args.seed)
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    prepared = None
     for i in range(args.count):
-        case = make_case(rng)
+        if i == 0:
+            # Forces shared preprocessing: summing 1..n independently for
+            # every query would require about 2e11 iterations.
+            queries = [LIMIT] * 200_000
+            case = str(len(queries)) + "\n" + "\n".join(map(str, queries)) + "\n"
+            prepared = prepare_answers(LIMIT)
+            expected = (str(prepared[LIMIT]) + "\n") * len(queries)
+        else:
+            case = make_case(rng)
+            expected = solve(case)
         (args.out_dir / f"case_{i:03d}.in").write_text(case)
-        (args.out_dir / f"case_{i:03d}.out").write_text(solve(case))
+        (args.out_dir / f"case_{i:03d}.out").write_text(expected)
 
 
 if __name__ == "__main__":

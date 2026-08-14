@@ -23,6 +23,21 @@ execute:
   enabled: false
 ---
 
+# Category coverage
+
+| Category | Coverage problem |
+|---|---|
+| modular arithmetic | A, C, F, G, I, K, L |
+| GCD, LCM, and Diophantine equations | E, F |
+| sieve, primes, and factorization | B, H, J, L |
+| combinatorics under modulo | A, G, I |
+| inclusion-exclusion | B, D, G, H, I, K |
+| probability and expected value | C, K, L |
+
+Modular Appointment supplies the Euclidean/congruence reasoning that Coprime Pairs
+does not exercise directly. Its complete local package is included by this
+section's checker.
+
 # Editorial overview
 
 ## Read this derivation before the code
@@ -36,6 +51,15 @@ the corresponding block before studying its implementation:
 | A | all monotone paths minus paths through one block | `3 by 4`, block `(2,2)` | applying the formula to multiple blocks |
 | B | `seen[d]` for square-free divisors | process `1, 6, 10, 21, 30` | updating `seen` before counting |
 | C | product of no-event probabilities | `1/2, 1/3, 1/4` | multiplying without independence |
+| D | strings that omit a chosen set of symbols | length `4`, alphabet size `3` | adding overlapping omissions without correction |
+| E | one linear congruence after moving the offset | a solvable and impossible gcd case | dividing before the gcd test |
+| F | merge two residue classes | noncoprime compatible moduli | using ordinary CRT blindly |
+| G | unrestricted allocations minus cap violations | two small capped boxes | forgetting the `cap+1` shift |
+| H | subsets divisible by `d`, then exact gcd | values `2,3,4` | subtracting in the wrong order |
+| I | choose colors, then force all to appear | length `3`, two selected colors | counting strings using at most `k` colors |
+| J | prime-exponent requirements as bits | target `12` | keeping values that do not divide the target |
+| K | sum tail probabilities | two unequal coupon weights | treating coupon arrivals as independent |
+| L | expectation from proper divisors | values `4` and `6` | including the current value as a divisor choice |
 
 The source listings are intentionally compact reference implementations. The
 checklist supplies the constraints, pseudocode, proof checkpoints, complexity,
@@ -46,6 +70,15 @@ language notes, adversarial tests, and brute-force oracle to use before code.
 | A. Blocked Path | combinations, subtract bad paths |
 | B. Coprime Pairs | SPF, distinct prime factors, inclusion-exclusion |
 | C. At Least One | complement probability |
+| D. Complete Alphabet | inclusion-exclusion, modular exponentiation |
+| E. Modular Appointment | linear congruence, extended Euclid |
+| F. Festival Synchronization | generalized CRT |
+| G. Capped Allocation | stars and bars, inclusion-exclusion |
+| H. GCD-One Subsets | divisor sieve, exact-gcd inversion |
+| I. Exactly K Colors | combinations, surjections |
+| J. Target LCM Subsets | factorization, bitmask DP |
+| K. Weighted Coupon Collection | expectation, inclusion-exclusion |
+| L. Random Divisor Descent | expectation DP, divisor sieve |
 
 # A. Blocked Path
 
@@ -63,7 +96,7 @@ Every monotone path is determined by the positions of its down moves. The bad
 paths are exactly those that can be split into a monotone path from the start to
 the blocked cell and then from the blocked cell to the finish. These two parts
 are independent, so multiplication counts them. Subtracting all bad paths leaves
-exactly the valid paths. `\square`
+exactly the valid paths. $\square$
 
 ## Full C++ solution
 
@@ -164,7 +197,7 @@ by at least one distinct prime factor of `x`. The subset-product counters give
 the size of every intersection of these divisibility events. Inclusion-
 exclusion therefore gives the number of previous non-coprime values. All other
 previous values form coprime pairs with `x`. Each pair is counted when its
-second endpoint is processed. `\square`
+second endpoint is processed. $\square$
 
 ## Full Python solution
 
@@ -305,7 +338,7 @@ answer = 1 - none
 The complement of "at least one event happens" is "no event happens." Events
 are independent, so the probability that none happen is the product of the
 individual failure probabilities. Complementing gives the desired probability.
-`\square`
+$\square$
 
 ## Full C++ solution
 
@@ -367,6 +400,111 @@ if __name__ == "__main__":
     main()
 ```
 
+# D. Complete Alphabet
+
+## Restatement and constraints
+
+There are `k` symbols, numbered from `1` to `k`. Count the strings of length
+`n` in which every symbol appears at least once, modulo `1,000,000,007`.
+Here `1 <= n <= 10^18` and `1 <= k <= 20`. The huge length rules out building
+strings or dynamic programming over positions; the small alphabet is the
+important bound.
+
+This is a *surjection* count: each of the `k` symbols must receive at least one
+of the `n` positions. It is not simply `k^n`, because that includes strings
+that miss one or more symbols.
+
+## Observation and worked trace
+
+For each symbol `s`, let `E_s` be the set of strings that never use `s`. We
+want strings outside the union of these bad sets. If we choose a particular
+set of `j` missing symbols, every position has `k-j` choices, so exactly
+`(k-j)^n` strings miss all selected symbols. There are `C(k,j)` choices for
+that selected set.
+
+For `n=4, k=3`, begin with all `3^4=81` strings. Subtract the strings missing
+one named symbol: `3 * 2^4 = 48`. A string using only one symbol was subtracted
+twice, so add back `C(3,2) * 1^4 = 3`. Missing all three symbols contributes
+`0^4=0` because `n` is positive. The answer is:
+
+```text
+3^4 - C(3,1)2^4 + C(3,2)1^4 - C(3,3)0^4
+= 81 - 48 + 3 - 0
+= 36
+```
+
+The sign alternates because a string missing exactly `r` symbols belongs to
+`C(r,j)` selected missing sets at level `j`. Its total coefficient is
+`sum_j (-1)^j C(r,j) = (1-1)^r`: zero when `r>0`, and one when `r=0`.
+
+## Algorithm
+
+```text
+answer = 0
+for missing from 0 to k:
+    term = C(k, missing) * (k - missing)^n modulo MOD
+    if missing is even:
+        answer += term
+    else:
+        answer -= term
+print answer modulo MOD
+```
+
+Compute every power with binary exponentiation. Since `k <= 20`, ordinary
+integer binomial coefficients fit comfortably before reduction; both languages
+can compute them directly.
+
+## Correctness proof
+
+For a fixed selected set `S` of `missing` symbols, a string avoids every
+symbol in `S` exactly when all its positions use one of the other
+`k-missing` symbols. Thus it contributes `(k-missing)^n` strings. Summing over
+the `C(k,missing)` possible `S` counts each string with the usual
+inclusion-exclusion sign.
+
+Consider any string that misses exactly `r` symbols. It occurs once for every
+selected subset of those `r` missed symbols, so its coefficient in the sum is
+`sum_{j=0}^r (-1)^j C(r,j)`. This is `1` for `r=0` and `0` for `r>0`. Therefore
+every string using all symbols is counted once and every invalid string is
+cancelled, which is precisely the required answer. QED.
+
+## Complexity, implementation notes, and tests
+
+There are `k+1` terms, and each modular power takes `O(log n)`, for total time
+`O(k log n)` and `O(1)` extra space. Keep the answer reduced after every
+addition/subtraction. In C++, use `long long` for modular products; in Python,
+use `pow(base, n, MOD)` rather than constructing `base**n`.
+
+Test `n<k` (answer zero), `k=1` (answer one), `n=k`, and a very large `n` to
+make sure a linear-in-`n` solution cannot slip through. A common error is to
+subtract `k*(k-1)^n` without restoring strings that miss two symbols. Another
+is treating `0^0` casually; the local constraint `n>=1` makes the final term
+zero when every symbol is selected as missing.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_complete_alphabet/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_complete_alphabet/solution.py >}}
+```
+
+## D-specific stress testing
+
+For tiny cases (`n <= 6`, `k <= 4`), enumerate all `k^n` strings directly and
+count those whose set of used symbols has size `k`. This oracle never uses the
+inclusion-exclusion formula, so it catches sign, combination, and overlap
+mistakes independently. Include `n < k`, where no string can use every symbol,
+and `k = 1`, where the one possible string is complete.
+
+The separate scale case uses `k = 20` and an `n` near `10^18`. It verifies that
+the implementation uses logarithmic modular exponentiation for each term,
+rather than attempting a linear-in-`n` enumeration, DP, or ordinary power.
+
 # Testing discussion
 
 The mixed contest generators compare against direct combinatorics, brute-force
@@ -406,6 +544,11 @@ and a three-factor value.
 **C. At Least One.** Compute `none=product((q-p)*inverse(q))`, then answer
 `1-none`. For `1/2` and `1/3`, this is `1-1/2*2/3=2/3`. Independence justifies
 the product; a certain event and a zero-probability event are essential tests.
+
+**D. Complete Alphabet.** Let a bad event be that one named symbol is absent.
+For `n=4,k=3`, inclusion-exclusion is `3^4-3*2^4+3*1^4=36`. Test `n<k`, one
+symbol, and a huge exponent; the alternating signs repair all overlaps between
+absent-symbol events.
 
 # Problem-local upsolve checklist
 
@@ -505,3 +648,530 @@ Independence proves the product; complementarity proves the final subtraction.
 The algorithm takes `O(n log MOD)` with Fermat inverses and `O(1)` extra memory.
 Test one event, a zero-probability event, and a certain event. Do not use this
 method if events are dependent or a denominator is zero modulo `MOD`.
+
+# E. Modular Appointment
+
+## Restatement and reduction
+
+For each query, find the smallest `x >= 0` such that:
+
+```text
+a*x + c ≡ b (mod m)
+```
+
+Move the constant term to the other side:
+
+```text
+a*x ≡ b-c (mod m)
+```
+
+This is a linear congruence, not always a modular-division problem. Writing
+`target = b-c`, the congruence is equivalent to the Diophantine equation:
+
+```text
+a*x + m*y = target
+```
+
+## Solvability
+
+Let `g = gcd(a,m)`. Every value `a*x + m*y` is divisible by `g`, so
+`g | target` is necessary. Bézout's identity gives integers `p,q` with
+`a*p + m*q = g`; multiplying by `target/g` proves the same condition is
+sufficient.
+
+If the condition holds, divide the congruence by `g`:
+
+```text
+(a/g) * x ≡ target/g (mod m/g)
+```
+
+Now `a/g` and `m/g` are coprime, so `a/g` has an inverse modulo `m/g`.
+
+## Algorithm
+
+For each query:
+
+1. Normalize `target = (b-c) mod m` into `[0,m)`.
+2. Use extended Euclid on `(a,m)` to obtain `g` and a coefficient `p` such
+   that `a*p + m*q = g`.
+3. If `target % g != 0`, print `-1`.
+4. Otherwise compute:
+
+```text
+modulus = m/g
+x = (target/g) * p mod modulus
+```
+
+5. Normalize `x` into `[0,modulus)`. This is the smallest nonnegative member
+   of the solution class.
+
+## Correctness proof
+
+If `target` is not divisible by `g`, the Diophantine equation has no solution,
+so printing `-1` is correct.
+
+Otherwise extended Euclid gives `a*p + m*q = g`. Multiplying by `target/g`
+and reducing modulo `m` gives:
+
+```text
+a * (p * target/g) ≡ target (mod m)
+```
+
+Thus the computed residue is a solution. After division by `g`, the coefficient
+`a/g` is invertible modulo `m/g`, so there is exactly one solution class
+modulo `m/g`. Normalizing that class into `[0,m/g)` selects its unique smallest
+nonnegative representative. Therefore every query output is correct.
+
+## Complexity and integer safety
+
+Extended Euclid takes `O(log min(a,m))` time and `O(log min(a,m))` recursive
+stack space per query. In C++, multiplying the Bézout coefficient by
+`target/g` may overflow 64 bits even though the normalized answer does not;
+the reference uses `__int128` for that product.
+
+## Common wrong answers
+
+- Taking an inverse of `a` modulo `m` before checking `gcd(a,m) = 1`.
+- Checking `g | b` instead of `g | (b-c)`.
+- Forgetting that C++ `%` may leave a negative residue.
+- Returning an arbitrary integer solution instead of the smallest
+  nonnegative one.
+- Mishandling `m/g = 1`; the unique normalized answer is zero.
+
+## Tests that matter
+
+```text
+target = 0                  -> x = 0
+gcd(a,m) = 1               -> ordinary modular inverse
+gcd(a,m) > 1 and divides target
+gcd(a,m) > 1 and does not divide target -> -1
+b < c                      -> negative unnormalized target
+m/g = 1                    -> answer 0
+Values near 10^9           -> multiplication safety
+```
+
+For small moduli, the oracle can simply try every `x` from `0` to `m-1`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_modular_appointment/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_modular_appointment/solution.py >}}
+```
+
+# F. Festival Synchronization
+
+## Model and solvability
+
+Write a candidate common time as `x = r1 + m1*k`. Substituting this into the
+second congruence gives one linear congruence for `k`:
+
+```text
+m1*k == r2-r1 (mod m2).
+```
+
+Let `g=gcd(m1,m2)`. The congruence is solvable exactly when `g` divides
+`r2-r1`. This is the compatibility condition for noncoprime CRT: the two
+requested residues must agree modulo the gcd of their moduli.
+
+When compatible, divide by `g`:
+
+```text
+(m1/g)*k == (r2-r1)/g (mod m2/g).
+```
+
+The new coefficient and modulus are coprime, so extended Euclid supplies the
+inverse of `m1/g` modulo `m2/g`. Normalize `k` into that modulus, then compute
+`x=r1+m1*k`. All common solutions differ by `lcm(m1,m2)`.
+
+## Correctness proof
+
+If the gcd does not divide the residue difference, every value `m1*k-m2*t`
+is divisible by the gcd and can never equal that difference, so `-1` is
+necessary. Otherwise the reduced inverse constructs a `k` satisfying the
+second congruence, while the representation `r1+m1*k` satisfies the first by
+construction. Changing `k` by `m2/g` changes `x` by `m1*m2/g`, the lcm. Thus
+normalizing gives the unique common solution in `[0,lcm)`, which is the
+smallest nonnegative one.
+
+## Complexity and tests
+
+Each query takes `O(log min(m1,m2))` time and logarithmic recursion depth.
+Use 64-bit storage for the lcm and a widened product for coefficient
+multiplication.
+
+```text
+coprime moduli; equal moduli; compatible noncoprime moduli
+residues disagree modulo the gcd -> impossible
+one modulus is 1; answer is already r1
+moduli near 10^9 -> product safety
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_festival_synchronization/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_festival_synchronization/solution.py >}}
+```
+
+# G. Capped Allocation
+
+## From unrestricted allocations to violations
+
+Without upper bounds, the number of nonnegative solutions of
+`x1+...+xn=S` is the stars-and-bars count `C(S+n-1,n-1)`. To enforce caps,
+define a bad event `Ei` meaning `xi >= cap[i]+1`.
+
+For a chosen subset `T` of violated boxes, subtract `cap[i]+1` tokens from
+every `i` in `T`. The remaining sum is:
+
+```text
+remaining = S - sum over i in T of (cap[i]+1).
+```
+
+If it is nonnegative, the intersection of those violations contains
+`C(remaining+n-1,n-1)` allocations. Inclusion-exclusion therefore gives:
+
+```text
+sum over all subsets T:
+    (-1)^|T| * C(S-sum(cap[i]+1)+n-1, n-1).
+```
+
+The lower argument is at most `19`, so each combination can be computed by a
+short multiplicative product. The stated bounds keep the upper argument below
+the modulus, avoiding Lucas-theorem complications.
+
+## Correctness proof
+
+Stars and bars counts every unrestricted allocation once. For any allocation,
+let `V` be exactly the set of caps it violates. Its total coefficient in the
+formula is `sum over T subset V of (-1)^|T|`, which is one when `V` is empty
+and zero otherwise. Hence every valid allocation remains once and every
+invalid allocation cancels. The variable shift is a bijection between an
+intersection of violations and the corresponding unrestricted smaller-sum
+problem.
+
+## Complexity and tests
+
+There are `2^n` subsets and `O(n)` multiplication per combination, giving
+`O(n*2^n)` time and `O(2^n)` memory for subset sums.
+
+```text
+S=0; one box; all caps zero
+S greater than the sum of all caps -> 0
+caps so large that no violation is possible
+the exact boundary xi=cap[i]+1 -> verifies the +1 shift
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/g_capped_allocation/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/g_capped_allocation/solution.py >}}
+```
+
+# H. GCD-One Subsets
+
+## Count divisible subsets before exact gcds
+
+For each divisor `d`, count how many input values are divisible by `d`; call
+this `count[d]`. Every nonempty subset made only from those values has gcd
+divisible by `d`, so there are:
+
+```text
+all_divisible[d] = 2^count[d] - 1
+```
+
+These subsets split into disjoint classes by their exact gcd. Consequently:
+
+```text
+all_divisible[d] = exact[d] + exact[2d] + exact[3d] + ...
+```
+
+Process `d` downward. Every strict multiple already has its exact count, so:
+
+```text
+exact[d] = all_divisible[d] - sum exact[multiple]
+```
+
+The answer is `exact[1]`.
+
+## Correctness proof
+
+A subset contributes to `all_divisible[d]` precisely when every selected
+value is divisible by `d`, equivalently when its gcd is a multiple of `d`.
+Exact gcd classes are disjoint and cover all nonempty subsets, proving the
+multiple-sum identity. Downward induction then shows that subtracting the
+already correct strict-multiple classes leaves exactly the subsets with gcd
+`d`. In particular, the final state for `d=1` is the requested count.
+
+## Complexity and tests
+
+Both the frequency-over-multiples pass and the exact-gcd subtraction perform
+a harmonic number of iterations: `O(M log M)` time and `O(M+n)` memory, where
+`M=max(a)`.
+
+```text
+one value equal to 1; no pair with gcd 1
+many duplicate values -> indices must remain distinct choices
+all values share a factor -> answer 0
+gcd 1 appears only after selecting three or more values
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/h_gcd_one_subsets/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/h_gcd_one_subsets/solution.py >}}
+```
+
+# I. Exactly K Colors
+
+## Separate which colors from how they are used
+
+First choose the `k` colors that appear: `C(m,k)` choices. For one fixed set
+of `k` colors, count length-`n` strings in which every chosen color appears.
+There are `k^n` unrestricted strings, but some omit colors.
+
+If a specified set of `missing` colors is absent, every position has
+`k-missing` choices. Inclusion-exclusion gives the number of surjections:
+
+```text
+onto(n,k) = sum from missing=0 to k of
+    (-1)^missing * C(k,missing) * (k-missing)^n.
+```
+
+The answer is `C(m,k)*onto(n,k)`. Precompute factorials and inverse
+factorials through the largest `m`; use binary exponentiation because `n` may
+be `10^18`.
+
+## Correctness proof
+
+Every valid string determines exactly one set of `k` used colors, so choosing
+the set creates disjoint cases. Within a fixed set, inclusion-exclusion keeps
+a string exactly when its missing-color set is empty: a string missing `r`
+chosen colors receives coefficient `sum C(r,j)(-1)^j`, equal to zero for
+`r>0` and one for `r=0`. Thus the formula counts every string using exactly
+`k` colors once and no other string.
+
+## Complexity and tests
+
+Precomputation costs `O(max m)`. A query costs `O(k log n)`, and the promised
+sum of `k` bounds the total work. Memory is `O(max m)`.
+
+```text
+k=1; k=m; k>n -> 0
+n=1; a huge n testing binary exponentiation
+distinguish exactly k from at most k
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/i_exactly_k_colors/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/i_exactly_k_colors/solution.py >}}
+```
+
+# J. Target LCM Subsets
+
+## Compress each value to the target exponents it completes
+
+Any selected value must divide `T`; otherwise the subset lcm contains an
+excess prime or exponent and can never return to `T`. Factor:
+
+```text
+T = p1^e1 * p2^e2 * ... * pr^er.
+```
+
+For a value dividing `T`, set bit `i` when its exponent of `pi` is exactly
+`ei`. Lower exponents do not complete that prime's target requirement. The lcm
+of a subset is `T` exactly when the bitwise OR of its masks is the full mask.
+
+Many indices may share a mask. If a mask occurs `c` times, there are `2^c-1`
+ways to choose a nonempty group of those indices, and every such choice has
+the same effect on the OR. Merge each mask type into a bitmask DP:
+
+```text
+next = dp                         # choose none of this type
+next[old OR type] += dp[old] * (2^count[type]-1)
+```
+
+For `T=1`, the full mask is zero, so subtract the empty subset explicitly.
+
+## Correctness proof
+
+Filtering is safe because lcm exponents are maxima and can never decrease.
+For retained values, the OR mask records exactly which target exponents the
+subset maximum has reached. Grouping equal masks partitions index choices
+into “none” and one of all nonempty selections, preserving their exact
+multiplicity. By induction over mask types, `dp[mask]` counts precisely the
+subsets producing that OR. The full OR is equivalent to every target prime
+reaching its required exponent, hence to lcm `T`.
+
+## Complexity and tests
+
+Factoring `T` costs `O(sqrt(T))`. At most nine distinct primes fit into a
+number up to `10^9`, so the DP costs `O(4^r)` in the loose bound of all type
+and state pairs, at most about `262000` operations, plus input processing.
+
+```text
+T=1 with several ones; values not dividing T
+one value already equals T; several indices with the same mask
+every prime requirement supplied by a different value
+correct primes but insufficient target exponents
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/j_target_lcm_subsets/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/j_target_lcm_subsets/solution.py >}}
+```
+
+# K. Weighted Coupon Collection
+
+## Tail probabilities turn completion time into a sum
+
+Let `T` be the number of draws needed. For a nonnegative integer-valued random
+variable:
+
+```text
+E[T] = sum over t>=0 of P(T>t).
+```
+
+After `t` draws, `T>t` means at least one coupon type is still missing. Apply
+inclusion-exclusion to these missing events. For a nonempty set `S` of coupon
+types, all types in `S` are missing exactly when every draw avoids them. If
+`weight(S)` is their total weight and `W` is the total weight, that probability
+is:
+
+```text
+(1 - weight(S)/W)^t.
+```
+
+Summing this geometric series over `t>=0` gives `W/weight(S)`. Therefore:
+
+```text
+E[T] = sum over nonempty S of
+    (-1)^(|S|+1) * W / weight(S).
+```
+
+All subset weights are positive and smaller than the prime modulus, so their
+modular inverses exist.
+
+## Correctness proof
+
+The tail-sum identity counts each outcome once for every time step before
+completion. At a fixed time, inclusion-exclusion exactly computes the union
+of missing-type events. Independence of draws gives the power for avoiding a
+fixed set, and the geometric-series identity sums that probability through
+all times. Every transformation preserves the same expectation, proving the
+formula.
+
+## Complexity and tests
+
+Subset sums can be built from the least significant bit. There are `2^n-1`
+terms, each using one modular inverse, for `O(2^n log MOD)` time and `O(2^n)`
+memory.
+
+```text
+one coupon -> expectation 1
+two equal coupons -> 3
+highly unequal weights
+verify small cases with a mask-state expectation recurrence
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/k_weighted_coupon_collection/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/k_weighted_coupon_collection/solution.py >}}
+```
+
+# L. Random Divisor Descent
+
+## Expectation recurrence
+
+Let `E[x]` be the expected remaining replacements from value `x`. The base is
+`E[1]=0`. If `D(x)` is the set of proper positive divisors of `x`, conditioning
+on the first uniformly chosen divisor gives:
+
+```text
+E[x] = 1 + sum over d in D(x) of E[d] / |D(x)|.
+```
+
+Every proper divisor is smaller than `x`, so increasing numeric order is a
+valid DP order. Enumerating all divisors separately for every query would
+repeat work. Instead, when `E[d]` becomes known, contribute it to every strict
+multiple `2d,3d,...`. Maintain for each future value both the number of proper
+divisors seen and the sum of their expectations.
+
+## Correctness proof
+
+For `x=1`, zero steps are required. Assume expectations are correct below
+`x`. Its possible first moves are exactly its proper divisors, all below `x`
+and chosen with equal probability. The law of total expectation therefore
+gives the stated recurrence, using already-correct states. The divisor sieve
+adds `E[d]` once to a number precisely when `d` is its proper divisor, so the
+maintained count and sum equal the recurrence quantities. Induction proves all
+answers.
+
+## Complexity and tests
+
+The strict-multiple loops perform `O(M log M)` total iterations, with `O(M)`
+memory and `O(1)` output work per query. Divisor counts are below the prime, so
+their inverses exist.
+
+```text
+x=1; a prime x (only divisor 1); a prime square
+x=4 -> 1 + (E[1]+E[2])/2 = 3/2
+a number with many proper divisors
+do not include x itself, which would create a self-reference
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/l_random_divisor_descent/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/l_random_divisor_descent/solution.py >}}
+```

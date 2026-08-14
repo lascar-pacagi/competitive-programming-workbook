@@ -1,0 +1,3 @@
+#include <bits/stdc++.h>
+using namespace std;using ll=long long;
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,q;cin>>n>>q;const int L=61;vector<array<int,L>>up(n);vector<array<ll,L>>mn(n);for(int i=0;i<n;i++){cin>>up[i][0];--up[i][0];}vector<ll>val(n);for(ll&x:val)cin>>x;for(int i=0;i<n;i++)mn[i][0]=val[up[i][0]];for(int j=1;j<L;j++)for(int i=0;i<n;i++){mn[i][j]=min(mn[i][j-1],mn[up[i][j-1]][j-1]);up[i][j]=up[up[i][j-1]][j-1];}while(q--){int v;unsigned long long k;cin>>v>>k;--v;ll ans=val[v];for(int j=0;j<L;j++)if(k>>j&1){ans=min(ans,mn[v][j]);v=up[v][j];}cout<<v+1<<' '<<ans<<'\n';}}

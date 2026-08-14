@@ -26,6 +26,23 @@ an editorial before recording a model and a hostile test.
 | 4 | 498C -- Array and Operations | https://codeforces.com/problemset/problem/498/C | 45, 57 | challenge |
 | 4 | 319C -- Kalila and Dimna in the Logging Industry | https://codeforces.com/problemset/problem/319/C | 49 | challenge |
 
+## Gates 5--7: expert to red
+
+The full concise contracts and links for tasks 20--50 are in
+[`problem_sheet.pdf`](problem_sheet.pdf). Do not treat the numerical order as a
+promise that adjacent tasks use the same tool: it is a progression of
+recognition, proof, and implementation risk.
+
+| Gate | Tasks | Core pressure | Course bridge |
+|---|---|---|---|
+| 5 | 786B through 103D | tree flattening, offline grouping, range structure invariants | 36--42 |
+| 6 | 1000F through 587C | compressed state, centroid/virtual trees, optimized DP | 43--49, 55--57 |
+| 7 | 786C through 566F | red-level reductions, monotone optimization, advanced data structures | 47--57 |
+
+Complete each gate with an attempt record for every task. A task is only
+complete after you can restate its model, decisive invariant, complexity, and a
+counterexample to one tempting wrong approach.
+
 ## Progression rule
 
 Advance a gate only after you have either solved every required task or

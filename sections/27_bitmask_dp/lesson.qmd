@@ -66,17 +66,29 @@ bit:    1 1 0 1
 set:   {0, 2, 3}
 ```
 
-Common operations:
+Common C++ operations:
 
-| Operation | C++ | Python | Meaning |
-|---|---|---|---|
-| full mask | `(1 << n) - 1` | `(1 << n) - 1` | all items present |
-| test bit `i` | `(mask >> i) & 1` | `(mask >> i) & 1` | is item `i` present? |
-| add item `i` | `mask \| (1 << i)` | `mask \| (1 << i)` | force bit `i` to 1 |
-| remove item `i` | `mask & ~(1 << i)` | `mask & ~(1 << i)` | force bit `i` to 0 |
-| union masks | `a \| b` | `a \| b` | items in either set |
-| intersection | `a & b` | `a & b` | items in both sets |
-| count bits | `__builtin_popcount(mask)` | `mask.bit_count()` | subset size |
+| Operation | C++ | Meaning |
+|---|---|---|
+| full mask | `(1 << n) - 1` | all items present |
+| test bit `i` | `(mask >> i) & 1` | is item `i` present? |
+| remove item `i` | `mask & ~(1 << i)` | force bit `i` to 0 |
+| intersection | `a & b` | items in both sets |
+| count bits | `__builtin_popcount(mask)` | subset size |
+
+The two common bitwise-OR operations are clearer outside a Markdown table,
+where the pipe character also separates columns:
+
+```cpp
+mask | (1 << i)  // Add item i.
+a | b            // Union: items in either set.
+```
+
+The Python expressions are the same except for counting set bits:
+
+```python
+mask.bit_count()
+```
 
 In prose, we usually number items from `0` internally even if input is
 1-indexed.
@@ -98,72 +110,124 @@ It is often wrong when `n = 10^5`. A `2^n` table is only for small `n`.
 
 # Pattern 1: coverage DP
 
-Suppose each candidate covers some skills and has a cost. We want minimum cost
-to cover all skills.
+Suppose we need three skills, numbered `0`, `1`, and `2`. We may pay for
+candidates, and every candidate teaches a particular subset of those skills.
+The goal is to obtain all three skills as cheaply as possible.
 
-State:
+The mask describes **skills already covered**, not candidates already chosen:
 
 ```text
-dp[mask] = minimum cost after considering some candidates
-           such that the covered skill set is mask
+000 = no skill is covered
+001 = only skill 0 is covered
+011 = skills 0 and 1 are covered
+111 = every skill is covered
 ```
 
-Transition for a candidate with cost `c` and skill mask `offer`:
+Several different candidate selections may produce the same mask. Once they
+cover the same skills, the future does not care which candidates produced
+them; it only cares which selection was cheaper. This is the compression that
+makes the DP possible.
+
+## Begin with an explicit candidate dimension
+
+A completely explicit state would be:
+
+```text
+dp[i][mask] = minimum cost of obtaining exactly mask
+              using only the first i candidates
+```
+
+When processing candidate `i`, there are only two final choices:
+
+```text
+skip the candidate
+take the candidate
+```
+
+If the candidate costs `c` and covers `offer`, skipping keeps the old mask and
+cost. Taking it combines the skills already covered with the new skills:
 
 ```text
 new_mask = mask | offer
-dp2[new_mask] = min(dp2[new_mask], dp[mask] + c)
 ```
 
-We copy the old table first:
+For example:
 
 ```text
-dp2 = dp
+already covered: 011
+new offer:        101
+union:            111
 ```
 
-That represents not choosing the candidate. Updating `dp2` represents choosing
-the candidate.
+Skill `0` appearing in both masks is still just one covered skill. Bitwise OR
+expresses exactly this union.
 
-Why not update `dp` in place? For this particular minimum-cost choose-any
-problem, in-place can be made to work because choosing the same candidate twice
-does not improve a positive-cost answer. But the safer habit for "consider each
-item once" DP is to use a fresh table. It keeps the meaning clear: after
-candidate `i`, each candidate among the first `i` has been considered at most
-once.
+## Remove the candidate dimension with two layers
 
-Worked trace:
+Only the preceding candidate layer is needed. Let `dp[mask]` describe the old
+layer and build `next_dp` for the new layer:
+
+A mask is **reachable** when `dp[mask]` is not `INF`: at least one selection of
+the candidates processed so far produces exactly that set of covered skills.
+Masks whose value is `INF` do not represent any real selection and must not
+create transitions.
 
 ```text
-n = 3 skills
-full = 111
+next_dp = dp
 
-Candidate A: cost 5, skills {0,1} -> offer 011
-Candidate B: cost 4, skills {2}   -> offer 100
-Candidate C: cost 7, skills {0,2} -> offer 101
+for every mask whose dp[mask] is not INF:
+    new_mask = mask | offer
+    next_dp[new_mask] = min(next_dp[new_mask], dp[mask] + cost)
+
+dp = next_dp
 ```
 
-Start:
+Copying `dp` first represents skipping the candidate. Every update that adds
+its cost represents taking it. Reading transitions only from the old `dp`
+layer ensures that the current candidate is used at most once.
+
+## Trace the masks, not only the formula
+
+Consider:
+
+```text
+Candidate A: cost 5, covers 011
+Candidate B: cost 4, covers 100
+Candidate C: cost 7, covers 101
+```
+
+Initially, choosing nobody is the only possibility:
 
 ```text
 dp[000] = 0
-all others = INF
+all other masks are unreachable
 ```
 
-After A:
+After A, we may skip it or take it:
 
 ```text
-dp[000] = 0
-dp[011] = 5
+dp[000] = 0   # skip A
+dp[011] = 5   # take A
 ```
 
-After B:
+When B is processed, each existing state again branches:
 
 ```text
-from 000 choose B -> 100 cost 4
-from 011 choose B -> 111 cost 9
+from 000: skip B -> 000 with cost 0
+from 000: take B -> 100 with cost 4
+from 011: skip B -> 011 with cost 5
+from 011: take B -> 111 with cost 9
 ```
 
-After C, full coverage remains at cost `9`.
+Candidate C alone reaches `101` for cost `7`, but it does not produce full
+coverage more cheaply than A plus B. Therefore `dp[111]` remains `9`.
+
+The invariant after each layer is:
+
+> For every mask, `dp[mask]` is the cheapest selection among the candidates
+> processed so far whose union of covered skills is exactly that mask.
+
+The answer is the entry for the full mask `(1 << skill_count) - 1`.
 
 # Pattern 2: assignment DP
 
@@ -245,8 +309,21 @@ dp[mask][last] = minimum cost to start at 0,
 Initial state:
 
 ```text
-dp[001...0][0] = 0
+start_mask = 1 << 0
+dp[start_mask][0] = 0
 ```
+
+The route starts at vertex `0`, so vertex `0` has already been visited and bit
+`0` must be `1`. No edge has been travelled yet, so the cost is `0`. In binary,
+`start_mask` ends in `1`:
+
+```text
+...0001
+```
+
+Starting from mask `0` would contradict the state definition: it would say
+that the route finishes at vertex `0` while vertex `0` is not in the visited
+set.
 
 Transition:
 
@@ -285,10 +362,66 @@ for (int mask = 0; mask < (1 << n); mask++) {
 }
 ```
 
-This works when transitions only add bits. Adding a bit always moves to a
-larger mask, so a state never depends on a future state.
+This can feel unlike earlier DP orders. A larger integer does **not**
+necessarily contain more selected items:
+
+```text
+0111 = 7 has three set bits
+1001 = 9 has two set bits
+```
+
+Thus increasing numeric order is not the same as processing layers with one
+visited city, then two, then three.
+
+The reason numeric order works for Inspection Route is narrower: every
+transition **strictly adds at least one previously zero bit** and never removes
+one. If `next` is not yet in `mask`, then
+
+```text
+new_mask = mask | (1 << next)
+```
+
+sets one previously zero bit. Consequently `new_mask > mask`. More generally,
+if mask `A` is a proper subset of mask `B`, then the integer encoding of `A` is
+smaller than the encoding of `B`.
+
+For Inspection Route, every incoming transition to `(mask,last)` comes from a
+mask with one visited city removed. That predecessor is therefore numerically
+smaller and has already been processed. A later numeric mask with fewer set
+bits, such as `1001` after `0111`, is unrelated to `0111`; neither is a subset
+of the other, so no dependency is being processed backward.
 
 For `dp[mask][last]`, use the same outer mask loop, then loop over `last`.
+
+You may instead group masks by `mask.bit_count()` and process groups from small
+to large. That order mirrors the number of visited cities and may be easier to
+reason about, but it does not reduce the total number of masks. The simple
+increasing-mask loop is usually preferred once the subset-order argument is
+clear.
+
+Merely saying that a transition "does not remove bits" is not sufficient. It
+might leave the mask unchanged:
+
+```text
+dp[mask][a] -> dp[mask][b]
+```
+
+The outer mask loop gives no ordering between those two states; the inner
+dimension would need its own valid evaluation order. Likewise,
+`new_mask = mask | offer` may equal `mask` when every offered bit is already
+present. In coverage DP that same-mask transition cannot improve the answer
+because it only adds a nonnegative cost, but that fact needs a separate proof.
+
+The precise checklist is:
+
+```text
+Every dependency from a different mask comes from a proper submask.
+Every dependency that keeps the same mask is harmless or is processed
+in a separately justified inner order.
+```
+
+If a transition removes a bit, or replaces one bit with another, increasing
+numeric order needs a new justification and may be wrong.
 
 # Complexity intuition
 

@@ -133,25 +133,57 @@ This is Bezout's identity. The recursive base case is clear:
 when b = 0:  a*1 + 0*0 = a
 ```
 
-For a non-base call, recursively obtain:
+Now consider `extended_gcd(a,b)` with `b != 0`. Euclid replaces `(a,b)` by
+the smaller pair:
 
 ```text
-b*x1 + (a mod b)*y1 = g
+(b, r), where r = a mod b
 ```
 
-Since `a mod b = a - floor(a/b)*b`, substitute it:
+The recursive call is therefore `extended_gcd(b,r)`. Apply the function's
+return contract to **these new arguments**: it returns `g,x1,y1` such that
 
 ```text
-b*x1 + (a - floor(a/b)*b)*y1
+b*x1 + r*y1 = g
+```
+
+Here, `x1` multiplies the recursive call's first argument `b`, and `y1`
+multiplies its second argument `r`. They are not yet the coefficients of the
+original pair `(a,b)`.
+
+Euclid's invariant gives `gcd(b,r) = gcd(a,b)`, so `g` is already the correct
+gcd. We only need to rewrite the equation using `a` and `b`. From integer
+division,
+
+```text
+a = floor(a/b)*b + r
+r = a - floor(a/b)*b
+```
+
+Substitute this expression for `r` into the recursive equation:
+
+```text
+b*x1 + r*y1
+= b*x1 + (a - floor(a/b)*b)*y1
 = a*y1 + b*(x1 - floor(a/b)*y1)
 ```
 
-Therefore the parent call can return:
+The last line now has the form required by the parent call:
+
+```text
+a*x + b*y = g
+```
+
+Compare the coefficient multiplying `a` and the coefficient multiplying `b`:
 
 ```text
 x = y1
 y = x1 - floor(a/b)*y1
 ```
+
+This transformation does not guess new coefficients. It takes the equation
+proved by the recursive call and rewrites the same equation in terms of the
+parent's arguments.
 
 Pseudocode, including the exact return contract:
 
@@ -165,21 +197,27 @@ extended_gcd(a, b):
 
 ## Trace: coefficients for `30` and `18`
 
-Back-substitution makes the construction visible:
+The parent call reduces `(30,18)` to `(18,12)` because `30 mod 18 = 12`.
+Suppose the recursive call has found:
 
 ```text
-30 = 1*18 + 12
-18 = 1*12 + 6
-6  = 30 - 18
-
-6 = 30 - 18
+18*1 + 12*(-1) = 6
 ```
 
-So one returned triple is:
+These are coefficients for `18` and `12`, not yet for `30` and `18`. Replace
+the remainder `12` by `30 - 18`:
 
 ```text
-g=6, x=1, y=-1
-30*1 + 18*(-1) = 6
+6 = 18 - 12
+  = 18 - (30 - 18)
+  = 30*(-1) + 18*2
+```
+
+Thus the parent returns:
+
+```text
+g=6, x=-1, y=2
+30*(-1) + 18*2 = 6
 ```
 
 There are many valid coefficient pairs. Extended Euclid is useful because it
@@ -248,24 +286,93 @@ Every left-hand side is a multiple of `g=gcd(a,b)`, so a necessary condition is
 `g | c`. It is also sufficient. If extended Euclid gives:
 
 ```text
-a*x0 + b*y0 = g
+a*u + b*v = g
 ```
 
 and `c = g*scale`, multiply both sides by `scale`:
 
 ```text
-a*(x0*scale) + b*(y0*scale) = c
+a*(u*scale) + b*(v*scale) = c
 ```
 
-This yields one solution. The complete family is useful in harder variants with
-nonnegative or bounded variables:
+This yields one particular solution:
 
 ```text
-x = x0 + (b/g)*t
-y = y0 - (a/g)*t
+xp = u*scale
+yp = v*scale
+```
+
+The complete family is useful in harder variants with nonnegative or bounded
+variables:
+
+```text
+x = xp + (b/g)*t
+y = yp - (a/g)*t
 ```
 
 for any integer `t`. Substitution shows the additional terms cancel.
+
+## Why this family contains every solution
+
+Substitution proves that every integer `t` produces a valid solution, but we
+also need the reverse direction: every valid solution must be produced by
+some integer `t`.
+
+Let `(x,y)` be any solution and `(xp,yp)` the particular solution above. Both
+satisfy the same equation:
+
+```text
+a*x  + b*y  = c
+a*xp + b*yp = c
+```
+
+Subtract the second equation from the first. With
+`dx = x-xp` and `dy = y-yp`, we obtain:
+
+```text
+a*dx + b*dy = 0
+```
+
+Divide by `g` and write `A=a/g`, `B=b/g`:
+
+```text
+A*dx = -B*dy
+```
+
+By removing the gcd, `A` and `B` are coprime. The right side is divisible by
+`B`, so `A*dx` is divisible by `B`. Because `A` and `B` are coprime, this
+forces `dx` itself to be divisible by `B`. Therefore, for some integer `t`:
+
+```text
+dx = B*t = (b/g)*t
+```
+
+Substituting this back into `A*dx = -B*dy` gives:
+
+```text
+dy = -A*t = -(a/g)*t
+```
+
+Hence every solution has exactly the form:
+
+```text
+x = xp + (b/g)*t
+y = yp - (a/g)*t
+```
+
+There are no other possibilities because the difference between any solution
+and the particular solution is forced to have these two multiples.
+
+The divisibility step above is Euclid's lemma: if `gcd(A,B)=1` and `B` divides
+`A*z`, then `B` divides `z`. To see why, Bezout gives integers `p,q` with
+`p*A+q*B=1`. Multiply by `z`:
+
+```text
+z = p*(A*z) + q*(B*z)
+```
+
+Both terms on the right are divisible by `B`, so `z` is divisible by `B` as
+well.
 
 ## Trace: solve `6x + 10y = 14`
 
@@ -278,8 +385,8 @@ Extended Euclid may return:
 Here `g=2` divides `14`, and `scale=7`:
 
 ```text
-x = 2*7 = 14
-y = -1*7 = -7
+xp = 2*7 = 14
+yp = -1*7 = -7
 ```
 
 Verification is mandatory:
@@ -288,8 +395,151 @@ Verification is mandatory:
 6*14 + 10*(-7) = 84 - 70 = 14
 ```
 
+Since `b/g=5` and `a/g=3`, every solution is:
+
+```text
+x = 14 + 5*t
+y = -7 - 3*t
+```
+
+For example, `t=-2` gives `(x,y)=(4,-1)`, and
+`6*4 + 10*(-1) = 14`.
+
 For `6x+10y=15`, the gcd is still two but does not divide fifteen, so no
 integer solution exists.
+
+# Generalized Chinese Remainder Theorem
+
+Suppose one integer must satisfy two congruences:
+
+```text
+x == r1 (mod m1)
+x == r2 (mod m2)
+```
+
+The classical Chinese Remainder Theorem is often stated only for coprime
+moduli. Competitive-programming problems do not always give that convenience,
+so we will derive the general version from the Diophantine equation we already
+know how to solve.
+
+## Turn the congruences into one equation
+
+The first congruence means that, for some integer `k`,
+
+```text
+x = r1 + m1*k.
+```
+
+For this value to satisfy the second congruence, there must be an integer `t`
+such that
+
+```text
+r1 + m1*k = r2 + m2*t.
+```
+
+Rearrange:
+
+```text
+m1*k - m2*t = r2-r1.
+```
+
+This is a linear Diophantine equation. Let `g = gcd(m1,m2)`. From the previous
+section, it has a solution exactly when
+
+```text
+g divides r2-r1.
+```
+
+This is the compatibility condition. When the moduli are not coprime, the two
+residues must agree modulo their gcd. Checking whether `m1` divides the
+difference would be too strict; we are free to add multiples of both moduli.
+
+## Construct one common value
+
+Extended Euclid gives coefficients `p,q` with
+
+```text
+m1*p + m2*q = g.
+```
+
+When `g` divides `r2-r1`, multiply by `(r2-r1)/g`:
+
+```text
+m1 * (p*(r2-r1)/g) + m2 * (q*(r2-r1)/g) = r2-r1.
+```
+
+Comparing this with `m1*k - m2*t = r2-r1`, one valid choice is
+
+```text
+k = p*(r2-r1)/g.
+```
+
+Therefore one common value is
+
+```text
+x0 = r1 + m1*k.
+```
+
+It may be negative or unnecessarily large. That does not make the construction
+wrong; it means we still need to identify the period of all common solutions.
+
+## Why the period is the lcm
+
+Let `x` and `y` both satisfy the two congruences. Then `x-y` is divisible by
+`m1` and by `m2`. Therefore it is divisible by `lcm(m1,m2)`.
+
+Conversely, adding `lcm(m1,m2)` to a solution adds a multiple of each modulus,
+so both remainders stay unchanged. Thus all solutions are exactly
+
+```text
+x = x0 + lcm(m1,m2)*z
+```
+
+for integers `z`. There are no missing solutions because the difference of
+any two solutions was forced to be a multiple of the lcm.
+
+The smallest nonnegative answer is consequently
+
+```text
+x0 modulo lcm(m1,m2).
+```
+
+This result is the **generalized Chinese Remainder Theorem**, usually shortened
+to **generalized CRT**. If the moduli are coprime, `g=1`, compatibility is
+automatic, and the period is `m1*m2`: this is the familiar classical form.
+
+## Trace: merge `x == 2 (mod 6)` and `x == 5 (mod 9)`
+
+Here `gcd(6,9)=3`, and `3` divides `5-2=3`, so the congruences are compatible.
+One Bezout identity is
+
+```text
+6*(-1) + 9*1 = 3.
+```
+
+The scale is `(5-2)/3=1`, so `k=-1` is valid:
+
+```text
+x0 = 2 + 6*(-1) = -4.
+```
+
+The common period is `lcm(6,9)=18`. Normalize:
+
+```text
+-4 modulo 18 = 14.
+```
+
+Indeed, `14` leaves remainder `2` modulo `6` and remainder `5` modulo `9`.
+
+For `x == 1 (mod 4)` and `x == 2 (mod 6)`, the gcd is two but the residue
+difference is one. No common value exists.
+
+## More than two congruences
+
+After merging two compatible congruences, their solutions form one new residue
+class modulo their lcm. You can merge that class with a third congruence using
+the same procedure, then continue. At every merge, perform the gcd
+compatibility test before constructing the new residue.
 
 # Implementation notes
 
@@ -306,12 +556,21 @@ y = x1 - (a / b) * y1;
 and the final scaling can require `__int128` even when `a` and `b` fit in
 `long long`.
 
+For CRT, calculate the period as `(m1/g)*m2`, dividing before multiplying.
+The final period fits signed 64-bit under the local constraints, but a raw
+product such as `m1*p*(r2-r1)/g` may not. Normalize the intermediate
+coefficient modulo `m2/g` and use `__int128` for the multiplication.
+
 ## Python
 
 Use `math.gcd` when only the gcd is needed. Python integers do not overflow,
 but recursive extended Euclid still needs its base case and exact quotient
 formula. Python normalizes `x % m` into `[0,m-1]` for positive `m`; C++ does
 not, which is why the explicit correction is shown above.
+
+For CRT, Python's `%` directly normalizes a constructed solution into
+`[0,lcm-1]`. Still compute the lcm as `m1//g*m2` so the arithmetic mirrors the
+proof and translates safely to fixed-width languages.
 
 # Failure modes and tests
 
@@ -323,6 +582,9 @@ not, which is why the explicit correction is shown above.
 | scale before divisibility test | `6x+10y=15` | report impossible |
 | reject negative coefficients | `6x+10y=14` gives `y=-7` | integers may be negative |
 | forget modulus one | `a=25,m=1` | output `0` in the local contract |
+| assume CRT moduli are coprime | `x=2 mod 6`, `x=5 mod 9` | test the gcd condition |
+| require equal residues | `2 mod 6`, `5 mod 9` | compare residues modulo the gcd |
+| forget CRT normalization | construction gives `x0=-4` | reduce modulo the lcm |
 
 For every Diophantine output, substitute the printed values back into the
 original equation. This catches swapped coefficients, missing scale factors,
@@ -356,10 +618,20 @@ and sign errors immediately.
 
    Answer: `x=14+5t`, `y=-7-3t` for every integer `t`.
 
+5. Decide whether `x == 4 (mod 6)` and `x == 10 (mod 15)` are compatible,
+   then give their common period.
+
+   Hint: compare the residue difference with `gcd(6,15)`.
+
+   Answer: yes, because three divides six. Their common period is
+   `lcm(6,15)=30`.
+
 # Exercises
 
-Complete the four formative exercises above before implementing local Problems
-A--C; their hints and answers are deliberately included for self-checking.
+Complete the five formative exercises above before implementing local Problems
+A--E; their hints and answers are deliberately included for self-checking.
+Problem F is intentionally not described here: treat it as blind recognition
+practice after completing the direct CRT problem E.
 
 # Local workflow
 
@@ -377,4 +649,5 @@ Before submission, check these exact questions:
 3. For ax+by=c, did I test c % gcd(a,b) before scaling?
 4. Did I verify a*x+b*y on a small trace, including a negative coefficient?
 5. Do my integer types cover intermediate products under the stated bounds?
+6. When merging congruences, did I test gcd compatibility and normalize modulo the lcm?
 ```

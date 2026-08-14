@@ -11,6 +11,7 @@ cycle detection.
    - `a_subtree_sizes`
    - `b_undirected_cycle`
    - `c_directed_cycle`
+   - `d_component_audit` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -25,4 +26,3 @@ CP_TARGET=solution python3 sections/16_dfs_components_cycles/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

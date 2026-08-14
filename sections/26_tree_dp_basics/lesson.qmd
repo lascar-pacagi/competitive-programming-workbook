@@ -32,7 +32,9 @@ is fixed.
 Tree DP is the habit of asking:
 
 ```text
-If I know what happens at node u, what choices remain independently inside each child subtree?
+If I know what happens at node u,
+what choices remain independently
+inside each child subtree?
 ```
 
 This section stays with one-root, bottom-up DP. Rerooting and LCA appear later.

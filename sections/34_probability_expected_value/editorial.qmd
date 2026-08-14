@@ -30,6 +30,7 @@ execute:
 | A. Expected Prize | one reward variable per event | linearity | O(n log MOD) |
 | B. First Success | expected remaining attempts | first-step equation | O(t log MOD) |
 | C. Coupon Collector | wait for each new type | staged linearity | O(max n + q) |
+| D. Simultaneous Wins | winning-pair indicators | running probability sum | O(n log MOD) |
 
 All answers are rational numbers represented modulo the prime
 MOD = 1,000,000,007. The local denominators are strictly below MOD, so their
@@ -97,6 +98,18 @@ Test one certain bonus, a zero-probability bonus, a zero value, and a value
 larger than MOD. Frequent wrong answers multiply all event probabilities or
 incorrectly think dependent events invalidate linearity.
 
+## Full C++ solution
+
+```cpp
+{{< include problems/a_expected_prize/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/a_expected_prize/solution.py >}}
+```
+
 # B. First Success
 
 ## Restatement and constraints
@@ -143,6 +156,18 @@ right inverse operation.
 Test p=q, p=1, p=1 and q=2, and large p and q close to MOD. Wrong submissions
 usually output p/q, omit the leading one in the recurrence, or treat p=0 as a
 valid zero expectation.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/b_first_success/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/b_first_success/solution.py >}}
+```
 
 # C. Coupon Collector
 
@@ -215,6 +240,126 @@ Test n=1, n=2, n=3, consecutive queries, and the maximum query. Common wrong
 answers use n/i instead of n/(n-i), omit the first stage, or recompute a
 harmonic sum independently per query.
 
+## Full C++ solution
+
+```cpp
+{{< include problems/c_coupon_collector/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/c_coupon_collector/solution.py >}}
+```
+
+# D. Simultaneous Wins
+
+## Restatement
+
+Independent game `i` is won with probability `p[i] / q[i]`. Count every
+unordered pair of games that are both won, then print the expectation of that
+count modulo `MOD`.
+
+## Constraints and traps
+
+`n` can be `200000`, so checking all `O(n^2)` pairs is too slow. The result is
+an exact rational number, not a decimal. Each `q[i]` is nonzero modulo the
+prime `MOD`, so represent each probability with its Fermat inverse.
+
+Independence matters here: for two distinct games, the probability that both
+win is the product of their probabilities. A game with probability zero simply
+contributes no winning pair.
+
+## Observation and trace
+
+For each pair `i < j`, define an indicator that is one precisely when both
+games win. Linearity gives the expected answer as the sum of all pair
+probabilities:
+
+```text
+sum over i < j of probability[i] * probability[j]
+```
+
+Process games left to right. If `sum_previous` is the sum of earlier win
+probabilities, a new chance `p` contributes `p * sum_previous`, then joins the
+sum.
+
+For probabilities `1/2, 1/3, 1`:
+
+```text
+new 1/2: contribution 0
+new 1/3: contribution (1/3)*(1/2) = 1/6
+new 1:   contribution 1*(1/2 + 1/3) = 5/6
+total = 1
+```
+
+## Algorithm
+
+```text
+sum_previous = answer = 0
+for each (p, q):
+    chance = p * inverse(q) mod MOD
+    answer += chance * sum_previous
+    sum_previous += chance
+    reduce both modulo MOD
+print answer
+```
+
+## Correctness proof
+
+**Lemma.** Before processing game `j`, `sum_previous` equals the sum of the
+win probabilities of exactly games `1..j-1`, and `answer` equals the expected
+number of winning pairs wholly among those games.
+
+**Proof.** Both values are zero before game one. When adding game `j`, each
+new pair is exactly `(i,j)` for one earlier game `i`. Independence gives its
+probability as `chance * probability[i]`, whose sum is
+`chance * sum_previous`. Adding that preserves the answer invariant, and then
+adding `chance` preserves the probability-sum invariant. $\square$
+
+**Theorem.** The algorithm prints the expected number of unordered pairs of
+games that are both won.
+
+**Proof.** After all games, the lemma says `answer` sums the probability of
+every unordered winning-pair indicator exactly once. By linearity of
+expectation, that sum is the requested expectation. $\square$
+
+## Complexity
+
+Each modular inverse uses binary exponentiation.
+
+```text
+Time:   O(n log MOD)
+Memory: O(1) besides input/output buffering
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_simultaneous_wins/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_simultaneous_wins/solution.py >}}
+```
+
+## Implementation notes and tests
+
+- Use `long long` for modular products in C++; use `pow(q, MOD-2, MOD)` in
+  Python.
+- Do not add `chance * chance`: pairs require two distinct games.
+- Test one game, probability zero, all certain wins, and mixed fractions.
+
+## Stress testing
+
+For at most ten games, enumerate every win/loss outcome with exact rational
+`Fraction` arithmetic, count its winning pairs, and weight it by its outcome
+probability. This does not reuse the running-sum formula. The scale case has
+`200000` games of probability `1/2`, whose expected answer is
+`C(200000,2) / 4` modulo `MOD`.
+
 # Local workflow
 
 Run:
@@ -227,32 +372,6 @@ For small verification, use exact rational arithmetic. Enumerate a few reward
 outcomes, solve the first-step equation symbolically, and compare coupon stage
 sums using Python Fraction before reducing numerator times inverse(denominator)
 modulo MOD.
-# Full reference implementations
-
-## A. Expected Prize: C++
-```cpp
-{{< include problems/a_expected_prize/solution.cpp >}}
-```
-## A. Expected Prize: Python
-```python
-{{< include problems/a_expected_prize/solution.py >}}
-```
-## B. First Success: C++
-```cpp
-{{< include problems/b_first_success/solution.cpp >}}
-```
-## B. First Success: Python
-```python
-{{< include problems/b_first_success/solution.py >}}
-```
-## C. Coupon Collector: C++
-```cpp
-{{< include problems/c_coupon_collector/solution.cpp >}}
-```
-## C. Coupon Collector: Python
-```python
-{{< include problems/c_coupon_collector/solution.py >}}
-```
 
 # What to carry forward
 

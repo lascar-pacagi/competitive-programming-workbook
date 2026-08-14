@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Sort by score descending, penalty ascending, name ascending.
+    // TODO: solve the problem.
     return 0;
 }
-

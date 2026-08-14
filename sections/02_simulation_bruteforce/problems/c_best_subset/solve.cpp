@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Enumerate all subsets and keep the largest sum not exceeding s.
+    // TODO: solve the problem.
     return 0;
 }
-

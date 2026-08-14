@@ -30,6 +30,7 @@ execute:
 | A. Range Minimum Updates | See full algorithm and code below. |
 | B. Maximum Subarray Updates | See full algorithm and code below. |
 | C. Lazy Range Add Sum | See full algorithm and code below. |
+| D. First Available | Store interval maxima, then descend to the leftmost feasible leaf. |
 # A. Range Minimum Updates
 
 ## Restatement
@@ -57,7 +58,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -184,7 +185,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -319,7 +320,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -471,12 +472,113 @@ if __name__ == "__main__":
     main()
 ```
 
+# D. First Available
+
+## Restatement and constraint implications
+
+There are `n` desks, each with a non-negative capacity. A type `1 i x`
+operation replaces desk `i`'s capacity by `x`. A type `2 x` operation must
+print the *smallest* desk index whose current capacity is at least `x`, or `0`
+if no such desk exists. There are up to `200,000` desks and operations, and
+capacities can be as large as `10^9`.
+
+A direct scan from the first desk is easy to describe, but one query can then
+cost `O(n)`. In a sequence dominated by type-2 requests this becomes
+quadratic. We need a summary that can discard an entire interval as soon as it
+cannot contain a feasible desk.
+
+## Node invariant and trace
+
+Store the **maximum capacity** in every tree node's interval. The invariant is
+simple: `tree[v]` equals the maximum of all current capacities represented by
+node `v`. A node whose maximum is smaller than `x` contains no valid answer;
+a node whose maximum is at least `x` contains at least one valid answer.
+
+For capacities `[3, 0, 4, 2, 1]`, a request for `x=3` starts at a root with
+maximum 4. Its left child covers `[1,4]` and has maximum 4, so the answer is
+in the left child. The next left child covers `[1,2]` and has maximum 3, so
+continue left. At the final split, position 1 has capacity 3, so it is the
+answer. A request for `x=4` first rejects `[1,2]` because its maximum is 3,
+then reaches position 3.
+
+The important ordering rule is: inspect the left child first. Going right
+merely because both children are feasible would return some valid desk, but
+not necessarily the smallest one.
+
+## Algorithm
+
+Build a power-of-two iterative segment tree using maximum as the merge. Pad
+leaves beyond `n` with `-1`; all real capacities are non-negative and every
+request has `x>=1`, so padding cannot be selected.
+
+```text
+assign(i, x):
+    replace leaf i by x
+    recompute maxima on the path to the root
+
+first_at_least(x):
+    if root maximum < x:
+        return 0
+    v = root
+    while v is not a leaf:
+        if maximum(left child of v) >= x:
+            v = left child
+        else:
+            v = right child
+    return index represented by v
+```
+
+## Correctness proof
+
+We first prove the node invariant. It is true for a leaf because its stored
+value is exactly that desk capacity. Every internal node is recomputed as the
+maximum of its two children, so if both child invariants are true, it equals
+the maximum capacity in their combined interval. Building bottom-up and
+recomputing every ancestor after an assignment therefore preserve the
+invariant.
+
+For a request `x`, if the root maximum is below `x`, the invariant says every
+desk is below `x`, so returning zero is correct. Otherwise, at every internal
+node reached by the descent, its interval contains a qualifying desk. If the
+left child maximum is at least `x`, its interval contains one and every index
+there is smaller than every index in the right child, so descending left keeps
+the smallest possible answer. If it is below `x`, the left interval has no
+qualifying desk and the right interval must contain one, so descending right
+also keeps the smallest possible answer. At a leaf, that leaf is exactly the
+leftmost qualifying desk. Thus every printed answer is correct. QED.
+
+## Complexity, implementation notes, and tests
+
+Building takes `O(n)`. Both an assignment and a search visit one root-to-leaf
+path, so they take `O(log n)` time. The tree uses `O(n)` memory. Use `long
+long` in C++ for capacities even though the stated bound fits in an `int`;
+this makes the maximum state robust if the statement is later extended.
+
+Test all capacities below a request, multiple equal feasible capacities,
+assignments that create a new earlier answer, and `n=1`. Do not use zero as
+padding: a request for zero would then select a fake leaf. The local contract
+uses requests at least one, but `-1` padding makes the intent unambiguous.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_first_available/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_first_available/solution.py >}}
+```
+
 # Testing discussion
 
-The fixed samples cover visible behavior. The random tests generate
-many small operation sequences and compute expected outputs from the
-reference Python implementation, then the same expected files are
-used against both the C++ and Python submissions.
+The fixed samples cover visible behavior. The original random tests exercise
+many short operation sequences. D additionally keeps a literal-array oracle:
+it scans from the first desk on tiny cases instead of invoking either reference
+implementation, then adds a 200,000-operation scale case with a directly known
+answer. The resulting expected files are used against both the C++ and Python
+submissions.
 
 # Problem-specific upsolve notes
 
@@ -535,6 +637,24 @@ The invariant proves a fully covered node answers immediately, while pushing
 makes partial descendants correct. Build `O(n)`; update/query `O(log n)`;
 memory `O(n)`. Test a full update followed by partial query, overlapping
 updates, negative deltas, and an update ending at `n`.
+
+## D. First Available
+
+**Invariant.** A node stores the maximum capacity in its interval. A request
+for `x` can discard any node whose maximum is below `x`; if the root survives,
+always inspect the left child before the right child. For `[3,0,4,2,1]`, a
+request for 4 rejects the `[1,2]` interval and reaches index 3. This left-first
+descent is what turns an ordinary maximum tree into a leftmost-answer search.
+
+```text
+if tree[1] < x: answer = 0
+otherwise descend left when left.max >= x, else descend right
+```
+
+The maximum invariant proves rejection is safe and the left-first choice
+proves the leaf is the smallest feasible index. Both operations are `O(log
+n)`. Test no feasible desk, ties, a new earlier capacity after an assignment,
+and the one-desk case. A literal array scan is an effective small random oracle.
 
 # Stress-testing workflow
 

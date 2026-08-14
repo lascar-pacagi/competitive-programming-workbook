@@ -175,9 +175,9 @@ WA, reproduce the smallest failing class before editing. In the postmortem,
 label each miss as recognition, proof, implementation, or time management and
 schedule one targeted reattempt. Run the local drills with `CP_TARGET=solution python3 sections/58_full_virtual_contest_workflow/check.py`.
 
-- A. Scoreboard Rank: Sort teams by more solved, then lower penalty, then name.
-- B. Split Workload: Split problem times between two solvers minimizing the maximum load.
-- C. Quick MST Decision: Use MST savings as a contest modeling drill.
+- A, B, and C: write a one-line model and a candidate invariant before looking
+  at any prior section or editorial. Keep the postmortem focused on why the
+  model was accepted or rejected.
 # Contest checklist
 
 State the invariant, choose the model, prove the operation, then code the smallest reliable version.

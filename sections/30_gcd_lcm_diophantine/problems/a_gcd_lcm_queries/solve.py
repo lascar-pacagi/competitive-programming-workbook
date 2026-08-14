@@ -2,11 +2,8 @@ import sys
 
 
 def main() -> None:
-    # TODO: use Euclid's algorithm for gcd and a/g*b for lcm.
-    data = sys.stdin.buffer.read().split()
-    if not data:
-        return
-    raise NotImplementedError("solve.py is for your solution")
+    # TODO: solve the problem.
+    pass
 
 
 if __name__ == "__main__":

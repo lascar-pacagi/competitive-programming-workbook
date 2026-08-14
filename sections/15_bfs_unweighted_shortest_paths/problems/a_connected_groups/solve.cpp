@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: implement the BFS connected-component traversal.
+    // TODO: solve the problem.
     return 0;
 }
-

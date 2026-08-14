@@ -232,7 +232,41 @@ All counts tie, so the answer is `-3 2`.
 Python dictionaries preserve insertion order, and C++ `unordered_map` has an
 implementation-dependent order. Neither is the tie rule.
 
-The only safe method is to write the comparison explicitly.
+For the earlier array, the keys are first encountered in this order:
+
+```text
+-1, -2, -3
+```
+
+If you simply keep the first key whose count is maximal, you print `-1`.
+That is wrong: the statement asks for the **smallest** tied value, `-3`.
+Iteration order describes how a container happens to visit keys; it does not
+describe which key the problem wants.
+
+The safe method is to compare both parts of the answer explicitly:
+
+```python
+best_value = None
+best_count = -1
+
+for value, count in freq.items():
+    if count > best_count or (count == best_count and value < best_value):
+        best_value = value
+        best_count = count
+```
+
+The same rule in C++ is:
+
+```cpp
+if (count > best_count || (count == best_count && value < best_value)) {
+    best_value = value;
+    best_count = count;
+}
+```
+
+Read the comparison as a sentence: choose a larger count; if counts tie,
+choose the smaller value. If a problem instead asks for the largest tied value,
+change only the second comparison to `value > best_value`.
 
 # Pair counting
 
@@ -414,4 +448,3 @@ Run:
 ```bash
 python3 sections/03_counting_frequencies/check.py
 ```
-

@@ -1,0 +1,25 @@
+name: Unclear problem statement
+description: Report an ambiguity, missing constraint, or confusing sample.
+title: "[Statement] "
+labels: [statement]
+body:
+  - type: input
+    id: problem
+    attributes:
+      label: Problem
+      description: Give the section number and problem directory.
+      placeholder: sections/35_math_mixed_contest/problems/h_gcd_one_subsets
+    validations:
+      required: true
+  - type: textarea
+    id: confusing
+    attributes:
+      label: What is unclear?
+      description: Quote the smallest relevant fragment and explain your interpretation.
+    validations:
+      required: true
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Suggested clarification
+      description: Optional wording or example that would have helped.

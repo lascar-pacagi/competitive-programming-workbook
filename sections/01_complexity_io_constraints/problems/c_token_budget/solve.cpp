@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Print the slowest complexity class that fits each budget.
+    // TODO: solve the problem.
     return 0;
 }
-

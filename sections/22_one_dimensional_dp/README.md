@@ -10,6 +10,7 @@ sequence into states, transitions, base cases, and a safe computation order.
    - `a_broken_stairs`
    - `b_training_score`
    - `c_energy_route`
+   - `d_exact_change` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -24,4 +25,3 @@ CP_TARGET=solution python3 sections/22_one_dimensional_dp/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

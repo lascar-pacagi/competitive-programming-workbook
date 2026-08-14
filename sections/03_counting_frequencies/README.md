@@ -17,6 +17,7 @@ After this section, you should be able to:
    - `a_value_counts`
    - `b_frequency_winner`
    - `c_pair_sum_count`
+   - `d_equal_index_pairs` (blind practice: attempt before opening the editorial)
 3. Run this section's checker after each problem.
 4. Read `editorial.pdf` only after a serious attempt.
 
@@ -45,4 +46,3 @@ CP_TARGET=solution python3 sections/03_counting_frequencies/check.py
 
 See [`PRACTICE.md`](PRACTICE.md). Their statements are external; this
 repository does not copy them.
-

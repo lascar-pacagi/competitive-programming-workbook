@@ -23,6 +23,21 @@ execute:
   enabled: false
 ---
 
+# Category coverage
+
+| Category | Coverage problem |
+|---|---|
+| binary search on the answer | B. Minimum Split Limit |
+| greedy exchange | D. First Free Slot |
+| constructive greedy and invariants | E. Smallest Distinct Subsequence |
+| intervals and sweep line | C. Active Colors; D. First Free Slot |
+| stacks, queues, and deques | E. Smallest Distinct Subsequence |
+| offline processing | C. Active Colors |
+
+Problems F--Z form four additional stack/greedy training ladders. They include
+statements, stubs, reference solutions, fixed tests, and randomized tests, and
+this section's checker includes them.
+
 # Editorial overview
 
 This mixed contest is about choosing tools.
@@ -34,6 +49,29 @@ The intended pattern decisions are:
 | A. Complete Window | sliding window with frequencies |
 | B. Minimum Split Limit | binary search on answer |
 | C. Active Colors | sweep line with answer restoration |
+| D. First Free Slot | sorted greedy interval placement |
+| E. Smallest Distinct Subsequence | greedy monotonic stack with suffix feasibility |
+| F. Adjacent Cancellation | stack reduction |
+| G. Next Smaller Distance | monotonic stack |
+| H. Smallest Fixed-Length Subsequence | lexicographic monotonic stack |
+| I. Wildcard Parentheses | greedy feasible-balance interval |
+| J. Interval Point Cover | earliest-finish exchange greedy |
+| K. Deadline Selection | deadline order plus maximum heap |
+| L. Smallest After Deletions | deletion-budget monotonic stack |
+| M. Required Letter Subsequence | monotonic stack with dual feasibility |
+| N. Wildcard Choice Map | prefix/suffix balance-interval intersection |
+| O. Minimum Parenthesis Depth | balance interval plus binary search |
+| P. Common Deadline | shortest-duration exchange greedy |
+| Q. Event Attendance | day sweep plus minimum heap |
+| R. Coverage Patches | representable-prefix invariant |
+| S. Advantage Assignment | sorted matching exchange |
+| T. Minimum Refueling | retroactive maximum-heap greedy |
+| U. Circular Fuel Start | failed-prefix candidate elimination |
+| V. Smallest Separated Rearrangement | lexicographic feasibility greedy |
+| W. Consecutive Grouping | extend-before-start obligation greedy |
+| X. Subarray Minimum Total | monotonic stack of suffix-minimum contributions |
+| Y. Maximum Width Ramp | decreasing candidate stack plus reverse scan |
+| Z. Smallest Alternating Partition | forced reuse plus minimum group id |
 
 The editorial explains both the algorithm and the recognition step.
 
@@ -109,7 +147,7 @@ window `[left,right]`.
 **Proof.** The algorithm increments a required label's count when the right
 endpoint enters the window and decrements it when the left endpoint leaves.
 `have` changes exactly when a required label's count moves between zero and
-one. `\square`
+one. $\square$
 
 **Lemma 2.** For each fixed `right`, the algorithm checks every minimal valid
 window ending at `right`.
@@ -118,14 +156,14 @@ window ending at `right`.
 endpoint and records the length before each removal. It stops exactly when the
 window becomes invalid. Therefore the last valid window before stopping is the
 shortest valid window ending at `right`, and all longer valid windows during
-that shrinking process were also considered. `\square`
+that shrinking process were also considered. $\square$
 
 **Theorem.** The algorithm returns the length of the shortest valid subarray.
 
 **Proof.** Every valid subarray has some right endpoint. By Lemma 2, when that
 right endpoint is processed, the algorithm considers the shortest valid window
 ending there, whose length is no greater than the chosen subarray. Taking the
-minimum over all right endpoints gives the global optimum. `\square`
+minimum over all right endpoints gives the global optimum. $\square$
 
 ## Complexity
 
@@ -250,6 +288,11 @@ Minimize the largest group sum.
 
 ## Constraints and traps
 
+The input satisfies `1 <= d <= n`, `1 <= a_i <= 10^9`, and the sum of `n` over
+all test cases is at most `200000`. Individual elements fit in 32 bits, but
+`sum(a)` and the answer may reach `2 * 10^14`, so C++ must use `long long` for
+group sums and binary-search bounds.
+
 The array order cannot change. Sorting the values is invalid.
 
 Common traps:
@@ -327,12 +370,12 @@ number of groups.
 including that next element would also exceed `C`. Therefore the greedy first
 group is at least as long as the first group of some optimal split. Repeating
 the argument on the remaining suffix proves the greedy scan uses no more groups
-than any other valid split. `\square`
+than any other valid split. $\square$
 
 **Lemma 2.** The feasibility predicate is monotone.
 
 **Proof.** If capacity `C` allows a valid split, then any capacity `C' >= C`
-allows the same split. `\square`
+allows the same split. $\square$
 
 **Theorem.** The binary search returns the minimum possible maximum group sum.
 
@@ -340,7 +383,7 @@ allows the same split. `\square`
 in some group. The upper bound `sum(a)` is feasible by taking one group. By
 Lemma 2, feasible capacities form a suffix of the search range. The binary
 search maintains the minimum feasible capacity inside `[lo,hi]` and terminates
-when `lo == hi`, which is that minimum. `\square`
+when `lo == hi`, which is that minimum. $\square$
 
 ## Complexity
 
@@ -561,7 +604,7 @@ the number of active intervals of that color at `x`.
 before the query. This matches `[l,r)`, which excludes `r`. Any interval
 starting at `x` has event kind `1`, so it is added before the query. This
 matches `[l,r)`, which includes `l`. Intervals with smaller endpoints have
-already been processed, and intervals with larger endpoints have not. `\square`
+already been processed, and intervals with larger endpoints have not. $\square$
 
 **Lemma 2.** At every point in the sweep, `distinct` equals the number of colors
 with positive active frequency.
@@ -569,14 +612,14 @@ with positive active frequency.
 **Proof.** On a start event, `distinct` increases exactly when the previous
 frequency was zero. On an end event, it decreases exactly when the frequency
 becomes zero. Other changes do not affect whether the color is present.
-`\square`
+$\square$
 
 **Theorem.** The algorithm returns the correct answer for every query in
 original order.
 
 **Proof.** By Lemma 1, the frequency map is correct at each query coordinate.
 By Lemma 2, `distinct` is exactly the number of active colors. The query's
-original id stores the answer in the correct output slot. `\square`
+original id stores the answer in the correct output slot. $\square$
 
 ## Complexity
 
@@ -600,7 +643,10 @@ struct Event {
     int idx;
 };
 
-vector<int> solve_case(const vector<tuple<long long, long long, long long>> &intervals, const vector<long long> &queries) {
+vector<int> solve_case(
+    const vector<tuple<long long, long long, long long>> &intervals,
+    const vector<long long> &queries
+) {
     vector<Event> events;
     events.reserve(intervals.size() * 2 + queries.size());
     for (auto [l, r, color] : intervals) {
@@ -765,3 +811,1923 @@ Core-pattern contests are won by disciplined recognition:
 The next phase starts graphs. The same habit remains: read constraints, model
 the state, choose the tool, then prove the invariant.
 
+# Problem D: First Free Slot
+
+## Restatement
+
+Given closed busy intervals within `0..limit` and a required integer duration
+`d`, find the smallest start `s >= 0` whose entire interval
+`[s, s+d-1]` is not busy. Return `-1` if no such start exists.
+
+## Constraints and traps
+
+The total number of intervals is at most `200000`, so testing every possible
+start is impossible. Intervals are closed: if one ends at `r`, the earliest
+time after it is `r+1`, not `r`. Input intervals may overlap, nest, or touch,
+and `l <= r` is guaranteed. Use `long long` for `s+d-1`.
+
+## Observation and walk-through
+
+Sort closed busy intervals and maintain `cur`, the earliest time not already
+blocked by processed intervals. If `cur+d-1 < l`, the gap before the next
+interval fits and `cur` is the answer. Otherwise merge the obstacle by setting
+`cur=max(cur,r+1)`. After all intervals, accept only when `cur+d-1<=limit`.
+
+For busy intervals `[1,2],[5,7],[7,9]`, duration three, and limit twelve,
+start `cur=0`. The initial candidate `[0,2]` overlaps `[1,2]`, so move to 3.
+`[3,5]` overlaps `[5,7]`, so move to 8; `[8,10]` overlaps `[7,9]`, so move to
+10. Finally `[10,12]` is free, so the answer is 10.
+
+## Algorithm
+
+```text
+sort intervals by left endpoint
+cur = 0
+for [l, r] in sorted intervals:
+    if cur + d - 1 < l: return cur
+    cur = max(cur, r + 1)
+return cur if cur + d - 1 <= limit else -1
+```
+
+## Correctness proof
+
+The invariant is that no start below cur can still begin a legal slot after
+the processed intervals. Sorting makes every future interval start no earlier
+than the current one, so a fitting gap can be returned immediately. Each
+interval either blocks the current candidate and advances `cur` past its right
+endpoint, or leaves a gap large enough to return the smallest possible start.
+After all intervals, the final limit test accepts exactly the remaining legal
+candidate. Thus the algorithm returns the earliest valid start or `-1`.
+
+## Complexity
+
+Sorting costs `O(n log n)`, the scan is linear, and memory is `O(n)`.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int tests; cin >> tests;
+    while (tests--) {
+        int n; long long duration, limit;
+        cin >> n >> duration >> limit;
+        vector<pair<long long, long long>> busy(n);
+        for (auto &interval : busy) cin >> interval.first >> interval.second;
+        sort(busy.begin(), busy.end());
+        long long cur = 0;
+        for (auto [left, right] : busy) {
+            if (cur + duration - 1 < left) break;
+            cur = max(cur, right + 1);
+        }
+        cout << (cur + duration - 1 <= limit ? cur : -1) << '\n';
+    }
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+index = 1
+out = []
+for _ in range(data[0]):
+    n, duration, limit = data[index:index + 3]
+    index += 3
+    busy = sorted((data[i], data[i + 1]) for i in range(index, index + 2 * n, 2))
+    index += 2 * n
+    cur = 0
+    for left, right in busy:
+        if cur + duration - 1 < left:
+            break
+        cur = max(cur, right + 1)
+    out.append(str(cur if cur + duration - 1 <= limit else -1))
+print("\n".join(out))
+```
+
+## Tests that matter
+
+Test no intervals, touching intervals such as `[2,2]` and `[3,3]`, nested
+intervals, and a valid slot ending exactly at `limit`. The small oracle scans
+integer starts; the scale case checks the sorted scan is necessary.
+
+# E. Smallest Distinct Subsequence
+
+## Restatement and recognition
+
+We must keep exactly one copy of every distinct character, preserve subsequence
+order, and make the resulting string lexicographically smallest. Choosing the
+first occurrence of every character is not sufficient: in `bcabc`, choosing
+the first `b` would force the answer to begin with `b`, although `abc` is
+possible.
+
+The lexicographic objective suggests committing to the smallest safe next
+character. A monotonic stack implements that decision while allowing an
+earlier choice to be withdrawn only when another copy remains later.
+
+## Maintained information
+
+While scanning left to right, maintain:
+
+```text
+remaining[c] = occurrences of c not processed yet
+used[c]      = whether c is currently in the answer stack
+answer       = the chosen stack of distinct characters
+```
+
+After reading a character `c`, decrement `remaining[c]` first. If `c` is
+already used, skip it: adding it would violate the exactly-once condition.
+Otherwise, while the stack top is larger than `c` and occurs again later, pop
+it. The pop makes the answer lexicographically smaller and is safe precisely
+because `remaining[top] > 0`.
+
+## Algorithm
+
+1. Count every character's occurrences.
+2. Scan the string from left to right.
+3. Decrease the current character's remaining count.
+4. If it is already present in the stack, continue.
+5. Pop while:
+   - the top is lexicographically larger than the current character; and
+   - another occurrence of the top remains.
+6. Push the current character and mark it used.
+7. Print the stack.
+
+## Correctness proof
+
+First, every character in the stack is distinct because a used character is
+never pushed again. Every distinct input character is also present at the end:
+when its last occurrence is processed, it either is already used or is pushed;
+once no occurrence remains, the pop condition can never remove it.
+
+It remains to prove lexicographic minimality. Consider processing a new
+character `c`. If a larger stack top `x` occurs later, replacing this occurrence
+of `x` by `c` now and taking `x` later preserves feasibility and makes the
+first changed answer position smaller. Therefore every performed pop is safe
+and necessary for a lexicographically minimal result. If popping stops, then
+the top is no larger than `c`, so moving `c` earlier would not improve the
+answer, or the top has no later occurrence, so removing it would make a valid
+answer impossible. Thus the algorithm makes the smallest feasible choice at
+every answer position, and the final subsequence is lexicographically smallest.
+
+## Complexity
+
+Each input character is pushed at most once and popped at most once. The total
+time is `O(n)`. The stack uses `O(k)` memory for `k <= 26` distinct lowercase
+characters; the two count arrays use `O(26)`.
+
+## Common wrong answers
+
+- Popping a larger character without checking that it occurs later can lose a
+  required distinct character.
+- Forgetting `used` can produce duplicate characters.
+- Decrementing `remaining[c]` after the pop loop incorrectly treats the current
+  occurrence as still available in the future.
+- A sorted set of distinct characters is not necessarily a subsequence.
+
+## Tests that matter
+
+```text
+aaaa       -> a       (one distinct character)
+bcabc      -> abc     (an early choice must be postponed)
+cbacdcbc   -> acdb    (not all larger characters can be popped)
+bbcaac     -> bac     (last-occurrence condition matters)
+zyx        -> zyx     (no character can be postponed)
+```
+
+The small randomized oracle can enumerate all subsequences, retain those with
+exactly the required character set, and choose the lexicographically smallest.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_smallest_distinct_subsequence/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_smallest_distinct_subsequence/solution.py >}}
+```
+
+# F. Adjacent Cancellation
+
+## Recognition and stack state
+
+Deleting a pair can create a new equal pair across the deletion boundary. A
+single left-to-right pass still works if the processed prefix is stored in its
+fully reduced form. Only its last surviving character can interact with the
+next input character, which is exactly a stack interface.
+
+For each character `c`:
+
+- if the stack top is `c`, pop it because the two adjacent copies cancel;
+- otherwise push `c`.
+
+The stack itself is the reduced prefix, so no second reduction pass is needed.
+
+## Correctness proof
+
+We prove by induction that after processing any prefix, the stack equals that
+prefix after all possible cancellations. It is true for the empty prefix.
+When the next character `c` arrives, the old reduced prefix has no equal
+adjacent pair internally. The only possible new pair is between its last
+character and `c`. If they are equal, popping performs exactly that
+cancellation; otherwise appending `c` leaves the result reduced. Thus the
+invariant is preserved, and after the full string the stack is the requested
+final string.
+
+Overlapping choices do not create ambiguity: the only overlap is three equal
+characters, and deleting either adjacent pair leaves the same one character;
+disjoint deletions commute.
+
+## Complexity, mistakes, and tests
+
+Every character is pushed once and popped at most once, giving `O(n)` time and
+`O(n)` memory.
+
+Do not repeatedly erase from the middle of a string: each erase may shift
+`O(n)` characters. Remember to print `EMPTY` for an empty stack.
+
+```text
+a       -> a
+aa      -> EMPTY
+aaa     -> a
+abba    -> EMPTY       (a new pair appears after a deletion)
+abab    -> abab
+azxxzy  -> ay
+```
+
+For random short strings, repeatedly scan for any equal adjacent pair until
+none remains and compare with the stack.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_adjacent_cancellation/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_adjacent_cancellation/solution.py >}}
+```
+
+# G. Next Smaller Distance
+
+## From unresolved queries to a monotonic stack
+
+At index `i`, we cannot answer until the first later value strictly below
+`a[i]` appears. Keep indices whose answer is still unknown. When value `a[j]`
+arrives, it resolves every suffix index with a larger value.
+
+The unresolved stack has nondecreasing values from bottom to top. While
+`a[j] < a[stack.top()]`, pop index `i` and set its distance to `j-i`. Equal
+values stay: the problem asks for strictly smaller.
+
+## Correctness proof
+
+When `i` is popped by `j`, `a[j] < a[i]`. No earlier position between them was
+smaller than `a[i]`; such a position would have popped `i` when it was
+processed. Therefore `j` is exactly the first smaller position for `i`.
+
+If an index remains after the scan, no later processed value was smaller, so
+its correct output is zero. Each assigned and unassigned answer is therefore
+correct.
+
+## Complexity and common mistakes
+
+Every index is pushed once and popped at most once: `O(n)` time and `O(n)`
+memory. The apparent nested `while` loop is linear in total, not quadratic.
+
+- Pop on `<`, not `<=`.
+- Store indices, because the output is a distance.
+- Initialize unanswered positions to zero.
+- A decreasing array is not quadratic: every new value performs one pop.
+
+```text
+Increasing values -> all zero.
+Decreasing values -> 1 for every position except the last.
+All equal -> all zero.
+5 2 2 6 1 4 -> duplicates and several pops at one index.
+```
+
+The oracle scans rightward independently from every position for small arrays.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/g_next_smaller_distance/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/g_next_smaller_distance/solution.py >}}
+```
+
+# H. Smallest Fixed-Length Subsequence
+
+## Greedy interpretation
+
+Choosing `k` characters is equivalent to deleting exactly `n-k`. While
+scanning, if the tentative answer ends with a character larger than the new
+character, deleting that larger character improves the first position where
+the answers differ. It is safe only while deletion capacity remains.
+
+Maintain a stack and `removals = n-k`. Pop while:
+
+```text
+removals > 0 and stack.top > current
+```
+
+Then push the current character. If removals remain after the scan, the stack
+is nondecreasing at every removable boundary, so delete the remaining suffix;
+equivalently print the first `k` stack characters.
+
+## Correctness proof
+
+Whenever the algorithm pops `x > c`, replacing `x` by the later `c` uses one
+allowed deletion and produces a lexicographically smaller prefix, so no
+optimal answer that keeps `x` there is better. When the pop loop stops, either
+there is no deletion capacity or the previous character is at most `c`;
+moving `c` earlier is then impossible or cannot improve the prefix.
+
+Thus every deletion made during the scan is a safe earliest lexicographic
+improvement. If deletions remain, no inversion that can be improved remains,
+and deleting the latest characters preserves the smallest possible prefix.
+Exactly `n-k` characters are removed, so the result has length `k` and is
+lexicographically minimal.
+
+## Complexity, pitfalls, and tests
+
+Each character is pushed once and popped once at most: `O(n)` time and `O(n)`
+memory.
+
+Unlike Problem E, duplicates are allowed and the target is a fixed length;
+there is no `used` set or remaining-occurrence condition. Do not forget the
+final suffix truncation when the input is already nondecreasing.
+
+```text
+k = n          -> original string.
+k = 1          -> smallest character.
+Increasing s   -> take its prefix.
+Decreasing s   -> repeated pops.
+Repeated chars -> strict comparison preserves equal choices.
+```
+
+For `n <= 14`, enumerate every combination of `k` indices and take the minimum.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/h_smallest_fixed_subsequence/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/h_smallest_fixed_subsequence/solution.py >}}
+```
+
+# I. Wildcard Parentheses
+
+## How to discover the compression
+
+It is not natural to guess `low` and `high` immediately. Begin with the
+straightforward balance DP. After each prefix, store every balance reachable
+without having used a negative prefix:
+
+```text
+possible = {0}
+
+for each character:
+    create next_possible
+    for every balance in possible:
+        '(' adds balance + 1
+        ')' adds balance - 1 when it is nonnegative
+        '?' tries both choices
+    possible = next_possible
+```
+
+This model is correct, but there can be `O(n)` balances after each of `n`
+characters, so an explicit implementation may take `O(n^2)`.
+
+Before optimizing, write several DP rows:
+
+```text
+prefix    possible balances
+
+empty     {0}
+?         {1}
+??        {0, 2}
+???       {1, 3}
+????      {0, 2, 4}
+```
+
+Fixed characters merely shift a complete row:
+
+```text
+before '(' : {0, 2, 4}
+after  '(' : {1, 3, 5}
+
+before ')' : {1, 3, 5}
+after  ')' : {0, 2, 4}
+```
+
+The rows do not appear to be arbitrary sets such as `{0, 2, 8}`. They contain
+every balance of the correct parity between their smallest and largest values.
+This observation suggests compressing one whole DP row to its two endpoints:
+
+```text
+low  = smallest reachable balance
+high = largest reachable balance
+```
+
+The natural development is therefore:
+
+```text
+complete O(n^2) balance DP
+        -> inspect several rows
+        -> conjecture a step-two interval
+        -> store only its endpoints
+        -> prove that every transition preserves the shape
+```
+
+The induction below is the verification of that observed structure, not
+something that must be guessed before constructing the slow DP.
+
+## Feasible-balance interval
+
+For a prefix, let balance be opens minus closes. Validity requires every prefix
+balance to be nonnegative and the final balance to be zero. A wildcard changes
+the balance by either `-1` or `+1`.
+
+Track the smallest and largest reachable nonnegative balances, `low` and
+`high`. All reachable balances have the parity of the prefix length:
+
+```text
+'(' : low++, high++
+')' : low--, high--
+'?' : low--, high++
+```
+
+If `high < 0`, even the most opening-heavy assignment fails. If `low < 0`,
+replace it by the smallest nonnegative balance of the current prefix parity:
+zero for an even prefix, one for an odd prefix. The full length must be even,
+and the answer is possible exactly when final `low == 0`.
+
+## Correctness proof
+
+Let `R[i]` be the balances reachable after the first `i` characters using only
+replacements whose prefixes have never had negative balance. We prove by
+induction that `R[i]` is empty or has the form:
+
+```text
+{low, low + 2, low + 4, ..., high}
+```
+
+Before reading anything, `R[0] = {0}`, so the property holds.
+
+Assume it holds before the next character. A fixed `(` adds one to every
+balance, preserving a step-two sequence. A fixed `)` subtracts one. If this
+creates `-1`, removing that first invalid value still leaves a step-two
+sequence.
+
+For a wildcard, write the old set as:
+
+```text
+{low, low + 2, ..., low + 2*t}
+```
+
+Choosing `)` produces:
+
+```text
+down = {low - 1 + 2*r : r = 0, 1, ..., t}
+```
+
+Choosing `(` produces:
+
+```text
+up = {low - 1 + 2*r : r = 1, 2, ..., t + 1}
+```
+
+Thus `down` covers the index range `0..t`, while `up` covers `1..t+1`.
+Their union covers every index `0..t+1`, so it contains every step-two value
+from `low-1` through `low+2*t+1`.
+
+When `t >= 1`, the two shifted sets overlap on indices `1..t`. When `t = 0`,
+they do not overlap, but their only values are `low-1` and `low+1`, which
+differ by exactly two and are therefore consecutive values of the required
+parity. In neither case is there a gap.
+
+If `low = 0`, the first down-shifted value is `-1`. Discarding it merely
+removes the first element of the step-two sequence; it cannot create an
+internal gap. If even `high < 0`, no nonnegative balance is reachable.
+Therefore the induction property is preserved for every possible character.
+
+At the end, balance zero is reachable exactly when the length is even and the
+minimum reachable balance is zero. Such an assignment has no negative prefix
+by construction, so it is a valid parenthesis sequence.
+
+## Complexity, mistakes, and tests
+
+Time is `O(n)` and memory is `O(1)` per string.
+
+Checking only the final number of opens misses invalid prefixes. Treating `?`
+as if it may be empty solves a different problem; the even-length and parity
+conditions matter.
+
+```text
+Odd length -> always NO.
+??         -> YES.
+)( and ?)( -> invalid prefix.
+((??))     -> several reachable balances.
+All '?' with even and odd lengths.
+```
+
+The small oracle enumerates all `2^(number of ?)` replacements.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/i_wildcard_parentheses/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/i_wildcard_parentheses/solution.py >}}
+```
+
+# J. Interval Point Cover
+
+## Greedy choice
+
+Sort intervals by increasing right endpoint. For the first interval not
+covered by the most recently selected point, choose that interval's right
+endpoint. This point lies as far right as possible while still covering the
+urgent interval, maximizing its chance to cover later intervals.
+
+Only the last selected point is needed. If it is smaller than the next
+interval's left endpoint, that interval is uncovered and forces a new choice.
+
+## Exchange proof
+
+Consider the first interval `[l,r]` not already covered. Every valid solution
+must choose some point `p` inside it. Replace the first such point by `r`.
+Because intervals are processed by right endpoint, every remaining interval
+has right endpoint at least `r`. Any remaining interval that contained `p`
+and starts no later than `r` also contains `r`; intervals starting after `r`
+were not covered by `p` anyway. The replacement covers no fewer relevant
+intervals.
+
+Therefore an optimal solution exists containing the greedy point `r`. Remove
+all intervals it covers and repeat the same argument, proving the greedy count
+optimal.
+
+## Complexity and tests
+
+Sorting costs `O(n log n)`; the scan is `O(n)`, and memory is `O(n)`.
+
+Closed endpoints mean `last == left` is covered. Sorting by left endpoint or
+choosing the left endpoint does not support the exchange argument.
+
+```text
+One interval.
+All intervals share one endpoint -> 1.
+Pairwise disjoint intervals -> n.
+Nested intervals.
+Touching closed intervals.
+Negative coordinates and duplicate intervals.
+```
+
+For small coordinate ranges, enumerate subsets of candidate points and find
+the minimum hitting set.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/j_interval_point_cover/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/j_interval_point_cover/solution.py >}}
+```
+
+# K. Deadline Selection
+
+## Greedy subset maintenance
+
+Any chosen set can be scheduled in nondecreasing deadline order: swapping an
+inverted adjacent pair cannot make either completion deadline harder. Process
+jobs in that order.
+
+Tentatively select every job and maintain total duration in a maximum heap. If
+the current deadline is exceeded, remove the selected job with the largest
+duration. Removing one job suffices: before adding the new job, the selected
+set was feasible, and the removed maximum is at least as long as the new job.
+
+## Correctness proof
+
+After each processed deadline, maintain this invariant: the heap contains a
+maximum-cardinality feasible subset of processed jobs, and among such subsets
+its total duration is minimum.
+
+Adding a job increases the candidate cardinality by one. If it remains
+feasible, no processed subset can have larger cardinality. If it is infeasible,
+no subset containing all current selected jobs is feasible, so at most the
+previous cardinality can be retained. Removing the longest selected duration
+restores feasibility and gives the minimum possible total among subsets formed
+by deleting one job. This preserves both parts of the invariant. By induction,
+the final heap size is the maximum feasible job count.
+
+## Complexity, pitfalls, and tests
+
+Sorting and heap operations cost `O(n log n)` time; memory is `O(n)`. The total
+duration requires 64-bit storage.
+
+This objective maximizes the number of jobs, not profit or minimizes lateness.
+Removing the most recently added job is not always best; remove the longest
+selected duration.
+
+```text
+Every job feasible.
+No job feasible alone.
+One long early job replaced by several short jobs.
+Equal deadlines.
+Deadlines already unsorted in input.
+Large durations -> 64-bit total.
+```
+
+For small `n`, enumerate every subset and check it in deadline order.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/k_deadline_selection/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/k_deadline_selection/solution.py >}}
+```
+
+# L. Smallest After Deletions
+
+## From H to an explicit deletion budget
+
+H asks for a subsequence of length `k`. Here the statement instead says to
+delete `k` characters. These are the same structural choice: after the
+deletions, the answer has a fixed length.
+
+The useful question while scanning a new digit `c` is:
+
+```text
+If the last chosen digit is larger than c, can I spend one deletion
+to replace that larger digit by c?
+```
+
+If a deletion remains, the answer is yes. Removing the larger last digit makes
+the first changed position smaller, so every possible continuation becomes
+lexicographically better.
+
+Maintain the chosen prefix as a stack. While its last digit is larger than the
+current digit and deletions remain, pop. Then append the current digit.
+
+## Why unused deletions come from the end
+
+For `11234`, no later digit is smaller, so the popping rule spends nothing.
+We still must delete characters. Among two adjacent retained digits that stay
+in increasing order, deleting the later one preserves the earlier, more
+important prefix. Therefore all remaining deletions should remove a suffix of
+the stack.
+
+For example:
+
+```text
+s = 1432219, deletions = 3
+
+read 1: 1
+read 4: 14
+read 3: pop 4, then 13
+read 2: pop 3, then 12
+read 2: 122
+read 1: pop 2, then 121
+read 9: 1219
+```
+
+## Correctness proof
+
+Whenever the stack ends in `a` and the current digit is `b < a`, keeping `a`
+while deleting `b` is worse than deleting `a` and keeping `b`: the two results
+have the same prefix before that position, and the replacement has the smaller
+next digit. The pop is legal because it spends one available deletion.
+
+After no such inversion remains, the current digit cannot improve an earlier
+position, so appending it is safe. If deletions remain after the scan, the
+stack is nondecreasing wherever a deletion could still have helped. Deleting
+from its end leaves the longest possible prefix unchanged, and is therefore
+optimal. Thus the final string is the smallest obtainable one.
+
+## Complexity, pitfalls, and tests
+
+Every digit is pushed once and popped at most once: `O(n)` time and `O(n)`
+memory.
+
+Leading zeroes are part of the answer; do not convert the string to an integer.
+Equal digits should not trigger a pop. Remember the final suffix deletion.
+
+```text
+Already increasing.
+Strictly decreasing.
+All digits equal.
+A zero after a nonzero prefix.
+k = 0 and k = n - 1.
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/l_smallest_after_deletions/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/l_smallest_after_deletions/solution.py >}}
+```
+
+# M. Required Letter Subsequence
+
+## Why H's single feasibility check is no longer enough
+
+Without the letter requirement, a pop is allowed whenever the remaining input
+can still fill `k` positions. Now a choice can fail in two independent ways:
+
+```text
+not enough characters remain to reach length k;
+not enough required letters remain to reach r copies.
+```
+
+This is the intended extra difficulty. We retain the monotonic-stack idea, but
+every pop and every push must preserve both resources.
+
+Maintain:
+
+```text
+answer            chosen stack
+chosen_required    required letters currently in answer
+remaining_required required letters at the current position or later
+```
+
+At position `i`, popping the last character leaves `len(answer) - 1` chosen
+characters and `n - i` input characters still usable, including the current
+one. The pop can still reach length `k` exactly when their sum is at least
+`k`.
+
+If the popped character is required, also demand that the required copies
+already chosen after the pop plus all required copies still available is at
+least `r`.
+
+## Deciding whether to push
+
+If the current character is required and the answer is not full, keep it.
+Extra copies are harmless and might also be lexicographically small.
+
+For a non-required character, reserve enough empty positions for the missing
+required copies:
+
+```text
+positions left after this push >= r - chosen_required
+```
+
+This reservation is what prevents an attractive early letter from making the
+final constraint impossible.
+
+## Correctness proof
+
+Consider a pop performed before current character `c`. The popped character is
+larger than `c`, so replacing it makes the first differing answer position
+smaller. The length check guarantees the remaining input can fill all answer
+positions. The required-count check guarantees the remaining input can still
+supply enough required letters. Hence an optimal completion still exists
+after every pop.
+
+When a non-required character is skipped, accepting it would consume a slot
+needed for the still-missing required copies. No valid completion can use that
+character in that slot. When a character is accepted, all constraints remain
+feasible by the same reservation checks.
+
+Therefore the algorithm takes every safe lexicographic improvement and rejects
+only choices that cannot belong to a valid completion. The final length-`k`
+subsequence is valid and lexicographically smallest.
+
+## Complexity, pitfalls, and tests
+
+The scan is `O(n)` because each character is pushed and popped at most once.
+Memory is `O(k)`.
+
+`remaining_required` must still include the current character during the pop
+loop; decrement it only after processing that position. A pop of the required
+letter must update `chosen_required`. Test cases where all reserved slots are
+forced are especially important.
+
+```text
+r = k, so every chosen character is required.
+Exactly r required copies exist.
+The required letter is lexicographically large.
+Several required letters are popped and later replaced.
+k = n.
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/m_required_letter_subsequence/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/m_required_letter_subsequence/solution.py >}}
+```
+
+# N. Wildcard Choice Map
+
+## Ask about one position without fixing all the others
+
+I answers whether some valid completion exists. Here, for every question mark,
+we must answer two separate questions:
+
+```text
+Can this position be ( in some valid completion?
+Can this position be ) in some valid completion?
+```
+
+Constructing one completion cannot answer this: a position used as `(` in one
+solution might also be usable as `)` in another. Instead, compute feasibility
+information on both sides of every position.
+
+For every prefix ending before position `i`, store the smallest and largest
+nonnegative reachable balances:
+
+```text
+prefix_low[i], prefix_high[i]
+```
+
+As proved in I, all balances of the correct parity between these bounds are
+reachable. Compute these arrays with the same forward transitions and lower
+bound of zero.
+
+## Backward balances
+
+For every suffix starting at `i`, store the balances that may exist immediately
+before that suffix and can still finish at balance zero without ever becoming
+negative:
+
+```text
+suffix_low[i], suffix_high[i]
+```
+
+Start after the string with the singleton balance zero and reverse each
+transition:
+
+```text
+current ( : predecessor = next balance - 1, and it must be nonnegative
+current ) : predecessor = next balance + 1
+current ? : union of both possibilities
+```
+
+These predecessor sets are again step-two intervals. For `?`, consecutive
+next balances create overlapping predecessor pairs, exactly as in I's forward
+proof. An empty interval must stay empty; later characters cannot repair a
+prefix or suffix for which no balance exists.
+
+## Test each replacement by intersection
+
+Suppose position `i` is `?`.
+
+For an opening choice, every reachable balance before it increases by one.
+Intersect that shifted prefix interval with the suffix interval after `i`.
+The choice is possible exactly when the intersection is nonempty.
+
+For a closing choice, first discard prefix balance zero because closing there
+would go negative. Shift every remaining prefix balance down by one and
+perform the same intersection.
+
+All compared balances have the same forced parity, so ordinary interval
+intersection is sufficient:
+
+```text
+max(left endpoints) <= min(right endpoints)
+```
+
+If only one choice intersects, print that parenthesis. If both intersect,
+print `?`. If balance zero is not reachable after the full string, print
+`IMPOSSIBLE`.
+
+## Correctness proof
+
+The forward interval contains exactly the balances attainable by some valid
+replacement of the prefix. The backward interval contains exactly the
+balances from which some replacement of the suffix reaches zero without a
+negative balance. These claims follow by induction from the forward and
+reversed transitions, with the same overlap argument used in I.
+
+If the shifted prefix interval and suffix interval intersect at balance `b`,
+choose a prefix assignment reaching the corresponding balance before the
+tested character, make the tested replacement, then choose a suffix assignment
+that finishes from `b`. Their concatenation is a valid completion containing
+that choice.
+
+Conversely, any valid completion containing that choice reaches some balance
+`b` after it. That `b` must belong to both the shifted prefix set and the
+suffix set, so the intervals intersect. Thus the two tests classify every
+question mark exactly.
+
+## Complexity, pitfalls, and tests
+
+Both directional scans and all intersections take `O(n)` time. The four bound
+arrays use `O(n)` memory.
+
+Do not infer flexibility from one constructed completion. For a closing
+choice, exclude starting balance zero. Preserve empty intervals explicitly:
+using their numerical bounds in another transition can falsely make them
+nonempty.
+
+```text
+No valid completion.
+All question marks.
+A position forced open at the beginning.
+A position forced closed at the end.
+Both choices possible in the middle.
+No question marks.
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/n_wildcard_choice_map/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/n_wildcard_choice_map/solution.py >}}
+```
+
+# O. Minimum Parenthesis Depth
+
+## Turn optimization into a feasibility question
+
+For a proposed depth limit `D`, ask:
+
+```text
+Can every ? be replaced so that all prefix balances stay between 0 and D
+and the final balance is 0?
+```
+
+If limit `D` is feasible, every larger limit is also feasible. This monotonic
+property permits binary search for the smallest feasible limit.
+
+The feasibility check extends I's reachable-balance interval. After each
+character, reachable balances have one parity and no gaps when viewed in
+steps of two. Store their smallest and largest values as `low` and `high`.
+
+Transitions are:
+
+```text
+(  : low += 1, high += 1
+)  : low -= 1, high -= 1
+?  : low -= 1, high += 1
+```
+
+Then intersect the reachable set with balances from `0` through `D`. The
+balance after a prefix of length `i` must have the same odd/even parity as
+`i`, so round each boundary inward to that parity. If `low > high`, this
+limit is impossible.
+
+## Why the compressed interval remains exact
+
+Suppose the previous reachable balances are
+
+```text
+low, low + 2, ..., high.
+```
+
+For `(` or `)`, shifting every value by one clearly preserves this form. For
+`?`, each old balance `b` produces `b - 1` and `b + 1`. Consecutive old
+balances differ by two:
+
+```text
+from b:     b - 1, b + 1
+from b + 2: b + 1, b + 3
+```
+
+The two produced sets overlap at `b + 1`, so no gap appears. Intersecting with
+the lower and upper depth bounds only removes a prefix or suffix of this
+step-two list. Therefore `low` and `high`, together with the forced parity,
+describe all and only reachable balances.
+
+At the end, zero is reachable exactly when `low` is zero. Binary search then
+returns the smallest depth whose feasibility check succeeds.
+
+## Worked example
+
+For `s = ????` and depth limit `1`:
+
+```text
+prefix 1: reachable within limit = {1}
+prefix 2: reachable within limit = {0}
+prefix 3: reachable within limit = {1}
+prefix 4: reachable within limit = {0}
+```
+
+So depth one is feasible using `()()`. For `s = (())`, limit one fails after
+the second character, while limit two succeeds.
+
+## Complexity, pitfalls, and tests
+
+Each feasibility check is `O(n)`, and binary search performs `O(log n)`
+checks, for `O(n log n)` time and `O(1)` auxiliary memory.
+
+Clipping `high` to `D` without restoring the required parity can invent an
+unreachable balance. Odd-length strings are impossible. First verify that any
+completion exists using a generous limit before binary searching.
+
+```text
+All question marks.
+Forced deeply nested prefix.
+Impossible fixed prefix.
+Odd length.
+Minimum depth equal to 1 and equal to n / 2.
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/o_minimum_parenthesis_depth/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/o_minimum_parenthesis_depth/solution.py >}}
+```
+
+# P. Common Deadline
+
+## Isolate the exchange behind deadline selection
+
+Every chosen task has the same deadline, so only the sum of chosen durations
+matters. If we want to fit exactly `c` tasks, the smallest possible total
+duration is obtained by choosing the `c` shortest tasks.
+
+This suggests sorting all durations and taking the longest prefix whose sum
+does not exceed `T`.
+
+For:
+
+```text
+durations = 6, 2, 4, 3, 8
+T = 10
+sorted = 2, 3, 4, 6, 8
+```
+
+The first three total `9`; a fourth would total at least `15`. The answer is
+three.
+
+## Exchange proof
+
+Take any feasible set of `c` tasks. If it contains duration `a` while an
+unchosen shorter duration `b < a` exists, exchange `a` for `b`. The number of
+tasks stays `c` and total duration does not increase, so feasibility is
+preserved.
+
+Repeating this exchange transforms some feasible set of size `c` into the
+`c` globally shortest tasks. Therefore, if the sum of the `c` shortest tasks
+exceeds `T`, no set of `c` tasks can fit. Conversely, if that sum is at most
+`T`, those tasks themselves are a feasible set.
+
+The largest feasible sorted prefix is therefore exactly the optimum.
+
+## Connection to K
+
+P has one global capacity constraint. K reveals deadline constraints one by
+one. In P, sorting once tells us which durations to retain. In K, a maximum
+heap maintains that same “retain the shortest durations” choice dynamically
+inside each deadline prefix.
+
+## Complexity, pitfalls, and tests
+
+Sorting costs `O(n log n)` time and `O(n)` memory. The sum needs 64-bit storage
+because it can exceed 32-bit range.
+
+Do not sort by input order or greedily accept a long task before inspecting
+shorter ones. Because durations are positive and sorted, once the next task
+does not fit, no later task can fit either.
+
+```text
+No task fits.
+Every task fits.
+Many equal durations.
+One very long task appears first.
+T near 10^18.
+```
+
+## Full C++ solution
+
+```cpp
+{{< include problems/p_common_deadline/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/p_common_deadline/solution.py >}}
+```
+
+# Q. Event Attendance
+
+## Two orders matter
+
+An event cannot be considered before its start day, but among events currently
+available, the one with the earliest end day is most urgent. This produces two
+data structures:
+
+```text
+events sorted by start day;
+a minimum heap of end days for events that have started.
+```
+
+On each used day:
+
+1. Add every event whose start is at most today.
+2. Remove heap entries whose end is before today; they have expired.
+3. Attend the available event with the smallest end day.
+4. Advance to the next day.
+
+When the heap is empty, jumping directly to the next start day avoids scanning
+up to `10^9` empty days.
+
+## Exchange proof
+
+Suppose an optimal schedule attends event `A` today while another available
+event `B` ends no later than `A`. If `B` is never attended, replace `A` by `B`
+today; the number attended is unchanged.
+
+If `B` is attended on a later day, swap their attendance days. `B` can be
+attended today because it is already available. Event `A` can be attended on
+`B`'s old day: `A` had already started today, and its end is at least `B`'s
+end, which includes that later day. The swap preserves feasibility and the
+number of events.
+
+Thus some optimal schedule makes the greedy earliest-ending choice today.
+Applying the same argument after every chosen day proves the algorithm
+optimal.
+
+## Worked example
+
+```text
+events: [1,3], [1,1], [2,2], [10,10]
+
+day 1: [1,1] is most urgent
+day 2: add [2,2], then attend it
+day 3: attend [1,3]
+heap empty: jump to day 10 and attend [10,10]
+answer = 4
+```
+
+Choosing the longest interval first would lose the event ending on day one.
+Sorting only by end day also fails operationally because future events are not
+yet available.
+
+## Complexity, pitfalls, and tests
+
+Sorting costs `O(n log n)`. Every event enters and leaves the heap once, so
+heap work is also `O(n log n)`. Memory is `O(n)`.
+
+Intervals are inclusive: an event with `end == day` is still attendable, so
+expire only `end < day`. Add newly starting events before choosing for that
+day. Use a day type that safely holds the input range and one increment.
+
+```text
+Several events available on one day.
+Long flexible event versus short urgent events.
+Large gaps between start days.
+All events have the same interval.
+Single-day intervals and touching boundaries.
+```
+
+The random oracle treats events and days as a small bipartite matching
+instance, independently checking the greedy result.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/q_event_attendance/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/q_event_attendance/solution.py >}}
+```
+
+# R. Coverage Patches
+
+## Discover the state before the choice
+
+Suppose the processed values can form every sum from `1` through `covered`.
+The next sum we must make is therefore exactly `covered + 1`.
+
+If the next sorted input value `x` satisfies `x <= covered + 1`, adding it to
+any old subset sum extends continuous coverage through `covered + x`:
+
+```text
+old sums:             0 through covered
+old sums plus x:      x through x + covered
+```
+
+Because `x <= covered + 1`, these ranges touch or overlap. There is no gap.
+
+If `x > covered + 1`, no later input value can form `covered + 1` either.
+Some patch is forced now.
+
+## Why the forced patch is `covered + 1`
+
+A patch larger than `covered + 1` leaves that first missing sum uncovered. A
+smaller patch `p` is legal, but extends the covered range only to
+`covered + p`, which is no farther than using `covered + 1`.
+
+Thus `covered + 1` is both necessary enough to fill the gap and maximal among
+patches that can fill it. After adding it, coverage becomes:
+
+```text
+0 through 2 * covered + 1
+```
+
+This gives the complete greedy algorithm: sort the input; consume a value when
+it touches the covered range, otherwise patch the first gap.
+
+For the sample:
+
+```text
+values = 1, 5, 10; target = 20
+
+use 1    -> covered = 1
+patch 2  -> covered = 3
+patch 4  -> covered = 7
+use 5    -> covered = 12
+use 10   -> covered = 22
+```
+
+Two patches are required.
+
+## Correctness proof
+
+Maintain the invariant that every sum from zero through `covered` is
+representable using processed values and patches.
+
+When the next value is at most `covered + 1`, the two ranges described above
+overlap, so consuming it preserves the invariant and extends its endpoint.
+
+Otherwise `covered + 1` cannot be formed from processed values, and every
+unprocessed value is too large. Every solution must add a patch no larger than
+`covered + 1`. Replacing that solution's first such patch by exactly
+`covered + 1` covers at least as far and uses the same number of patches.
+Therefore an optimal solution exists making the greedy patch. Repeating this
+argument proves the final patch count minimum.
+
+## Complexity, pitfalls, and tests
+
+Sorting costs `O(n log n)` time; the scan is `O(n)`, and memory is `O(n)`.
+Use 64-bit integers for values, the target, and `covered`.
+
+The collection represents sums by subsets, not by repeatedly reusing one
+value. Input values need not be sorted. Values beyond the target may never be
+consumed, which is harmless.
+
+```text
+Empty collection.
+The first value is greater than one.
+Already complete powers of two.
+Duplicate values.
+Values much larger than the target.
+```
+
+The small oracle enumerates multisets of possible patches and checks subset
+sums directly.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/r_coverage_patches/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/r_coverage_patches/solution.py >}}
+```
+
+# S. Advantage Assignment
+
+## Greedy matching question
+
+Sort both arrays. Consider the smallest value `b` that has not yet been beaten.
+Scan values of `A` from smallest to largest.
+
+- If the current `a` cannot beat `b`, it cannot beat any remaining target,
+  because all of them are at least `b`. It cannot contribute a win.
+- If `a > b`, use this smallest sufficient `a` to beat `b`. Saving `a` for a
+  larger target while using an even larger value here cannot create more wins.
+
+This produces a two-pointer algorithm: one pointer scans `A`, and the other
+advances through `B` only after a win.
+
+## Exchange proof
+
+Let `a` be the smallest remaining value that can beat the smallest unmatched
+target `b`. Consider an optimal matching.
+
+If it already matches `a` with `b`, it agrees with the greedy choice. Otherwise
+suppose `b` is beaten by some `a' >= a`.
+
+- If `a` loses or is unused, match `a` with `b` and leave `a'` in its place;
+  the number of wins does not decrease.
+- If `a` beats another target `b'`, swap the two `A` values. Since `a' >= a`
+  and `a > b'`, `a'` also beats `b'`, while `a` beats `b`.
+
+Thus an optimal matching exists containing the greedy match. Remove that pair
+and repeat. If the current `a` cannot beat `b`, discarding it is safe because
+it cannot beat any later target. The final win count is optimal.
+
+## Why sorting both arrays is legitimate
+
+The output asks only for the maximum count, not the actual permutation.
+Reordering `B` in the analysis does not change which pairs can be created: any
+matching between the two multisets can later be placed back at original
+indices. If the permutation itself were required, original indices would need
+to travel with `B`.
+
+## Complexity, pitfalls, and tests
+
+Time is `O(n log n)` and memory is `O(n)`.
+
+The inequality is strict: equal values do not win. Pairing the largest values
+first can waste a very large value on a target that a smaller value could have
+beaten.
+
+```text
+All pairs equal -> zero wins.
+Every A value wins.
+Negative values.
+Many duplicates.
+One very large A value and several small targets.
+```
+
+The oracle tries every permutation of `A` for small `n`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/s_advantage_assignment/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/s_advantage_assignment/solution.py >}}
+```
+
+# T. Minimum Refueling
+
+## Postpone the decision
+
+When the vehicle passes a reachable station, it does not need to decide
+immediately whether to stop there. Record that station's fuel as an available
+past opportunity.
+
+Only when the current reachable distance cannot reach the destination or the
+next station is a stop forced. At that moment, choose the largest fuel amount
+among all stations already passed. This extends reach as far as possible while
+paying exactly one stop.
+
+A maximum heap supports precisely these operations:
+
+```text
+add the fuel of every newly reachable station;
+when stuck, remove the largest available fuel;
+```
+
+If the heap is empty while the destination remains unreachable, the journey
+is impossible.
+
+## Why a retroactive stop is valid
+
+The algorithm may conceptually decide at position 50 that it should have
+stopped at position 20. This is valid because position 20 was already
+reachable before the decision. Treat the heap as a set of optional stops whose
+fuel could have been collected when they were passed; the order of past stops
+does not affect their total added fuel.
+
+## Exchange proof
+
+Suppose progress is stuck and the greedy choice takes available station `g`
+with maximum fuel. Any solution that reaches farther using one additional
+available stop chooses some station `p` with fuel no larger than `g`.
+Replacing `p` by `g` uses the same number of stops and reaches at least as far.
+
+Therefore an optimal solution exists making the greedy choice whenever another
+stop becomes necessary. After `k` greedy stops, no selection of `k` stations
+from opportunities available at those decision points can give greater reach.
+The first time the greedy reach reaches the destination is consequently the
+minimum possible stop count.
+
+## Sample trace
+
+```text
+destination = 100, initial reach = 10
+
+reach 10: station (10,60) available -> forced stop, reach 70
+reach 70: stations at 20,30,60 enter heap
+          choose largest fuel 40 -> reach 110
+```
+
+The answer is two. Notice that the stations at 20 and 30 became available
+without forcing an immediate commitment.
+
+## Complexity, pitfalls, and tests
+
+Sorting and heap operations cost `O(n log n)` time. Memory is `O(n)`. Reach and
+fuel totals require 64-bit integers.
+
+Choosing the next physical station's fuel is not optimal; all passed stations
+remain alternatives. Do not push a station until its position is reachable.
+Stopping after the destination has already become reachable adds an unnecessary
+stop.
+
+```text
+Destination reachable initially.
+No station is initially reachable.
+A small nearby station versus a larger earlier option.
+Stations supplied out of order.
+Reach and fuel near 10^18.
+```
+
+The oracle enumerates all station subsets and checks them in position order.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/t_minimum_refueling/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/t_minimum_refueling/solution.py >}}
+```
+
+# U. Circular Fuel Start
+
+## Two separate questions
+
+First ask whether any start can work. A complete circuit receives total fuel
+`sum(fuel)` and spends `sum(cost)`. If the total gain is negative, no starting
+point can change that fact.
+
+Assume the total gain is nonnegative. Scan stations from left to right while
+testing a candidate start. Maintain the tank accumulated from that candidate.
+If it becomes negative after station `i`, reset the candidate to `i + 1`.
+
+The non-obvious part is why this failure eliminates every start between the old
+candidate and `i`, rather than only the old candidate.
+
+## Failed-block proof
+
+Let the current candidate be `start`. Before the failure at `i`, every proper
+prefix from `start` had nonnegative gain; otherwise the candidate would already
+have been reset.
+
+For any `j` between `start + 1` and `i`:
+
+```text
+gain(j through i)
+= gain(start through i) - gain(start through j-1)
+```
+
+The first term is negative at the failure, and the second is nonnegative.
+Therefore the gain from `j` through `i` is negative. Starting at `j` also fails
+before leaving this block. All candidates through `i` can be discarded at
+once.
+
+## Why the final candidate completes the circle
+
+After the last reset, the candidate reaches the end of the array without a
+negative tank. The stations before the candidate form the discarded prefix.
+Because total gain over the whole circle is nonnegative, the gain over that
+prefix is enough, when added after the successful suffix, to finish the wrap.
+
+Every smaller index was eliminated by a proved failed block, so the surviving
+candidate is also the smallest valid index.
+
+## Complexity, pitfalls, and tests
+
+The algorithm is `O(n)` time and `O(1)` auxiliary memory. Totals require
+64-bit integers.
+
+Checking only total fuel establishes existence, not the start. Returning the
+index after every locally negative station without accumulating from the
+current candidate loses the failed-block invariant. Indices are zero-based.
+
+```text
+One station with equal fuel and cost.
+Negative total gain.
+Several valid starts -> return the smallest.
+Several consecutive resets.
+Large values whose total exceeds 32-bit range.
+```
+
+The oracle simulates a full circuit from every possible start.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/u_circular_fuel_start/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/u_circular_fuel_start/solution.py >}}
+```
+
+# V. Smallest Separated Rearrangement
+
+## Lexicographic construction needs a completion test
+
+At each position, try remaining characters from `a` through `z`, skipping the
+previous character. Choose the first character after which the remaining
+multiset can still be arranged without equal neighbors.
+
+The central problem is deriving an exact, fast completion test. Suppose the
+chosen character is `c` and `R` characters remain.
+
+- Remaining copies of `c` cannot be first, because the prefix now ends in `c`.
+  Each copy needs a different character before it. Therefore
+  `count[c] <= floor(R/2)`.
+- Any other character may appear first, so its copies need only be separated
+  by the other `R - count[x]` characters. Therefore
+  `count[x] <= ceil(R/2)` for every `x != c`.
+
+These conditions are also sufficient: arrange the most frequent permitted
+character into alternating slots, with the stricter bound ensuring that the
+first suffix slot is not forced to equal `c`, then fill the gaps with the
+remaining characters.
+
+## Making the test fast
+
+Trying at most 26 candidate letters per position is fine, but rescanning all
+26 counts for every candidate is unnecessary. For the current count array,
+build prefix and suffix maxima over the alphabet. They answer the maximum count
+among all letters except candidate `c` in constant time.
+
+For each candidate:
+
+```text
+same  = count[c] - 1
+other = maximum count among letters other than c
+
+same <= R / 2
+other <= (R + 1) / 2
+```
+
+Take the first candidate satisfying both inequalities.
+
+## Correctness proof
+
+The completion inequalities are necessary by the separator argument above and
+sufficient by alternating the most frequent letters with the rest. Therefore
+the test accepts exactly those characters that admit at least one valid suffix.
+
+At each position, the algorithm chooses the smallest character that still
+admits a completion. Any valid answer beginning with a larger character is
+lexicographically worse at the first differing position. Choosing the smaller
+feasible character cannot destroy validity because the completion test supplies
+a valid suffix. Induction over positions proves the constructed rearrangement
+is the lexicographically smallest valid one.
+
+## Complexity, pitfalls, and tests
+
+The alphabet has constant size 26. Each position performs `O(26)` work, so time
+is `O(26n)`, conventionally `O(n)`, and auxiliary memory is `O(26)` besides the
+answer.
+
+The usual condition `maximum frequency <= ceil(length/2)` is insufficient for
+a suffix whose first character is forbidden; the newly chosen character needs
+the stricter floor bound. A maximum heap can construct some valid arrangement,
+but does not automatically make it lexicographically smallest.
+
+```text
+One character.
+All characters equal.
+Exactly balanced dominant count.
+Several possible answers with different first characters.
+All 26 letters.
+```
+
+The oracle performs a memoized lexicographic search over every multiset state.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/v_smallest_separated_rearrangement/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/v_smallest_separated_rearrangement/solution.py >}}
+```
+
+# W. Consecutive Grouping
+
+## Obligations before opportunities
+
+Process values in sorted order. An unfinished group ending at `x - 1` has only
+one possible next value: `x`. If a copy of `x` exists and such a group is
+waiting, use `x` to extend the waiting group before considering a new group.
+
+Maintain:
+
+```text
+remaining[x] = unused copies of x
+need[x]      = unfinished groups whose next required value is x
+```
+
+If no group needs `x`, a copy of `x` may start a new group only when copies of
+`x + 1` and `x + 2` are immediately available. Reserve all three at once; the
+new group is now valid with length three and may later be extended by `x + 3`.
+
+## Why extending first is forced
+
+Suppose a group ending at `x - 1` is waiting, but an algorithm uses `x` to
+start another group. The waiting group can never receive a later value: after
+the sorted scan moves past `x`, no other copy with the required value appears.
+
+In any valid partition, enough copies of `x` must first satisfy all existing
+`need[x]` obligations. Exchanging a copy used by a new group with one used to
+extend the waiting group cannot harm the new group—it can be started only from
+copies left after forced obligations are satisfied. Thus extending first is
+safe and necessary.
+
+## Why starting with three values is safe
+
+When no group needs `x`, the smallest unused value cannot be appended anywhere.
+It must start a new group in every valid partition. Such a group must contain
+`x + 1` and `x + 2`; if either is unavailable, no valid partition exists.
+Taking those values immediately commits only choices that every solution must
+eventually make.
+
+After a new triple is formed, recording a possible future need at `x + 3`
+allows it to grow, but its minimum length is already satisfied.
+
+## Complexity, pitfalls, and tests
+
+Sorting costs `O(n log n)` time. Map operations are expected `O(1)` with hash
+maps, and memory is `O(n)`.
+
+Starting new groups before extending old ones is the classic failure. Checking
+only that every distinct run has length at least three ignores multiplicities.
+Negative values require no special treatment.
+
+```text
+Fewer than three values.
+One exact consecutive triple.
+Two overlapping triples: 1 2 3 3 4 5.
+An unfinished group competing with a new group.
+Duplicates and negative values.
+```
+
+The oracle assigns sorted occurrences to every possible existing group or a
+new group, and accepts only partitions whose final group lengths are at least
+three.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/w_consecutive_grouping/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/w_consecutive_grouping/solution.py >}}
+```
+
+# X. Subarray Minimum Total
+
+## Start from subarrays ending at one position
+
+Enumerating every subarray repeats almost the same work. A more useful first
+question is: after reading `a[i]`, what are the minima of all subarrays ending
+at `i`?
+
+If the previous suffix minima, grouped by equal value, are
+
+```text
+(value, number of suffixes having this minimum),
+```
+
+then appending `x` changes every group with `value >= x` into one group whose
+minimum is `x`. Groups with smaller minima remain unchanged. The affected
+groups form a suffix when the values are stored in increasing order, which is
+exactly the shape maintained by a monotonic stack.
+
+Maintain `ending_sum`, the sum of minima over all subarrays ending at the
+previous position. For a new value `x`, begin with one new suffix `[x]`.
+Pop every stack group with value at least `x`, remove its contribution from
+`ending_sum`, and add its number of suffixes to the new group. Then add the
+merged contribution `x * ways`. Add the resulting `ending_sum` to the global
+answer.
+
+## Why merging equal values is convenient
+
+Using `>=` in the pop condition gives every suffix exactly one current group,
+including duplicates. With `2,2,2`, the groups successively have sizes one,
+two, and three. Using a different strictness convention can also work, but the
+ownership of equal minima must remain consistent.
+
+## Correctness proof
+
+Before processing `x`, the stack partitions all suffixes ending at `i-1` by
+their minimum. Appending `x` changes a suffix minimum from `m` to `min(m,x)`.
+Thus precisely the popped groups acquire minimum `x`; every unpopped group
+keeps its smaller minimum. The singleton suffix `[x]` also has minimum `x`.
+Consequently the updated stack partitions every suffix ending at `i` exactly
+once, and `ending_sum` is their exact minimum total. Summing `ending_sum` over
+all right endpoints counts every nonempty subarray exactly once.
+
+## Complexity, pitfalls, and tests
+
+Every group is pushed and popped once, so time is `O(n)` and memory is `O(n)`.
+The total requires 64-bit storage in C++. Common mistakes are adding only the
+new group's contribution without removing popped contributions and handling
+equal values inconsistently.
+
+```text
+One value.
+All values equal.
+Strictly increasing and strictly decreasing arrays.
+The minimum appearing several times.
+```
+
+The oracle enumerates all left and right endpoints and updates the minimum
+incrementally.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/x_subarray_minimum_total/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/x_subarray_minimum_total/solution.py >}}
+```
+
+# Y. Maximum Width Ramp
+
+## Eliminate dominated left endpoints
+
+Suppose `p < q` and `a[p] <= a[q]`. Whenever `q` can pair with some right
+endpoint `j`, `p` can pair with the same `j` and gives at least as much width.
+Therefore `q` is never needed as a left endpoint.
+
+Scanning left to right, retain an index only when its value is a new strict
+prefix minimum. Their indices increase while their values strictly decrease,
+so they form a monotonic candidate stack.
+
+## Why scan right endpoints backward
+
+Now inspect `j` from right to left. If the candidate on top has value at most
+`a[j]`, then this is the farthest-right valid partner that candidate can ever
+receive: all later indices were already inspected. Record its width and pop
+it permanently. Continue while more candidates fit.
+
+A tempting `O(n log n)` solution binary-searches the prefix-minimum values for
+each right endpoint. It is valid, but the reverse scan reveals that both
+pointers move only once and removes the logarithmic factor.
+
+## Correctness proof
+
+The dominance argument proves that some optimal pair uses a retained prefix-
+minimum index on the left. Right endpoints are processed in decreasing order,
+so when a retained index is popped, the current `j` is its largest possible
+valid partner and therefore gives its maximum possible width. Every potentially
+optimal left endpoint is evaluated with its best partner, so the maximum
+recorded width is optimal.
+
+## Complexity, pitfalls, and tests
+
+Each index enters and leaves the candidate stack at most once. Time is `O(n)`
+and memory is `O(n)`. Equal values must not create additional left candidates,
+but equality is allowed when matching `a[i] <= a[j]`. Permitting `i = j`
+means the answer is always at least zero.
+
+```text
+One value.
+Strictly increasing and strictly decreasing arrays.
+All values equal.
+Negative values and repeated prefix minima.
+```
+
+The oracle checks all `O(n^2)` pairs.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/y_maximum_width_ramp/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/y_maximum_width_ramp/solution.py >}}
+```
+
+# Z. Smallest Alternating Partition
+
+## Separate feasibility from label choice
+
+Process positions from left to right. A bit `0` can extend only a group ending
+in `1`, and conversely. If such a group exists, reuse one. If none exists, the
+current bit cannot belong to any existing group, so creating a new group is
+forced.
+
+Why is reuse safe when starting a new group might preserve the opposite-ending
+group for later? If that preserved group is used by a later equal bit, swap the
+two suffix assignments: let the current bit extend the old group and let the
+later bit take the newly created group's role. Alternation and the final number
+of groups are unchanged. Thus an optimum exists that reuses a group now.
+
+This proves the primary objective. For the secondary objective, all groups
+ending in the required opposite bit are equivalent for future feasibility.
+Choose the smallest available label, because it makes the first currently
+undecided output position as small as possible. Store the available labels for
+each ending bit in a minimum heap.
+
+## Correctness proof
+
+By induction over positions, an optimal partition exists that agrees with all
+greedy reuse-or-create decisions. Creation is forced when no group has the
+opposite ending; otherwise the suffix-swap argument makes reuse compatible with
+an optimum. Hence the final number of groups is minimum.
+
+Among all minimum-group completions of the established prefix, choosing the
+smallest compatible label produces the smallest value at the next output
+position. Compatible groups have identical future behavior apart from their
+labels, so exchanging their future roles preserves feasibility. Induction then
+proves the complete label sequence is lexicographically smallest.
+
+## Complexity, pitfalls, and tests
+
+Each position performs a constant number of heap operations, so time is
+`O(n log n)` and memory is `O(n)`. A stack is sufficient to minimize the number
+of groups but not to guarantee the smallest label sequence. New labels must be
+created consecutively to respect the canonical-label convention.
+
+```text
+One bit.
+All bits equal.
+An already alternating string.
+011, where creating early can still tie the minimum but loses lexicographically.
+Several compatible groups with different labels.
+```
+
+The oracle backtracks over canonical assignments and compares first by group
+count, then by the complete label tuple.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/z_smallest_alternating_partition/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/z_smallest_alternating_partition/solution.py >}}
+```

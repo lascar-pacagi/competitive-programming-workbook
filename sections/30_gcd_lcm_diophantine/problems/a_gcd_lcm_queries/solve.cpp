@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: use gcd and compute lcm as a/g*b.
+    // TODO: solve the problem.
     return 0;
 }

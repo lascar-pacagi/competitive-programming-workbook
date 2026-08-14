@@ -184,22 +184,24 @@ left-to-right scan.
 Intervals:
 
 ```text
-[5,7], [1,3], [4,4], [10,12], [11,20]
+[5,7], [1,3], [3,4], [10,12], [11,20]
 ```
 
 Sort by start:
 
 ```text
-[1,3], [4,4], [5,7], [10,12], [11,20]
+[1,3], [3,4], [5,7], [10,12], [11,20]
 ```
 
-If intervals that touch should merge, then `[1,3]`, `[4,4]`, and `[5,7]`
-become `[1,7]`. Also `[10,12]` and `[11,20]` become `[10,20]`.
+For ordinary closed intervals, `[1,3]` and `[3,4]` touch at endpoint `3`, so
+they merge into `[1,4]`. Intervals `[5,7]` and `[10,12]` do not touch that
+merged interval. Also `[10,12]` and `[11,20]` overlap, so they merge into
+`[10,20]`.
 
 The result is:
 
 ```text
-[1,7], [10,20]
+[1,4], [5,7], [10,20]
 ```
 
 # The merge invariant
@@ -214,17 +216,19 @@ new interval cannot jump back and overlap them.
 The decision is local:
 
 ```text
-if next_left <= current_right + 1:
+if next_left <= current_right:
     merge
 else:
     start a new merged interval
 ```
 
-The `+ 1` appears because this section's interval problem merges touching
-integer intervals. If touching should not merge, the condition would be:
+This is the ordinary rule for closed intervals: equality means that the two
+intervals share an endpoint. Some statements instead explicitly say that
+consecutive integer positions should also be joined. Only in that different
+convention should you use:
 
 ```text
-next_left <= current_right
+next_left <= current_right + 1
 ```
 
 Always read the statement's interval convention.
@@ -311,4 +315,3 @@ Run:
 ```bash
 python3 sections/05_sorting_as_tool/check.py
 ```
-

@@ -30,6 +30,11 @@ It contains the information needed for an offline attempt and each official
 URL. Before submitting, read the official page: it controls any detail not
 present here. Ratings are approximate guideposts, not prerequisites.
 
+Each rung also has an original, locally judgeable companion package under
+`problems/`; see [the companion index](OFFLINE_COMPANIONS.md). The companion
+is a separate exercise for the same course skill, with skeletons, references,
+and tests. It is intentionally not a copy of the linked Codeforces statement.
+
 # Gate 1: foundations
 
 ## 1. 71A -- Way Too Long Words (800)
@@ -191,10 +196,211 @@ divisor. Find the maximum number of operations.
 Official: <https://codeforces.com/problemset/problem/319/C>
 
 The official story supplies strictly increasing tree heights `a` and strictly
-decreasing recharge costs `b`, with `n <= 10^5`. Derive the DP for minimum
-cutting cost, whose core transition is the minimum over earlier states `j` of
-`dp[j] + b[j] * a[i]`. The intended solution turns earlier states into lines
-and queries them at `a[i]`.
+decreasing recharge costs `b`, with `n <= 10^5`. Compute the minimum total
+cutting cost under the stated transition rules. The answer can exceed 32-bit
+integer range.
+
+# Gate 5: hard data structures and tree techniques
+
+## 20. 786B -- Legacy
+Official: <https://codeforces.com/problemset/problem/786/B>
+
+Maintain a directed weighted graph under edge additions from one vertex to one
+vertex, from one vertex to every vertex in an interval, and from every vertex
+in an interval to one vertex. Then print shortest distances from a source.
+
+## 21. 191C -- Fools and Roads
+Official: <https://codeforces.com/problemset/problem/191/C>
+
+Given a tree and many vertex pairs, count for every edge how many requested
+simple paths use it. Print counts in input-edge order.
+
+## 22. 208E -- Blood Cousins
+Official: <https://codeforces.com/problemset/problem/208/E>
+
+In a rooted forest, query a vertex `v` and integer `p`: count other vertices at
+the depth of `v` whose `p`-th ancestor equals the `p`-th ancestor of `v`.
+
+## 23. 375D -- Tree and Queries
+Official: <https://codeforces.com/problemset/problem/375/D>
+
+Each tree vertex has a color. For every `(v, k)`, count colors occurring at
+least `k` times inside the subtree of `v`.
+
+## 24. 600E -- Lomsat gelral
+Official: <https://codeforces.com/problemset/problem/600/E>
+
+For every tree vertex, sum all color values whose frequency is maximum in its
+subtree.
+
+## 25. 877E -- Danil and a Part-time Job
+Official: <https://codeforces.com/problemset/problem/877/E>
+
+Root a tree. Toggle all binary values in a queried subtree or report a queried
+subtree sum.
+
+## 26. 242E -- XOR on Segment
+Official: <https://codeforces.com/problemset/problem/242/E>
+
+Maintain an array under range xor updates and range-sum queries.
+
+## 27. 103D -- Time to Raid Cowavans
+Official: <https://codeforces.com/problemset/problem/103/D>
+
+For each `(a, b)`, sum `a[a] + a[a+b] + a[a+2b] + ...` while indices remain
+in bounds.
+
+# Gate 6: expert modeling and offline structures
+
+## 28. 1000F -- One Occurrence
+Official: <https://codeforces.com/problemset/problem/1000/F>
+
+For every range `[l, r]`, print any value occurring exactly once in that range,
+or zero when none exists.
+
+## 29. 240F -- TorCoder
+Official: <https://codeforces.com/problemset/problem/240/F>
+
+Maintain a lowercase string while substring operations sort one selected range
+in increasing or decreasing order. Output the final string.
+
+## 30. 343D -- Water Tree
+Official: <https://codeforces.com/problemset/problem/343/D>
+
+Root a tree and support filling a subtree, emptying a root-to-vertex path, and
+querying whether one vertex is filled.
+
+## 31. 1209E2 -- Rotate Columns
+Official: <https://codeforces.com/problemset/problem/1209/E2>
+
+Choose cyclic rotations of selected matrix columns so every row takes one value
+and the resulting total is maximum.
+
+## 32. 1416C -- XOR Inverse
+Official: <https://codeforces.com/problemset/problem/1416/C>
+
+Choose one xor mask for all array values to minimize the transformed inversion
+count. Output the count and one valid mask.
+
+## 33. 13E -- Holes
+Official: <https://codeforces.com/problemset/problem/13/E>
+
+Array values define jumps `i -> i+a[i]`. Support point updates and queries for
+the number of jumps to leave the array and the final in-array position.
+
+## 34. 342E -- Xenia and Tree
+Official: <https://codeforces.com/problemset/problem/342/E>
+
+Initially one tree vertex is red. Repeatedly color vertices red or query the
+nearest-red distance from a vertex.
+
+## 35. 895C -- Square Subsets
+Official: <https://codeforces.com/problemset/problem/895/C>
+
+Count nonempty subsets of a bounded-value multiset whose product is a perfect
+square, modulo the required prime.
+
+## 36. 868F -- Yet Another Minimization Problem
+Official: <https://codeforces.com/problemset/problem/868/F>
+
+Partition an array into exactly `k` nonempty segments. Segment cost is the
+number of equal-value pairs in it; minimize total cost.
+
+## 37. 1292C -- Xenon's Attack on the Gangs
+Official: <https://codeforces.com/problemset/problem/1292/C>
+
+Choose two tree vertices and maximize the product of the endpoint component
+sizes obtained by cutting toward the other endpoint along their path.
+
+## 38. 613D -- Kingdom and its Cities
+Official: <https://codeforces.com/problemset/problem/613/D>
+
+For each marked set of tree vertices, delete as few other vertices as possible
+so no component contains two marked vertices, or report impossibility.
+
+## 39. 1110F -- Nearest Leaf
+Official: <https://codeforces.com/problemset/problem/1110/F>
+
+For a weighted rooted tree, answer minimum-distance-to-leaf queries restricted
+to a DFS-order interval of leaves.
+
+## 40. 587C -- Duff in the Army
+Official: <https://codeforces.com/problemset/problem/587/C>
+
+People occupy tree vertices. For each path, print the smallest few person ids
+on that path, up to the requested limit.
+
+# Gate 7: red-level optimization
+
+## 41. 786C -- Till I Collapse
+Official: <https://codeforces.com/problemset/problem/786/C>
+
+For every `k`, partition the array greedily into the fewest segments containing
+at most `k` distinct values and print all answers.
+
+## 42. 1093G -- Multidimensional Queries
+Official: <https://codeforces.com/problemset/problem/1093/G>
+
+Maintain points in dimension at most five under point updates; for each index
+range, output the maximum Manhattan distance between two points in it.
+
+## 43. 321E -- Ciel and Gondolas
+Official: <https://codeforces.com/problemset/problem/321/E>
+
+Partition a binary compatibility matrix into exactly `k` contiguous groups and
+minimize the sum of group-square disagreement costs.
+
+## 44. 896C -- Willem, Chtholly and Seniorious
+Official: <https://codeforces.com/problemset/problem/896/C>
+
+Support range assignment, range addition, kth-smallest, and modular power-sum
+queries on the statement's generated array.
+
+## 45. 833B -- The Bakery
+Official: <https://codeforces.com/problemset/problem/833/B>
+
+Split an array into exactly `k` nonempty segments. A segment scores its number
+of distinct values; maximize total score.
+
+## 46. 311B -- Cats Transport
+Official: <https://codeforces.com/problemset/problem/311/B>
+
+Cats arrive at stations on a line. A limited number of buses carry consecutive
+groups; minimize total waiting time.
+
+## 47. 55D -- Beautiful Numbers
+Official: <https://codeforces.com/problemset/problem/55/D>
+
+For each interval, count positive integers divisible by every nonzero decimal
+digit they contain.
+
+## 48. 840D -- Destiny
+Official: <https://codeforces.com/problemset/problem/840/D>
+
+For each range and integer `k`, find a value occurring more than
+`length / k` times, or report that no such value exists.
+
+## 49. 911G -- Mass Change Queries
+Official: <https://codeforces.com/problemset/problem/911/G>
+
+Apply range operations that replace every occurrence of one value by another,
+then print the resulting array.
+
+## 50. 1100F -- Ivan and Burgers
+Official: <https://codeforces.com/problemset/problem/1100/F>
+
+For each array range, choose any subset of its values to maximize their xor.
+
+# Offline blind capstone
+
+## D. Ribbon Cuts -- Codeforces 189A companion
+
+Official companion: <https://codeforces.com/problemset/problem/189/A>
+
+Given a ribbon of length `n` and three permitted positive piece lengths `a`,
+`b`, and `c`, use the whole ribbon and maximize the number of pieces. Print
+`-1` when no exact cutting exists. The local version has `n <= 200000` and is
+also available in `problems/d_ribbon_cuts` with fixed tests for offline work.
 
 # Offline attempt log
 

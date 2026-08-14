@@ -620,6 +620,73 @@ no valid pair
 answer larger than 32-bit
 ```
 
+# Problem D: Equal Index Pairs
+
+## Restatement
+
+Count index pairs `(i,j)` with `i < j` whose two array values are equal. This
+is a blind-practice problem: it uses the frequency-table idea from the section,
+but the lesson does not give this reduction or its update order.
+
+## Constraints and traps
+
+The total input length is at most `200000`, while values may be negative or as
+large as `10^9`. A frequency array indexed by value is therefore unsafe. The
+answer can be as large as `n(n-1)/2`, so C++ needs `long long`.
+
+The phrase "pairs of indices" matters. Four equal values contribute six pairs,
+not one pair of values.
+
+## Observation and trace
+
+Process the array left to right. Before a current value `x` is inserted into
+the table, `freq[x]` is exactly the number of earlier indices holding `x`.
+Each such index forms one new equal pair ending at the current position.
+
+For `1 2 1 2 1`:
+
+| current value | earlier equal values | new pairs | running answer |
+|---:|---:|---:|---:|
+| 1 | 0 | 0 | 0 |
+| 2 | 0 | 0 | 0 |
+| 1 | 1 | 1 | 1 |
+| 2 | 1 | 1 | 2 |
+| 1 | 2 | 2 | 4 |
+
+## Algorithm
+
+```text
+freq = empty map
+answer = 0
+for x in the array from left to right:
+    answer += freq[x]
+    freq[x] += 1
+print answer
+```
+
+## Correctness proof
+
+Before processing position `j`, the invariant is that `freq[x]` equals the
+number of indices `i < j` with value `x`, and `answer` counts all valid pairs
+whose right endpoint is before `j`. The current position forms a valid pair
+exactly with those `freq[a[j]]` earlier equal positions. Adding that number
+counts every new pair once, then increasing the frequency restores the
+invariant for the next position. By induction, the final answer is the number
+of all required pairs.
+
+## Complexity
+
+Expected time is `O(n)` per total input length with a hash map, and memory is
+`O(d)` where `d` is the number of distinct values.
+
+## Implementation notes and tests
+
+In C++, reserve an `unordered_map` near `2*n`; in Python use `dict.get(x, 0)`
+or `defaultdict(int)`. Update the answer **before** incrementing the frequency.
+Test one element, all equal values, all distinct values, and negative repeated
+values. The fixed tests include the six-pair all-equal boundary; the random
+generator compares to a quadratic index-pair oracle.
+
 # Stress testing strategy
 
 Frequency problems are easy to stress test because slow reference solutions
@@ -664,4 +731,3 @@ This pattern will return in:
 - prefix-sum frequency problems;
 - graph degree counting;
 - combinatorics over repeated values.
-

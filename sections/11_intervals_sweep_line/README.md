@@ -11,6 +11,7 @@ how to answer point queries while preserving original order.
    - `a_peak_active`
    - `b_covered_length`
    - `c_point_coverage`
+   - `d_first_busiest` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -25,4 +26,3 @@ CP_TARGET=solution python3 sections/11_intervals_sweep_line/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

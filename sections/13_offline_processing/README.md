@@ -10,6 +10,7 @@ it efficient, and then restoring answers to the original query order.
    - `a_coordinate_compression`
    - `b_range_count_at_most`
    - `c_distinct_range_queries`
+   - `d_activation_totals` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -24,4 +25,3 @@ CP_TARGET=solution python3 sections/13_offline_processing/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

@@ -153,7 +153,7 @@ print max(dp)
 **Proof.** Since `cap-cost < cap`, and capacities are processed from large to
 small, `dp[cap-cost]` has not yet been updated during this item's iteration.
 It is therefore still the value from before the current item was processed.
-`\square`
+$\square$
 
 **Lemma 2.** After processing the first `i` items, `dp[cap]` is the maximum
 value achievable with capacity at most `cap` using only those `i` items.
@@ -163,14 +163,14 @@ value achievable with capacity at most `cap` using only those `i` items.
 skips it, giving the old `dp[cap]`, or takes it, requiring a valid solution of
 capacity `cap-cost[i]` from previous items plus `value[i]`. By Lemma 1, the
 transition reads exactly that previous-item value. Taking the maximum covers
-both exhaustive cases. `\square`
+both exhaustive cases. $\square$
 
 **Theorem.** The algorithm prints the maximum total value obtainable within
 budget `W`.
 
 **Proof.** By Lemma 2 after all items are processed, every `dp[cap]` is optimal
 for that capacity. The best legal budget is the maximum over `cap <= W`.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -336,7 +336,7 @@ current type.
 
 **Proof.** Since `cap-cost < cap`, it was processed earlier in the same forward
 loop. Therefore it already includes all improvements available with the current
-drill type at that smaller capacity. `\square`
+drill type at that smaller capacity. $\square$
 
 **Lemma 2.** After processing the first `i` drill types, `dp[cap]` is the
 maximum value achievable with capacity at most `cap` using only those types,
@@ -347,13 +347,13 @@ are `0`. For type `i`, a best solution either uses no copy of this type, leaving
 the old `dp[cap]`, or uses at least one copy. Removing one copy leaves a valid
 solution of capacity `cap-cost[i]` that may still use type `i`; by Lemma 1 that
 value is available as `dp[cap-cost[i]]`. The transition takes the better of
-these cases. `\square`
+these cases. $\square$
 
 **Theorem.** The algorithm prints the maximum value obtainable within `W`
 minutes.
 
 **Proof.** Lemma 2 after all drill types gives optimal values for every legal
-capacity. The answer is the best among capacities at most `W`. `\square`
+capacity. The answer is the best among capacities at most `W`. $\square$
 
 ## Complexity
 
@@ -529,7 +529,7 @@ sum `s` used for `s+x` was reachable before using `x`.
 
 **Proof.** Since `s < s+x`, and the loop goes downward, setting
 `possible[s+x]` cannot later be used as a source for another addition of the
-same `x`. `\square`
+same `x`. $\square$
 
 **Lemma 2.** After processing the first `i` numbers, `possible[s]` is true
 exactly when some subset of those `i` numbers has sum `s`.
@@ -538,14 +538,14 @@ exactly when some subset of those `i` numbers has sum `s`.
 sum `0` is reachable. For a new number `x`, every subset either excludes `x`,
 keeping an old reachable sum, or includes `x`, in which case removing `x`
 leaves an old reachable sum `s-x`. The transition marks exactly those new sums,
-and Lemma 1 prevents using `x` more than once. `\square`
+and Lemma 1 prevents using `x` more than once. $\square$
 
 **Theorem.** The algorithm prints exactly all positive subset sums in
 increasing order.
 
 **Proof.** By Lemma 2 after all numbers are processed, `possible[s]` exactly
 describes reachable subset sums. Scanning `s` from `1` to `total` prints all
-positive reachable sums in increasing order. `\square`
+positive reachable sums in increasing order. $\square$
 
 ## Complexity
 
@@ -698,3 +698,198 @@ Is capacity small enough, or should another dimension be used?
 Those questions return in later sections on bitmask DP, value-based knapsack,
 and optimization DP.
 
+# D. Balanced Split
+
+## Restatement and reduction
+
+Let the total of all values be `T`. If one group receives a subset with sum
+`s`, the other receives `T - s`, so the split difference is:
+
+```text
+|s - (T - s)| = |T - 2s|
+```
+
+Thus we need a reachable subset sum as close as possible to `T / 2`. The total
+is at most `100000`, so use the section's 0/1 subset-sum DP rather than testing
+all `2^n` partitions.
+
+For `1, 6, 11, 5`, `T = 23`. Choosing subset `{11}` gives sums `11` and `12`,
+so the answer is `1`.
+
+## Constraints and traps
+
+All values are positive integers and their total `T` is at most `100000`. That
+total, rather than the number of input values alone, is the capacity dimension:
+an `O(nT)` boolean table is practical, while enumerating `2^n` assignments is
+not.
+
+```text
+Every occurrence is a separate item, including equal values.
+Each occurrence may be assigned to one group exactly once.
+There is no requirement that the two sums are equal.
+Only a sum s <= T/2 needs final inspection: its complementary sum is T-s.
+```
+
+Scanning above `T/2` is redundant. If `s > T/2`, the other group has sum
+`T-s < T/2` and represents the same unordered split with the same difference.
+
+## Reachability trace
+
+For values `1, 6, 11, 5`, begin with only sum zero reachable:
+
+```text
+after no value:  {0}
+after 1:         {0, 1}
+after 6:         {0, 1, 6, 7}
+after 11:        {0, 1, 6, 7, 11, 12, 17, 18}
+after 5:         ... including 11
+```
+
+The target half is `23/2 = 11.5`, so the best reachable sum at or below it is
+`11`. The resulting difference is `23 - 2*11 = 1`.
+
+When processing `6`, update the boolean array from high sums down to low sums.
+For instance, `possible[7]` may use the old `possible[1]`, but that old value
+must not already include the current `6`. An upward loop would reach
+`possible[12]` through the newly set `possible[6]`, incorrectly using `6`
+twice.
+
+## Algorithm
+
+```text
+possible[0] = true
+for each value x:
+    for s from T down to x:
+        possible[s] |= possible[s-x]
+
+answer = minimum T - 2*s over reachable s with s <= T/2
+```
+
+The loop descends so `possible[s-x]` is still the state before the current
+value; each value is used at most once.
+
+## Correctness proof
+
+**Lemma 1.** After any prefix of values, `possible[s]` is true exactly when a
+subset of that prefix sums to `s`.
+
+**Proof.** Initially only the empty subset makes `0`. For new value `x`, a
+subset making `s` either omits `x`, or uses it with an earlier subset making
+`s-x`. Descending updates implement exactly those two cases without reusing
+`x`. $\square$
+
+**Lemma 2.** Every split is represented by a reachable sum `s <= T/2`, and
+its difference is `T - 2s`.
+
+**Proof.** Choose the smaller of the two group sums as `s`. The other is
+`T-s`, so its difference is `(T-s)-s`. $\square$
+
+**Theorem.** The algorithm prints the minimum possible difference.
+
+**Proof.** Lemma 1 gives exactly every available group sum. Lemma 2 shows the
+final scan evaluates every possible split's difference, so its minimum is
+optimal. $\square$
+
+## Complexity
+
+```text
+Time: O(n * T)
+Memory: O(T)
+```
+
+where `T` is the total input sum.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    int total = 0;
+    for (int& x : a) {
+        cin >> x;
+        total += x;
+    }
+    vector<char> possible(total + 1);
+    possible[0] = true;
+    for (int x : a) {
+        for (int s = total; s >= x; --s) {
+            possible[s] = possible[s] || possible[s - x];
+        }
+    }
+    int answer = total;
+    for (int s = 0; s <= total / 2; ++s) {
+        if (possible[s]) answer = min(answer, total - 2 * s);
+    }
+    cout << answer << '\\n';
+}
+```
+
+## C++ implementation notes
+
+`vector<char>` is a compact boolean table and avoids the unusual proxy behavior
+of `vector<bool>`. The table has indices `0` through `total`, inclusive. The
+descending loop condition is `s >= x`, so `s-x` is always a valid index.
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    values = data[1:]
+    total = sum(values)
+    possible = bytearray(total + 1)
+    possible[0] = 1
+    for value in values:
+        for current in range(total, value - 1, -1):
+            if possible[current - value]:
+                possible[current] = 1
+    print(min(total - 2 * s for s in range(total // 2 + 1) if possible[s]))
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Python implementation notes
+
+Use `bytearray(total + 1)` for a compact mutable reachability table;
+`possible[0]` must start true. In Python, `range(total, value - 1, -1)` is the
+descending 0/1 update. Only sums through `T/2` need inspection after the DP,
+although updating through `T` keeps the transition simple.
+
+## Common wrong answers
+
+- An upward loop accidentally permits a value multiple times.
+- Requiring an exactly half-total subset instead of accepting the closest one.
+- Deduplicating equal input values even though they are separate items.
+
+## Tests that matter
+
+- one value;
+- an odd total;
+- an exactly balanced input;
+- repeated values;
+- total sum `100000`.
+
+# Stress testing
+
+For at most 18 values, enumerate every bitmask and minimize `abs(T - 2*s)`.
+This independent brute-force oracle checks the DP on random small cases. The
+local generator separately uses one hundred values of `1000` for the
+`100000`-sum scale case.
+
+# What to carry forward
+
+Partition questions often become subset-sum DP after expressing both group
+sums in terms of one selected subset. Derive the algebra first, then choose the
+capacity state and its loop direction.

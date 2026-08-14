@@ -30,10 +30,11 @@ execute:
 | A. Safe Paths | ways to reach cell | sum from top and left |
 | B. Lowest Toll | minimum cost to reach cell | toll + min(top, left) |
 | C. Limited Turns | cell, turns, last direction | continue or turn |
+| D. Two Couriers | common step and two rows | four pairs of next moves |
 
-All three problems rely on the same row-major computation order. The third
-problem adds direction because the number of turns cannot be determined from
-the cell alone.
+The first three problems rely on the same row-major computation order. The
+third adds direction because the number of turns cannot be determined from the
+cell alone. The blind exercise instead synchronizes two routes at one step.
 
 # A. Safe Paths
 
@@ -111,7 +112,7 @@ immediate predecessor `(r-1,c)` or `(r,c-1)`, unless `(r,c)` is the start.
 
 **Proof.** The only allowed moves are down and right. Reversing the final move,
 a path into `(r,c)` must have come from one row above or one column left.
-`\square`
+$\square$
 
 **Theorem.** The algorithm computes the number of valid paths to every cell.
 
@@ -119,7 +120,7 @@ a path into `(r,c)` must have come from one row above or one column left.
 For any blocked cell, no valid path can stand there, so zero is correct. For an
 open non-start cell, the lemma partitions all paths by their final predecessor.
 Those sets are disjoint, and the predecessor values have already been computed
-in row-major order. The transition adds exactly their counts. `\square`
+in row-major order. The transition adds exactly their counts. $\square$
 
 ## Complexity
 
@@ -287,7 +288,7 @@ print prev[m-1]
 **Lemma.** Any valid path to `(r,c)` must enter from above or left, except for
 the start.
 
-**Proof.** The only moves are right and down. `\square`
+**Proof.** The only moves are right and down. $\square$
 
 **Theorem.** The algorithm computes the minimum cost to each processed cell.
 
@@ -295,7 +296,7 @@ the start.
 toll. For any other cell, by the lemma, the final predecessor is above or left.
 By induction, `prev[c]` and `cur[c-1]` contain the optimal costs to those
 predecessors. Taking their minimum and adding the current toll gives the best
-possible path to `(r,c)`. `\square`
+possible path to `(r,c)`. $\square$
 
 ## Complexity
 
@@ -463,7 +464,7 @@ answer = sum both directions for turns 0..K at finish
 direction: right or down.
 
 **Proof.** The allowed moves are right and down. The final move, if it exists,
-is exactly one of them. `\square`
+is exactly one of them. $\square$
 
 **Lemma 2.** The transition counts every valid path ending at `(r,c)` with
 exactly `t` turns and last direction `dir` once.
@@ -472,7 +473,7 @@ exactly `t` turns and last direction `dir` once.
 the final move, it either already ended with `RIGHT`, adding no turn, or ended
 with `DOWN`, adding one turn. The transition includes exactly these two cases.
 They are disjoint by previous last direction. The `DOWN` case is symmetric.
-`\square`
+$\square$
 
 **Theorem.** The algorithm prints the number of valid paths with at most `K`
 turns.
@@ -481,7 +482,7 @@ turns.
 zero turns. By induction over row-major order and Lemma 2, every DP state has
 the intended count. Summing the finish states over both last directions and
 turn counts `0..K` gives exactly the requested paths. The `1x1` case is handled
-as the unique empty path. `\square`
+as the unique empty path. $\square$
 
 ## Complexity
 
@@ -680,3 +681,231 @@ If only the previous row matters, row compression is available.
 The next DP sections will use the same habits with intervals, trees, and
 bitmasks, where the correct order is less visually obvious.
 
+# D. Two Couriers
+
+## Restatement
+
+Choose two right/down routes from the top-left to the bottom-right of a value
+grid. Their score is the sum of the values in the union of their visited cells:
+when both routes stand on one cell, its value is counted once. Maximize the
+score. Values may be negative, so a route cannot simply skip an inconvenient
+cell.
+
+## Constraints and traps
+
+`n,m <= 70` makes an exponential search over two routes impossible. A route
+has `n+m-2` moves, so even one route has a binomial number of possibilities.
+
+```text
+Use 64-bit integers: as many as 2 * (n+m-1) cells can contribute.
+Both couriers must make exactly n+m-2 moves.
+The start and finish cells are shared and each contributes once.
+Do not independently optimize the two routes: their overlap changes the score.
+```
+
+## Key observation and trace
+
+After `step` moves, every right/down route is on a cell with:
+
+```text
+row + column = step
+```
+
+Therefore, if we know courier one's row `r1` and courier two's row `r2`, their
+columns are forced:
+
+```text
+c1 = step - r1
+c2 = step - r2
+```
+
+For example, after three moves, rows `1` and `2` mean positions `(1,2)` and
+`(2,1)`. The state needs no separate columns. On the next move each courier
+chooses `right` or `down`, giving four transition pairs. Add both destination
+values, except add only one when the two destinations are identical.
+
+## State and algorithm
+
+Let:
+
+```text
+dp[r1][r2] = best score after `step` moves,
+             with courier one at row r1 and courier two at row r2.
+```
+
+Initialize `dp[0][0]` with the start-cell value. For every step, create a new
+table initialized to negative infinity. For each reachable pair of rows, try
+the four pairs `(right/right, right/down, down/right, down/down)`. Reject a
+move that leaves the grid. At `step = n+m-2`, both rows must be `n-1`.
+
+```text
+dp[0][0] = value[0][0]
+
+for step = 0 .. n+m-3:
+    next = all negative infinity
+    for every reachable r1, r2:
+        derive c1 = step-r1 and c2 = step-r2
+        for each of the four next-move pairs:
+            derive nr1,nc1,nr2,nc2
+            if both destinations are in the grid:
+                gain = value[nr1][nc1]
+                if destinations differ: gain += value[nr2][nc2]
+                relax next[nr1][nr2]
+    dp = next
+
+answer = dp[n-1][n-1]
+```
+
+The two layers are sufficient because every transition advances exactly one
+step. This is also why negative infinity is necessary: zero is not a valid
+default when all available partial scores can be negative.
+
+## Correctness proof
+
+**Lemma 1.** At a fixed `step`, rows `r1,r2` uniquely determine both courier
+positions whenever the derived columns are in range.
+
+**Proof.** Each move increases `row + column` by one, starting from zero. Thus
+after `step` moves every position satisfies `row + column = step`; rearranging
+gives `column = step - row`. $\square$
+
+**Lemma 2.** For every reachable state after `step` moves, `dp[r1][r2]` equals
+the maximum union score among all pairs of routes with those two positions.
+
+**Proof.** Induct on `step`. At step zero there is only the pair of routes at
+the start, and the initialization counts that cell once. For the induction
+step, every pair of routes ending in a given next state has one of the four
+pairs of final moves. Removing those moves yields exactly a predecessor state
+considered by the algorithm. By induction its stored score is optimal; the
+transition adds precisely the new destination cells, once if equal. Taking the
+maximum over all four predecessor choices therefore stores the optimal score.
+$\square$
+
+**Theorem.** The algorithm prints the maximum score obtainable by two legal
+courier routes.
+
+**Proof.** After `n+m-2` moves, any legal courier is at the bottom-right cell,
+so all legal route pairs are represented by state `(n-1,n-1)`. Lemma 2 says
+that state stores the best score among exactly those pairs. $\square$
+
+## Complexity
+
+There are `n+m-1` layers and at most `n^2` row pairs per layer. Each uses four
+constant-time transitions.
+
+```text
+Time:   O((n+m) n^2)
+Memory: O(n^2)
+```
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    vector<vector<long long>> a(n, vector<long long>(m));
+    for (auto &row : a) for (long long &x : row) cin >> x;
+
+    const long long NEG = -(1LL << 62);
+    vector<vector<long long>> dp(n, vector<long long>(n, NEG));
+    dp[0][0] = a[0][0];
+    for (int step = 0; step < n + m - 2; ++step) {
+        vector<vector<long long>> nxt(n, vector<long long>(n, NEG));
+        for (int r1 = 0; r1 < n; ++r1) for (int r2 = 0; r2 < n; ++r2) {
+            int c1 = step - r1, c2 = step - r2;
+            if (c1 < 0 || c1 >= m || c2 < 0 || c2 >= m || dp[r1][r2] == NEG) continue;
+            for (int d1 = 0; d1 <= 1; ++d1) for (int d2 = 0; d2 <= 1; ++d2) {
+                int nr1 = r1 + d1, nc1 = c1 + 1 - d1;
+                int nr2 = r2 + d2, nc2 = c2 + 1 - d2;
+                if (nr1 >= n || nr2 >= n || nc1 >= m || nc2 >= m) continue;
+                long long gain = a[nr1][nc1];
+                if (nr1 != nr2 || nc1 != nc2) gain += a[nr2][nc2];
+                nxt[nr1][nr2] = max(nxt[nr1][nr2], dp[r1][r2] + gain);
+            }
+        }
+        dp.swap(nxt);
+    }
+    cout << dp[n - 1][n - 1] << '\n';
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    n, m = data[:2]
+    a = [data[2 + r * m:2 + (r + 1) * m] for r in range(n)]
+    neg = -(1 << 62)
+    dp = [[neg] * n for _ in range(n)]
+    dp[0][0] = a[0][0]
+    for step in range(n + m - 2):
+        nxt = [[neg] * n for _ in range(n)]
+        for r1 in range(n):
+            c1 = step - r1
+            if not 0 <= c1 < m:
+                continue
+            for r2 in range(n):
+                c2 = step - r2
+                if not 0 <= c2 < m or dp[r1][r2] == neg:
+                    continue
+                for d1 in (0, 1):
+                    for d2 in (0, 1):
+                        nr1, nc1 = r1 + d1, c1 + 1 - d1
+                        nr2, nc2 = r2 + d2, c2 + 1 - d2
+                        if nr1 >= n or nr2 >= n or nc1 >= m or nc2 >= m:
+                            continue
+                        gain = a[nr1][nc1]
+                        if (nr1, nc1) != (nr2, nc2):
+                            gain += a[nr2][nc2]
+                        nxt[nr1][nr2] = max(nxt[nr1][nr2], dp[r1][r2] + gain)
+        dp = nxt
+    print(dp[n - 1][n - 1])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers and tests
+
+```text
+Adding a meeting cell twice.
+Using 0 for an unreachable state on a negative grid.
+Forgetting that the 1x1 grid has only one counted cell.
+Trying to store both columns even though they are determined by the step.
+```
+
+Test a `1x1` negative grid, a single row or column where both routes must
+coincide, a grid where separating routes is valuable, and an all-negative grid.
+The random checker uses exhaustive enumeration of every route pair on grids up
+to `5x5`, then adds a `70x70` scale case.
+
+## Stress testing
+
+For tiny `n,m <= 5`, generate every right/down route by choosing the positions
+of its down moves. Try every pair of generated routes, form the union of their
+visited cells, and take the best value. This is deliberately a different
+algorithm from the synchronized DP, so agreement is meaningful. Include
+negative values in the tiny grids; they expose implementations that initialize
+unreachable states to zero. The separate `70x70` all-zero case checks that the
+intended polynomial state space is used without requiring an expensive oracle.
+
+# What to carry forward
+
+Grid DP is not restricted to one path and one cell state. Find a quantity that
+advances in lockstep, then store only the independent coordinates. Here the
+step fixes both columns, reducing a four-coordinate description to two rows.
+The same synchronization idea reappears in problems with two walkers, aligned
+strings, and simultaneous operations.

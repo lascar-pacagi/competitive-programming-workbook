@@ -177,7 +177,7 @@ between chosen positions.
 
 ## Important constraints and traps
 
-The positions are not necessarily sorted. Duplicates may exist, making answer
+Positions are supplied in non-decreasing order. Duplicates may exist, making answer
 `0` possible.
 
 This is a maximum feasible problem:
@@ -208,7 +208,6 @@ the greedy check maximizes the number of positions placed for a fixed `d`.
 ## Algorithm
 
 ```text
-sort positions
 lo = 0                  # feasible
 hi = max_position - min_position + 1   # infeasible
 while lo + 1 < hi:
@@ -235,8 +234,8 @@ so `lo` is the largest feasible distance.
 
 ## Complexity
 
-Sorting takes `O(n log n)`. Each feasibility check is `O(n)`, and there are
-`O(log range)` checks. Memory is `O(1)` besides the array.
+Each feasibility check is `O(n)`, and there are `O(log range)` checks. Memory
+is `O(1)` besides the array.
 
 ## C++ solution
 
@@ -268,8 +267,6 @@ int main() {
         cin >> n >> k;
         vector<long long> pos(n);
         for (long long &x : pos) cin >> x;
-        sort(pos.begin(), pos.end());
-
         long long lo = 0;
         long long hi = pos.back() - pos.front() + 1;
         while (lo + 1 < hi) {
@@ -302,7 +299,6 @@ def can_place(pos: list[int], k: int, dist: int) -> bool:
 
 
 def solve_case(pos: list[int], k: int) -> int:
-    pos.sort()
     lo = 0
     hi = pos[-1] - pos[0] + 1
     while lo + 1 < hi:
@@ -332,7 +328,7 @@ sys.stdout.write("\n".join(out))
 
 - Binary searching the first false instead of the last true and printing the
   wrong boundary.
-- Forgetting to sort positions.
+- Treating equal positions as if they had a positive distance.
 - Using a non-greedy or quadratic feasibility check.
 - Assuming positions are distinct.
 
@@ -519,3 +515,133 @@ writing a correct feasibility check.
 This pattern will reappear in greedy problems, graph bottleneck problems,
 flows, dynamic programming optimization, and geometry.
 
+# Problem D: Factory Deadline
+
+## Restatement and predicate
+
+Machines run in parallel; machine i produces `floor(minutes / time[i])` items
+by a proposed deadline. The question "can we make at least goal items by x?"
+is monotone: if it is true at x, it stays true at every later minute.
+
+## Bounds, trace, and algorithm
+
+Zero minutes is infeasible because the goal is positive. `min(time) * goal` is
+feasible because the fastest machine can work alone; the local bounds keep it
+inside signed 64-bit range. With times 2 and 3, seven items need nine minutes:
+at eight minutes production is `4+2=6`, while at nine it is `4+3=7`.
+
+```text
+lo = 0; hi = fastest_time * goal
+while lo < hi:
+    mid = lo + (hi-lo)/2
+    if sum(mid / time[i]) >= goal: hi = mid
+    else: lo = mid + 1
+print lo
+```
+
+## Correctness proof
+
+For any x, each machine's production is exactly `floor(x/time[i])`, so the
+predicate computes total production correctly. Increasing x cannot decrease
+any term, hence feasibility is monotone. The binary-search invariant keeps lo
+infeasible (unless it is the answer boundary) and hi feasible; each iteration
+retains the first feasible value in the interval. When they meet, that value is
+the minimum feasible deadline, which is the requested answer.
+
+## Complexity and implementation notes
+
+Each predicate is O(n), so the solution is `O(n log(min_time*goal))` time and
+O(n) memory for the input. In C++, use `long long` and stop summing once total
+reaches goal to avoid unnecessary growth. Python integers are safe, but the
+same early break is useful. Test one machine, goal one, equal machine times,
+and a case near the 64-bit bound. The random tests use minute-by-minute brute
+force only on small instances plus a 200000-machine scale case.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int test_count;
+    cin >> test_count;
+
+    while (test_count--) {
+        int n;
+        long long goal;
+        cin >> n >> goal;
+
+        vector<long long> time(n);
+        for (long long& x : time) {
+            cin >> x;
+        }
+
+        long long lo = 0;
+        long long hi = *min_element(time.begin(), time.end()) * goal;
+
+        while (lo < hi) {
+            long long mid = lo + (hi - lo) / 2;
+            long long made = 0;
+
+            for (long long machine_time : time) {
+                made += mid / machine_time;
+                if (made >= goal) break;
+            }
+
+            if (made >= goal) {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+
+        cout << lo << '\n';
+    }
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def minimum_deadline(time: list[int], goal: int) -> int:
+    lo = 0
+    hi = min(time) * goal
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        made = 0
+
+        for machine_time in time:
+            made += mid // machine_time
+            if made >= goal:
+                break
+
+        if made >= goal:
+            hi = mid
+        else:
+            lo = mid + 1
+
+    return lo
+
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+i = 1
+out = []
+
+for _ in range(data[0]):
+    n = data[i]
+    goal = data[i + 1]
+    i += 2
+    time = data[i:i + n]
+    i += n
+    out.append(str(minimum_deadline(time, goal)))
+
+sys.stdout.write("\n".join(out))
+```

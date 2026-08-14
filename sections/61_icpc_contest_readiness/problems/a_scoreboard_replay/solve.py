@@ -2,8 +2,8 @@ import sys
 
 
 def main() -> None:
-    _ = sys.stdin.buffer.read()
-    # TODO: implement A. Scoreboard Replay.
+    # TODO: solve the problem.
+    pass
 
 
 if __name__ == "__main__":

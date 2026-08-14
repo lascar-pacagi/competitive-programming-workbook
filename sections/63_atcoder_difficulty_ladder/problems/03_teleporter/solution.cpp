@@ -1,0 +1,2 @@
+#include <bits/stdc++.h>
+using namespace std;int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,q;cin>>n>>q;vector<pair<long long,long long>>a(n);for(auto&x:a)cin>>x.first>>x.second;vector<pair<long long,int>>z(q);for(int i=0;i<q;i++){cin>>z[i].first;z[i].second=i;}sort(a.begin(),a.end());sort(z.begin(),z.end());vector<long long>ans(q);long long sum=0;int p=0;for(auto[x,id]:z){while(p<n&&a[p].first<=x)sum+=a[p++].second;ans[id]=sum;}for(int i=0;i<q;i++)cout<<ans[i]<<(i+1==q?'\n':' ');}

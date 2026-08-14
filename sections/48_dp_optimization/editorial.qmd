@@ -88,7 +88,7 @@ Partition the array into `k` contiguous groups minimizing the sum of squared gro
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -135,7 +135,7 @@ if __name__=="__main__": main()
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -173,7 +173,7 @@ Merge adjacent piles with cost equal to merged sum; print minimum total cost.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -207,6 +207,93 @@ def main():
     print(dp[0][n-1] if n else 0)
 if __name__=="__main__": main()
 ```
+
+# D. Bounded-Length Maximum Sum
+
+## Restatement and constraints
+
+Choose a contiguous subarray whose length is in `[L,R]` and maximize its sum.
+Values may be negative, so an empty subarray is not permitted and initializing
+the answer to zero would be wrong. With `n` up to `200000`, checking every
+start and end is quadratic.
+
+## Reduction and trace
+
+Let `pref[i]` be the sum of the first `i` values. A subarray ending just before
+prefix position `right` and beginning after prefix position `left` has sum
+`pref[right] - pref[left]`. Its length is allowed exactly when
+`right - R <= left <= right - L`.
+
+For a fixed `right`, `pref[right]` is fixed, so the best allowed subarray uses
+the smallest prefix sum in that sliding interval of `left` indices. With
+`L=2`, `R=4`, and values `-2,3,-1,5,-6,4`, endpoint `right=4` permits prefix
+indices `0,1,2`, whose sums are `0,-2,1`. Choose index `1`: the result is
+`pref[4]-pref[1]=5-(-2)=7`, from subarray `3,-1,5`.
+
+## Monotone deque algorithm
+
+Keep a deque of legal prefix indices in increasing `pref` order. At each
+endpoint `right`, insert `enter=right-L`, removing suffix indices with
+`pref[index] >= pref[enter]`; remove front indices below `right-R`; then update
+the answer with `pref[right]-pref[deque.front()]`. The entering index has just
+reached the minimum allowed length. A removed back index has a prefix sum no
+smaller than a newer index and expires earlier, so it can never be useful.
+
+## Correctness proof
+
+**Lemma 1.** Before evaluating an endpoint `right`, the deque contains exactly
+the undominated prefix indices in `[right-R,right-L]`, in increasing prefix-sum
+order.
+
+**Proof.** Index `right-L` is inserted when it becomes legal and indices below
+`right-R` are removed when they expire. If an older index has prefix sum at
+least a newer index's sum, the newer index is at least as good for every future
+endpoint and remains legal longer. Thus deleting the older index is safe; no
+other legal, undominated index is deleted.
+
+**Lemma 2.** At endpoint `right`, the deque front gives the best allowed
+subarray ending there.
+
+**Proof.** Lemma 1 makes the front the smallest legal `pref[left]`. Subtracting
+it from fixed `pref[right]` maximizes `pref[right]-pref[left]`.
+
+**Theorem.** The algorithm prints the maximum sum of every allowed subarray.
+
+**Proof.** Every allowed subarray has an endpoint `right`. Lemma 2 considers
+the best allowed one for that endpoint, and the algorithm takes the maximum
+over every endpoint.
+
+## Complexity and implementation notes
+
+Every prefix index enters and leaves the deque at most once, so time is `O(n)`
+and memory is `O(n)` for the prefix array and deque. Use `long long` in C++:
+the answer can have magnitude `2 * 10^14`. Insert before querying so length
+exactly `L` is legal. Removing equal prefix sums from the back retains the newer
+index, which expires later.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_bounded_length_max_sum/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_bounded_length_max_sum/solution.py >}}
+```
+
+## Tests that matter
+
+```text
+All values negative: the answer must still be nonempty.
+L = R = 1: this becomes the maximum element.
+L = 1 and R = n: every nonempty length is legal.
+Optima at exactly L and exactly R, plus equal prefix sums.
+```
+
+The tiny oracle enumerates every subarray independently. The scale case has
+`200000` ones and a wide length interval, exposing a quadratic scan.
 
 # Testing discussion
 

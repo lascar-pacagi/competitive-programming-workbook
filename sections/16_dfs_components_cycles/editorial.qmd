@@ -25,13 +25,14 @@ execute:
 
 # Editorial overview
 
-The three local tasks use DFS in three different modes:
+The four local tasks use DFS in different modes:
 
 | Problem | DFS mode |
 |---|---|
 | A. Subtree Sizes | root a tree and process postorder |
 | B. Undirected Cycle | traversal with parent skipping |
 | C. Directed Cycle | traversal with active/finished colors |
+| D. Component Audit | collect component statistics while traversing |
 
 The common theme is state:
 
@@ -161,14 +162,14 @@ print subtree[1..n]
 **Proof.** In a tree there is exactly one simple path from the root to any
 vertex. When traversal first reaches a vertex `v` from `u`, the edge `u-v` lies
 on that root-to-`v` path, so `u` is the rooted parent of `v`. Because a tree has
-no cycles, no vertex can be reached later through a different parent. `\square`
+no cycles, no vertex can be reached later through a different parent. $\square$
 
 **Lemma 2.** In `reversed(order)`, every vertex appears before its parent.
 
 **Proof.** A vertex is appended to `order` when it is popped from the DFS stack.
 Its children are pushed only after the parent has been popped and appended.
 Therefore every child is appended after its parent in `order`, and before its
-parent in `reversed(order)`. `\square`
+parent in `reversed(order)`. $\square$
 
 **Lemma 3.** When processing a vertex `u` in `reversed(order)`, `subtree[u]`
 equals the true subtree size of `u`.
@@ -176,12 +177,12 @@ equals the true subtree size of `u`.
 **Proof.** By Lemma 2, all children of `u` were processed earlier in the
 reversed order. Each child has already added its complete subtree size into
 `u`. Starting from `1` for `u` itself, the value is exactly `1` plus all child
-subtree sizes. `\square`
+subtree sizes. $\square$
 
 **Theorem.** The algorithm prints the correct subtree size for every vertex.
 
 **Proof.** Lemma 3 applies to every vertex when it is processed. The algorithm
-prints the resulting values. `\square`
+prints the resulting values. $\square$
 
 ## Complexity
 
@@ -386,7 +387,7 @@ print ACYCLIC
 `v` is already seen and `v` is not the parent of `u`. Since `v` was seen in the
 same DFS component, the DFS tree contains a path between `v` and `u`. This path
 does not use the edge `u-v` as the parent edge. Adding edge `u-v` forms a
-cycle. `\square`
+cycle. $\square$
 
 **Lemma 2.** If an undirected component contains a cycle, the algorithm will
 print `CYCLIC`.
@@ -396,13 +397,13 @@ first vertex of that cycle discovered, and follow DFS tree discoveries until
 the traversal reaches other cycle vertices. Because the cycle has a closing
 edge between two already connected vertices that is not simply a child-parent
 return edge, eventually DFS scans an edge to an already seen non-parent vertex.
-Then the algorithm prints `CYCLIC`. `\square`
+Then the algorithm prints `CYCLIC`. $\square$
 
 **Theorem.** The algorithm prints `CYCLIC` exactly when the graph contains an
 undirected cycle.
 
 **Proof.** Lemma 1 proves no false positives. Lemma 2 proves no false
-negatives. The outer loop checks every component. `\square`
+negatives. The outer loop checks every component. $\square$
 
 ## Complexity
 
@@ -625,7 +626,7 @@ a directed cycle.
 **Proof.** Color `1` means the vertex is currently on the active DFS stack.
 If the current vertex is `u` and the edge is `u -> v`, then the stack contains
 a directed path from `v` down to `u`. Adding edge `u -> v` closes a directed
-cycle. `\square`
+cycle. $\square$
 
 **Lemma 2.** If the graph has a directed cycle, DFS will eventually see an edge
 to a color-`1` vertex.
@@ -635,14 +636,14 @@ cycle edges from it, DFS either enters the next unvisited cycle vertex or
 encounters a vertex already active. The cycle cannot be fully finished before
 its closing edge is scanned, because finishing the first cycle vertex requires
 finishing all descendants reached through its outgoing edges. Therefore the
-closing edge is eventually scanned while its target is still active. `\square`
+closing edge is eventually scanned while its target is still active. $\square$
 
 **Theorem.** The algorithm prints `CYCLIC` exactly when the directed graph
 contains a directed cycle.
 
 **Proof.** Lemma 1 proves every reported cycle is real. Lemma 2 proves every
 real directed cycle is detected. The outer loop starts DFS from every
-unvisited component. `\square`
+unvisited component. $\square$
 
 ## Complexity
 
@@ -766,6 +767,253 @@ Use:
 - graph with no edges;
 - repeated edge in an acyclic graph.
 
+# D. Component Audit
+
+## Restatement
+
+The input is an undirected simple graph that can be disconnected. Classify
+every connected component as either a tree component (it has no cycle) or a
+cyclic component (it has at least one cycle), then print the two counts.
+
+## Constraints and traps
+
+Both the number of vertices and roads can be `200000`, so repeatedly scanning
+the graph for every component, or doing a separate cycle search after every
+traversal, risks unnecessary work. Isolated vertices count: a one-vertex,
+zero-edge component is a tree. Every undirected road appears in two adjacency
+lists, so summing degrees counts each road twice.
+
+The graph is simple: there are no self-loops or repeated roads. That makes the
+standard connected-component characterization especially clean:
+
+```text
+connected component is a tree  <=>  number of edges = number of vertices - 1
+```
+
+## Observation and walk-through
+
+Run one iterative DFS from each unvisited vertex. During that traversal,
+increment `vertices` whenever a vertex is popped, and add the length of its
+adjacency list to `degree_sum`. At the end, the component has
+`edges = degree_sum / 2` roads.
+
+For the sample, DFS from `1` sees vertices `1, 2, 3`. Its degree sum is
+`1 + 2 + 1 = 4`, so it has two edges and is a tree because `2 = 3 - 1`.
+DFS from `4` sees a triangle: three vertices and degree sum `6`, hence three
+edges. Since `3 != 3 - 1`, that component is cyclic. Finally, `7--8` is a
+second tree component.
+
+## Algorithm
+
+```text
+build an undirected adjacency list
+seen[v] = false for every vertex
+tree_components = cyclic_components = 0
+
+for every vertex start:
+    if start is seen:
+        continue
+
+    vertices = degree_sum = 0
+    mark start and push it onto a stack
+    while stack is not empty:
+        u = pop stack
+        vertices += 1
+        degree_sum += number of neighbors of u
+        for every neighbor v of u:
+            if v is unseen:
+                mark v
+                push v
+
+    edges = degree_sum / 2
+    if edges == vertices - 1:
+        tree_components += 1
+    else:
+        cyclic_components += 1
+
+print tree_components and cyclic_components
+```
+
+Mark a vertex when it is pushed, not when it is popped. Otherwise two
+neighbors can push the same vertex before either copy is processed.
+
+## Correctness proof
+
+**Lemma 1.** One DFS started at an unvisited vertex visits exactly its connected
+component, and no other component.
+
+**Proof.** Every visited vertex is reached through a chain of graph edges from
+the start, so it belongs to the start's component. Conversely, DFS follows
+every edge incident to every vertex it visits. Any vertex connected to the
+start has a path from it; proceeding along that path shows DFS eventually
+marks every vertex on the path, including the endpoint. $\square$
+
+**Lemma 2.** After one DFS, `vertices` and `degree_sum / 2` are respectively
+the number of vertices and edges in that connected component.
+
+**Proof.** By Lemma 1, each component vertex is popped exactly once and adds
+one to `vertices`. Every component road appears once in the adjacency list of
+each endpoint, so it contributes exactly two to `degree_sum`. $\square$
+
+**Lemma 3.** A connected component is a tree exactly when its edge count is
+one less than its vertex count.
+
+**Proof.** A tree with `V` vertices has `V-1` edges: start with one vertex and
+each newly attached vertex contributes one edge. Conversely, a connected graph
+with `V-1` edges cannot contain a cycle. Removing an edge from a cycle keeps
+the graph connected, which would leave a connected graph with only `V-2`
+edges; a connected graph needs at least `V-1` edges to reach all `V` vertices.
+Thus it is acyclic and therefore a tree. $\square$
+
+**Theorem.** The algorithm prints the correct number of tree and cyclic
+components.
+
+**Proof.** The outer loop starts exactly one DFS for each connected component.
+By Lemma 2 it computes that component's exact vertex and edge counts, and by
+Lemma 3 it classifies the component correctly. Adding one to the matching
+counter for every component gives exactly both requested totals. $\square$
+
+## Complexity
+
+Every vertex is pushed once and every undirected road is scanned from each of
+its two endpoints.
+
+```text
+Time:   O(n + m)
+Memory: O(n + m)
+```
+
+## C++ implementation notes
+
+Store `degree_sum` in `long long`. It fits in `int` under these bounds, but the
+type makes the relationship to an edge count explicit and remains safe if the
+exercise limits later grow. A `vector<char>` is enough for the `seen` state.
+
+## Python implementation notes
+
+Use a normal list as a stack with `append` and `pop`; both are amortized
+constant time. Read all integers from `sys.stdin.buffer` to avoid repeated
+input overhead on the scale case.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> graph(n);
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        cin >> u >> v;
+        --u;
+        --v;
+        graph[u].push_back(v);
+        graph[v].push_back(u);
+    }
+
+    vector<char> seen(n, false);
+    int tree_components = 0, cyclic_components = 0;
+    for (int start = 0; start < n; ++start) {
+        if (seen[start]) continue;
+
+        long long vertices = 0, degree_sum = 0;
+        vector<int> stack = {start};
+        seen[start] = true;
+        while (!stack.empty()) {
+            int u = stack.back();
+            stack.pop_back();
+            ++vertices;
+            degree_sum += graph[u].size();
+            for (int v : graph[u]) {
+                if (!seen[v]) {
+                    seen[v] = true;
+                    stack.push_back(v);
+                }
+            }
+        }
+
+        if (degree_sum / 2 == vertices - 1) ++tree_components;
+        else ++cyclic_components;
+    }
+
+    cout << tree_components << ' ' << cyclic_components << '\n';
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    n, m = data[0], data[1]
+    graph = [[] for _ in range(n)]
+    index = 2
+    for _ in range(m):
+        u = data[index] - 1
+        v = data[index + 1] - 1
+        index += 2
+        graph[u].append(v)
+        graph[v].append(u)
+
+    seen = [False] * n
+    tree_components = cyclic_components = 0
+    for start in range(n):
+        if seen[start]:
+            continue
+
+        vertices = degree_sum = 0
+        stack = [start]
+        seen[start] = True
+        while stack:
+            u = stack.pop()
+            vertices += 1
+            degree_sum += len(graph[u])
+            for v in graph[u]:
+                if not seen[v]:
+                    seen[v] = True
+                    stack.append(v)
+
+        if degree_sum // 2 == vertices - 1:
+            tree_components += 1
+        else:
+            cyclic_components += 1
+
+    print(tree_components, cyclic_components)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Starting DFS only from vertex `1`, which ignores other components.
+- Calling every component with at least one edge cyclic; a path has edges but
+  is still a tree.
+- Comparing `degree_sum` directly with `vertices - 1` instead of dividing by
+  two.
+- Marking vertices only on pop, allowing duplicate stack entries and corrupting
+  the collected statistics.
+
+## Tests that matter
+
+- no roads: every isolated vertex is a tree component;
+- one triangle plus a path: checks both categories in one graph;
+- a cycle with a long tail: it remains one cyclic component;
+- nested-looking traversal order with many cross edges: edge counting must not
+  depend on DFS parent choices;
+- a `200000`-vertex cycle: rejects recursive implementations that exhaust the
+  call stack and quadratic repeated traversals.
+
 # Stress testing
 
 Good stress tests for this section compare independent ideas:
@@ -792,6 +1040,14 @@ compare DFS colors against Floyd-Warshall reachability on tiny directed graphs:
 there is a cycle iff some edge u->v has v reachable back to u
 ```
 
+Problem D:
+
+```text
+brute-force every connected component with a tiny BFS
+count its vertices and unique undirected edges
+classify it using edges == vertices - 1
+```
+
 The local generators use direct reference implementations and include both
 fixed edge cases and randomized cases for C++ and Python.
 
@@ -808,4 +1064,3 @@ you need to detect cycles
 
 The next section builds on DFS finishing order and introduces topological
 sorting and dynamic programming on DAGs.
-

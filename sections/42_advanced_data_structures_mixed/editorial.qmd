@@ -23,6 +23,17 @@ execute:
   enabled: false
 ---
 
+# Category coverage
+
+| Category | Problem |
+|---|---|
+| order statistics with Fenwick binary lifting | A. Dynamic Order Statistics |
+| range-add/range-sum with two Fenwick trees | B. Range Add Range Sum |
+| offline rectangle counting | C. Static Rectangle Count |
+
+All required categories are present locally. D. Nested Ranges Count is an
+additional sorting-and-Fenwick synthesis problem.
+
 # Editorial overview
 
 ## Problem-specific proof map
@@ -39,6 +50,11 @@ range sum, with `O(log n)` updates and queries.
 **C. Static Rectangle Count.** Inclusion-exclusion turns a rectangle into four
 dominance counts. During the x-sweep, the Fenwick tree contains precisely points
 with `x <= X`, so its y-prefix produces each dominance count in `O(log n)`.
+
+**D. Nested Ranges Count.** Sort intervals by left endpoint ascending and
+right endpoint descending. A Fenwick tree over right endpoints counts the
+intervals already seen in the relevant sweep direction; process equal interval
+pairs together so identical intervals count one another.
 
 ## Detailed solution guide
 
@@ -273,7 +289,260 @@ if __name__=="__main__": main()
 Test duplicate insert/erase, invalid ranks, negative/full-range updates, and
 points on inclusive rectangle boundaries with duplicate coordinates.
 
-# What to carry forward
+# D. Nested Ranges Count
+
+## Restatement and constraints
+
+For every one of `n` closed intervals `[l_i,r_i]`, count two quantities:
+
+1. how many *other* intervals it contains; and
+2. how many *other* intervals contain it.
+
+Interval `i` contains interval `j` exactly when `l_i <= l_j` and
+`r_j <= r_i`. Identical intervals therefore contain each other. With up to
+`200,000` intervals, comparing all ordered pairs is quadratic.
+
+## Ordering and worked trace
+
+Sort interval records by `(left ascending, right descending)`. The descending
+tie-break is essential: among intervals that begin together, a larger right
+endpoint can contain a smaller one.
+
+For intervals
+
+```text
+0: [1,6]
+1: [2,5]
+2: [2,5]
+3: [3,4]
+```
+
+the contains counts are `[3,2,2,0]`: interval 0 contains all other intervals;
+each copy of `[2,5]` contains the other copy and `[3,4]`. The contained-by
+counts are `[0,2,2,3]`.
+
+Compress right endpoints. To count **contained-by**, sweep the sorted list
+left to right. Earlier records have a left endpoint no larger than the current
+one. Among them, the number with right endpoint at least `r` is
+`processed - BIT.prefix(rank(r)-1)`.
+
+To count **contains**, sweep the same ordering right to left. Already processed
+records have a left endpoint no smaller than the current one. The number with
+right endpoint at most `r` is `BIT.prefix(rank(r))`.
+
+Equal pairs such as the two `[2,5]` records must be processed as a group in
+both sweeps. Compute the common answer against previously processed intervals,
+then add `group_size-1` because every duplicate contains, and is contained by,
+every other duplicate. Only then insert the whole group into the Fenwick tree.
+
+## Algorithm
+
+```text
+sort records by (left increasing, right decreasing)
+compress all right endpoints
+
+for each equal-pair group from left to right:
+    base = processed - BIT.prefix(rank(right) - 1)
+    contained_by[index] = base + group_size - 1 for every index in group
+    insert group_size copies of rank(right) into BIT
+
+clear BIT
+for each equal-pair group from right to left:
+    base = BIT.prefix(rank(right))
+    contains[index] = base + group_size - 1 for every index in group
+    insert group_size copies of rank(right) into BIT
+```
+
+## Correctness proof
+
+Consider the forward sweep. Before a group is processed, the ordering ensures
+every inserted interval has left endpoint at most the group's left endpoint.
+The Fenwick tree counts their right endpoints. Subtracting the count strictly
+below the group's right endpoint from the number processed leaves exactly those
+with right endpoint at least it, which are exactly the previously inserted
+intervals containing this group. Equal-pair additions count every other
+identical interval, and delaying their insertion prevents double counting.
+Thus `contained_by` is correct.
+
+For the reverse sweep, every inserted interval has left endpoint at least the
+current group's left endpoint. The Fenwick prefix through its right endpoint
+counts exactly those whose right endpoint is at most it, which are exactly the
+inserted intervals contained by this group. The same equal-pair argument adds
+the identical intervals exactly once. Thus `contains` is correct. QED.
+
+## Complexity, implementation notes, and tests
+
+Sorting/compression cost `O(n log n)`, and each Fenwick operation costs
+`O(log n)`, so total time is `O(n log n)` with `O(n)` memory. Keep original
+indices in the sorted records so answers can be printed in input order.
+
+Test identical intervals, intervals sharing only one endpoint, disjoint
+intervals, and a fully nested chain. The common error is to update a duplicate
+immediately; that makes the first duplicate see none of its peers while later
+duplicates see too many.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_nested_ranges_count/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_nested_ranges_count/solution.py >}}
+```
+
+# Progressive challenge solutions
+
+# E. Subtree Add, Point Query
+
+An Euler tour assigns every subtree one contiguous interval
+`[tin[u], tout[u]]`. Represent a subtree addition as two changes in a Fenwick
+difference array: `+x` at `tin[u]` and `-x` after `tout[u]`. Its prefix sum at
+`tin[v]` is exactly the total of updates whose subtree intervals contain `v`;
+add that to the original value. The interval property proves correctness.
+Preprocessing is `O(n)` and each operation is `O(log n)`.
+
+```cpp
+{{< include problems/e_subtree_add_point_query/solution.cpp >}}
+```
+
+```python
+{{< include problems/e_subtree_add_point_query/solution.py >}}
+```
+
+# F. Dynamic Path Maximum
+
+Heavy-light decomposition partitions any tree path into `O(log n)` contiguous
+segments of one base array. A segment tree stores the maximum in that array;
+assignments are point updates. While the chain heads differ, consume the
+deeper head-to-vertex segment, then finish the final common-chain segment.
+These pieces are disjoint and concatenate to the original path, so their
+maximum is the path maximum. Updates cost `O(log n)`, queries
+`O(log^2 n)`, and memory `O(n)`.
+
+```cpp
+{{< include problems/f_dynamic_path_maximum/solution.cpp >}}
+```
+
+```python
+{{< include problems/f_dynamic_path_maximum/solution.py >}}
+```
+
+# G. Subtree Value Count
+
+Flatten the tree in preorder, making a subtree a contiguous interval. Build a
+merge-sort tree: every node stores the sorted values in its positional
+segment. Decompose a query interval into `O(log n)` nodes and use two binary
+searches in each to count values in `[lo,hi]`. The selected nodes partition
+the subtree interval, so their counts neither omit nor duplicate a vertex.
+Time is `O(log^2 n)` per query and memory `O(n log n)`.
+
+```cpp
+{{< include problems/g_subtree_value_count/solution.cpp >}}
+```
+
+```python
+{{< include problems/g_subtree_value_count/solution.py >}}
+```
+
+# H. Connectivity Countdown
+
+DSU cannot delete edges, but reversing time turns every deletion into an
+addition. First mark all edges ever deleted and build a DSU from the edges
+that survive to the end. Scan operations backward: answer a query in the
+current DSU, and undo a forward deletion by joining that edge.
+
+Before each reversed operation, the DSU contains exactly the edges present
+immediately after that operation in forward time. This is true at the end by
+construction; reversing a deletion adds exactly its one missing edge, while a
+query changes nothing. Induction proves every recorded answer correct. The
+total time is `O((n+m+q) alpha(n))` and memory is `O(n+m+q)`.
+
+```cpp
+{{< include problems/h_connectivity_countdown/solution.cpp >}}
+```
+
+```python
+{{< include problems/h_connectivity_countdown/solution.py >}}
+```
+
+# I. Persistent Version Sums
+
+A point assignment changes only one root-to-leaf path of a segment tree.
+Create new nodes on that path and share every untouched subtree with the old
+root. Each root therefore describes one immutable version. Induction on a
+node's interval shows its sum uses the updated child exactly when the position
+lies there and otherwise uses the old child, so the new root represents the
+requested copied-and-edited array. Build time is `O(n)`; every update and
+query is `O(log n)`; memory is `O(n+q log n)`.
+
+```cpp
+{{< include problems/i_persistent_version_sums/solution.cpp >}}
+```
+
+```python
+{{< include problems/i_persistent_version_sums/solution.py >}}
+```
+
+# J. Subtree K-th Smallest
+
+Flatten the tree and build persistent frequency roots for successive prefixes
+of the Euler array. The multiset of subtree `[l,r)` is the frequency difference
+between roots `r` and `l`. At each value-tree node, subtract the left-child
+counts: if at least `k` elements lie left, descend left; otherwise subtract
+that count and descend right. This preserves the rank of the target until its
+compressed value leaf is reached. Preprocessing and memory are
+`O(n log n)`; each query is `O(log n)`.
+
+```cpp
+{{< include problems/j_subtree_kth_smallest/solution.cpp >}}
+```
+
+```python
+{{< include problems/j_subtree_kth_smallest/solution.py >}}
+```
+
+# K. Sparse Rectangle Sums
+
+Collect all update points before processing. Compress their x-coordinates.
+For each outer Fenwick index, store only the y-coordinates of updates that can
+reach that index, with an inner Fenwick tree over those coordinates. A point
+update follows both Fenwick directions; `prefix(x,y)` sums precisely points
+with both coordinates bounded. Inclusion--exclusion of four prefixes gives an
+inclusive rectangle. Each operation costs `O(log^2 q)` and the nested trees
+use `O(q log q)` memory. Query boundaries need not occur among update
+coordinates: `upper_bound` handles them.
+
+```cpp
+{{< include problems/k_sparse_rectangle_sums/solution.cpp >}}
+```
+
+```python
+{{< include problems/k_sparse_rectangle_sums/solution.py >}}
+```
+
+# L. Path Add, Path Maximum
+
+Use heavy-light decomposition as in F, but place a lazy range-add/range-max
+segment tree on the base array. Split each requested path into chain segments;
+apply the range addition to every piece or take the maximum of their range
+maxima. The HLD pieces partition exactly the path, and the lazy tree invariant
+says a node maximum already includes every addition covering that node.
+Together these facts prove both operations correct.
+
+There are `O(log n)` pieces, each costing `O(log n)`, so every operation is
+`O(log^2 n)` and memory is `O(n)`. Negative values require a genuine negative
+infinity neutral element, not zero.
+
+```cpp
+{{< include problems/l_path_add_path_maximum/solution.cpp >}}
+```
+
+```python
+{{< include problems/l_path_add_path_maximum/solution.py >}}
+```
 
 <!-- Duplicate workshop hidden from the rendered editorial.
 # Detailed upsolve workshop
@@ -352,9 +621,11 @@ for y2. Test boundary points, duplicate coordinates, and empty rectangles.
 # Testing discussion
 
 Run `CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py`.
-For small random cases, compare A with a sorted multiset, B with a direct array,
-and C with a direct point scan. These oracles expose incorrect binary lifting,
-off-by-one difference boundaries, and compression errors.
+For small random cases, compare every new structure with its direct model:
+explicit subtree/path updates, BFS connectivity, copied version arrays, sorted
+subtree values, and a point dictionary for rectangle sums. These oracles expose
+incorrect Euler orders, rollback boundaries, persistence sharing errors, and
+two-dimensional compression mistakes.
 
 # What to carry forward
 

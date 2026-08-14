@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: stars and bars: C(n+s-1, n-1).
+    // TODO: solve the problem.
     return 0;
 }

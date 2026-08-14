@@ -30,6 +30,7 @@ execute:
 | A. Broken Stairs | counting ways | `dp[i] = dp[i-1] + dp[i-2]` unless broken |
 | B. Training Score | max take/skip | `dp[i] = max(dp[i-1], dp[i-2] + a[i])` |
 | C. Energy Route | min over previous states | `dp[i] = min(dp[j] + cost(j,i))` |
+| D. Exact Change | minimum exact construction | `dp[x] = min(dp[x-c] + 1)` |
 
 The shared workflow:
 
@@ -147,7 +148,7 @@ print dp[n]
 at either `i-1` or `i-2` immediately before reaching `i`.
 
 **Proof.** The only allowed move lengths are `1` and `2`. Therefore the step
-before `i` must be `i-1` or `i-2`. `\square`
+before `i` must be `i-1` or `i-2`. $\square$
 
 **Lemma 2.** For every `i`, `dp[i]` equals the number of valid ways to reach
 step `i`, modulo `MOD`, after the algorithm computes it.
@@ -158,13 +159,13 @@ no valid path may land there, and the algorithm sets `dp[i] = 0`. Otherwise,
 by Lemma 1, every valid path to `i` comes from a valid path to `i-1` followed by
 a one-step move, or from a valid path to `i-2` followed by a two-step move.
 These cases are disjoint, and by the induction hypothesis their counts are
-`dp[i-1]` and `dp[i-2]`. The algorithm adds exactly these counts. `\square`
+`dp[i-1]` and `dp[i-2]`. The algorithm adds exactly these counts. $\square$
 
 **Theorem.** The algorithm prints the number of valid ways to reach step `n`,
 modulo `1_000_000_007`.
 
 **Proof.** By Lemma 2 with `i = n`, `dp[n]` has exactly the required meaning.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -368,7 +369,7 @@ print prev1
 skipped, or day `i` is taken and day `i-1` is skipped.
 
 **Proof.** Day `i` has only two possibilities: skipped or taken. If it is
-taken, the rule forbids training on day `i-1`. `\square`
+taken, the rule forbids training on day `i-1`. $\square$
 
 **Lemma 2.** After processing the first `i` days, `dp[i]` equals the maximum
 valid score using only those days.
@@ -378,13 +379,13 @@ For `i > 0`, Lemma 1 splits every valid optimal solution into two cases. If day
 `i` is skipped, the best possible score is `dp[i-1]`. If day `i` is taken, the
 best compatible score from earlier days is `dp[i-2]`, plus `a[i]`. By the
 induction hypothesis, those smaller DP values are optimal. The algorithm takes
-the maximum of exactly these two exhaustive cases. `\square`
+the maximum of exactly these two exhaustive cases. $\square$
 
 **Theorem.** The algorithm prints the maximum possible training score.
 
 **Proof.** By Lemma 2 with `i = n`, `dp[n]` is the best score using all days.
 The rolling implementation stores the same recurrence values, only without the
-full table. `\square`
+full table. $\square$
 
 ## Complexity
 
@@ -575,7 +576,7 @@ platform `j` with `max(0, i-k) <= j < i`.
 
 **Proof.** The last move must be a forward jump ending at `i`. Since jumps may
 advance at most `k` positions, the previous platform `j` must satisfy
-`i-k <= j < i`. That final previous platform is unique for the route. `\square`
+`i-k <= j < i`. That final previous platform is unique for the route. $\square$
 
 **Lemma 2.** After computing `dp[i]`, it equals the minimum energy needed to
 reach platform `i`.
@@ -585,13 +586,13 @@ For `i > 0`, Lemma 1 says every valid route reaches some valid previous
 platform `j`, then jumps from `j` to `i`. By the induction hypothesis, the
 minimum energy to reach each such `j` is `dp[j]`, so the best route with final
 previous platform `j` has cost `dp[j] + abs(h[j] - h[i])`. The algorithm takes
-the minimum over all valid `j`, so it finds the best route to `i`. `\square`
+the minimum over all valid `j`, so it finds the best route to `i`. $\square$
 
 **Theorem.** The algorithm prints the minimum total energy to reach platform
 `n`.
 
 **Proof.** By Lemma 2 for the last platform, `dp[n-1]` is the required minimum.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -692,6 +693,198 @@ Heights near 10^9 -> tests long long.
 Several previous platforms tie for best cost.
 ```
 
+# D. Exact Change
+
+## Restatement
+
+You have unlimited copies of each positive coin denomination. Make exactly the
+target amount with the fewest coins, or print `-1` if no selection of coins
+has that exact total. The target can be zero, in which case the empty selection
+is valid and uses zero coins.
+
+## Constraints and traps
+
+The target can reach `200000`, so enumerating every sequence of coin choices
+is exponential. Coins can be reused, and their listed order must not affect
+the answer. A greedy choice of the largest coin is not reliable: with coins
+`4` and `3`, target `6` is possible using two `3` coins even though choosing a
+`4` first leaves an impossible remainder.
+
+Some amounts may be unreachable. They must not be treated as if they required
+zero coins, because that would let later transitions build fake payments from
+them.
+
+## Observation and walk-through
+
+Let `dp[x]` mean the minimum number of coins needed to make exactly amount
+`x`; use infinity when `x` is impossible. Consider the final coin of a
+nonempty payment for `x`. If that coin has value `c`, the previous coins must
+make exactly `x-c`. Therefore:
+
+```text
+dp[x] = min(dp[x-c] + 1 for every denomination c <= x)
+```
+
+For target `15` and coins `4, 7, 9`:
+
+```text
+dp[0]  = 0
+dp[4]  = dp[0] + 1 = 1
+dp[7]  = dp[0] + 1 = 1
+dp[8]  = dp[4] + 1 = 2
+dp[11] = dp[7] + 1 = 2
+dp[15] = min(dp[11] + 1, dp[8] + 1, dp[6] + 1)
+       = min(3, 3, infinity) = 3
+```
+
+The two optimal final-coin choices give `4 + 4 + 7` and `7 + 4 + 4` as the
+same multiset; the DP only needs the optimal count, not the chosen order.
+
+## Algorithm
+
+```text
+dp[0] = 0
+dp[x] = infinity for every x from 1 through target
+
+for x from 1 through target:
+    for every coin c:
+        if c <= x and dp[x-c] is finite:
+            dp[x] = min(dp[x], dp[x-c] + 1)
+
+print dp[target] if finite, otherwise -1
+```
+
+Amounts are computed from small to large, so `dp[x-c]` is already complete
+when it is needed. This is also why coins may be used repeatedly: a value such
+as `dp[8]` can use the already-computed `dp[4]` and another coin of value `4`.
+
+## Correctness proof
+
+**Lemma 1.** Every nonempty exact payment for amount `x` has a final coin `c`
+such that its remaining coins form an exact payment for `x-c`.
+
+**Proof.** Remove one coin from the payment and call its denomination `c`.
+The values of all remaining coins sum to `x-c`, so they form the claimed
+payment. $\square$
+
+**Lemma 2.** After the algorithm computes `dp[x]`, it equals the minimum
+number of coins in an exact payment for `x`, or infinity if no such payment
+exists.
+
+**Proof.** Induct on `x`. The base `x=0` is correct because the empty payment
+uses zero coins. For `x>0`, Lemma 1 partitions every nonempty payment by its
+final coin `c`. By the induction hypothesis, `dp[x-c]` is the minimum number
+of coins for the remaining amount, so `dp[x-c]+1` is the best payment ending
+with `c`. The algorithm takes the minimum over every legal final denomination.
+If none has a finite predecessor, no payment exists; otherwise the minimum is
+exactly optimal. $\square$
+
+**Theorem.** The algorithm prints the minimum possible number of coins for the
+target, or `-1` exactly when exact payment is impossible.
+
+**Proof.** Lemma 2 applies to `target`. The final conversion from infinity to
+`-1` distinguishes the impossible case; otherwise the stored value is the
+minimum coin count. $\square$
+
+## Complexity
+
+There are `target + 1` states, each considering at most `k` denominations.
+
+```text
+Time:   O(target * k)
+Memory: O(target)
+```
+
+With `target <= 200000` and `k <= 20`, this fits comfortably.
+
+## C++ implementation notes
+
+Set `INF = target + 1`. No valid exact payment needs more than `target` coins:
+every coin is positive, so this sentinel is safely larger than every answer.
+Only add one to a finite predecessor, avoiding accidental use of the sentinel.
+
+## Python implementation notes
+
+The nested loop performs at most four million iterations at the largest input.
+Keep `coins` as a small list and use a simple integer list for `dp`; no
+recursion or special library is needed.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int target, k;
+    cin >> target >> k;
+    vector<int> coins(k);
+    for (int &coin : coins) cin >> coin;
+
+    const int INF = target + 1;
+    vector<int> dp(target + 1, INF);
+    dp[0] = 0;
+    for (int amount = 1; amount <= target; ++amount) {
+        for (int coin : coins) {
+            if (coin <= amount && dp[amount - coin] != INF) {
+                dp[amount] = min(dp[amount], dp[amount - coin] + 1);
+            }
+        }
+    }
+
+    cout << (dp[target] == INF ? -1 : dp[target]) << '\n';
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    target, k = data[:2]
+    coins = data[2:2 + k]
+
+    inf = target + 1
+    dp = [inf] * (target + 1)
+    dp[0] = 0
+    for amount in range(1, target + 1):
+        for coin in coins:
+            if coin <= amount and dp[amount - coin] != inf:
+                dp[amount] = min(dp[amount], dp[amount - coin] + 1)
+
+    print(-1 if dp[target] == inf else dp[target])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Greedily taking the largest denomination first.
+- Setting every `dp` entry to zero, which invents payments for unreachable
+  amounts.
+- Solving at most one copy of each denomination instead of allowing reuse.
+- Returning the best amount below the target rather than requiring exact
+  payment.
+- Forgetting that target zero has answer zero.
+
+## Tests that matter
+
+- target zero;
+- a target smaller than every denomination;
+- a target whose gcd condition makes it impossible, such as target `5` with
+  coins `4` and `6`;
+- a case where greedy fails, such as target `6` with coins `4` and `3`;
+- repeated denominations;
+- target `200000` with a denomination of `1`, to check the largest DP table.
+
 # Testing and stress strategy
 
 The section checker runs:
@@ -719,6 +912,8 @@ For your own stress tests:
 A: compare DP against brute-force recursive enumeration for n <= 20.
 B: enumerate all subsets for n <= 20 and reject adjacent selections.
 C: run Dijkstra on the DAG for n <= 50 and compare with the DP.
+D: run BFS over amounts on targets at most 80. Every use of one coin is one
+   unweighted edge, so BFS independently finds the smallest coin count.
 ```
 
 The brute force should be used only as a testing oracle on tiny inputs, not as
@@ -737,4 +932,3 @@ small prefix -> bigger prefix
 The next sections will add more state dimensions and more complex computation
 orders. The discipline from this section remains the same: define the state
 before writing the recurrence.
-

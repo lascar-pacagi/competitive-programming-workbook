@@ -11,6 +11,7 @@ power, modular inverse under a prime modulus, and repeated transformations.
    - `a_power_queries`
    - `b_fraction_queries`
    - `c_affine_repeater`
+   - `d_nested_power_queries` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash

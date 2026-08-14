@@ -76,13 +76,13 @@ order in the deque.
 **Proof.** A cost-0 relaxation has the same distance as the currently popped
 state, so it belongs with the current smallest layer. A cost-1 relaxation is
 exactly one layer later, so it belongs after all states of the current layer.
-`\square`
+$\square$
 
 **Theorem.** The algorithm computes shortest distances.
 
 **Proof.** By the lemma, 0-1 BFS processes states in the same distance order as
 Dijkstra would for weights `0` and `1`. Dijkstra's nonnegative-weight
-correctness therefore applies. `\square`
+correctness therefore applies. $\square$
 
 ## Complexity
 
@@ -408,7 +408,10 @@ int main() {
         int d = dist[r][c];
         for (int i = 0; i < 4; i++) {
             int nr = r + wr[i], nc = c + wc[i];
-            if (nr < 0 || nr >= n || nc < 0 || nc >= m || grid[nr][nc] == '#') continue;
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m ||
+                grid[nr][nc] == '#') {
+                continue;
+            }
             if (d < dist[nr][nc]) {
                 dist[nr][nc] = d;
                 dq.push_front({nr,nc});
@@ -417,7 +420,10 @@ int main() {
         for (int dr = -2; dr <= 2; dr++) {
             for (int dc = -2; dc <= 2; dc++) {
                 int nr = r + dr, nc = c + dc;
-                if (nr < 0 || nr >= n || nc < 0 || nc >= m || grid[nr][nc] == '#') continue;
+                if (nr < 0 || nr >= n || nc < 0 || nc >= m ||
+                    grid[nr][nc] == '#') {
+                    continue;
+                }
                 if (d + 1 < dist[nr][nc]) {
                     dist[nr][nc] = d + 1;
                     dq.push_back({nr,nc});
@@ -458,13 +464,23 @@ def main() -> None:
         d = dist[r][c]
         for dr, dc in ((1,0),(-1,0),(0,1),(0,-1)):
             nr, nc = r + dr, c + dc
-            if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] != "#" and d < dist[nr][nc]:
+            if (
+                0 <= nr < n
+                and 0 <= nc < m
+                and grid[nr][nc] != "#"
+                and d < dist[nr][nc]
+            ):
                 dist[nr][nc] = d
                 dq.appendleft((nr, nc))
         for dr in range(-2, 3):
             for dc in range(-2, 3):
                 nr, nc = r + dr, c + dc
-                if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] != "#" and d + 1 < dist[nr][nc]:
+                if (
+                    0 <= nr < n
+                    and 0 <= nc < m
+                    and grid[nr][nc] != "#"
+                    and d + 1 < dist[nr][nc]
+                ):
                     dist[nr][nc] = d + 1
                     dq.append((nr, nc))
     ans = dist[goal[0]][goal[1]]
@@ -494,3 +510,332 @@ paths, and cases where a longer route in steps is cheaper in cost.
 0-1 BFS is a specialized shortest-path tool. The hard part is often not the
 deque; it is modeling the state so that every transition has cost exactly `0`
 or `1`.
+
+# D. Letter Portals
+
+## Restatement
+
+The grid has ordinary open cells, walls, a start, a goal, and lowercase-letter
+portal cells.  Walking to an open four-neighbor cell costs `1`.  From a letter
+cell, jumping to any cell with that same letter costs `0`.  We need the minimum
+cost from `S` to `G`, or `-1` when no route exists.
+
+The grid can contain `10^6` cells.  It is not enough to use ordinary BFS,
+because a zero-cost teleport must be processed before a one-cost walk.  It is
+also not enough to scan every matching-letter list every time a portal cell is
+visited: a grid full of the same letter would become quadratic.
+
+## Model the implicit graph
+
+Use one graph vertex per non-wall grid cell.
+
+```text
+walk to a four-neighbor open cell   edge cost 1
+same-letter teleport               edge cost 0
+```
+
+This is exactly a 0-1 shortest-path problem.  Store the positions of each of
+the 26 letters while reading the grid, then use a deque:
+
+```text
+cost 0 -> push_front
+cost 1 -> push_back
+```
+
+## Expanding one portal group once
+
+Suppose the deque first removes a cell labelled `a` at distance `d`.  Every
+other `a` cell is reachable from it for cost `0`, so all of them can receive
+distance `d` immediately.  There is no reason to scan the complete `a` list
+again when another `a` cell is reached later.  Mark the letter as expanded
+after this first scan.
+
+The word *first* matters.  In 0-1 BFS, a cell removed from the front has the
+smallest currently possible distance.  Therefore the first removed `a` cell
+has the minimum distance at which any `a` portal can be reached.
+
+## Walk-through
+
+Consider:
+
+```text
+S # a # G
+. a . a .
+. . . . .
+```
+
+Walking from `S` to the left `a` costs `2`:
+
+```text
+S -> (1,0) -> left a
+```
+
+When that `a` is removed from the deque, expand the `a` group:
+
+```text
+left a  -- cost 0 --> right a
+```
+
+The right `a` also has distance `2`.  Two ordinary moves reach `G`, so the
+answer is `4`.  The longer all-walking detour is never preferable.
+
+## Algorithm
+
+```text
+record positions for each letter while reading the grid
+dist[cell] = infinity for every cell
+dist[S] = 0
+push S into a deque
+expanded[letter] = false
+
+while deque is not empty:
+    remove cell u from the front
+
+    if u has letter x and expanded[x] is false:
+        expanded[x] = true
+        for every cell v with letter x:
+            relax v using cost 0
+
+    for every open four-neighbor v of u:
+        relax v using cost 1
+
+print dist[G], or -1 if it is still infinity
+```
+
+To relax an edge of cost `w`, update only if:
+
+```text
+dist[u] + w < dist[v]
+```
+
+Then push `v` to the front for `w = 0`, otherwise to the back.
+
+## Correctness proof
+
+We prove that the algorithm prints the minimum possible cost.
+
+**Lemma 1.** When a portal letter `x` is expanded, the current distance of the
+removed `x` cell is the minimum distance of any route from `S` to an `x` cell.
+
+**Proof.** 0-1 BFS removes cells from the deque in nondecreasing finalized
+distance order.  The expanded cell is the first removed cell labelled `x`.
+If a cheaper route to any `x` cell existed, that cell would have a smaller
+distance and would be removed first, a contradiction. $\square$
+
+**Lemma 2.** Expanding each portal letter at most once preserves every
+shortest-path distance.
+
+**Proof.** When `x` is expanded at distance `d`, every `x` cell is relaxed to
+distance at most `d` by a zero-cost teleport.  By Lemma 1, no `x` cell can
+later be reached with a value smaller than `d`.  Thus scanning the same
+zero-cost teleport edges later cannot improve any distance. $\square$
+
+**Lemma 3.** Apart from skipped redundant portal scans, the algorithm performs
+the same successful relaxations as 0-1 BFS on the implicit graph.
+
+**Proof.** Every walking edge is examined whenever its source cell is removed.
+For a portal edge, its whole same-letter group is examined at the first and
+minimum-distance source by Lemma 1; Lemma 2 proves later scans are redundant.
+Each examined edge is relaxed with its stated cost and sent to the correct end
+of the deque. $\square$
+
+**Theorem.** The algorithm prints the minimum travel cost from `S` to `G`, or
+`-1` exactly when the goal is unreachable.
+
+**Proof.** By Lemma 3, the algorithm is 0-1 BFS on all useful implicit graph
+edges.  The 0-1 BFS invariant therefore gives the shortest distance from `S`
+to every reachable cell, including `G`.  If `G` remains at infinity, no
+sequence of valid walking or teleport edges reached it, so it is unreachable.
+The printed result is consequently correct. $\square$
+
+## Complexity
+
+Each cell has at most four walking edges.  Each portal position appears in one
+letter list, and that list is scanned once.  Therefore:
+
+```text
+Time:   O(n * m)
+Memory: O(n * m)
+```
+
+## Implementation notes
+
+- Store letters in 26 lists indexed by `letter - 'a'` or `ord(letter) - ord('a')`.
+- Mark a letter expanded before scanning its list.
+- A teleport is cost `0`, so its improved endpoints go to the deque front.
+- A normal grid step costs `1`, so it goes to the deque back.
+- Do not treat `S` and `G` as portal letters; only lowercase characters are
+  portal labels.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    cin >> n >> m;
+    vector<string> grid(n);
+    vector<vector<int>> portals(26);
+    int start = -1, goal = -1;
+
+    for (int r = 0; r < n; ++r) {
+        cin >> grid[r];
+        for (int c = 0; c < m; ++c) {
+            int id = r * m + c;
+            char cell = grid[r][c];
+            if (cell == 'S') start = id;
+            if (cell == 'G') goal = id;
+            if ('a' <= cell && cell <= 'z') {
+                portals[cell - 'a'].push_back(id);
+            }
+        }
+    }
+
+    const int INF = 1e9;
+    vector<int> dist(n * m, INF);
+    vector<char> expanded(26, false);
+    deque<int> dq;
+    dist[start] = 0;
+    dq.push_back(start);
+    int dr[4] = {1, -1, 0, 0};
+    int dc[4] = {0, 0, 1, -1};
+
+    while (!dq.empty()) {
+        int id = dq.front();
+        dq.pop_front();
+        int r = id / m, c = id % m;
+        int current = dist[id];
+
+        char cell = grid[r][c];
+        if ('a' <= cell && cell <= 'z' && !expanded[cell - 'a']) {
+            expanded[cell - 'a'] = true;
+            for (int other : portals[cell - 'a']) {
+                if (current < dist[other]) {
+                    dist[other] = current;
+                    dq.push_front(other);
+                }
+            }
+        }
+
+        for (int k = 0; k < 4; ++k) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (nr < 0 || nr >= n || nc < 0 || nc >= m ||
+                grid[nr][nc] == '#') {
+                continue;
+            }
+            int other = nr * m + nc;
+            if (current + 1 < dist[other]) {
+                dist[other] = current + 1;
+                dq.push_back(other);
+            }
+        }
+    }
+
+    cout << (dist[goal] == INF ? -1 : dist[goal]) << '\\n';
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+from collections import deque
+
+
+def main() -> None:
+    data = sys.stdin.buffer.read().split()
+    n, m = map(int, data[:2])
+    grid = [row.decode() for row in data[2:2 + n]]
+    portals = [[] for _ in range(26)]
+    start = goal = -1
+
+    for r, row in enumerate(grid):
+        for c, cell in enumerate(row):
+            cell_id = r * m + c
+            if cell == "S":
+                start = cell_id
+            elif cell == "G":
+                goal = cell_id
+            elif "a" <= cell <= "z":
+                portals[ord(cell) - ord("a")].append(cell_id)
+
+    inf = 10**9
+    dist = [inf] * (n * m)
+    expanded = [False] * 26
+    dist[start] = 0
+    dq = deque([start])
+
+    while dq:
+        cell_id = dq.popleft()
+        r, c = divmod(cell_id, m)
+        current = dist[cell_id]
+        cell = grid[r][c]
+
+        if "a" <= cell <= "z":
+            letter = ord(cell) - ord("a")
+            if not expanded[letter]:
+                expanded[letter] = True
+                for other in portals[letter]:
+                    if current < dist[other]:
+                        dist[other] = current
+                        dq.appendleft(other)
+
+        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] != "#":
+                other = nr * m + nc
+                if current + 1 < dist[other]:
+                    dist[other] = current + 1
+                    dq.append(other)
+
+    print(-1 if dist[goal] == inf else dist[goal])
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Using ordinary BFS, which counts teleports as if they cost one move.
+- Putting a zero-cost teleport at the deque back.
+- Scanning all cells with letter `a` every time any `a` cell is visited.
+- Marking a portal letter used when it is first discovered instead of when it
+  is removed at its minimum distance.
+- Allowing moves through walls or treating `S` and `G` as lowercase labels.
+
+## Tests that matter
+
+- no portals, which reduces to an ordinary shortest grid path;
+- a portal shortcut that is cheaper than the fewest-step walk;
+- repeated cells of one letter, to catch repeated full-list scans;
+- an unreachable goal;
+- a portal first reached by a costly route but later reachable more cheaply;
+- a large open grid, which checks linear memory and time.
+
+# Stress testing
+
+On a tiny grid, build the implicit graph literally: from every letter cell,
+add a zero-cost edge to every equal-letter cell.  Then run heap Dijkstra and
+compare its answer with 0-1 BFS.  This is deliberately slower but independent
+of the portal-group optimization.  The local generator uses that oracle on
+small random grids and also includes a `1000 x 1000` open grid with known
+answer `1998`.
+
+# What to carry forward
+
+0-1 BFS remains linear only when the transition model is also efficient.  A
+large group of equivalent zero-cost moves should usually be activated once at
+the first finalized distance:
+
+```text
+implicit zero-cost group + one-time expansion = linear total work
+```
+
+First identify the state and the costs, then account for how often every
+generated transition is scanned.

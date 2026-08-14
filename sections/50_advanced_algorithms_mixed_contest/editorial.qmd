@@ -23,6 +23,612 @@ execute:
   enabled: false
 ---
 
+# Phase 6 coverage set
+
+| Category | Contest problem | Detailed editorial |
+|---|---|---|
+| String Algorithms I | E. Pattern Prefix Matches | local package |
+| String Algorithms II | F. Suffix LCP Queries | local package |
+| Flows and Matchings | G. Domino Placement | local package |
+| Rerooting and Advanced Tree DP | H. Weighted Tree Distances | local package |
+| Meet-in-the-Middle | I. Balanced Subset Difference | local package |
+| Divide-and-Conquer DP Optimization | J. Monge Partition Table | local package |
+| Convex Hull Trick and Li Chao Tree | K. Online Line DP | local package |
+
+The mixed checker runs these seven self-contained packages from this section's
+`problems` directory. Each contains its own statement, student stubs, reference
+implementations, fixed tests, and randomized oracle.
+
+# E. Pattern Prefix Matches
+
+## From many comparisons to one Z-function
+
+At every text position `i`, we need the longest prefix of `pattern` equal to a
+prefix of `text[i..]`. Comparing directly at every position is quadratic on
+inputs such as repeated `a` characters.
+
+Construct:
+
+```text
+combined = pattern + '#' + text
+```
+
+where `#` is absent from the lowercase input alphabet. The Z-value `z[j]` is
+the longest prefix of `combined` matching `combined[j..]`. For text position
+`i`, index `|pattern| + 1 + i` therefore compares exactly the pattern prefix
+with the text starting at `i`.
+
+## Computing the Z-array
+
+Maintain the rightmost interval `[l,r]` already known to equal a prefix.
+For a new index `i`:
+
+- if `i > r`, start comparing from zero;
+- otherwise reuse `min(r-i+1, z[i-l])` known matching characters;
+- extend with direct comparisons;
+- update `[l,r]` if this match reaches farther.
+
+The separator ensures a match originating in the text cannot continue through
+the boundary into the text again. Capping the extracted Z-value by the pattern
+length makes the intended limit explicit.
+
+## Correctness proof
+
+By definition of the Z-function, the value at combined index
+`|pattern|+1+i` is the longest prefix of `combined` matching from text
+position `i`. The prefix of `combined` begins with `pattern`. Because the
+separator does not occur in either input string, equality cannot pass its
+position, so the matched characters are exactly a prefix of `pattern`.
+Therefore the extracted value is precisely the requested match length.
+
+The standard Z-box algorithm computes the same definition: reused characters
+lie inside a previously proven prefix-equal interval, and the extension loop
+checks every additional character explicitly. Hence all reported values are
+correct.
+
+## Complexity and pitfalls
+
+The right boundary advances at most the combined-string length, so total time
+and memory are `O(|pattern|+|text|)`.
+
+Choose a separator outside the alphabet, offset text indices by
+`|pattern|+1`, and output one value for every text position—including zeros.
+A naive restart of comparisons at every position does not meet the bound.
+
+## Tests that matter
+
+```text
+Pattern longer than text.
+No matching first character anywhere.
+Text equal to the pattern.
+Highly periodic strings such as aaaa and aaaaaa.
+Overlapping matches such as pattern aba in abacaba.
+Matches ending exactly at the end of text.
+```
+
+For small strings, compare characters directly at each text position.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_pattern_prefix_matches/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_pattern_prefix_matches/solution.py >}}
+```
+
+# F. Suffix LCP Queries
+
+## Restatement and monotone predicate
+
+For suffixes starting at `i` and `j`, find their longest common prefix. If
+their first `L` characters are equal, then every shorter prefix is also equal;
+if they differ within the first `L`, every longer prefix differs as well.
+Prefix equality is therefore a monotone predicate suitable for binary search.
+
+The remaining requirement is an `O(1)` substring-equality test. Polynomial
+rolling hashes provide it after linear preprocessing.
+
+## Double substring hashing
+
+For each of two moduli, precompute powers of a base and prefix hashes:
+
+```text
+H[r] = hash of s[0..r)
+hash(l,r) = H[r] - H[l] * base^(r-l) mod modulus
+```
+
+Equal substrings have equal hashes. Using two independent large prime moduli
+makes an accidental collision negligibly likely.
+
+For query `(i,j)`, the answer is between zero and
+`n - max(i,j)`. Binary-search the largest length `L` for which the two hash
+pairs of `s[i..i+L)` and `s[j..j+L)` agree.
+
+## Correctness argument
+
+Ignoring the negligible possibility of a hash collision, the hash predicate
+is true exactly when the two length-`L` substrings are equal. Equality of
+length `L` implies equality for every smaller length, so upper-bound binary
+search returns the greatest true `L`. That value is the definition of the LCP
+of the two suffixes.
+
+The search upper bound prevents either substring from passing the end of the
+string. In particular, querying a suffix against itself correctly returns its
+full remaining length.
+
+## Complexity and alternatives
+
+Power and prefix tables take `O(n)` time and memory. Each query performs
+`O(log n)` hash comparisons, each `O(1)`, for total `O(n + q log n)` time.
+
+This intended solution is probabilistic. A suffix array with an LCP array and
+RMQ can answer deterministically, but requires more machinery. Common hash
+errors are mixing inclusive and half-open endpoints, failing to normalize a
+negative remainder, or using powers for the wrong substring length.
+
+## Tests that matter
+
+```text
+i = j                         -> entire remaining suffix
+Different first characters   -> 0
+One suffix is a prefix of the other
+Repeated string aaaaa        -> long LCPs at nearby positions
+banana queries               -> overlapping periodic suffixes
+Positions near n             -> upper-bound correctness
+```
+
+The randomized oracle compares the two suffixes character by character.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_suffix_lcp_queries/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_suffix_lcp_queries/solution.py >}}
+```
+
+# G. Domino Placement
+
+## Reduction to bipartite matching
+
+Color grid cells by parity of `row + column`. Cardinal neighbors always have
+opposite parity. Create one graph vertex for each open cell and an edge for
+each cardinally adjacent pair, placing even cells on the left and odd cells
+on the right.
+
+A domino covers exactly one such graph edge. Requiring dominoes not to overlap
+means no two chosen edges may share a vertex—which is precisely a matching.
+Thus the geometry disappears after the reduction.
+
+## Augmenting-path algorithm
+
+Maintain `match[v]`, the left cell currently paired with right-side cell `v`.
+For every open left cell, search for an augmenting path:
+
+1. Try each adjacent right cell.
+2. If it is free, match it immediately.
+3. If it is occupied, recursively try to reroute its current left partner.
+4. On success, assign the right cell to the current left cell.
+
+Use a fresh visitation stamp for each search so a right vertex is explored at
+most once during that attempt.
+
+## Correctness proof
+
+There is a bijection between legal domino placements and matchings: every
+domino maps to its adjacency edge, and non-overlap maps to disjoint endpoints;
+every matching maps back to non-overlapping adjacent dominoes.
+
+The augmenting-path procedure starts with an empty matching and increases its
+size by one whenever it finds an alternating path from an unmatched left
+vertex to an unmatched right vertex. When no such path exists for any left
+vertex, Berge's lemma says the matching is maximum. Therefore the matching
+size, and hence the printed number of dominoes, is optimal.
+
+## Complexity and implementation notes
+
+Let `V` be the number of open cells and `E <= 4V` the adjacency edges. The
+simple Kuhn algorithm runs in `O(VE)` worst-case time and uses `O(V+E)` memory,
+which is sufficient for a `100 x 100` grid. Hopcroft--Karp would improve the
+bound to `O(E sqrt(V))` if larger grids were required.
+
+Only start searches from one parity; otherwise each grid adjacency is treated
+from both sides and the matching logic is invalid. Walls create no graph
+vertex. In Python, recursive augmenting paths require a sufficiently generous
+recursion limit or an iterative implementation.
+
+## Tests that matter
+
+```text
+All walls                       -> 0
+One open cell                   -> 0
+Two adjacent versus diagonal cells
+A corridor of odd length        -> floor(length/2)
+Disconnected open regions
+A board where greedy local pairing blocks a larger placement
+```
+
+For tiny grids, enumerate subsets of adjacency edges and keep the largest
+vertex-disjoint set.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/g_domino_placement/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/g_domino_placement/solution.py >}}
+```
+
+# H. Weighted Tree Distances
+
+## Restatement and why rerooting is needed
+
+For every possible root `r`, compute:
+
+```text
+answer[r] = sum over v of weight[v] * distance(r,v)
+```
+
+A BFS or DFS from every root is `O(n^2)`. Neighboring roots have closely
+related answers, so compute one root directly and transfer its value across
+each edge.
+
+## First pass: root at vertex 1
+
+An iterative traversal records `parent`, `depth`, and an order. Then:
+
+```text
+answer[1] = sum(weight[v] * depth[v])
+subtree[u] = sum of weights in u's rooted subtree
+```
+
+Compute subtree weights in reverse traversal order.
+
+## Reroot transition
+
+Move the root from parent `u` to child `v`. Distances to vertices in `v`'s
+subtree decrease by one, changing the sum by `-subtree[v]`. Distances to all
+other vertices increase by one, changing it by
+`total_weight - subtree[v]`. Therefore:
+
+```text
+answer[v] = answer[u] + total_weight - 2 * subtree[v]
+```
+
+Applying this formula in parent-before-child order obtains every answer.
+
+## Correctness proof
+
+The first answer is correct by the definition of depth from root `1`.
+Reverse-order accumulation gives each subtree's exact total weight because
+every child's completed sum is added once to its parent.
+
+For an edge from `u` to child `v`, the edge separates the tree into exactly
+two sides. Rerooting at `v` shortens every path to the `v` side by one and
+lengthens every path to the other side by one. The derived formula accounts
+for the total weight on both sides exactly. By induction along the rooted
+tree, if `answer[u]` is correct then `answer[v]` is correct; since the root
+answer is correct, all answers are correct.
+
+## Complexity and pitfalls
+
+Both traversals examine every edge a constant number of times, giving `O(n)`
+time and `O(n)` memory. Use 64-bit integers for weights, subtree sums, and
+answers. Iterative traversal avoids recursion overflow at `n = 200000`.
+
+Do not use subtree vertex counts in the formula—the values are weighted.
+Zero-weight vertices remain structurally present even though they add nothing
+to a sum.
+
+## Tests that matter
+
+```text
+One vertex.
+Two vertices with unequal weights.
+A path, checking both endpoints and a middle root.
+A star with a heavy leaf.
+All weights zero.
+Large weights on a deep path -> overflow check.
+```
+
+For small trees, run BFS from every root and evaluate the definition directly.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/h_weighted_tree_distances/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/h_weighted_tree_distances/solution.py >}}
+```
+
+# I. Balanced Subset Difference
+
+## Reformulation
+
+Putting a subset into the first group determines the other group. If the total
+sum is `T` and the chosen subset sum is `S`, the absolute group difference is:
+
+```text
+|S - (T-S)| = |T - 2S|
+```
+
+We need a subset sum as close as possible to `T/2`. Enumerating all `2^40`
+subsets is too large, but splitting the values into two halves reduces each
+enumeration to about `2^20`.
+
+Signed values do not invalidate the reformulation; they only mean subset sums
+are not naturally ordered until we sort them.
+
+## Meet-in-the-middle algorithm
+
+1. Split the input into left and right halves.
+2. Enumerate all subset sums `L` of the left half and all subset sums `R` of
+   the right half, including the empty subset.
+3. Sort `R`.
+4. For every `x` in `L`, seek a `y` in `R` making `x+y` closest to `T/2`.
+   Binary-search the insertion position for that target and test the neighbor
+   on each side.
+5. Minimize `|T - 2(x+y)|`.
+
+Every subset of the original array decomposes uniquely into one left subset
+and one right subset.
+
+## Correctness proof
+
+Let an optimal full subset have half-sums `(x,y)`. The algorithm enumerates
+its left sum `x`. For this fixed `x`, the objective as a function of `y` is the
+absolute distance from a target, so among sorted right sums its minimum occurs
+at the first value not below the target or its predecessor. The algorithm
+checks both. It therefore finds a right sum at least as good as the optimal
+subset's `y`. Since every checked pair also corresponds to a valid full
+subset, the global minimum is exactly optimal.
+
+## Complexity and implementation notes
+
+Each half has at most `2^20` sums. Enumeration is `O(2^(n/2))`; sorting and
+binary searches give `O(2^(n/2) log 2^(n/2))` time and
+`O(2^(n/2))` memory.
+
+Use 64-bit signed sums. Always include the empty subset because either group
+may be empty. With negative totals, avoid a careless integer division by two;
+equivalently binary-search an integer threshold derived from
+`|T - 2(x+y)|` and check both adjacent values.
+
+## Tests that matter
+
+```text
+n = 0 or one value, if permitted by the contract.
+An exact balanced split -> 0.
+All values positive with no exact split.
+Mixed positive and negative values.
+All negative values.
+An optimum using the empty subset or all values.
+Values near 10^12 -> 64-bit sums.
+```
+
+For small `n`, enumerate every full subset and evaluate `|T-2S|`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/i_balanced_subset_difference/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/i_balanced_subset_difference/solution.py >}}
+```
+
+# J. Monge Partition Table
+
+## Baseline interval-partition DP
+
+Partition positions `1..n` into exactly `k` nonempty contiguous groups.
+Define:
+
+```text
+dp[g][i] = minimum cost to partition positions 1..i into g groups
+```
+
+If the last group is `[p,i]`, the previous `g-1` groups cover `1..p-1`:
+
+```text
+dp[g][i] = min over g <= p <= i of
+           dp[g-1][p-1] + cost[p][i]
+```
+
+The straightforward evaluation is `O(kn^2)`, too slow for the stated bounds.
+
+## Monotone optima and divide-and-conquer
+
+The input promises a Monge interval-cost table. The standard monotonicity
+theorem for this recurrence then guarantees:
+
+```text
+opt[g][i] <= opt[g][i+1]
+```
+
+where `opt[g][i]` is a minimizing start `p` for the last group.
+
+To compute one DP layer on output interval `[lo,hi]`, evaluate its midpoint
+`mid`, searching only candidate splits `[optL,optR]`. If `best` minimizes the
+midpoint, recursively compute:
+
+```text
+left outputs  [lo,mid-1] with candidates [optL,best]
+right outputs [mid+1,hi] with candidates [best,optR]
+```
+
+Monotonicity proves that no discarded candidate can be optimal in either half.
+
+## Correctness proof
+
+The baseline recurrence is exact because every valid partition has a unique
+start `p` of its last group, and combining an optimal prefix partition with
+`[p,i]` constructs a valid candidate.
+
+For the optimized evaluation, assume the recursive call's candidate interval
+contains the optimum for every output index it owns. The midpoint search finds
+its true optimum `best`. Monotonicity places every optimum to the left at or
+before `best`, and every optimum to the right at or after `best`, so the two
+recursive candidate ranges preserve the assumption. Induction over recursive
+calls shows every computed DP value equals the baseline recurrence, and hence
+`dp[k][n]` is optimal.
+
+## Complexity and implementation notes
+
+At one recursion depth, the searched candidate ranges have total length
+`O(n)`; there are `O(log n)` depths. Each of `k` layers therefore takes
+`O(n log n)`, for `O(kn log n)` time. DP layers use `O(n)` memory, while the
+given cost table itself uses `O(n^2)`.
+
+Exactly `g` nonempty groups means layer `g` starts at position `i = g`.
+Initialize only `dp[0][0] = 0`; impossible states stay at infinity. Be precise
+when translating one-based groups into the zero-based table
+`cost[p-1][i-1]`.
+
+## Tests that matter
+
+```text
+k = 1                         -> cost[1][n]
+k = n                         -> sum of singleton costs
+Small table checked by O(kn^2) DP
+Several tied optimal splits   -> monotonic tie handling
+Large costs                   -> infinity and overflow safety
+```
+
+Random tests should generate a table known to be Monge and compare against the
+quadratic recurrence, rather than assuming the optimized code is its own
+oracle.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/j_monge_partition_table/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/j_monge_partition_table/solution.py >}}
+```
+
+# K. Online Line DP
+
+## Turning the recurrence into line queries
+
+The transition is:
+
+```text
+dp[i] = fee[i] + min over j < i of
+        (dp[j] + slope[j] * x[i])
+```
+
+For a fixed earlier index `j`, the expression depending on `x[i]` is a line:
+
+```text
+y = slope[j] * x + dp[j]
+```
+
+Thus each step queries the minimum of all previous lines at coordinate `x[i]`,
+adds `fee[i]`, then inserts the new line from index `i`. The insertions must be
+online because line `i` contains the just-computed `dp[i]`.
+
+No monotonicity is promised for slopes or query coordinates, so a monotone CHT
+deque is not valid. A Li Chao tree supports arbitrary order.
+
+## Li Chao invariant
+
+Build the tree over the sorted distinct coordinates appearing in `x`. Each
+node stores one line that is best at that node's midpoint among lines compared
+there. When inserting a new line:
+
+1. At the midpoint, keep the better line in the node.
+2. The displaced line can beat the stored line on at most one side because
+   two lines cross at most once.
+3. Compare at the interval endpoints and recurse only into the side where the
+   displaced line can still win.
+
+A query follows the root-to-leaf path for its compressed coordinate and takes
+the minimum of every stored line encountered.
+
+## Correctness proof
+
+The insertion rule never discards a line from a region where it might be
+optimal: after keeping the midpoint winner, the other line can only become
+better on one side, and it is recursively stored on precisely that side.
+Inductively, for every inserted line and every coordinate, either the line is
+stored on the query path or another stored line is no worse there. Therefore
+a query returns the minimum over all inserted lines.
+
+Before computing `dp[i]`, the inserted lines correspond exactly to indices
+`j < i`. The query consequently returns the minimum transition term, and
+adding `fee[i]` gives the recurrence. Inserting line `i` restores the invariant
+for the next iteration. By induction, the final `dp[n-1]` is correct.
+
+## Complexity and pitfalls
+
+There are at most `n` compressed coordinates. Each insertion and query descends
+`O(log n)` levels, for `O(n log n)` time and `O(n)` tree memory.
+
+- Insert line `0` with intercept `dp[0] = 0` before the first query.
+- Query before inserting line `i`; otherwise the forbidden choice `j = i`
+  becomes available.
+- Coordinate compression changes only the domain, not the actual `x` used in
+  line evaluation.
+- Use 64-bit arithmetic, or wider intermediates if the contract permits
+  products near the type limit.
+- Duplicate slopes and duplicate coordinates must be supported.
+
+## Tests that matter
+
+```text
+n = 1                         -> dp[0] = 0
+One transition                -> direct formula
+Unsorted and duplicate x coordinates
+Increasing, decreasing, and duplicate slopes
+A newly inserted line wins only on one extreme
+Negative slopes and coordinates
+Large products                -> integer-width check
+```
+
+The small oracle evaluates every earlier `j` directly in `O(n^2)`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/k_online_line_dp/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/k_online_line_dp/solution.py >}}
+```
+
+# A--D. Cross-phase core
+
+The DAG Grundy, generalized CRT, and two Fibonacci problems revisit earlier
+advanced ideas. They are the first four exercises of the complete twelve-
+problem contest; G--L remain its progressively harder half.
+
 # Editorial overview
 
 ## Problem-specific proof map
@@ -82,7 +688,7 @@ For each start vertex in a DAG, print whether the first player wins.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -122,7 +728,7 @@ For each pair of congruences, print the smallest nonnegative solution and lcm mo
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -163,7 +769,7 @@ Answer Fibonacci queries modulo `1e9+7`.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -192,6 +798,108 @@ def main():
     if not data: return
     print("\n".join(str(fib(x)[0]) for x in data[1:1+data[0]]))
 if __name__=="__main__": main()
+```
+
+# D. Fibonacci Range Sum
+
+## Restatement and observation
+
+For a huge inclusive interval `[l,r]`, sum Fibonacci values modulo `MOD`. The
+blind step is recognizing the telescoping identity:
+
+```text
+F(0)+F(1)+...+F(t) = F(t+2)-1.
+```
+
+Therefore the requested result is:
+
+```text
+F(r+2) - F(l+1) mod MOD.
+```
+
+## Algorithm
+
+Use fast doubling to obtain `(F(n),F(n+1))` in `O(log n)`:
+
+```text
+F(2k)   = F(k) * (2F(k+1)-F(k))
+F(2k+1) = F(k)^2 + F(k+1)^2.
+```
+
+Apply it twice per query and normalize the subtraction.
+
+## Correctness proof
+
+The prefix identity follows by induction from `F(i+2)=F(i+1)+F(i)`. Subtracting
+the prefix through `l-1` from the prefix through `r` gives exactly `[l,r]`.
+Fast doubling identities compute the required Fibonacci values by splitting
+the index in half, so the printed normalized difference is correct. $\square$
+
+## Complexity and implementation
+
+Each query costs `O(log r)` time and `O(log r)` recursion stack; values are
+always reduced modulo `1,000,000,007`. Use unsigned 64-bit indices in C++ for
+the `10^18` bound and Python integers in Python.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_fibonacci_range_sum/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_fibonacci_range_sum/solution.py >}}
+```
+
+## Tests that matter
+
+```text
+[0,0], [0,1], one-element ranges, and a range with l>0.
+Large endpoints: never iterate through the interval.
+```
+
+# L. Profitable Disjoint Routes
+
+## Reduction to min-cost flow
+
+Give every original edge capacity `1` and cost equal to the negative of its
+profit. Send exactly `k` units of flow from `1` to `n`. Integral unit-capacity
+flow decomposes into `k` edge-disjoint source-to-sink paths (cycles can be
+discarded), and any such path collection gives a flow of the same total
+profit. Thus maximizing profit is exactly minimizing flow cost.
+
+Use the residual graph. Repeatedly find a shortest source-to-sink residual
+path, augment one unit, and add its cost. Negative original costs are allowed;
+the reference uses a queue-based Bellman--Ford relaxation. If no augmenting
+path exists before `k` units, the requested collection is impossible.
+
+## Correctness proof
+
+The reduction above is value-preserving in both directions. For the algorithm,
+after an optimal flow of value `f`, a cheapest residual augmenting path
+produces an optimal flow of value `f+1`: if a cheaper value-`f+1` flow existed,
+subtracting the current flow would decompose into residual cycles and one net
+source-to-sink augmentation with smaller total residual cost. That contradicts
+the chosen shortest augmentation (nonnegative-cost residual cycles can be
+discarded). Induction proves optimality at flow `k`.
+
+## Complexity and tests
+
+With queue relaxation, the conservative bound is `O(kVE)` time and `O(V+E)`
+memory. Test `k=1`, exactly `k` outgoing source edges, fewer than `k` paths,
+negative profits, and a case where a later residual reverse edge changes an
+earlier routing choice.
+
+## Full solutions
+
+```cpp
+{{< include problems/l_profitable_disjoint_routes/solution.cpp >}}
+```
+
+```python
+{{< include problems/l_profitable_disjoint_routes/solution.py >}}
 ```
 
 # Testing discussion

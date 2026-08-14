@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+python3 tools/check_student_stubs.py
+python3 tools/audit_course.py

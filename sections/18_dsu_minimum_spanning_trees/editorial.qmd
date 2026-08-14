@@ -109,24 +109,24 @@ processed edge.
 **Proof.** Initially both have `n` singleton components. When an edge connects
 two different graph components, graph connectivity merges exactly those two
 components, and DSU performs the same union. When an edge lies inside one
-component, neither graph connectivity nor DSU changes. `\square`
+component, neither graph connectivity nor DSU changes. $\square$
 
 **Lemma 2.** `components` is the number of connected components after every
 edge.
 
 **Proof.** By Lemma 1, DSU components are graph components. The counter starts
-at `n` and decreases exactly when two DSU components merge. `\square`
+at `n` and decreases exactly when two DSU components merge. $\square$
 
 **Lemma 3.** `largest` is the size of the largest connected component after
 every edge.
 
 **Proof.** The only way a component size changes is a successful union. The
 algorithm compares the merged size against the previous maximum. Unchanged
-edges cannot create a larger component. `\square`
+edges cannot create a larger component. $\square$
 
 **Theorem.** Every printed line is correct.
 
-**Proof.** Follows from Lemmas 2 and 3. `\square`
+**Proof.** Follows from Lemmas 2 and 3. $\square$
 
 ## Complexity
 
@@ -276,14 +276,14 @@ else:
 **Lemma 1.** Kruskal never chooses an edge that creates a cycle.
 
 **Proof.** DSU rejects an edge exactly when its endpoints are already in the
-same chosen-edge component. Adding such an edge would create a cycle. `\square`
+same chosen-edge component. Adding such an edge would create a cycle. $\square$
 
 **Lemma 2.** Every chosen Kruskal edge is safe for some MST.
 
 **Proof.** When Kruskal chooses edge `e`, its endpoints are in different
 current components. Consider the cut separating one of those components from
 the rest. Since edges are processed in increasing weight, no lighter crossing
-edge remains unprocessed and usable. By the cut property, `e` is safe. `\square`
+edge remains unprocessed and usable. By the cut property, `e` is safe. $\square$
 
 **Theorem.** If the algorithm chooses `n-1` edges, their total cost is the MST
 cost; otherwise no spanning tree exists.
@@ -291,7 +291,7 @@ cost; otherwise no spanning tree exists.
 **Proof.** By Lemma 1, `n-1` chosen edges form a tree connecting all vertices.
 By Lemma 2, each choice can be extended to an MST, so the final tree is
 minimum. If fewer than `n-1` edges are chosen, the graph cannot connect all
-vertices. `\square`
+vertices. $\square$
 
 ## Complexity
 
@@ -457,7 +457,7 @@ connected groups.
 
 **Proof.** Initially there are `n` isolated vertices. A successful union adds
 an edge between two different groups, so it merges exactly two groups and
-creates no cycle. Rejected edges change nothing. `\square`
+creates no cycle. Rejected edges change nothing. $\square$
 
 **Lemma 2.** Each chosen edge is safe for an optimal forest with the target
 number of groups.
@@ -465,7 +465,7 @@ number of groups.
 **Proof.** At the moment an edge is chosen, it is the lightest available edge
 crossing between two current DSU components. By the same cut-property exchange
 used in Kruskal, replacing any heavier edge that connects these parts cannot
-increase the cost. Thus the choice is safe. `\square`
+increase the cost. Thus the choice is safe. $\square$
 
 **Theorem.** If the algorithm reaches `k` components, the printed cost is the
 minimum possible cost for exactly `k` groups; otherwise it is impossible.
@@ -473,7 +473,7 @@ minimum possible cost for exactly `k` groups; otherwise it is impossible.
 **Proof.** By Lemma 1, reaching `k` components gives a valid `k`-group forest.
 By Lemma 2, the greedy choices are all safe, so the forest is minimum. If all
 edges are exhausted before reaching `k`, no remaining edge can merge the
-remaining components, so no valid solution exists. `\square`
+remaining components, so no valid solution exists. $\square$
 
 ## Complexity
 
@@ -629,3 +629,301 @@ add.
 The next graph sections move from connectivity to weighted shortest paths,
 where edge weights represent travel cost rather than construction cost.
 
+# D. Cable Savings
+
+## Restatement
+
+We may deactivate cables in an undirected weighted graph.  The remaining
+network must preserve the original connectivity relation: if two computers
+were connected by some path before deactivation, they must still have a path
+afterwards.  Different original connected components do not need to become
+connected.
+
+We want the greatest total cost of deactivated cables.  Cable costs are
+nonnegative, and `n, m` can both reach `200000`, so checking connectivity after
+each possible removal is far too slow.
+
+## Observation: keep a minimum spanning forest
+
+Let `total` be the sum of all cable costs.  Maximizing removed cost is the same
+as minimizing the cost of the cables we keep:
+
+```text
+saved cost = total - kept cost
+```
+
+Consider one original connected component.  The kept cables only need to keep
+that component connected.  A minimum-cost connected subgraph can be reduced to
+a tree: if it contains a cycle, removing any edge on that cycle keeps it
+connected and never increases cost because all costs are nonnegative.  Thus we
+need a minimum spanning tree for each original component.
+
+Together, those trees form a **minimum spanning forest**.  Kruskal's algorithm
+already builds exactly that forest if we simply process every edge and never
+declare a disconnected graph impossible.
+
+## Walk-through
+
+Suppose the graph has two original components:
+
+```text
+component 1:  1 --4-- 2 --1-- 3
+                 \       /
+                  ---3---
+
+component 2:  4 --7-- 5
+```
+
+Process edges in increasing cost:
+
+```text
+2-3, cost 1: keep
+1-3, cost 3: keep
+1-2, cost 4: skip; it would make a cycle
+4-5, cost 7: keep
+```
+
+The kept forest costs `1 + 3 + 7 = 11`.  All cable costs total `15`, so the
+maximum saving is:
+
+```text
+15 - 11 = 4
+```
+
+An isolated vertex needs no kept cable and contributes neither kept cost nor
+saved cost.
+
+## Algorithm
+
+```text
+read all edges and add their weights to total
+sort edges by increasing weight
+make a DSU with one component per vertex
+kept = 0
+
+for every edge (u, v, w) in sorted order:
+    if union(u, v) succeeds:
+        kept += w
+
+print total - kept
+```
+
+Unlike a connected-MST problem, do not check whether exactly `n - 1` edges
+were kept.  A disconnected input is valid: Kruskal returns one tree for each
+component.
+
+## Correctness proof
+
+We prove that the algorithm outputs the maximum possible saved cost.
+
+**Lemma 1.** In every original connected component, there is an optimal set of
+kept cables that is a spanning tree.
+
+**Proof.** Any valid kept subgraph is connected within that component.  If it
+contains a cycle, remove an edge from the cycle.  Connectivity remains because
+the other cycle edges give an alternate route.  Since cable costs are
+nonnegative, removing the edge does not increase kept cost.  Repeating this
+removes all cycles and leaves a connected acyclic subgraph, which is a spanning
+tree. $\square$
+
+**Lemma 2.** Kruskal's selected edges have minimum possible total cost among
+all spanning forests that preserve the original components.
+
+**Proof.** Restrict attention to one original component.  Kruskal processes its
+edges in the same increasing-cost order as ordinary Kruskal on that component,
+and only joins different current DSU components.  By the cut property, every
+such selected lightest connecting edge is safe for a minimum spanning tree of
+that component.  Therefore its selected edges form a minimum spanning tree
+there.  Applying this independently to every original component proves that
+the whole selected forest has minimum total cost. $\square$
+
+**Theorem.** The algorithm prints the maximum total cost that can be saved.
+
+**Proof.** By Lemma 1, an optimal valid retained network can be chosen as a
+spanning forest.  By Lemma 2, the algorithm's forest has no greater kept cost
+than any such valid network.  The input's total cost is fixed, so subtracting
+this minimum kept cost from it yields the greatest possible removed cost.
+Thus the printed value is optimal. $\square$
+
+## Complexity
+
+Sorting dominates the work:
+
+```text
+Time:   O(m log m)
+Memory: O(n + m)
+```
+
+DSU operations are effectively constant amortized time because of path
+compression and union by size.
+
+## Implementation notes
+
+- Accumulate `total` and `kept` in `long long` in C++; their values can exceed
+  a 32-bit integer.
+- Repeated cables are harmless.  At most one can be useful for a particular
+  DSU merge; the rest are skipped once their endpoints are connected.
+- Zero-cost cables can be selected normally.  Keeping or removing an extra
+  zero-cost cycle edge does not change the answer.
+- Do not print `IMPOSSIBLE` for a disconnected graph.  The requirement is to
+  preserve each original component, not to connect all vertices together.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct DSU {
+    vector<int> parent, size;
+
+    explicit DSU(int n) : parent(n + 1), size(n + 1, 1) {
+        iota(parent.begin(), parent.end(), 0);
+    }
+
+    int find(int x) {
+        if (parent[x] == x) return x;
+        return parent[x] = find(parent[x]);
+    }
+
+    bool unite(int a, int b) {
+        a = find(a);
+        b = find(b);
+        if (a == b) return false;
+        if (size[a] < size[b]) swap(a, b);
+        parent[b] = a;
+        size[a] += size[b];
+        return true;
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    cin >> n >> m;
+    vector<tuple<long long, int, int>> edges;
+    long long total = 0;
+    for (int i = 0; i < m; ++i) {
+        int u, v;
+        long long w;
+        cin >> u >> v >> w;
+        edges.emplace_back(w, u, v);
+        total += w;
+    }
+
+    sort(edges.begin(), edges.end());
+    DSU dsu(n);
+    long long kept = 0;
+    for (auto [w, u, v] : edges) {
+        if (dsu.unite(u, v)) {
+            kept += w;
+        }
+    }
+
+    cout << total - kept << '\\n';
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+class DSU:
+    def __init__(self, n: int) -> None:
+        self.parent = list(range(n + 1))
+        self.size = [1] * (n + 1)
+
+    def find(self, x: int) -> int:
+        while self.parent[x] != x:
+            self.parent[x] = self.parent[self.parent[x]]
+            x = self.parent[x]
+        return x
+
+    def union(self, a: int, b: int) -> bool:
+        a = self.find(a)
+        b = self.find(b)
+        if a == b:
+            return False
+        if self.size[a] < self.size[b]:
+            a, b = b, a
+        self.parent[b] = a
+        self.size[a] += self.size[b]
+        return True
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    n, m = data[:2]
+    edges = []
+    total = 0
+    index = 2
+    for _ in range(m):
+        u, v, w = data[index:index + 3]
+        index += 3
+        edges.append((w, u, v))
+        total += w
+
+    edges.sort()
+    dsu = DSU(n)
+    kept = 0
+    for w, u, v in edges:
+        if dsu.union(u, v):
+            kept += w
+
+    print(total - kept)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Running a connected-MST solution and printing `IMPOSSIBLE` for an input with
+  multiple original components.
+- Summing only skipped edges without accounting for every cable in `total`.
+- Using `int` for the sum of up to `200000` costs of `10^9`.
+- Sorting in decreasing order, which keeps an expensive forest and minimizes
+  the saving instead.
+- Removing a cable whenever its endpoints are currently connected without
+  considering edge costs; the kept forest must be minimum cost.
+
+## Tests that matter
+
+- a graph with no cables and several isolated vertices, which saves `0`;
+- one tree, where every cable is necessary and saves `0`;
+- repeated cables with different costs;
+- zero-cost edges and cycles;
+- multiple disconnected original components;
+- a large graph whose total cost requires 64-bit arithmetic.
+
+# Stress testing
+
+For tiny graphs, enumerate every subset of cables to keep.  For each subset,
+run ordinary BFS from every vertex before and after removals and keep only
+subsets with exactly the same reachability relation.  The best value of
+
+```text
+total cost - retained cost
+```
+
+is an independent oracle for Kruskal's answer.  The local generator uses at
+most ten edges for this exhaustive check and separately creates a `200000`-edge
+case to exercise sorting and DSU at the intended scale.
+
+# What to carry forward
+
+Kruskal is useful even when the goal is not phrased as "find an MST."  When a
+problem asks to preserve connectivity while discarding cost, translate it to:
+
+```text
+minimum cost needed to keep = minimum spanning forest
+maximum removable cost       = total cost - forest cost
+```
+
+For disconnected inputs, think component by component rather than forcing a
+single spanning tree.

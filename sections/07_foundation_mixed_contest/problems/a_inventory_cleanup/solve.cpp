@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Count color frequencies, sort frequencies, delete smallest groups.
+    // TODO: solve the problem.
     return 0;
 }
-

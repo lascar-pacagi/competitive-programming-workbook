@@ -38,6 +38,10 @@ greatest right sum no larger than `X-left` and maximize over left sums.
 the two sorted neighbors around a lower bound, so checking both covers every
 optimal full subset.
 
+**D. Exact Sum, Maximum Items.** For each right-half sum, store only the
+largest number of selected items producing it. A left state of sum `s` and
+count `c` pairs with the stored state for `target-s`, maximizing `c+count`.
+
 ## Detailed solution guide
 
 **A. Count Subsets with Sum at Most `S`.** Split the array into left and right
@@ -79,7 +83,7 @@ Count subsets whose sum is at most `X`.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -117,7 +121,7 @@ Print the maximum subset sum not exceeding `X`.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -157,7 +161,7 @@ Print the minimum absolute difference between a subset sum and target `T`.
 
 ## Algorithm and proof
 
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. `\square`
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
 
 ## Complexity
 
@@ -190,6 +194,86 @@ def main():
 if __name__=="__main__": main()
 ```
 
+# D. Exact Sum, Maximum Items
+
+## Restatement and constraint implications
+
+Choose a subset whose sum is exactly `target`. Among all such subsets, print
+the maximum number of selected items, or `-1` when no exact-sum subset exists.
+There are at most 36 values, which may be negative. This makes a target-indexed
+dynamic program impossible when values and target are large, while direct
+subset enumeration remains exponential in 36.
+
+The split is the same as other meet-in-the-middle tasks, but the data retained
+for an equal sum changes. We do not merely need to know whether a right-half
+sum exists: we need the largest item count that achieves that sum.
+
+## State and worked trace
+
+For values `[4,3,2,1,-1]` and target 5, split after the first two values.
+The left half contributes states `(sum,count)` including `(0,0)`, `(4,1)`,
+`(3,1)`, and `(7,2)`. The right half `[2,1,-1]` has, among others, sum 1 with
+maximum count 3, from selecting all three values. Pairing left sum 4 with
+right sum `5-4=1` gives four selected items: `[4,2,1,-1]`.
+
+If several right subsets have the same sum, retaining only the largest count
+is safe. Any left state needing that sum benefits from the largest count; a
+smaller count can never improve the final objective.
+
+## Algorithm
+
+```text
+enumerate (sum, count) for every subset of the right half
+best_count[sum] = maximum count among its right-half states
+
+answer = no solution
+for every (left_sum, left_count) from the left half:
+    if target - left_sum exists in best_count:
+        answer = max(answer, left_count + best_count[target-left_sum])
+print answer, or -1 if it was never updated
+```
+
+The enumeration must include `(0,0)` for each half, which represents taking no
+item from that half. Negative values require no pruning by partial sum.
+
+## Correctness proof
+
+Every full subset has a unique left-half subset and right-half subset. Therefore
+it appears exactly once as a pair of enumerated states whose sums add to its
+total. For a fixed left state with sum `s`, an exact target is possible exactly
+when the right sum is `target-s`.
+
+For that required right sum, `best_count` stores the maximum item count among
+all right subsets with that sum. Replacing any compatible right subset by that
+stored one preserves the exact total and cannot decrease item count. Thus the
+algorithm considers an item count at least as large as every valid full subset.
+It never combines sums other than `target`, so every candidate is valid.
+Consequently its maximum is precisely the largest cardinality of an exact-sum
+subset, or no candidate exists exactly when no such subset exists. QED.
+
+## Complexity, implementation notes, and tests
+
+Each half has at most 18 elements, so its enumeration contains at most
+`2^18` states. Expected dictionary operations make the total time
+`O(2^(n/2))` and extra memory `O(2^(n/2))`. Use signed 64-bit integers for
+sums and targets in C++; Python integers already handle them.
+
+Test target zero, all negative values, repeated values that create the same
+sum with different cardinalities, and an impossible target. A frequent bug is
+to overwrite a map entry with the last count rather than the maximum count.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_exact_sum_max_items/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_exact_sum_max_items/solution.py >}}
+```
+
 # Testing discussion
 
 The proof is a bijection between full subsets and pairs of half-subsets. For
@@ -198,3 +282,7 @@ small `n`, enumerate all masks as the stress oracle. In counting, use
 below that bound, never merely the first greater value.
 
 Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.
+
+For D, tiny cases instead enumerate every full-array mask, independently
+checking exact sum and item count. The scale case uses 36 power-of-two values,
+which makes a full enumeration impossible while giving a directly known answer.

@@ -10,6 +10,7 @@ complete knapsack, and subset-sum feasibility with state compression.
    - `a_budget_selection`
    - `b_unlimited_training`
    - `c_possible_sums`
+   - `d_balanced_split` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -24,4 +25,3 @@ CP_TARGET=solution python3 sections/23_knapsack_subset_dp/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

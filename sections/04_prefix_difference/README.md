@@ -17,6 +17,7 @@ After this section, you should be able to:
    - `a_range_sum_queries`
    - `b_range_add_final_array`
    - `c_subarray_sum_count`
+   - `d_signal_peak` (blind practice: attempt before opening the editorial)
 3. Run this section's checker after each problem.
 4. Read `editorial.pdf` only after a serious attempt.
 
@@ -45,4 +46,3 @@ CP_TARGET=solution python3 sections/04_prefix_difference/check.py
 
 See [`PRACTICE.md`](PRACTICE.md). Their statements are external; this
 repository does not copy them.
-

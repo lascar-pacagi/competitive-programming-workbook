@@ -17,6 +17,7 @@ After this section, you should be able to:
    - `a_sum_constraints`
    - `b_until_threshold`
    - `c_token_budget`
+   - `d_batch_pages` (blind practice: attempt before opening the editorial)
 3. Run this section's checker after each problem.
 4. Read `editorial.pdf` only after a serious attempt.
 

@@ -147,7 +147,7 @@ the output order.
 
 **Proof.** A course enters the heap only when its indegree becomes `0`. The
 indegree counts prerequisites not yet processed. Therefore no unprocessed
-prerequisite remains when the course is popped. `\square`
+prerequisite remains when the course is popped. $\square$
 
 **Lemma 2.** If a valid course remains available at some step, it is in the
 heap.
@@ -155,7 +155,7 @@ heap.
 **Proof.** A course is available exactly when all incoming prerequisite edges
 come from already processed courses. Kahn's algorithm decrements indegree for
 each processed predecessor, so its indegree is then `0`, and the course is
-pushed into the heap. `\square`
+pushed into the heap. $\square$
 
 **Lemma 3.** The algorithm's order is lexicographically smallest among all
 valid orders.
@@ -164,7 +164,7 @@ valid orders.
 prefix already chosen by the algorithm has been processed. The next valid
 course must be among the currently available courses. By Lemma 2, all such
 courses are in the heap, and the algorithm picks the smallest. No valid order
-can choose a smaller next course. `\square`
+can choose a smaller next course. $\square$
 
 **Theorem.** The algorithm prints the lexicographically smallest valid order,
 or `IMPOSSIBLE` if none exists.
@@ -173,7 +173,7 @@ or `IMPOSSIBLE` if none exists.
 and Lemma 3 proves it is lexicographically smallest. If not all vertices are
 processed, the remaining vertices never reach indegree `0`, which can only
 happen because of a directed cycle among remaining prerequisites. No valid
-topological order exists. `\square`
+topological order exists. $\square$
 
 ## Complexity
 
@@ -376,7 +376,7 @@ print max(dp)
 predecessor of `u` has already been processed.
 
 **Proof.** `u` is popped only after its indegree becomes `0`. Each incoming
-edge is removed only when its predecessor is processed. `\square`
+edge is removed only when its predecessor is processed. $\square$
 
 **Lemma 2.** When vertex `u` is popped, `dp[u]` equals the longest path length
 ending at `u`.
@@ -385,14 +385,14 @@ ending at `u`.
 `u`, or ends with some edge `p -> u`. By Lemma 1, every predecessor `p` has
 already been processed, and the transition `dp[u] = max(dp[u], dp[p] + 1)` was
 applied. Therefore all possible last edges into `u` have been considered.
-`\square`
+$\square$
 
 **Theorem.** The algorithm prints the length of the longest directed path in
 the DAG.
 
 **Proof.** By Lemma 2, every `dp[v]` is the longest path ending at `v`. Every
 directed path ends at some vertex, so the maximum over all vertices is the
-global longest path length. `\square`
+global longest path length. $\square$
 
 ## Complexity
 
@@ -599,7 +599,7 @@ prerequisite edges have been removed, meaning every prerequisite has already
 been processed. Each prerequisite `p` applies
 `earliest_start[u] = max(earliest_start[u], finish[p])`. Thus all prerequisite
 finish times have been considered, and no non-prerequisite can increase the
-value. `\square`
+value. $\square$
 
 **Lemma 2.** When job `u` is processed, `finish[u]` is the earliest possible
 finish time of `u`.
@@ -608,7 +608,7 @@ finish time of `u`.
 cannot start before the maximum prerequisite finish time. By Lemma 1, that is
 `earliest_start[u]`. Starting at that time is feasible because all
 prerequisites are done, so finishing at `earliest_start[u] + duration[u]` is
-earliest possible. `\square`
+earliest possible. $\square$
 
 **Theorem.** The algorithm prints correct earliest finish times, or
 `IMPOSSIBLE` if scheduling all jobs is impossible.
@@ -616,7 +616,7 @@ earliest possible. `\square`
 **Proof.** If all jobs are processed, Lemma 2 proves every printed finish time
 is correct. If not all jobs are processed, the remaining jobs are blocked by a
 directed cycle of prerequisites, so no schedule can complete all jobs.
-`\square`
+$\square$
 
 ## Complexity
 
@@ -790,3 +790,323 @@ cycle detection is order-size < n in Kahn's algorithm
 The next graph sections build on this dependency thinking with DSU, minimum
 spanning trees, and weighted shortest paths.
 
+# D. Unique Build Order
+
+## Restatement
+
+Each directed edge `a -> b` says that build step `a` must occur before step
+`b`.  There are three possible outcomes:
+
+- a directed cycle makes every complete build order impossible;
+- an acyclic graph can have two or more valid orders, so the answer is
+  `AMBIGUOUS`;
+- otherwise there is exactly one valid order, which must be printed.
+
+The graph has up to `200000` vertices and edges.  Trying permutations is useful
+only for a tiny brute-force tester, not for the submitted solution.
+
+## Observation: available choices determine uniqueness
+
+Run Kahn's algorithm and consider the set of currently available vertices:
+those with indegree `0` after already chosen vertices have been removed.
+
+- If it is empty before all vertices are processed, a cycle remains.
+- If it ever contains two or more vertices, either one may be chosen next.
+  Those two choices begin two distinct valid topological orders.
+- If it contains exactly one vertex at every step and all vertices are
+  processed, every position is forced.  The order is unique.
+
+The queue does not need to be a min-heap.  When the order is unique there is
+only one possible next vertex; when it is ambiguous we print no order.  A
+plain FIFO queue is therefore sufficient.
+
+Do not immediately print `AMBIGUOUS` after seeing two available vertices.  A
+separate component may still contain a cycle.  Continue Kahn's algorithm and
+let `IMPOSSIBLE` take priority if fewer than `n` vertices are processed.
+
+## Walk-through
+
+First consider a forced chain:
+
+```text
+1 -> 2 -> 3 -> 4
+```
+
+The available set has one member at every stage:
+
+```text
+available: {1} -> {2} -> {3} -> {4}
+order:       1      2      3      4
+```
+
+So the result is:
+
+```text
+UNIQUE
+1 2 3 4
+```
+
+Now add two independent starting steps:
+
+```text
+1 -> 3 <- 2
+```
+
+Initially both `1` and `2` have indegree `0`:
+
+```text
+available: {1, 2}
+```
+
+Choosing `1` first gives `1, 2, 3`; choosing `2` first gives `2, 1, 3`.
+Thus the graph is `AMBIGUOUS`.
+
+Finally, a graph can look ambiguous locally and still be impossible overall:
+
+```text
+1 -> 3 <- 2       4 <-> 5
+```
+
+Steps `1` and `2` are initially available, but `4` and `5` can never be
+removed.  The correct answer is `IMPOSSIBLE`, not `AMBIGUOUS`.
+
+## Algorithm
+
+```text
+build adjacency lists and indegree values
+put every vertex with indegree 0 into a queue
+ambiguous = false
+order = empty list
+
+while queue is not empty:
+    if queue has at least two vertices:
+        ambiguous = true
+
+    remove one vertex u from the queue
+    append u to order
+    for every edge u -> v:
+        decrease indegree[v]
+        if indegree[v] becomes 0:
+            add v to the queue
+
+if order has fewer than n vertices:
+    print IMPOSSIBLE
+else if ambiguous:
+    print AMBIGUOUS
+else:
+    print UNIQUE and order
+```
+
+## Correctness proof
+
+We prove that the algorithm prints the required classification and, when
+applicable, the required order.
+
+**Lemma 1.** If the algorithm processes fewer than `n` vertices, the graph
+contains a directed cycle.
+
+**Proof.** Kahn's algorithm stops only when no unprocessed vertex has
+indegree `0` within the remaining graph.  Starting from any remaining vertex
+and repeatedly following an incoming remaining edge must eventually repeat a
+vertex because the remaining graph is finite.  The repeated portion is a
+directed cycle. $\square$
+
+**Lemma 2.** If at some iteration the queue contains two different vertices,
+the graph has at least two valid topological orders.
+
+**Proof.** Both vertices have no unprocessed prerequisites, so either can be
+placed next after the already constructed prefix.  Removing either available
+vertex from a DAG leaves a DAG, which Kahn's algorithm can complete.  One
+completion starts with the first chosen vertex and another starts with the
+second, so the two valid orders differ at this position. $\square$
+
+**Lemma 3.** If the algorithm processes all vertices and the queue has exactly
+one vertex at every iteration, the recorded order is the only valid
+topological order.
+
+**Proof.** Induct on the position in the order.  Before the first position,
+the only indegree-zero vertex is the only vertex that can legally be first.
+After that forced vertex is removed, the same argument applies to the unique
+available vertex for the next position.  Every position is forced, so no
+different valid order exists. $\square$
+
+**Theorem.** The algorithm prints the correct output.
+
+**Proof.** By Lemma 1, fewer than `n` processed vertices means `IMPOSSIBLE` is
+correct.  Otherwise the graph is acyclic.  If `ambiguous` is true, Lemma 2
+gives two valid orders, so `AMBIGUOUS` is correct.  If it is false, Lemma 3
+proves that the recorded topological order is unique, so printing `UNIQUE`
+and that order is correct. $\square$
+
+## Complexity
+
+Every vertex enters the queue once, and every edge is examined once:
+
+```text
+Time:   O(n + m)
+Memory: O(n + m)
+```
+
+## Implementation notes
+
+- Check `queue.size()` or `len(queue)` before removing the next vertex.
+- Keep processing after finding multiple available vertices; a cycle has
+  higher-priority output.
+- Record the order only so it can be printed in the unique case.
+- With `n, m <= 200000`, use adjacency lists and an iterative queue.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, m;
+    cin >> n >> m;
+
+    vector<vector<int>> graph(n + 1);
+    vector<int> indegree(n + 1, 0);
+    for (int i = 0; i < m; ++i) {
+        int a, b;
+        cin >> a >> b;
+        graph[a].push_back(b);
+        ++indegree[b];
+    }
+
+    queue<int> available;
+    for (int step = 1; step <= n; ++step) {
+        if (indegree[step] == 0) {
+            available.push(step);
+        }
+    }
+
+    bool ambiguous = false;
+    vector<int> order;
+    while (!available.empty()) {
+        if (available.size() > 1) {
+            ambiguous = true;
+        }
+
+        int u = available.front();
+        available.pop();
+        order.push_back(u);
+        for (int v : graph[u]) {
+            --indegree[v];
+            if (indegree[v] == 0) {
+                available.push(v);
+            }
+        }
+    }
+
+    if (static_cast<int>(order.size()) != n) {
+        cout << "IMPOSSIBLE\\n";
+    } else if (ambiguous) {
+        cout << "AMBIGUOUS\\n";
+    } else {
+        cout << "UNIQUE\\n";
+        for (int i = 0; i < n; ++i) {
+            cout << order[i] << (i + 1 == n ? '\\n' : ' ');
+        }
+    }
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+from collections import deque
+
+
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    n, m = data[:2]
+    graph = [[] for _ in range(n + 1)]
+    indegree = [0] * (n + 1)
+    index = 2
+    for _ in range(m):
+        a, b = data[index], data[index + 1]
+        index += 2
+        graph[a].append(b)
+        indegree[b] += 1
+
+    available = deque(step for step in range(1, n + 1) if indegree[step] == 0)
+    ambiguous = False
+    order = []
+    while available:
+        if len(available) > 1:
+            ambiguous = True
+
+        u = available.popleft()
+        order.append(u)
+        for v in graph[u]:
+            indegree[v] -= 1
+            if indegree[v] == 0:
+                available.append(v)
+
+    if len(order) != n:
+        print("IMPOSSIBLE")
+    elif ambiguous:
+        print("AMBIGUOUS")
+    else:
+        print("UNIQUE")
+        print(*order)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+## Common wrong answers
+
+- Printing `AMBIGUOUS` as soon as two vertices are available, then missing a
+  cycle in another component.
+- Checking only the initial indegree-zero set.  Choices can appear later.
+- Using a min-heap because a previous task requested lexicographic order.
+  This problem asks about uniqueness, not the smallest order.
+- Treating a vertex with outgoing edges as unavailable.  Only unmet incoming
+  dependencies affect availability.
+
+## Tests that matter
+
+- a one-vertex graph, which is uniquely ordered;
+- a long chain, which is uniquely ordered;
+- no edges on several vertices, which is ambiguous immediately;
+- two independent starting vertices that later merge;
+- a cycle with no initial available vertex;
+- two available vertices plus a separate directed cycle, which must print
+  `IMPOSSIBLE`.
+
+# Stress testing
+
+For Problem D, keep random graphs very small and enumerate permutations of all
+vertices.  Count valid orders only until the second one:
+
+```text
+zero valid permutations -> IMPOSSIBLE
+one valid permutation  -> UNIQUE and that permutation
+two valid permutations -> AMBIGUOUS
+```
+
+This oracle is deliberately different from the submitted Kahn-based solution.
+It catches mistakes such as declaring ambiguity before ruling out a cycle.  A
+separate large acyclic graph with two initial sources checks that the actual
+solution remains linear at `200000` vertices and edges.
+
+# What to carry forward
+
+Topological sorting is more than a way to produce an order.  The set of
+currently available vertices records what dependency choices remain:
+
+```text
+no available vertex before completion -> cycle
+one available vertex at every step     -> forced order
+two available vertices at some step    -> at least two orders
+```
+
+Whenever a directed dependency graph is acyclic, process it in a topological
+order and ask what state can be propagated along each forward edge.

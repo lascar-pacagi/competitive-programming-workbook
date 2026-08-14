@@ -36,6 +36,25 @@ rule sheet first. The local scoreboard drill defines the rule variant it uses.
 The transferable habit is to turn the written rule into state before writing
 code.
 
+# The 20-problem readiness ladder
+
+Use [problem_sheet.pdf](problem_sheet.pdf) as the primary individual and team
+practice progression. Its four rounds deliberately move from opening-solve
+reliability through regional modeling to finalist-style reductions. The order
+is based on recognition and implementation risk, not on a claim that every
+contest source uses one universal rating scale.
+
+For every ladder problem, write one pre-code contract before looking at the
+editorial:
+
+```text
+model | invariant | target complexity | first hostile test
+```
+
+The local A--D exercises below train contest operations. They should not reveal
+the reduction for a ladder problem; use the matching editorial only after an
+attempt or a time-boxed handoff.
+
 # The contest board is shared memory
 
 Keep one visible row per problem:
@@ -187,7 +206,8 @@ Consider submissions for team 2 on problem 4:
 | 52 | W | 2 | 1 | 87 |
 
 The final wrong answer does nothing because the problem was already solved.
-Problem A turns this table into a reliable simulation.
+Use this trace to practice deriving the state and update rules from the
+statement before you code the local drill.
 
 # Time boxes and recovery
 
@@ -308,36 +328,17 @@ These are process criteria, not a required solve count. A team can solve fewer
 problems and still improve sharply if its next virtual has fewer unforced
 mistakes and faster recoveries.
 
-# Three contest-operation algorithms
+# Contest-operation diagnosis
 
-The exercises are intentionally familiar algorithmically. They test whether a
-team can deploy known tools accurately when the statement is dressed as a
-contest operation.
+The exercises deliberately dress familiar ideas in team-contest language. Do
+not identify the tool from the title. For each task, first record the state,
+allowed operation, objective, and one invariant. Then compare the required
+operation cost with the constraints and only then select a known technique.
 
-1. **Scoreboard Replay** is direct state simulation: each `(team, problem)`
-   pair has a solved flag and a count of wrong attempts.
-2. **Time-Boxed Schedule** is the deadline greedy from Section 9: retain a
-   feasible set and remove its longest task when a deadline is exceeded.
-3. **First-Round Assignment** is bipartite matching from Section 45: an edge
-   means a teammate can own a problem in the initial parallel round.
-
-## C++ notes
-
-- Use a two-dimensional `vector` for scoreboard state; do not key it by a
-  formatted string when team and problem ids are already bounded integers.
-- Store penalties and elapsed time in `long long` even when the sample is
-  small.
-- `priority_queue<int>` is a max heap, exactly what the schedule greedy needs
-  to remove the longest selected task.
-- For matching, reset the right-side `seen` array for every DFS attempt.
-
-## Python notes
-
-- A nested list of booleans and integers makes the scoreboard state visible.
-- `heapq` is a min heap, so push negative durations to remove the longest
-  selected duration.
-- Use recursion for tiny matching instances only when the recursion depth is
-  comfortably bounded; iterative alternatives are safer for very large input.
+For implementation, prefer a representation whose stored state can be
+explained plainly. Use a wide type for accumulated time or penalties, reset
+per-attempt temporary state when the model requires it, and trace a tiny input
+through every update.
 
 # Local judge workflow
 
@@ -358,9 +359,9 @@ answer cannot reveal a shared mistake.
 - Treating a first scan as a commitment to solve the problem.
 - Letting multiple people independently code the same task without a reason.
 - Handing off only a feeling instead of the current model and counterexample.
-- Updating a scoreboard after submissions to an already solved problem.
-- Removing the shortest, rather than the longest, task in the deadline greedy.
-- Reusing matching `seen` marks across separate augmenting-path searches.
+- Updating state after an operation should have become inactive.
+- Breaking the invariant while choosing a locally attractive action.
+- Reusing temporary state across independent attempts.
 
 # Before you submit
 
@@ -374,10 +375,8 @@ answer cannot reveal a shared mistake.
 
 # Exercises
 
-- A. Scoreboard Replay: simulate the stated ICPC-style scoring rules exactly.
-- B. Time-Boxed Schedule: use a deadline greedy to maximize completed tasks.
-- C. First-Round Assignment: model distinct initial owners as bipartite
-  matching.
+- A, B, and C: state the model, invariant, complexity, and a smallest hostile
+  test before consulting an editorial or earlier template.
 - D. Training-cycle retrospective: run one Session 2 or Session 3 drill from
   the table above. Preserve the board, one handoff note, and one test that
   would have prevented a real mistake. Convert the review into a single next

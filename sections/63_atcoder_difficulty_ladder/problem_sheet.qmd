@@ -1,0 +1,443 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 63: AtCoder Difficulty Ladder -- Offline Problem Sheet"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=20mm
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Offline use
+
+This sheet contains original concise briefs, not copied AtCoder statements.
+Each visible URL is the authoritative statement and submission page. Read it
+before submitting whenever you are online. Approximate ratings come from
+AtCoder Problems and are not official AtCoder labels.
+
+# Gate 1: short entry ramp
+
+## 1. ABC083_B -- Some Sums (approximately 100)
+
+Official: <https://atcoder.jp/contests/abc083/tasks/abc083_b?lang=en>
+
+Given N, A, and B, sum every integer x in 1..N whose decimal digit sum lies in the inclusive interval [A,B]. The bounds are small enough to inspect every candidate.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 1-2.
+
+## 2. ABC210_C -- Colorful Candies (approximately 400)
+
+Official: <https://atcoder.jp/contests/abc210/tasks/abc210_c?lang=en>
+
+Given N candy colors and a window length K, find the maximum number of distinct colors in any K consecutive positions.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 3, 6, and 12.
+
+## 3. ABC167_D -- Teleporter (approximately 800)
+
+Official: <https://atcoder.jp/contests/abc167/tasks/abc167_d?lang=en>
+
+A functional graph gives one next town for each town. Starting at town 1, report the town reached after exactly K moves, where K may be as large as 10^18.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 16 and 27.
+
+## 4. ABC130_D -- Enough Array (approximately 900)
+
+Official: <https://atcoder.jp/contests/abc130/tasks/abc130_d?lang=en>
+
+For a positive array, count subarrays whose sum is at least K. N is large enough that enumerating both endpoints is too slow.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 4 and 6.
+
+## 5. ABC138_D -- Ki (approximately 900)
+
+Official: <https://atcoder.jp/contests/abc138/tasks/abc138_d?lang=en>
+
+Root a tree at vertex 1. Each query adds a value to one vertex and every descendant of that vertex. Print the final value at every vertex.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 16 and 26.
+
+# Gate 2: core intermediate
+
+## 6. ABC218_E -- Destruction (approximately 1000)
+
+Official: <https://atcoder.jp/contests/abc218/tasks/abc218_e?lang=en>
+
+Delete edges from a connected weighted undirected graph while keeping it connected, maximizing the sum of deleted edge weights. Weights may be negative.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 18.
+
+## 7. ABC075_C -- Bridge (approximately 1100)
+
+Official: <https://atcoder.jp/contests/abc075/tasks/abc075_c?lang=en>
+
+In a small connected undirected graph, count edges whose individual removal disconnects the graph.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 16.
+
+## 8. ABC180_E -- Traveling Salesman among Aerial Cities (approximately 1300)
+
+Official: <https://atcoder.jp/contests/abc180/tasks/abc180_e?lang=en>
+
+Visit every 3D city, starting and ending at city 1. Travel cost is |dx|+|dy|+max(0,z_destination-z_source), so direction matters.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 27.
+
+## 9. ABC137_D -- Summer Vacation (approximately 1300)
+
+Official: <https://atcoder.jp/contests/abc137/tasks/abc137_d?lang=en>
+
+There are M working days. Job i becomes available after A_i days and pays B_i; at most one job can be completed per day. Maximize reward.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 9 and 39.
+
+## 10. ABC135_D -- Digits Parade (approximately 1300)
+
+Official: <https://atcoder.jp/contests/abc135/tasks/abc135_d?lang=en>
+
+Replace every '?' in a decimal string by a digit. Count replacements whose resulting integer is congruent to 5 modulo 13, modulo 1e9+7.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 22 and 31.
+
+## 11. ABC187_E -- Through Path (approximately 1400)
+
+Official: <https://atcoder.jp/contests/abc187/tasks/abc187_e?lang=en>
+
+Each query names a tree edge, chooses one of its two sides, and adds x to every vertex on that side. Print all final vertex values.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 4 and 26.
+
+## 12. ABC184_E -- Third Avenue (approximately 1400)
+
+Official: <https://atcoder.jp/contests/abc184/tasks/abc184_e?lang=en>
+
+Find a shortest path through a grid with walls. Equal lowercase letters are teleport stations: from a letter cell one move may reach any other cell with that letter.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 15.
+
+## 13. ABC245_F -- Endless Walk (approximately 1500)
+
+Official: <https://atcoder.jp/contests/abc245/tasks/abc245_f?lang=en>
+
+Count vertices of a directed graph from which one can follow directed edges forever.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 17 and 38.
+
+## 14. ABC174_F -- Range Set Query (approximately 1500)
+
+Official: <https://atcoder.jp/contests/abc174/tasks/abc174_f?lang=en>
+
+Answer many inclusive array-range queries asking for the number of distinct colors.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 13 and 36.
+
+## 15. ABC210_D -- National Railway (approximately 1500)
+
+Official: <https://atcoder.jp/contests/abc210/tasks/abc210_d?lang=en>
+
+Choose two distinct grid cells for stations. Their cost is both cell prices plus C times Manhattan distance; minimize it.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 22 and 28.
+
+# Gate 3: strong intermediate
+
+## 16. ABC190_E -- Magical Ornament (approximately 1600)
+
+Official: <https://atcoder.jp/contests/abc190/tasks/abc190_e?lang=en>
+
+In an unweighted graph, find the minimum number of visited vertices in a walk that visits every one of K special vertices, or report impossibility.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 15 and 27.
+
+## 17. ABC196_E -- Filters (approximately 1700)
+
+Official: <https://atcoder.jp/contests/abc196/tasks/abc196_e?lang=en>
+
+Compose many operations of three kinds on a number: add a, replace by max(x,a), or replace by min(x,a). Answer the final value for many inputs.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 10 and 49.
+
+## 18. ABC204_E -- Rush Hour 2 (approximately 1700)
+
+Official: <https://atcoder.jp/contests/abc204/tasks/abc204_e?lang=en>
+
+An undirected edge entered at integer time t arrives at t+C+floor(D/(t+1)); waiting before entering is allowed. Find the earliest arrival from 1 to N.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 19.
+
+## 19. ABC192_F -- Potion (approximately 1800)
+
+Official: <https://atcoder.jp/contests/abc192/tasks/abc192_f?lang=en>
+
+Choose a nonempty subset of the given positive values so that adding the same integer amount to every chosen value makes their sum equal X. Minimize that common added amount.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 23 and 27.
+
+## 20. ABC061_D -- Score Attack (approximately 1800)
+
+Official: <https://atcoder.jp/contests/abc061/tasks/abc061_d?lang=en>
+
+Find the maximum score of a directed path from vertex 1 to vertex N. If a positive cycle usable on such a path makes the score unbounded, print inf.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 19.
+
+## 21. ABC339_G -- Smaller Sum (approximately 1800)
+
+Official: <https://atcoder.jp/contests/abc339/tasks/abc339_g?lang=en>
+
+For online-decoded queries, return the sum of array values no greater than X inside [L,R]. Each query's parameters are XORed with the previous answer.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 13 and 42.
+
+## 22. ABC172_E -- NEQ (approximately 1900)
+
+Official: <https://atcoder.jp/contests/abc172/tasks/abc172_e?lang=en>
+
+Count ordered pairs of length-N injective sequences A and B over 1..M such that A_i differs from B_i at every position, modulo 1e9+7.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 32 and 33.
+
+## 23. ABC285_F -- Substring of Sorted String (approximately 1900)
+
+Official: <https://atcoder.jp/contests/abc285/tasks/abc285_f?lang=en>
+
+Support point character updates and queries asking whether a substring could appear as one contiguous block in the globally sorted string.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 36, 37, and 44.
+
+## 24. ABC223_F -- Parenthesis Checking (approximately 1900)
+
+Official: <https://atcoder.jp/contests/abc223/tasks/abc223_f?lang=en>
+
+Support swaps of two parentheses and queries asking whether an inclusive substring is a correct bracket sequence.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 4 and 37.
+
+## 25. ABC254_F -- Rectangle GCD (approximately 1900)
+
+Official: <https://atcoder.jp/contests/abc254/tasks/abc254_f?lang=en>
+
+For arrays A and B, the conceptual matrix has value A_i+B_j. Answer the gcd of every value in many queried row-column rectangles.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 13 and 35.
+
+## 26. ABC253_F -- Operations on a Matrix (approximately 1900)
+
+Official: <https://atcoder.jp/contests/abc253/tasks/abc253_f?lang=en>
+
+An initially zero matrix supports adding x to every cell in a column interval, assigning every cell of one row to x, and point-value queries.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 36 and 42.
+
+## 27. ABC199_F -- Graph Smoothing (approximately 2100)
+
+Official: <https://atcoder.jp/contests/abc199/tasks/abc199_f?lang=en>
+
+Repeat a random edge-based averaging operation K times on graph vertex values and print the expected final value at every vertex modulo a prime.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 32 and 50.
+
+## 28. ABC256_F -- Cumulative Cumulative Cumulative Sum (approximately 2100)
+
+Official: <https://atcoder.jp/contests/abc256/tasks/abc256_f?lang=en>
+
+Support point assignments in an array and queries for a third-order prefix sum, all modulo 998244353.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 4 and 36.
+
+## 29. ABC205_F -- Grid and Tokens (approximately 2100)
+
+Official: <https://atcoder.jp/contests/abc205/tasks/abc205_f?lang=en>
+
+Each token may be placed in one cell of its allowed rectangle or not placed. No two placed tokens may share a row or a column; maximize the number placed.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 45.
+
+## 30. ABC237_G -- Range Sort Query (approximately 2100)
+
+Official: <https://atcoder.jp/contests/abc237/tasks/abc237_g?lang=en>
+
+A permutation undergoes many operations sorting a subarray ascending or descending. Report the final position of a distinguished value X.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 8 and 37.
+
+# Gate 4: advanced
+
+## 31. ABC132_F -- Small Products (approximately 2100)
+
+Official: <https://atcoder.jp/contests/abc132/tasks/abc132_f?lang=en>
+
+Count length-K positive integer sequences satisfying the problem's adjacent product bound, modulo 1e9+7, with N too large for one state per value.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 22 and 49.
+
+## 32. ABC296_G -- Polygon and Points (approximately 2200)
+
+Official: <https://atcoder.jp/contests/abc296/tasks/abc296_g?lang=en>
+
+For many query points, classify each as strictly inside, on the boundary of, or outside a convex polygon listed in cyclic order.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 54.
+
+## 33. ABC239_G -- Builder Takahashi (approximately 2200)
+
+Official: <https://atcoder.jp/contests/abc239/tasks/abc239_g?lang=en>
+
+Vertices other than 1 and N have destruction costs. Find the minimum cost of vertices whose removal disconnects 1 from N, and output one optimal set.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 45.
+
+## 34. ABC238_G -- Cubic? (approximately 2300)
+
+Official: <https://atcoder.jp/contests/abc238/tasks/abc238_g?lang=en>
+
+For each array range, decide whether the product of its elements is a perfect cube.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 33 and 42.
+
+## 35. ABC274_G -- Security Camera 3 (approximately 2300)
+
+Official: <https://atcoder.jp/contests/abc274/tasks/abc274_g?lang=en>
+
+Cover all open grid cells using the minimum number of axis-aligned camera segments, with walls breaking visibility.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 45.
+
+## 36. ABC265_G -- 012 Inversion (approximately 2400)
+
+Official: <https://atcoder.jp/contests/abc265/tasks/abc265_g?lang=en>
+
+An array over {0,1,2} supports range symbol permutations and queries for the inversion count of a range.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 37.
+
+## 37. ABC338_G -- evall (approximately 2600)
+
+Official: <https://atcoder.jp/contests/abc338/tasks/abc338_g?lang=en>
+
+Sum the usual arithmetic value of every digit-bounded substring of a long expression containing digits, '+', and '*', modulo 998244353.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 31 and 49.
+
+## 38. AGC003_D -- Anticube (approximately 2600)
+
+Official: <https://atcoder.jp/contests/agc003/tasks/agc003_d?lang=en>
+
+Choose the largest subset of integers such that the product of no two chosen elements is a perfect cube.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 33 and 35.
+
+## 39. ABC354_G -- Select Strings (approximately 2700)
+
+Official: <https://atcoder.jp/contests/abc354/tasks/abc354_g?lang=en>
+
+Select a maximum-value compatible subset of weighted strings under the problem's substring-conflict rule.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 44 and 45.
+
+# Gate 5: orange
+
+## 40. AGC026_E -- Synchronized Subsequence (approximately 3000)
+
+Official: <https://atcoder.jp/contests/agc026/tasks/agc026_e?lang=en>
+
+A length-2N string contains N 'a' and N 'b'. For every rank i, either select both the i-th 'a' and i-th 'b', or neither; maximize the selected subsequence lexicographically.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 22 and 44.
+
+## 41. AGC006_D -- Median Pyramid Hard (approximately 3100)
+
+Official: <https://atcoder.jp/contests/agc006/tasks/agc006_d?lang=en>
+
+The bottom row is a permutation of 1..2N-1. Each upper block is the median of its three children; find the value at the pyramid's top.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Section 8.
+
+## 42. ARC108_E -- Random IS (approximately 3100)
+
+Official: <https://atcoder.jp/contests/arc108/tasks/arc108_e?lang=en>
+
+Repeatedly choose uniformly among currently addable chairs while keeping marked chair IDs increasing left-to-right. Find the expected final number marked.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 25 and 50.
+
+## 43. AGC023_F -- 01 on Tree (approximately 3100)
+
+Official: <https://atcoder.jp/contests/agc023/tasks/agc023_f?lang=en>
+
+Linearize a rooted tree so every ancestor precedes its descendants. Vertex labels are 0 or 1; minimize inversions in the resulting binary sequence.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 9, 26, and 39.
+
+## 44. AGC023_D -- Go Home (approximately 3200)
+
+Official: <https://atcoder.jp/contests/agc023/tasks/agc023_d?lang=en>
+
+A bus starts at S carrying populations bound for apartments on a line. At every unit step, rational passengers vote for the direction that gets them home sooner; find when the final passenger exits.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 9 and 11.
+
+## 45. ARC069_D -- Flags (approximately 3200)
+
+Official: <https://atcoder.jp/contests/arc069/tasks/arc069_d?lang=en>
+
+Flag i may be placed at either x_i or y_i. Maximize the minimum distance between every pair of placed flags.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 8, 17, and 37.
+
+# Gate 6: red
+
+## 46. AGC017_F -- Zigzag (approximately 3400)
+
+Official: <https://atcoder.jp/contests/agc017/tasks/agc017_f?lang=en>
+
+Count ordered noncrossing down-left/down-right paths through a triangular grid, subject to fixed direction choices on selected path-step pairs.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 27 and 37.
+
+## 47. AGC032_E -- Modulo Pairing (approximately 3400)
+
+Official: <https://atcoder.jp/contests/agc032/tasks/agc032_e?lang=en>
+
+Pair 2N residues modulo M to minimize the maximum value of (x+y) mod M among the N pairs.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 8 and 9.
+
+## 48. AGC005_F -- Many Easy Problems (approximately 3400)
+
+Official: <https://atcoder.jp/contests/agc005/tasks/agc005_f?lang=en>
+
+For every K=1..N, sum over all K-vertex sets the number of vertices in their minimum containing subtree, modulo 924844033.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 26, 32, and 51.
+
+## 49. AGC024_F -- Simple Subsequence Problem (approximately 3500)
+
+Official: <https://atcoder.jp/contests/agc024/tasks/agc024_f?lang=en>
+
+A compact bit-table describes a set of binary strings of length at most N. Find the longest, then lexicographically smallest, string that is a subsequence of at least K members of the set.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 27 and 44.
+
+## 50. AGC016_F -- Games on DAG (approximately 3800)
+
+Official: <https://atcoder.jp/contests/agc016/tasks/agc016_f?lang=en>
+
+From a forward-edge DAG, choose any subset of edges. Two impartial-game tokens start at vertices 1 and 2; count edge subsets for which the first player wins.
+
+Constraints and exact input/output syntax: see the official link. Course bridge: Sections 27, 29, and 33.

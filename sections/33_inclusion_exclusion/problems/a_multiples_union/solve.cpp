@@ -5,6 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: inclusion-exclusion over nonempty subsets and lcm.
+    // TODO: solve the problem.
     return 0;
 }

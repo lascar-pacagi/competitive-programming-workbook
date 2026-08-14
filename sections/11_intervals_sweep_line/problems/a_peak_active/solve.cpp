@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Sweep events. For half-open intervals, process ends before starts at the same coordinate.
+    // TODO: solve the problem.
     return 0;
 }
-

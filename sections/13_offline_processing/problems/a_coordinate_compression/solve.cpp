@@ -5,7 +5,6 @@ int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // TODO: Sort unique values, map each original value to its rank, and print ranks.
+    // TODO: solve the problem.
     return 0;
 }
-

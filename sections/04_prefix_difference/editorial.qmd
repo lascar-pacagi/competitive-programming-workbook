@@ -533,6 +533,107 @@ sys.stdout.write("\n".join(out))
 - Using a sliding window even though negative values are allowed.
 - Using `int` for prefix sums or answer in C++.
 
+# Problem D: Signal Peak
+
+## Restatement and recognition
+
+Apply many inclusive range additions to an initially zero array, then report the
+largest final value and its smallest position. With `n,q` both `200000`, updating
+every covered cell per operation is too slow. The output is needed only after
+all updates, which is the signal for a difference representation.
+
+## Trace and algorithm
+
+For an add `x` on `[l,r]`, record `+x` at `l` and `-x` at `r+1`. Prefixing these
+changes reconstructs the final value. In the sample, the reconstructed values
+are `4,2,2,7,-2`, so the answer is `7 4`.
+
+```text
+diff[1..n+1] = 0
+for each l,r,x: diff[l] += x; diff[r+1] -= x
+current = 0; best = negative infinity
+for i=1..n:
+    current += diff[i]
+    if current > best: best=current, position=i
+```
+
+## Correctness proof
+
+Each update changes the running prefix total by x exactly from l through r:
+the `+x` begins it and the `-x` cancels it just after r. Thus after prefixing,
+`current` equals the final signal at each scanned position. The scan records a
+position exactly when it has a strictly larger value than every earlier one;
+therefore it finishes with the maximum and its smallest position. $\square$
+
+## Complexity and implementation notes
+
+The algorithm uses `O(n+q)` time and `O(n)` memory. Use `long long` in C++:
+many signed updates can exceed 32-bit range. Initialize the maximum below every
+legal final value because all updates may be negative. Use strict `>` rather
+than `>=` to preserve the smallest tied index.
+
+## Full C++ solution
+
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    vector<long long> diff(n + 2);
+    while (q--) {
+        int left, right;
+        long long delta;
+        cin >> left >> right >> delta;
+        diff[left] += delta;
+        diff[right + 1] -= delta;
+    }
+    long long current = 0, best = LLONG_MIN;
+    int position = 1;
+    for (int i = 1; i <= n; ++i) {
+        current += diff[i];
+        if (current > best) best = current, position = i;
+    }
+    cout << best << ' ' << position << '\n';
+}
+```
+
+## Full Python solution
+
+```python
+import sys
+
+
+data = list(map(int, sys.stdin.buffer.read().split()))
+n, q = data[0], data[1]
+diff = [0] * (n + 2)
+index = 2
+for _ in range(q):
+    left, right, delta = data[index:index + 3]
+    index += 3
+    diff[left] += delta
+    diff[right + 1] -= delta
+
+current = 0
+best = -10**30
+position = 1
+for i in range(1, n + 1):
+    current += diff[i]
+    if current > best:
+        best, position = current, i
+print(best, position)
+```
+
+## Tests that matter
+
+Test one position, a full-range negative update, overlapping positive and
+negative updates, and a tie for the maximum. The random generator uses a direct
+small-array update oracle and includes a near-limit `n=q=200000` range-update
+case.
+
 # Stress testing strategy
 
 Prefix-sum code is easy to test with a slow oracle.
@@ -570,4 +671,3 @@ These ideas reappear in:
 - offline range queries;
 - subarray counting with modular conditions;
 - dynamic programming transitions over intervals.
-

@@ -10,6 +10,7 @@ detecting dependency cycles, and doing dynamic programming in topological order.
    - `a_lexicographic_course_order`
    - `b_longest_dag_path`
    - `c_project_schedule`
+   - `d_unique_build_order` (blind practice: use its README only)
 3. Run the checker:
 
 ```bash
@@ -24,4 +25,3 @@ CP_TARGET=solution python3 sections/17_topological_sorting_dag_dp/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-

@@ -4,7 +4,7 @@ using namespace std;
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    // TODO: dp_white[u] and dp_black[u] for the rooted subtree.
+
+    // TODO: solve the problem.
     return 0;
 }
-

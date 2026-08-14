@@ -30,6 +30,7 @@ execute:
 | A. Point Add Range Sum | See full algorithm and code below. |
 | B. Inversion Count | See full algorithm and code below. |
 | C. Range Add Point Query | See full algorithm and code below. |
+| D. Range Add Range Sum | Difference array plus two weighted prefix trees. |
 # A. Point Add Range Sum
 
 ## Restatement
@@ -57,7 +58,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -194,7 +195,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -314,7 +315,7 @@ represented set contains the changed element or interval. Each query decomposes
 the requested object into summaries that are disjoint, idempotently overlapping,
 or maintained as the current active window. The merge formula for those
 summaries is exactly the mathematical definition of the requested answer, so
-every printed value is correct. `\square`
+every printed value is correct. $\square$
 
 ## Complexity
 
@@ -425,12 +426,207 @@ if __name__ == "__main__":
     main()
 ```
 
+# D. Range Add Range Sum
+
+## Restatement
+
+An initially zero array receives interval additions. Between updates, queries
+ask for the sum over another interval. Both operation types must be processed
+online: a later operation sees every earlier update.
+
+This is the local blind exercise. It combines the two one-sided patterns from
+the section, but the statement does not reveal how to make both the range
+update and the range-sum query logarithmic.
+
+## Constraints and traps
+
+`n,q <= 200,000`, so literally adding to every position of a long interval is
+too slow. An operation sequence with `200,000` full-length updates would take
+quadratic time with a plain list.
+
+The update amount can be negative. Sums may have magnitude up to
+`200,000 * 200,000 * 10^6 = 4 * 10^16`, which fits in signed 64-bit but not in
+`int`. Store Fenwick cells, update products, and answers in `long long` in
+C++.
+
+The difference-array endpoint at `r+1` is real even when `r=n`. Allocate each
+Fenwick tree with an extra usable index. Omitting that index lets an update
+leak past the end of the array instead of cancelling there.
+
+## Observations
+
+Let `d` be the difference array. A range add is small in that representation:
+
+```text
+add x on [l,r] means d[l] += x, d[r+1] -= x.
+```
+
+The current value at position `i` is the prefix `d[1] + ... + d[i]`. A single
+Fenwick tree over `d` therefore solves range-add/point-query, as in problem C.
+For a range sum, we need the prefix of those point values:
+
+```text
+P(p) = value[1] + value[2] + ... + value[p]
+     = sum(i=1..p) sum(j=1..i) d[j]
+     = sum(j=1..p) d[j] * (p-j+1)
+     = (p+1) * sum d[j] - sum j*d[j].
+```
+
+This last line is the key. Maintain two Fenwick trees:
+
+```text
+B1 stores d[j]       so B1.prefix(p) = sum d[j]
+B2 stores j*d[j]     so B2.prefix(p) = sum j*d[j]
+```
+
+Then:
+
+```text
+P(p) = (p+1) * B1.prefix(p) - B2.prefix(p).
+sum(l,r) = P(r) - P(l-1).
+```
+
+## Sample walk-through
+
+After `add 3 on [2,4]`, the difference array has nonzero entries:
+
+```text
+d[2] = +3, d[5] = -3.
+```
+
+For `p=4`, the two maintained prefixes are:
+
+```text
+B1.prefix(4) = 3
+B2.prefix(4) = 2*3 = 6
+P(4) = (4+1)*3 - 6 = 9.
+```
+
+That is the sum of `[0,3,3,3]`. After adding `-1` to `[1,5]`, the query
+`[2,3]` is `P(3)-P(1)=5-1=4`. The final `+10` at index three makes `[2,3]`
+into `[2,12]`; the final query `[3,5]` is `12+2-1=13`.
+
+## Algorithm
+
+```text
+make two Fenwick trees B1 and B2 with indices 1..n+1
+
+range_add(l, r, x):
+    add B1 at l with x
+    add B1 at r+1 with -x
+    add B2 at l with l*x
+    add B2 at r+1 with -(r+1)*x
+
+prefix_sum(p):
+    return (p+1) * B1.prefix(p) - B2.prefix(p)
+
+for each operation:
+    if it is type 1: range_add(l, r, x)
+    otherwise: print prefix_sum(r) - prefix_sum(l-1)
+```
+
+`prefix_sum(0)` is zero because both Fenwick prefix queries at index zero are
+zero. This makes the `l=1` range-query boundary automatic.
+
+## Correctness proof
+
+We prove that every printed query answer is correct.
+
+**Lemma 1.** After all updates processed so far, `B1.prefix(p)` equals
+`sum(j=1..p) d[j]` and `B2.prefix(p)` equals `sum(j=1..p) j*d[j]` for the
+current difference array.
+
+**Proof.** Each range update changes exactly `d[l]` by `x` and `d[r+1]` by
+`-x`. The algorithm applies those same changes to `B1`, and applies each change
+multiplied by its index to `B2`. A Fenwick prefix query is the sum of its
+stored point values, so both stated equalities hold after every update.
+$\square$
+
+**Lemma 2.** `prefix_sum(p)` returned by the algorithm equals the sum of the
+first `p` logical array values.
+
+**Proof.** The logical value at position `i` is `sum(j=1..i) d[j]`. Swapping
+the order of summation gives:
+
+```text
+sum(i=1..p) value[i]
+= sum(j=1..p) d[j]*(p-j+1)
+= (p+1)*sum(j=1..p)d[j] - sum(j=1..p)j*d[j].
+```
+
+By Lemma 1, the two Fenwick prefixes are exactly the two sums on the last
+line, which is the formula used by `prefix_sum`. $\square$
+
+**Theorem.** A type-2 query `[l,r]` is printed with its correct range sum.
+
+**Proof.** By Lemma 2, `prefix_sum(r)` is the sum of positions `1..r`, and
+`prefix_sum(l-1)` is the sum of positions `1..l-1`. Their difference leaves
+exactly the positions `l..r`. $\square$
+
+## Complexity
+
+Each update uses four Fenwick point additions, and each query uses four
+Fenwick prefix sums:
+
+```text
+Time:   O(log n) per operation
+Memory: O(n)
+```
+
+## C++ implementation notes
+
+Keep the trees indexed through `n+1`. In the weighted tree, write
+`delta * index` with `delta` as `long long`; otherwise `int` multiplication
+can overflow before it reaches the tree.
+
+Lambdas for `range_add` and `prefix_sum` keep the four coordinated updates and
+the one formula together, reducing endpoint-copy mistakes.
+
+## Python implementation notes
+
+Python integers safely hold all intermediate products. Parse the full input
+once and maintain an index into the token list; append answers to a list and
+write it once. The Fenwick loops still use ordinary integer indices.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_range_add_range_sum/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_range_add_range_sum/solution.py >}}
+```
+
+## Common wrong answers
+
+```text
+Using one tree over differences and treating its prefix as a range sum.
+Forgetting to multiply the B2 updates by their exact endpoint index.
+Using p*B1.prefix(p)-B2.prefix(p) instead of (p+1)*... .
+Not allocating the r+1 endpoint when r=n.
+Using int for values or products after many updates.
+```
+
+## Tests that matter
+
+```text
+n=1 with positive and negative updates.
+Full-range updates where r=n, to exercise the cancellation endpoint.
+Queries with l=1, where prefix_sum(0) is needed.
+Overlapping updates of opposite signs.
+200,000 updates and queries, to reject linear scans and test 64-bit totals.
+```
+
 # Testing discussion
 
-The fixed samples cover visible behavior. The random tests generate
-many small operation sequences and compute expected outputs from the
-reference Python implementation, then the same expected files are
-used against both the C++ and Python submissions.
+The fixed samples cover visible behavior. The random tests generate many small
+operation sequences and compute expected outputs with a literal mutable array,
+then the same expected files are used against both the C++ and Python
+submissions. For D, include full-range updates, negative deltas, and queries
+whose left endpoint is one.
 
 # Problem-specific upsolve notes
 

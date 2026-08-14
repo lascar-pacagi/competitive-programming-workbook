@@ -10,6 +10,7 @@ preserving a feasibility invariant.
    - `a_non_decreasing_repairs`
    - `b_bracket_completion`
    - `c_bounded_sum_sequence`
+   - `d_pattern_permutation` (blind practice: use its problem README only)
 3. Run the checker:
 
 ```bash
@@ -24,4 +25,3 @@ CP_TARGET=solution python3 sections/10_greedy_constructive/check.py
 
 4. Read `editorial.qmd`.
 5. Work through `PRACTICE.md`.
-
