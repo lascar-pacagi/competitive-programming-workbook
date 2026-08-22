@@ -1,0 +1,123 @@
+---
+title: "Section 82 Editorial — Wavelet Structures And Segment Tree Beats"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. Range K-th Value
+
+## How to find it
+
+Stable-partition every level by one compressed-value bit and navigate with interval zero counts.
+
+## Correctness
+
+At every level the mapped interval contains exactly the original query elements with the chosen prefix. Skipping the zero block when `k` exceeds its size preserves the rank of the desired element.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/a_range_kth/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_range_kth/solution.py >}}
+```
+
+# B. Range Frequency Threshold
+
+## How to find it
+
+Interpret the upper-bound rank bit by bit; add an entire zero branch whenever the bound takes the one branch.
+
+## Correctness
+
+Every added branch has the first differing bit zero versus the bound's one and is therefore smaller; the continued branch contains all and only undecided values.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/b_range_frequency/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_range_frequency/solution.py >}}
+```
+
+# C. Range Cap And Sum
+
+## How to find it
+
+Store the largest value, second largest value, its multiplicity, and the sum.
+
+## Correctness
+
+When the cap lies above the second maximum, exactly the maximum occurrences change, so the node update is exact. Otherwise recursion partitions the affected value classes until that condition holds.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/c_range_cap_sum/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_range_cap_sum/solution.py >}}
+```
+
+# D. Range Modulo And Sum
+
+## How to find it
+
+A modulo update does nothing to a segment whose maximum is below the modulus.
+
+## Correctness
+
+Pruned nodes contain no changed element. At reached leaves the exact modulo is applied, and pulling reconstructs exact sums and maxima.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/d_range_modulo_sum/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_range_modulo_sum/solution.py >}}
+```
+
+# Upsolving and stress testing
+
+For A/B, sort each literal query slice and answer rank/frequency directly;
+include duplicates and thresholds absent from compression. For C/D, mutate
+every element in the requested range and recompute sums. Range modulo uses the
+pruning fact `maximum < modulus`; a sum or average cannot certify that no
+element changes. Segment-tree beats similarly relies on exact extremum-class
+state, not optimistic average behavior.
+
+Carry forward the boundary distinction: wavelet levels navigate a static value
+domain, while beats stores just enough extremal information to prove when a
+nonlinear update is uniform on a node.

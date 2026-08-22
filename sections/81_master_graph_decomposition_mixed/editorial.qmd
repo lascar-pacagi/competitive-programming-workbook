@@ -1,0 +1,173 @@
+---
+title: "Section 81 Editorial — Master Graph Decomposition Mixed Contest"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. Unique Sink Population
+
+## How to find it
+
+Every eventual universal destination must lie in a sink SCC; it exists exactly when that sink is unique.
+
+## Correctness
+
+From any SCC that can be the eventual destination for all vertices, no condensation edge may leave it; otherwise following that edge reaches a different class that cannot return. If two sinks exist, neither reaches the other. If exactly one sink exists, every condensation-DAG path extended until it stops ends there, so every vertex reaches precisely that component.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/a_unique_sink_population/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_unique_sink_population/solution.py >}}
+```
+
+# B. Strong Connectivity Repairs
+
+## How to find it
+
+Unless already strongly connected, each condensation source needs an incoming edge and each sink an outgoing edge; cyclic pairing attains the maximum of the counts.
+
+## Correctness
+
+Every source SCC needs a new incoming edge and every sink SCC needs a new outgoing edge, so at least the larger count is necessary. List sources and sinks cyclically (repeating entries from the shorter list) and connect each sink to the next source. The added cycle links every old DAG region into one strongly connected tour, attaining the bound.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/b_strong_connectivity_repairs/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_strong_connectivity_repairs/solution.py >}}
+```
+
+# C. Eulerian Word Chain
+
+## How to find it
+
+Treat each word as a labeled edge and run lexicographic Hierholzer after checking Euler degree conditions.
+
+## Correctness
+
+The first and last letters make each word one distinct directed edge, so a valid ordering is exactly an Euler trail. Hierholzer consumes every word once and produces a valid chain after reversal. If fewer than `n` words return, another used-edge component was unreachable. Sorting labeled edges makes the first differing word in the resulting valid itinerary minimal.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/c_eulerian_word_chain/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_eulerian_word_chain/solution.py >}}
+```
+
+# D. Robbins Orientation
+
+## How to find it
+
+A bridge can never lie on a directed cycle, while DFS back edges orient every bridgeless tree edge into a strongly connected orientation.
+
+## Correctness
+
+A bridge cannot receive a strongly connected orientation because whichever direction it receives blocks reachability across it in the reverse direction. Conversely, in a connected bridgeless graph orient DFS tree edges downward and back edges toward ancestors. Every subtree has a back-edge escape above its parent edge, and induction gives directed routes both to and from the root; thus all vertices are mutually reachable.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/d_robbins_orientation/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_robbins_orientation/solution.py >}}
+```
+
+# E. Failed Vertex Routes
+
+## How to find it
+
+Removing c disconnects u and v exactly when c lies on every original u-v path, including the endpoint cases.
+
+## Correctness
+
+When the failed vertex is an endpoint, connection is impossible. Otherwise `u` and `v` disconnect after removing `c` exactly when every old path used `c`. Section 80's block-cut characterization tests this all-path property exactly, so negating it yields precisely the surviving-connectivity answer.
+
+## Complexity
+
+`O((n+m) log n + q log n)` time and `O((n+m) log n)` memory.
+
+## C++
+
+```cpp
+{{< include problems/e_failed_vertex_routes/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/e_failed_vertex_routes/solution.py >}}
+```
+
+# F. Dominator Subtree Queries
+
+## How to find it
+
+The fixed-point equation `Dom[v]={v} union intersection Dom[p]` characterizes all mandatory root-to-v checkpoints; invert membership counts.
+
+## Correctness
+
+After fixed-point convergence, `v` belongs to `Dom[x]` exactly when every root-to-`x` path contains `v`. Counting this membership over all targets therefore counts exactly the vertices in `v`'s dominator-tree subtree, including `v` itself, without needing to construct the immediate-dominator edges.
+
+## Complexity
+
+The same bounded dominator fixed point plus `O(n^2)` membership aggregation.
+
+## C++
+
+```cpp
+{{< include problems/f_dominator_subtree_queries/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/f_dominator_subtree_queries/solution.py >}}
+```
+
+# Contest-wide validation
+
+Use transitive closure for SCC reachability, enumerate candidate repair edges,
+backtrack over word-edge orders, enumerate every orientation, delete vertices
+and run BFS, and intersect all tiny root paths for dominators. In particular,
+test the already-strongly-connected case, disconnected nonzero-degree Euler
+edges, multigraph bridges, failed endpoints, and unreachable directed vertices.
+
+The transferable habit is to translate a global path quantifier into the
+correct decomposition object before optimizing queries on it.

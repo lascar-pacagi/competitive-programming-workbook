@@ -260,6 +260,21 @@ def outputs_match(actual: str, expected: str, checker: str, input_data: str) -> 
         return actual.rstrip("\n") == expected.rstrip("\n")
     if checker == "tokens":
         return normalize_tokens(actual) == normalize_tokens(expected)
+    if checker == "float":
+        actual_tokens = normalize_tokens(actual)
+        expected_tokens = normalize_tokens(expected)
+        if len(actual_tokens) != len(expected_tokens):
+            return False
+        try:
+            pairs = zip(map(float, actual_tokens), map(float, expected_tokens))
+            return all(
+                math.isfinite(got)
+                and math.isfinite(want)
+                and abs(got - want) <= 1e-7 + 1e-7 * abs(want)
+                for got, want in pairs
+            )
+        except ValueError:
+            return False
     if checker == "diophantine":
         values = list(map(int, input_data.split()))
         if not values:

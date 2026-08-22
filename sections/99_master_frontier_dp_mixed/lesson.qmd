@@ -1,0 +1,24 @@
+---
+title: "Section 99 — Master Frontier DP Mixed Contest"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# Final contest contract
+
+Six original problems cover the complete frontier-DP block.
+
+| Problem | State boundary |
+|---|---|
+| A | tight prefix, digit sum, and remainder |
+| B | tight prefix, digit sum, and KMP state |
+| C | periodic obstacle-profile transfer matrix |
+| D | canonical component labels with forced cells |
+| E | reusable answers for every terminal subset |
+| F | vertex-cover complement on a tree decomposition |
+
+The final habit is explicit forgetting: state compression is correct only after proving that discarded information cannot affect any future transition.
+
+# Exercises
+
+A--F form the complete mixed contest.

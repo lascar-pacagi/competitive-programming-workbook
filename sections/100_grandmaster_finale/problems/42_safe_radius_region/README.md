@@ -1,0 +1,18 @@
+# Safe Radius Region
+
+Inward half-plane offsets and monotone feasibility determine the greatest safe radius.
+
+A strictly convex polygon is given counterclockwise. Print the greatest radius of a circle contained in it. `3 <= n <= 200000`; coordinates have absolute value at most `10^6`.
+
+Sample input
+```text
+4
+0 0
+2 0
+2 2
+0 2
+```
+Sample output
+```text
+1.0000000000
+```

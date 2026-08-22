@@ -1,0 +1,24 @@
+---
+title: "Section 93 — Master Computational Number Theory Mixed Contest"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# Contest contract
+
+Six original problems combine the tools of Sections 91--92.
+
+| Problem | Main structure |
+|---|---|
+| A | certified leaves of Pollard--rho recursion |
+| B | prime-power Carmichael values joined by LCM |
+| C | factor and reduce a candidate group exponent |
+| D | primitive-root coordinates plus a linear congruence |
+| E | repeated Tonelli--Shanks queries |
+| F | discrete log followed by an affine congruence |
+
+The important habit is to separate layers. First discover or certify the group order. Then translate exponentiation into a congruence. Only after that solve the remaining linear arithmetic.
+
+# Exercises
+
+A--F form the complete mixed contest.

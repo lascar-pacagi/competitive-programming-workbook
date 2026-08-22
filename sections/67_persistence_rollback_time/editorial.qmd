@@ -1,0 +1,248 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 67 Editorial: Persistence, Rollback, And Time"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+# A. Branching Multiset
+
+## Model and algorithm
+
+Use a persistent frequency segment tree on values `1..M`. A node stores the
+number of multiset elements in its interval. Insert and erase clone one
+root-to-leaf path and change counts by `+1` or `-1`; the resulting root is the
+next version. A prefix query descends only into intervals intersecting
+`[1,x]`. For k-th, compare `k` with the left-child count and choose one child.
+
+After inserting 5 into version zero and 2 into that result, only the paths to 5
+and 2 were copied; both roots still share every other zero subtree.
+
+## Correctness proof
+
+Induct on updates. The new leaf has the required changed multiplicity. Every
+copied ancestor sums its correct new child and its shared unchanged child, so
+the new root represents the requested version; older roots were never mutated.
+Prefix recursion partitions exactly the values at most `x`. At a k-th step, the
+left count is precisely the number of smaller candidates, so the chosen branch
+contains the requested rank. Thus every answer is correct.
+
+## Complexity and tests
+
+Each operation is `O(log M)`; memory is `O(number_of_updates log M)`. Test
+branching, duplicate values, erasing the last copy, and minimum/maximum ranks.
+
+## Full C++ solution
+```cpp
+{{< include problems/a_branching_multiset/solution.cpp >}}
+```
+## Full Python solution
+```python
+{{< include problems/a_branching_multiset/solution.py >}}
+```
+
+# B. Versioned Range Add
+
+## Model and algorithm
+
+Build version zero normally. Each persistent node stores `sum` and a local
+`lazy` addition applying to its complete interval. On full cover, clone the node
+and update both fields. On partial cover, clone only intersected paths and set
+
+```text
+sum = left.sum + right.sum + lazy * interval_length.
+```
+
+No push is needed. During a query, accumulate ancestor lazy values. A fully
+covered node contributes `node.sum + carry*length`.
+
+## Correctness proof
+
+The stored-sum equation is true after building. A full update adds the same
+amount to every position, so both its sum and tag change correctly. A partial
+update preserves the equation by recomputation, while shared children remain
+valid for their old versions. Induction proves every root's array. Query carry
+contains exactly tags of strict ancestors, while `node.sum` already contains
+the node's own tag, so every requested element is included once.
+
+## Complexity and tests
+
+Build time and memory are `O(n)`. Updates and queries are `O(log n)`; each
+update allocates `O(log n)` nodes. Test overlapping tags, negative additions,
+singletons, and updates branching from the same old root.
+
+## Full C++ solution
+```cpp
+{{< include problems/b_versioned_range_add/solution.cpp >}}
+```
+## Full Python solution
+```python
+{{< include problems/b_versioned_range_add/solution.py >}}
+```
+
+# C. Dynamic Connectivity
+
+## From operations to lifetimes
+
+Match every addition with its removal. The edge is active on `[add_time,
+remove_time)`; an unremoved edge ends at `q`. Store each lifetime in a segment
+tree over operation indices.
+
+Traverse that tree with rollback DSU. Before entering a node, save the history
+length and unite all its edges. At a leaf, answer connectivity. On exit, restore
+the snapshot.
+
+## Correctness proof
+
+For time `t`, an edge lifetime containing `t` is partitioned into time-tree
+nodes, exactly one of which lies on the root-to-leaf path for `t`. No lifetime
+excluding `t` has such a node. Therefore the DSU at leaf `t` contains exactly
+the active graph's edges. DSU unions preserve connected components, so the
+query is correct. Rollback restores the precise entry state, making sibling
+time intervals independent.
+
+## Complexity and tests
+
+Each edge lifetime is stored in `O(log q)` nodes. Union/find costs `O(log n)`
+without path compression, so total time is `O(q log q log n)` and memory is
+`O(q log q+n)`. Test nested lifetimes, repeated lifetimes of the same edge,
+queries at removal time, and edges surviving to the end.
+
+## Full C++ solution
+```cpp
+{{< include problems/c_dynamic_connectivity/solution.cpp >}}
+```
+## Full Python solution
+```python
+{{< include problems/c_dynamic_connectivity/solution.py >}}
+```
+
+# D. Tree Path K-th
+
+## Restatement and constraints
+
+Each query asks for an order statistic of the multiset of values on one tree
+path. Reconstructing the path and sorting it is linear or worse per query,
+which cannot handle `n,q <= 200000`. Values require coordinate compression,
+and duplicates must contribute their full multiplicity.
+
+## From path inclusion-exclusion to four roots
+
+Root the tree at vertex 1. For every vertex `u`, build a persistent frequency
+tree `root[u]` containing the values on the root-to-`u` path, including both
+endpoints. It is obtained from its parent's root by inserting `value[u]`.
+
+Let `w = lca(u,v)` and let `p` be the parent of `w`; use the empty root when
+`w` is the global root. For every compressed value interval, its multiplicity
+on path `u..v` is
+
+```text
+count(root[u]) + count(root[v])
+- count(root[w]) - count(root[p]).
+```
+
+The two positive prefixes contain the root-to-`w` prefix twice. Subtracting
+`root[w]` and `root[parent(w)]` removes everything above `w` twice but leaves
+the value at `w` once.
+
+For the sample query from 4 to 3, the path values are `1,3,8,8`. The four-root
+expression gives exactly these four multiplicities, so descending left when
+the combined left count is at least `k` returns `3` for `k=2`.
+
+## Pseudocode
+
+```text
+compress all vertex values
+root[global_root] = insert(empty, value[global_root])
+for every later vertex u in parent-before-child order:
+    root[u] = insert(root[parent[u]], value[u])
+
+for query (u,v,k):
+    w = LCA(u,v)
+    p = parent(w), or the empty root
+    descend four segment trees together:
+        left_count = left[u] + left[v] - left[w] - left[p]
+        choose the left or right half as in ordinary k-th selection
+```
+
+## Correctness proof
+
+**Lemma 1.** `root[u]` stores exactly the multiset of values on the rooted path
+from vertex 1 through `u`.
+
+**Proof.** The root vertex inserts its value into the empty multiset. Every
+other vertex copies its parent's correct root and inserts its own value.
+Induction in parent-before-child order proves the claim. Old roots are never
+mutated. QED.
+
+**Lemma 2.** The signed combination of the four roots gives exactly the value
+multiset on path `u..v`.
+
+**Proof.** Both positive rooted paths share precisely the path from vertex 1
+through `w`. Subtracting the prefix through `w` once and the prefix through
+`parent(w)` once cancels every strict ancestor twice and cancels `w` only once.
+All vertices below `w` occur in exactly one positive prefix. QED.
+
+**Lemma 3.** The simultaneous segment-tree descent returns the `k`-th smallest
+path value.
+
+**Proof.** At every node, the four-root combination gives the exact number of
+path values in its left half by Lemma 2. If `k` does not exceed this count, the
+answer lies there. Otherwise all those values precede the answer, so subtract
+their count and enter the right half. The invariant continues until one
+compressed value remains. QED.
+
+Together, the lemmas prove that every reported answer is the requested order
+statistic.
+
+## Complexity
+
+Coordinate compression costs `O(n log n)`. Building all roots uses
+`O(n log n)` time and nodes. LCA preprocessing uses `O(n log n)` memory and
+time. Each query takes `O(log n)` for LCA and `O(log n)` for the four-root
+descent.
+
+## Common wrong answers and tests
+
+- Subtracting `root[w]` twice, which removes the LCA value completely.
+- Subtracting only `root[parent(w)]`, which leaves the shared prefix twice.
+- Building one root per DFS time instead of one root per root-to-vertex path.
+- Deduplicating values without retaining frequencies.
+- Forgetting the empty-root case when the LCA is vertex 1.
+
+Test `u=v`, a path whose values are all equal, an LCA equal to one endpoint,
+the global root as LCA, a chain, and a star.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_tree_path_kth/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_tree_path_kth/solution.py >}}
+```
+
+# Stress testing
+
+The randomized generators copy full multisets and arrays for A/B, rebuild a
+fresh adjacency list plus BFS for every C query, and explicitly reconstruct
+and sort every D query path. These deliberately share no state-saving logic
+with the references.
+
+# What to carry forward
+
+Persistence pays memory to preserve arbitrary branches. Rollback pays offline
+reordering to reuse one mutable state. Choose from the query timeline, not from
+the data structure's name.

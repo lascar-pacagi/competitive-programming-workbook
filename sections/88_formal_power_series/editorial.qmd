@@ -1,0 +1,134 @@
+---
+title: "Section 88 Editorial — Formal Power Series"
+format: pdf
+geometry: margin=1.55cm
+fontsize: 8.5pt
+---
+
+# A. Series Inverse
+
+## How to find it
+
+Treat the unknown coefficients as the inverse of a series and double the known precision with Newton iteration.
+
+## Correctness
+
+If `E=1-AG` vanishes below degree `m`, the update makes the new error `E^2`, which vanishes below degree `2m`.
+
+## Complexity
+
+`O(M(n))` time and `O(n)` auxiliary storage.
+
+The base case exists only when `A[0]` is nonzero. At a lift from `m` to `2m`,
+truncate both products to the new precision; the invariant is about a correct
+prefix, not an unbounded polynomial.
+
+## C++
+
+```cpp
+{{< include problems/a_series_inverse/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_series_inverse/solution.py >}}
+```
+
+# B. Series Logarithm
+
+## How to find it
+
+Differentiate first: the difficult operation becomes `A prime` multiplied by the already-solved inverse of `A`.
+
+## Correctness
+
+The derivative of the constructed answer equals `A prime / A`; its chosen zero constant therefore makes it the unique formal logarithm.
+
+## Complexity
+
+`O(M(n))` time and `O(n)` storage.
+
+The construction is `integral(derivative(A)*inverse(A))`. Its constant is set
+to zero, and `A[0]=1` makes this the normalized formal logarithm. Test it by
+differentiating the output rather than comparing with floating-point logs.
+
+## C++
+
+```cpp
+{{< include problems/b_series_logarithm/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_series_logarithm/solution.py >}}
+```
+
+# C. Series Exponential
+
+## How to find it
+
+Solve `log(G)=A` by Newton correction, doubling precision at each step.
+
+## Correctness
+
+With an error beginning at degree `m`, multiplying by `1-log(G)+A` cancels its linear part; all remaining error has degree at least `2m`.
+
+## Complexity
+
+`O(M(n))` time and `O(n)` storage.
+
+Maintain `G[0]=1` throughout. After each update, resize to the requested
+precision and normalize subtractions modulo `MOD`. A robust oracle computes
+coefficients successively from `G'=A'G` for small `n`.
+
+## C++
+
+```cpp
+{{< include problems/c_series_exponential/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_series_exponential/solution.py >}}
+```
+
+# D. Series Square Root
+
+## How to find it
+
+Apply Newton to `G squared-A=0`: average `G` with `A/G`.
+
+## Correctness
+
+Writing `G=B+e` shows the update cancels `e` and leaves only terms quadratic in `e`, hence doubles correct precision. The required constant selects the branch.
+
+## Complexity
+
+`O(M(n))` time and `O(n)` storage.
+
+The update is `(G+A/G)/2`. The given constant term fixes which square-root
+branch is requested; verify that its square equals `A[0]` before iteration.
+Then substitution `G*G=A mod x^n` is a complete output check.
+
+## C++
+
+```cpp
+{{< include problems/d_series_square_root/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_series_square_root/solution.py >}}
+```
+
+# Common failure modes
+
+Most wrong FPS programs have a precision or normalization bug rather than a
+wrong high-level identity. Stress multiplication against a quadratic oracle,
+then test each derived operation by its defining identity at every prefix
+length, especially non-powers of two. Include `n=1`, dense random series,
+trailing zeros, and coefficients near the modulus.

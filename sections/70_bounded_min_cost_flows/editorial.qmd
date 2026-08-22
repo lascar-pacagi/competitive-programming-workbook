@@ -1,0 +1,246 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 70 Editorial: Bounded And Minimum-Cost Flows"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+
+# How to use this editorial
+
+For each problem, identify the reduction before reading the code. The proof paragraph names the invariant that should have appeared in your own derivation.
+
+# A. Bounded Circulation
+
+Subtract every lower bound and accumulate vertex balance. The super-source flow is feasible exactly when all positive balances can be routed to all deficits through the remaining capacities. Add the lower bounds back conceptually. Complexity is one maximum-flow computation.
+
+## How to find it
+
+The obstacle is that zero flow is no longer a legal starting point. Separate
+what is forced from what remains optional: write every edge flow as its lower
+bound plus an extra amount. The forced parts no longer conserve flow locally,
+so the only missing information is one signed imbalance per vertex.
+
+## Correctness
+
+Given a valid bounded circulation, subtracting every lower bound leaves a flow
+within capacities `high-low`. Its imbalance at each vertex is exactly repaired
+by the auxiliary super-source and super-sink edges, so all super-source edges
+can be saturated. Conversely, a saturating auxiliary flow repairs every
+imbalance. Removing the auxiliary edges and adding each lower bound back gives
+conservation and respects both bounds. Thus the reduction is equivalent in
+both directions.
+
+## Complexity and tests
+
+The transformed graph has `n+2` vertices and `m+O(n)` edges; the cost is one
+Dinic maximum-flow run. Test isolated forced edges, `low=high`, parallel edges,
+zero bounds, and total balance zero with locally impossible routing.
+
+## C++
+
+```cpp
+{{< include problems/a_bounded_circulation/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_bounded_circulation/solution.py >}}
+```
+
+# B. Exact-Cost Shipment
+
+A residual reverse edge permits replacing earlier choices. Initial Bellman--Ford potentials make every reachable reduced cost nonnegative; Dijkstra then finds each cheapest augmentation. Updating reached potentials by their Dijkstra distances preserves feasibility. Stop after exactly F units or report impossibility.
+
+## How to find it
+
+A greedy cheapest original path fails because a later unit may need to undo an
+earlier route. That observation asks for a residual graph: every used edge
+creates a reverse edge of opposite cost. We still want shortest augmenting
+paths, so potentials are introduced solely to make Dijkstra legal.
+
+## Correctness
+
+Feasible potentials make all reduced residual costs nonnegative, and path
+reweighting changes every `s-t` path cost by the same constant. Dijkstra
+therefore chooses a truly cheapest residual augmenting path. Updating reached
+potentials with shortest reduced distances preserves nonnegative reduced
+costs by the triangle inequality. The standard residual optimality criterion
+then shows inductively that after each augmentation the current flow has
+minimum cost among flows of its value. Hence the state after `F` units is the
+required optimum.
+
+## Complexity and tests
+
+With integral capacities, at most `F` augmentations are needed here, for
+`O(F E log V)` after the initial shortest-distance computation. Test negative
+input edges, a case where a reverse residual edge changes the first choice,
+parallel routes, zero requested flow, and insufficient capacity.
+
+## C++
+
+```cpp
+{{< include problems/b_exact_cost_shipment/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_exact_cost_shipment/solution.py >}}
+```
+
+# C. Quota Assignment
+
+Send one unit through each worker. Project-to-sink capacity enforces upper quotas. Give the first low[j] parallel slots a reward -BIG, where BIG exceeds every possible difference in real profit, and verify all rewarded slots are saturated. The remaining min-cost objective is precisely negative total profit.
+
+## How to find it
+
+“Every worker exactly once” naturally means one unit leaving every worker;
+eligibility edges encode the choices and their costs are negative profits.
+Upper quotas are capacities. To use a plain min-cost-flow implementation for
+lower quotas, turn the first `low[j]` project slots into lexicographically
+mandatory slots with reward `-BIG`.
+
+## Correctness
+
+Every integral flow of value `n` decomposes into one eligible project choice
+per worker, and every assignment yields such a flow. Project capacities enforce
+the upper bounds. If a quota-feasible assignment exists, it fills all mandatory
+slots. Because `BIG` exceeds the maximum possible difference between two total
+profits, every minimum-cost flow first maximizes the number of mandatory slots
+filled and only then maximizes real profit. Verifying their saturation rejects
+exactly the infeasible instances; removing their constant reward recovers the
+true optimum.
+
+## Complexity and tests
+
+There are `O(n+p)` vertices and `O(n+m+p)` edges. Successive shortest paths
+take `O(n E log V)`. Test a worker with no choices, tight quotas, infeasible
+lower quotas despite sufficient total capacity, and an optimum using a
+lower-profit edge to satisfy a project minimum.
+
+## C++
+
+```cpp
+{{< include problems/c_quota_assignment/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_quota_assignment/solution.py >}}
+```
+
+# D. Minimum-Cost Bounded Circulation
+
+## Restatement and traps
+
+Every edge has both a mandatory lower amount and an optional remaining
+capacity. We need conservation and minimum cost simultaneously. Merely finding
+any feasible bounded circulation and then running an unrelated optimization
+can lock in a nonoptimal repair. The nonnegative-cost guarantee is important:
+once all balance requirements are satisfied, adding an extra circulation
+cannot lower the objective.
+
+## Derivation
+
+Send every lower bound first. Add its cost to `mandatory_cost`, replace the
+edge capacity by `high-low`, and update the endpoints' balances. Add a
+super-source to every vertex with excess mandatory inflow and connect every
+deficit vertex to the super-sink.
+
+Unlike feasibility problem A, route the required auxiliary flow with
+minimum-cost flow. The answer is
+
+```text
+mandatory lower-bound cost + minimum repair cost.
+```
+
+If the auxiliary flow cannot saturate the total positive balance, no bounded
+circulation exists.
+
+## Pseudocode
+
+```text
+base_cost = 0
+for edge (u,v,low,high,cost):
+    base_cost += low * cost
+    balance[u] -= low
+    balance[v] += low
+    add residual edge u -> v with capacity high-low and given cost
+
+connect super-source to positive balances
+connect negative balances to super-sink
+send exactly sum(positive balances) units at minimum cost
+if not enough flow: IMPOSSIBLE
+else: base_cost + repair_cost
+```
+
+## Correctness proof
+
+**Lemma 1.** Feasible auxiliary flows correspond exactly to feasible bounded
+circulations after lower bounds are restored.
+
+**Proof.** This is the balance equivalence from problem A. Subtracting lower
+bounds from a bounded circulation produces a residual flow repairing exactly
+the recorded imbalances. Conversely, a saturating auxiliary flow repairs all
+imbalances; removing the auxiliary edges and restoring lower bounds gives
+conservation and respects every interval. QED.
+
+**Lemma 2.** Among all feasible bounded circulations, the algorithm finds one
+with minimum cost.
+
+**Proof.** Every solution pays the same mandatory lower-bound cost. By Lemma 1,
+its remaining edge amounts correspond to an auxiliary flow saturating the
+required balance, with identical additional cost. Successive shortest paths
+find the cheapest such auxiliary flow. Since all original costs are
+nonnegative, an additional circulation after satisfying balances cannot
+improve the cost. Thus minimizing repair cost minimizes total cost. QED.
+
+The two lemmas establish the reported optimum or impossibility.
+
+## Complexity
+
+The transformed network has `n+2` vertices and `m+O(n)` edges. With required
+auxiliary amount `F`, successive shortest paths take `O(F E log V)` here.
+
+## Wrong answers and tests
+
+- Forgetting to add the fixed lower-bound cost.
+- Reversing which balances connect to the super-source.
+- Optimizing before enforcing saturation of every balance edge.
+- Allowing negative input costs without also cancelling negative cycles after
+  the required flow; that is a more general problem than this statement.
+
+Test `low=high`, an impossible single forced edge, parallel repair routes with
+different costs, a zero-balance instance, and a case where a longer route is
+cheaper.
+
+## C++
+
+```cpp
+{{< include problems/d_min_cost_bounded_circulation/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_min_cost_bounded_circulation/solution.py >}}
+```
+
+# Stress-testing summary
+
+For D, the tiny oracle enumerates every flow value in every edge interval,
+checks conservation literally, and takes the cheapest valid assignment. It
+shares neither the balance transformation nor the residual algorithm with the
+reference solution.

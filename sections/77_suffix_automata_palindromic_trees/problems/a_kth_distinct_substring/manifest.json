@@ -1,0 +1,6 @@
+{
+  "section": 77,
+  "title": "K-th Distinct Substring",
+  "checker": "tokens",
+  "time_limit_seconds": 7
+}

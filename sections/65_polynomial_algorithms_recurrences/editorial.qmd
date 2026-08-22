@@ -1,0 +1,328 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 65 Editorial: Polynomial Algorithms And Recurrences"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Shared NTT implementation
+
+Problems A and B use the same audited transform. `convolution(a,b,keep)` pads
+to a power of two, transforms both arrays, multiplies pointwise, applies the
+inverse transform, and optionally truncates the result. The small-factor
+quadratic branch avoids paying NTT setup costs in the leaves of B's product
+tree.
+
+## C++ helper
+
+```cpp
+{{< include ntt.hpp >}}
+```
+
+## Python helper
+
+```python
+{{< include ntt.py >}}
+```
+
+# A. Cyclic Agreement
+
+## Turning equality into correlations
+
+Doing all `n` comparisons for all `n` shifts is quadratic. Encode the four
+letters by two bits. Replace bit zero by sign `+1` and bit one by sign `-1`.
+For two letters with sign pairs `(x,y)` and `(X,Y)`, equality is
+
+```text
+(1 + xX + yY + xyXY) / 4.
+```
+
+If both bits agree, all three products are `+1`, giving one. If at least one
+bit differs, the four signed terms cancel to zero. Consequently, the score for
+a shift is `n` plus three sign correlations, divided by four.
+
+For one correlation, reverse the `s` feature and duplicate the `t` feature.
+Coefficient `n-1+r` of their convolution is
+
+```text
+sum_i feature_s[i] * feature_t[(i+r) mod n].
+```
+
+This equation is worth deriving: it prevents the common reversed-shift bug.
+
+## Trace
+
+For the sample, shift three compares
+
+```text
+s:              A C G T
+t[(i+3) mod 4]: A C G T
+```
+
+so all four equality indicators are one. No score can exceed four, hence the
+answer is `4 3`.
+
+## Correctness proof
+
+**Lemma 1.** The three-feature formula is one exactly for equal letters.
+
+**Proof.** It is the product of the two bit-equality indicators
+`(1+xX)/2` and `(1+yY)/2`. Expanding their product gives the formula. QED.
+
+**Lemma 2.** The read convolution coefficient is the feature correlation at
+shift `r`.
+
+**Proof.** Reversed position `n-1-i` pairs at coefficient `n-1+r` with
+position `r+i` of the doubled array, which contains the feature of
+`t[(r+i) mod n]`. Summing over `i` gives exactly the correlation. QED.
+
+By summing Lemma 1 over all positions and using Lemma 2 for each feature, the
+computed score is exact. Scanning shifts increasingly and updating only on a
+strict improvement chooses the smallest optimal shift.
+
+## Complexity, pitfalls, and tests
+
+Three convolutions take `O(n log n)` time and `O(n)` memory. Test length one,
+all equal letters, no equal letters, and ties between several shifts. Using
+modular division by four is safe because the modulus is prime and not two.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/a_cyclic_agreement/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/a_cyclic_agreement/solution.py >}}
+```
+
+# B. Bounded Sum Product
+
+## Build the counting object
+
+Dial `i` contributes polynomial
+
+```text
+Pi(x) = 1 + x + ... + x^ai.
+```
+
+When products are expanded, choosing term `x^choice` from each factor records
+one dial setting. Exponents add, so the coefficient of `x^K` in the complete
+product counts exactly the requested settings.
+
+We never need degrees above `K`. Discarding them after any multiplication is
+safe: all remaining exponents are nonnegative, so a discarded term can never
+return to degree `K`.
+
+## Why balanced multiplication matters
+
+Suppose a long polynomial is multiplied successively by thousands of short
+ones. Its large prefix is transformed repeatedly. A min-heap always combines
+the two shortest current factors, analogous to optimal merge/Huffman order.
+It keeps intermediate sizes balanced and works especially well with the
+quadratic base case in the shared helper.
+
+For bounds `1,2,3`, the factors are
+
+```text
+(1+x)(1+x+x^2)(1+x+x^2+x^3).
+```
+
+The coefficient of `x^4` is five, corresponding to
+`(0,1,3),(0,2,2),(1,0,3),(1,1,2),(1,2,1)`.
+
+## Correctness proof
+
+**Lemma 1.** The coefficient of degree `s` after multiplying any subset of
+factors equals the number of settings of those dials with total `s`.
+
+**Proof.** Induct on factors. Multiplication chooses one exponent from the new
+factor and convolves it with every previous total, exactly enumerating all
+extended settings once. QED.
+
+**Lemma 2.** Truncation above `K` cannot change coefficient `K` later.
+
+**Proof.** Every future factor has only nonnegative exponents. Multiplication
+can only preserve or increase a term's degree. QED.
+
+The final polynomial therefore has the desired count at degree `K`, regardless
+of the associative multiplication order used by the heap.
+
+## Complexity, pitfalls, and tests
+
+Balanced NTT multiplication is quasi-linear in the total retained product
+size, with logarithmic merge levels; a safe course bound is
+`O(K log K log n)` time and `O(K+n)` live coefficient storage, subject to the
+input's total-factor-size bound. Test target zero, zero-width dials, target
+larger than the sum of all bounds, and compare with bounded-knapsack DP.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/b_bounded_sum_product/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/b_bounded_sum_product/solution.py >}}
+```
+
+# C. Huge Linear Recurrence
+
+## Replace matrix exponentiation by polynomial reduction
+
+A companion matrix would give `O(k^3 log n)` with ordinary multiplication.
+We only need the first row action, and the characteristic relation lets us keep
+just `k` coefficients.
+
+Represent a reduced polynomial by coefficients of `1,x,...,x^(k-1)`. To
+multiply two representations:
+
+1. form their ordinary product, of degree at most `2k-2`;
+2. for degrees from high to low, replace `x^d` by
+   `c[0]x^(d-1)+...+c[k-1]x^(d-k)`;
+3. retain the first `k` coefficients.
+
+Binary exponentiation starts with polynomial one and base polynomial `x`.
+For order one, `x` immediately reduces to `c[0]`.
+
+For Fibonacci, the relation is `x^2=x+1`. Reducing `x^10` yields coefficients
+`34 + 55x`, hence `F[10]=34*F[0]+55*F[1]=55`.
+
+## Correctness proof
+
+**Lemma 1.** `combine` returns the product of its inputs modulo the
+characteristic relation.
+
+**Proof.** The ordinary product is exact. Descending reduction applies the
+defining equality to every term of degree at least `k`; descending order also
+reduces any terms newly moved to lower but still excessive degrees. The final
+polynomial is congruent to the product and has degree below `k`. QED.
+
+**Lemma 2.** After each exponentiation step, `result * base^remaining` is
+congruent to the original `x^n`.
+
+**Proof.** This is the standard binary-exponentiation invariant, with every
+product replaced by an equivalent reduced product using Lemma 1. QED.
+
+**Theorem.** The final dot product equals `a[n]`.
+
+**Proof.** The reduced polynomial is congruent to `x^n`. The recurrence makes
+the same characteristic relation valid for sequence shifts, so replacing each
+`x^i` by `a[i]` yields the stated linear combination for `a[n]`. QED.
+
+## Complexity, pitfalls, and tests
+
+Time is `O(k^2 log n)` and memory is `O(k)`, excluding the temporary
+`O(k)` product. Test `n<k`, order one, zero coefficients, and compare against a
+direct recurrence for small `n`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/c_huge_linear_recurrence/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/c_huge_linear_recurrence/solution.py >}}
+```
+
+# D. Recurrence Recovery
+
+## What a discrepancy tells us
+
+Let the current relation be stored as
+
+```text
+C[0]s[n] + C[1]s[n-1] + ... = 0, with C[0]=1.
+```
+
+Its discrepancy at the newest position is that left side. A zero discrepancy
+means the relation still works. Otherwise, recall an older relation `B` whose
+nonzero discrepancy was `b`. After shifting it to align with the current
+position, subtracting `discrepancy/b` copies cancels the new error.
+
+Sometimes this repair needs a longer relation. The condition
+`2*L <= position` detects that the old length can no longer explain the
+processed prefix; the previous current relation becomes the new saved
+baseline, and the minimal possible length becomes `position+1-L`.
+
+For Fibonacci observations, the algorithm recovers coefficients `1,1`:
+
+```text
+s[n] = s[n-1] + s[n-2].
+```
+
+Problem C's evaluator then computes the distant term.
+
+## Correctness argument
+
+The full Berlekamp--Massey theorem states that after each processed position,
+`C` is a shortest linear relation for that prefix. The update cancels the only
+new violated equation by a shifted relation known to have a nonzero pivot
+discrepancy. When the current length is still sufficient, no increase is
+needed. When `2L <= position`, any relation satisfying both the previous prefix
+and the new equation needs length at least `position+1-L`; the update attains
+that bound. Induction establishes minimality.
+
+The statement guarantees enough observations (`2r<=L`) to identify the true
+minimal recurrence. Once recovered, the proof of C shows that polynomial
+exponentiation returns the required future term. The all-zero sequence never
+has a discrepancy, so its returned order is zero and every future term is zero.
+
+## Complexity, pitfalls, and tests
+
+Recovery costs `O(L^2)` in the worst case. Evaluation costs
+`O(r^2 log n)`. Memory is `O(L+r)`. Test all zeros, a geometric sequence,
+Fibonacci, sums of several distinct geometric sequences, and indices already
+inside the observed prefix.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_recurrence_recovery/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_recurrence_recovery/solution.py >}}
+```
+
+# Stress-testing strategy
+
+A uses explicit shifts. B uses ordinary bounded-knapsack DP. C extends the
+recurrence sequentially. D's generator uses sums of distinct geometric
+sequences: the minimal order is independently known to equal the number of
+distinct nonzero bases, while the distant term is evaluated directly by modular
+power. These oracles test the models, not just the implementation syntax.
+
+# What to carry forward
+
+Write the coefficient equation before reaching for an FFT. Reverse arrays only
+after deriving the desired index sum. For huge recurrence indices, reduce
+polynomials instead of exponentiating a general matrix. When a recurrence is
+hidden, a nonzero prediction error is useful algebraic information, not merely
+a failure.

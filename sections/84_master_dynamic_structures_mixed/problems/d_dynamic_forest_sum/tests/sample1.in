@@ -1,0 +1,7 @@
+3 5
+2 3 4
+LINK 1 2
+LINK 2 3
+SUM 1 3
+SET 2 10
+SUM 1 3

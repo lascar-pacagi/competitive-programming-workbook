@@ -1,0 +1,82 @@
+---
+title: "Section 85 — Weighted And General Matching"
+format: pdf
+geometry: margin=1.8cm
+---
+
+# Augmenting needs either a dual certificate or a contraction
+
+This lesson develops A--C. Problem D is editorial-only.
+
+# Problem A: Hungarian potentials
+
+Assignment is perfect bipartite matching. Hungarian maintains row potentials `u`, column potentials `v`, and nonnegative reduced costs `cost-u-v`. Equality edges have zero reduced cost. While inserting one row, grow an alternating tree; the smallest slack changes potentials until a new equality edge appears. A free column ends an augmenting predecessor chain.
+
+Weak duality makes `sum(u)+sum(v)` a lower bound. A perfect matching of equality edges reaches that bound, so complementary slackness proves optimality.
+
+# Problem B: forbidden rectangular assignment
+
+The same algorithm supports rows no more numerous than columns. Negate profit and replace forbidden pairs by an infinity larger than every feasible total. After optimization, explicitly reject a matching containing infinity; otherwise its negated cost is the maximum profit.
+
+# Problem C: blossoms
+
+In general graphs an edge between two even alternating-tree levels creates an odd alternating cycle. Contract that blossom: from outside, all alternating ways through it are interchangeable for finding an augmenting path. Continue BFS on bases, then use stored predecessor information to expand and flip the original path.
+
+The invariant is that augmenting paths exist in the contracted graph exactly when they exist in the original graph.
+
+# A concrete Hungarian trace
+
+Consider the cost matrix
+
+```text
+        c0  c1  c2
+r0       4   1   3
+r1       2   0   5
+r2       3   2   2
+```
+
+When a row is inserted, columns already reached by the alternating tree have
+known slack: the cheapest reduced-cost edge entering each column. If no free
+column is tight, subtract the minimum slack `delta` from every unreached
+column's slack and update the two sides' potentials. At least one new equality
+edge appears. Thus an iteration either enlarges the tree or finishes an
+augmentation; it never changes which complete assignment is optimal.
+
+The useful mental model is not “Hungarian greedily chooses a cheap edge.” It
+maintains two objects at once:
+
+1. a partial primal solution, the matching;
+2. a dual certificate, the potentials.
+
+The matching becomes optimal precisely when every selected edge is tight and
+all rows are matched.
+
+# Why an odd cycle must be contracted
+
+In a bipartite alternating tree, parity identifies the two sides. In a general
+graph, an edge joining two even vertices closes an odd cycle. Trying to assign
+fixed even/odd labels inside that cycle now gives a contradiction. Contraction
+does not discard the choices: it postpones the decision of which alternating
+route through the cycle is used until an augmenting path enters and leaves the
+contracted base.
+
+For a triangle with one vertex matched to the outside, no individual internal
+edge can safely be committed to. As one super-vertex, however, the triangle
+has exactly the interface relevant to the continuing BFS. Expansion later
+rotates its matching so that the discovered path becomes alternating.
+
+# Proof and implementation checklist
+
+- For Hungarian, state dual feasibility, matching feasibility, and tightness
+  of selected edges separately.
+- Choose the forbidden-edge sentinel from a proved bound on every finite total;
+  do not rely on a convenient-looking constant.
+- In blossom code, distinguish an original vertex from its current base.
+- Reset BFS queues and predecessor data for every augmentation, but preserve
+  the current matching.
+- Test empty graphs, triangles, nested blossoms, rectangular matrices, negative
+  profits, and instances in which every completion uses a forbidden edge.
+
+# Exercises
+
+A--C cover assignment duality and blossom contraction. D is a modeling transfer.

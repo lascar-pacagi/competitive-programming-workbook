@@ -1,0 +1,177 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 75 Editorial: Master+ Geometry Mixed Contest"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+
+
+# How to use this editorial
+
+Recover the geometric invariant and degeneracy policy before comparing code.
+
+# A. Convex Lattice Shield
+
+## How to find it
+
+Neither area nor lattice counting needs interior points. Compress to the hull, then recognize the two independent edge accumulations: cross products for area and gcd steps for boundary points.
+
+## Derivation and correctness
+
+Build the strict hull, apply shoelace, and sum `gcd(|dx|,|dy|)` over hull edges. That gcd counts each edge’s lattice steps; summing half-open edge counts counts every boundary lattice point exactly once.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/a_convex_lattice_shield/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_convex_lattice_shield/solution.py >}}
+```
+
+# B. Maximum Triangle
+
+## How to find it
+
+First move every triangle vertex to the hull without decreasing area. Fix two vertices and inspect area while the third walks around the convex boundary; its unimodality removes one loop.
+
+## Derivation and correctness
+
+A maximum-area triangle uses hull vertices. For fixed ordered i,j, triangle area as k walks forward on a convex polygon is unimodal, so k never moves backward as j advances. The nested scan is `O(h^2)` rather than cubic.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/b_maximum_triangle/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_maximum_triangle/solution.py >}}
+```
+
+# C. Robot Collision Translations
+
+## How to find it
+
+Rewrite intersection algebraically as `a = b+t`. Solving for the query vector gives `t = a-b`, revealing that every valid translation lies in one Minkowski difference.
+
+## Derivation and correctness
+
+A translated B intersects A exactly when there exist a in A and b in B with a=b+t, equivalently t=a-b. Thus valid translations are the closed convex polygon A+(-B). Build it by Minkowski edge merge and answer membership queries logarithmically.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/c_robot_collision_translations/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_robot_collision_translations/solution.py >}}
+```
+
+# D. Weighted Crossings
+
+## How to find it
+
+Start from the unweighted sweep and use linearity: counts become sums of horizontal weights, while each vertical query scales that sum by its own weight.
+
+## Derivation and correctness
+
+The ordinary orthogonal sweep is linear in weights: store the sum of active horizontal weights at each y, query the range sum, and multiply by the vertical weight. Each intersecting pair contributes its product exactly once.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/d_weighted_crossings/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_weighted_crossings/solution.py >}}
+```
+
+# E. Double-Painted Map
+
+## How to find it
+
+Ordinary union length loses how much overlap remains below a covered node. Strengthen the state minimally: retain both once-covered and twice-covered length, then derive how a node’s local cover shifts those thresholds.
+
+## Derivation and correctness
+
+Sweep vertical sides as for union area, but each node stores two measures: length covered at least once and length covered at least twice. With local cover at least two, both equal the full interval; with local cover one, twice-covered length equals the children’s once-covered length; with local cover zero, both are child sums. This induction makes the root’s second measure exact in `O(n log n)`.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/e_double_painted_map/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/e_double_painted_map/solution.py >}}
+```
+
+# F. Fortress Queries
+
+## How to find it
+
+Many queries justify preprocessing. A convex polygon viewed from one vertex is an ordered fan of triangles, so angular monotonicity replaces a linear edge scan by binary search.
+
+## Derivation and correctness
+
+The convex hull is the closed region of interest. Rays from hull[0] partition it into triangles. The first and last ray reject impossible directions; binary search selects the unique fan wedge, and one cross product distinguishes inside, boundary, and outside.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/f_fortress_queries/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/f_fortress_queries/solution.py >}}
+```

@@ -1,0 +1,93 @@
+---
+title: "Section 78 — Master Suffix Structures Mixed Contest"
+format: pdf
+geometry: margin=1.8cm
+fontsize: 10pt
+---
+
+## Contest contract
+
+Six new problems mix suffix ordering, LCP connectivity, suffix-automaton path weights, cross-string propagation, and palindromic occurrence aggregation. They are not restatements of Sections 76--77.
+
+Suggested order: A, D, E, B, C, F. Budget about five hours, then write a proof before reading the editorial.
+
+## Coverage map
+
+| Problem | Main pressure point |
+|---|---|
+| A | eliminate cyclic-rotation candidates in linear time |
+| B | process every occurrence threshold through LCP edges and DSU |
+| C | distinguish a substring from its many occurrences in SAM path DP |
+| D | propagate the best match through suffix links |
+| E | propagate palindrome occurrence counts |
+| F | combine per-string SAM evidence with an order statistic |
+
+## Post-contest questions
+
+For each problem, identify the exact object represented by one state, the direction in which information must flow, why every candidate is counted, and why no candidate is counted twice.
+
+# Technique recognition
+
+| Evidence | Structure or ordering |
+|---|---|
+| compare all cyclic rotations | candidate elimination / Booth |
+| answer changes as an LCP threshold decreases | sort LCP edges and use DSU |
+| lexicographic substring weighted by occurrences | weighted SAM path blocks |
+| evidence gathered while scanning another string | suffix-link propagation |
+| aggregate palindrome frequencies | longer-to-shorter eertree links |
+| a condition must hold in many strings | per-string evidence plus an order statistic |
+
+Transitions flow from shorter strings to extensions. Occurrence and matching
+evidence usually flows in the opposite direction through suffix links. Decide
+which quantity you have before choosing the processing order.
+
+# Discovery walkthrough: Repetition Spectrum
+
+Treat suffix-array positions as vertices. Adjacent suffixes connected by an
+LCP value `w` share a prefix of length `w`. Process these adjacency edges in
+decreasing `w`. After all edges with weight at least `w` are added, a DSU
+component is exactly a maximal suffix-array interval whose suffixes share a
+prefix of length at least `w`.
+
+If its size is `s`, that prefix occurs at least `s` times. Record the best
+length when components merge, then take suffix maxima over occurrence counts.
+This transforms interval minima into threshold connectivity—a pattern also
+useful outside strings.
+
+# Discovery walkthrough: Multi-Archive Commonality
+
+Build one SAM for the base archive. While scanning another archive, record the
+best match length reaching each state. A state also represents shorter strings,
+so propagate evidence through suffix links and clamp it by the suffix state's
+`len`. Only after one archive has correct evidence should it contribute to the
+cross-archive order statistic.
+
+The crucial separation is:
+
+```text
+scan characters -> repair evidence along suffix links -> combine archives
+```
+
+Combining before propagation undercounts substrings represented by suffix
+states that were never the final streaming state.
+
+# Proof and implementation checklist
+
+- Does one state count distinct strings, occurrences, or end positions?
+- Is DP ordered along transitions or against suffix links?
+- Are multiple occurrences deliberately weighted or deliberately collapsed?
+- Are per-string arrays cleared only on touched states?
+- Are path counts capped before addition can overflow?
+- Does cyclic comparison avoid constructing every complete rotation?
+
+# Independent oracle map
+
+For short strings, explicitly list rotations, suffixes, every distinct
+substring, every occurrence, and every palindromic interval. Sort these literal
+lists to answer A--F. Such oracles share no rank, automaton, suffix-link, or
+eertree logic with the optimized solutions and therefore expose mistaken state
+semantics rather than reproducing them.
+
+# Exercises
+
+Problems A--F in this section form the complete mixed contest.

@@ -1,0 +1,138 @@
+---
+title: "Section 85 Editorial — Weighted And General Matching"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. Assignment Cost
+
+## How to find it
+
+Maintain feasible Hungarian potentials and augment only through equality edges.
+
+## Correctness
+
+Reduced costs stay nonnegative, giving a dual lower bound. The final perfect matching uses tight edges and reaches the bound.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+Here the rectangular Hungarian implementation runs in `O(n squared m)` for
+`n` rows and `m` columns, with `n <= m`, and uses `O(n+m)` auxiliary storage.
+The potentials are a verifiable optimality certificate: every reduced cost is
+nonnegative and every selected edge is tight.
+
+## C++
+
+```cpp
+{{< include problems/a_assignment_cost/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_assignment_cost/solution.py >}}
+```
+
+# B. Forbidden Profit Assignment
+
+## How to find it
+
+Negate profits and encode forbidden pairs by a dominant infinity.
+
+## Correctness
+
+Finite assignments preserve reversed objective order; an infinity edge occurs exactly when no complete allowed assignment exists.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+The sentinel must exceed the largest possible difference between two finite
+assignment totals. After Hungarian finishes, inspect the selected original
+pairs; a sentinel in the result means that no all-allowed complete assignment
+exists. The running time is `O(n squared m)`.
+
+## C++
+
+```cpp
+{{< include problems/b_forbidden_profit_assignment/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_forbidden_profit_assignment/solution.py >}}
+```
+
+# C. General Pairing
+
+## How to find it
+
+Contract odd alternating cycles between even BFS vertices.
+
+## Correctness
+
+Blossom contraction preserves augmenting-path existence, and expansion of predecessors yields a valid original path whose flip grows the matching.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+With the adjacency-matrix-style blossom implementation, at most `n`
+augmentations each take `O(n squared)`, for `O(n cubed)` time and `O(n squared)`
+graph storage. A triangle, a blossom with a tail, and nested odd cycles are the
+minimum useful structural tests.
+
+## C++
+
+```cpp
+{{< include problems/c_general_pairing/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_general_pairing/solution.py >}}
+```
+
+# D. Compatibility Pairing
+
+## How to find it
+
+Build exactly the allowed compatibility graph and run general matching.
+
+## Correctness
+
+Valid disjoint pair families are precisely graph matchings, so their optima coincide.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+Building the graph is linear in the declared compatible pairs; the blossom
+phase is `O(n cubed)`. Check the parity of `n`, but do not confuse even size
+with guaranteed feasibility: the matching must still cover every vertex.
+
+## C++
+
+```cpp
+{{< include problems/d_compatibility_pairing/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_compatibility_pairing/solution.py >}}
+```
+
+# Upsolving checklist
+
+For assignment, compare with all permutations for tiny rectangular matrices.
+For general matching, enumerate every choice of disjoint edges. Include ties,
+negative profits, isolated vertices, parallel descriptions of the same pair,
+and cases in which the first locally attractive pair prevents a perfect
+matching. These oracles test the reduction and objective, not merely whether
+the produced pairs are disjoint.

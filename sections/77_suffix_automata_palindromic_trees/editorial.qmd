@@ -1,0 +1,156 @@
+---
+title: "Section 77 Editorial — Suffix Automata And Palindromic Trees"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+Each solution starts from the uncompressed object, identifies the bottleneck, and states the invariant that justifies the compressed structure.
+
+# A. K-th Distinct Substring
+
+### How to find it
+
+View distinct substrings as nonempty paths from the SAM root. Count paths in reverse length order, then skip lexicographic transition blocks.
+
+### Correctness
+
+Each distinct substring spells exactly one root path. Each outgoing transition partitions paths by their first next character, so block subtraction selects exactly the k-th path.
+
+### Complexity
+
+`O(n log alphabet)` time and `O(n alphabet)` memory in the fixed-array implementation.
+
+### Reconstruction trace and traps
+
+An outgoing letter block contains the one substring ending after that edge and
+all extensions below it, hence size `1+dp[next]`. Iterate letters in order,
+subtract entire blocks, append the selected letter, and stop when the remaining
+rank is one. Otherwise decrement once and continue below the edge.
+
+Do not multiply by occurrence count in this distinct-substring problem. Cap DP
+counts before overflow and report impossibility when `k` exceeds `dp[root]`.
+
+### Reference C++
+
+```cpp
+{{< include problems/a_kth_distinct_substring/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/a_kth_distinct_substring/solution.py >}}
+```
+
+# B. Longest Common Substring
+
+### How to find it
+
+Build a SAM for the first string and maintain the longest suffix of each scanned prefix of the second string that the automaton accepts.
+
+### Correctness
+
+The scan invariant gives the longest common substring ending at every position of the second string. Taking the maximum therefore considers every possible endpoint.
+
+### Complexity
+
+`O(|a|+|b|)` time and `O(|a| alphabet)` memory.
+
+### State repair and tests
+
+On a missing edge, follow suffix links until an edge exists or the root is
+reached. After a retreat, set the current matched length to at most the new
+state's `len`; then consume the character. The maximum over all scanned
+positions considers every possible endpoint in the second string.
+
+Test no common character, complete containment, repeated borders, and a match
+that survives several suffix-link retreats. Resetting length to zero after
+every missing transition loses valid shorter suffix matches.
+
+### Reference C++
+
+```cpp
+{{< include problems/b_longest_common_substring/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/b_longest_common_substring/solution.py >}}
+```
+
+# C. Palindrome Prefix Profile
+
+### How to find it
+
+A newly appended character can introduce only one new distinct palindrome: the longest palindromic suffix. Maintain it with palindromic suffix links.
+
+### Correctness
+
+Every new occurrence ends at the appended position. Shorter palindromic suffixes already occurred as suffixes of the previous longest one; creation of exactly the missing longest node is therefore necessary and sufficient.
+
+### Complexity
+
+`O(n alphabet)` stored transitions and amortized `O(n)` traversal.
+
+### Creation invariant and tests
+
+After appending at position `i`, follow links until the characters surrounding
+the candidate suffix agree. If its transition already exists, no distinct node
+is created. Otherwise create the new longest palindromic suffix and find its
+proper palindromic suffix link with the same search from the parent's link.
+
+The `-1` and `0` roots must never be counted as text palindromes. Test one
+character, even palindromes, nested odd palindromes, and repeated occurrences
+that must reuse an existing node.
+
+### Reference C++
+
+```cpp
+{{< include problems/c_palindrome_prefix_profile/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/c_palindrome_prefix_profile/solution.py >}}
+```
+
+# D. Shortest Absent Word
+
+### How to find it
+
+A word is a substring exactly when it labels a SAM root path. Breadth-first search those paths in letter order and stop at the first missing transition.
+
+### Correctness
+
+BFS processes path labels by increasing length and, within a level, lexicographic order. A missing next edge certifies absence, so the first such label meets both tie-breaks.
+
+### Complexity
+
+`O(n alphabet)` time and memory.
+
+### BFS order and correctness details
+
+Queue accepted SAM paths, not arbitrary state visits: different path labels
+can end in the same state but are different candidate words. Process outgoing
+letters in sorted order. The first absent transition encountered is shortest
+because of BFS depth and lexicographically smallest because parents and edges
+are expanded in lexicographic level order.
+
+Marking states as visited is wrong here—it collapses distinct words sharing an
+end-position class. Tests should include a missing one-letter word, an alphabet
+whose every letter occurs, and several shortest absent words with a tie.
+
+### Reference C++
+
+```cpp
+{{< include problems/d_shortest_absent_word/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/d_shortest_absent_word/solution.py >}}
+```

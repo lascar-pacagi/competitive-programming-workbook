@@ -32,3 +32,12 @@ coding.
 
 8. AtCoder Educational DP Contest I - Coins
    https://atcoder.jp/contests/dp/tasks/dp_i
+
+## Local stretch queue
+
+9. M. Totient Prefix -- easy sieve warm-up.
+10. N. Square-Free Queries -- easy square-divisibility sieve.
+11. O. GCD Sum -- divisor classification with Euler's totient.
+12. P. Subarray GCD Sum -- compressed rolling GCD states.
+13. Q. Coprime Rectangles -- Möbius inversion and floor-quotient blocks.
+14. R. Exact Divisor Count -- multiplicative partitions and bounded DFS.

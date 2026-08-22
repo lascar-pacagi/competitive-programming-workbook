@@ -1,0 +1,112 @@
+---
+title: "Section 98 Editorial — Plug DP And Treewidth Frontiers"
+format:
+  pdf:
+    code-overflow: wrap
+geometry: margin=1.6cm
+fontsize: 9pt
+---
+
+# A. Tower Domino Tilings
+
+## How to find it
+
+Build the one-row mask transition matrix and exponentiate it.
+
+## Correctness
+
+Matrix multiplication composes consecutive row transitions; binary exponentiation therefore represents exactly `H` rows.
+
+## Complexity
+
+`O(2^(3W) log H)` with dense matrices.
+
+## C++
+
+```cpp
+{{< include problems/a_tower_domino_tilings/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_tower_domino_tilings/solution.py >}}
+```
+
+# B. Connected Cell Sets
+
+## How to find it
+
+Store canonical labels for open frontier components and reject premature component disappearance.
+
+## Correctness
+
+Labels encode exactly future-connectable components. A vanished component cannot meet future cells; the closure rule is therefore necessary and sufficient for one final component.
+
+## Complexity
+
+Exponential in width and polynomial in height.
+
+## C++
+
+```cpp
+{{< include problems/b_connected_cell_sets/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_connected_cell_sets/solution.py >}}
+```
+
+# C. Terminal Steiner Network
+
+## How to find it
+
+Merge terminal submasks at a vertex, then relax locations with multi-source Dijkstra.
+
+## Correctness
+
+Every transition joins connected structures, and splitting an optimum at its last merge yields a represented transition.
+
+## Complexity
+
+`O(3^k n + 2^k m log n)`.
+
+## C++
+
+```cpp
+{{< include problems/c_terminal_steiner_network/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_terminal_steiner_network/solution.py >}}
+```
+
+# D. Nice-Decomposition Independent Set
+
+## How to find it
+
+DP over selected active-bag vertices through leaf, introduce, forget, and join nodes.
+
+## Correctness
+
+Introduce checks all newly visible edges; forget is safe by decomposition connectivity; join combines independent subtrees and subtracts duplicated bag weights.
+
+## Complexity
+
+Let `B = sum(2^|bag|)` over the supplied nodes. The reference uses `O(nB)` time and `O(B)` memory.
+
+## C++
+
+```cpp
+{{< include problems/d_nice_decomposition_independent_set/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_nice_decomposition_independent_set/solution.py >}}
+```

@@ -1,0 +1,24 @@
+---
+title: "Section 96 — Master Continuous Geometry Mixed Contest"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# Contest contract
+
+Six original problems revisit the predicates and optimization structures of Sections 94--95 under different models.
+
+| Problem | Main tool |
+|---|---|
+| A | half-plane intersection and shoelace area |
+| B | inward offsets plus feasibility search |
+| C | circle-overlap classification |
+| D | randomized minimum enclosing circle |
+| E | Delaunay empty circumcircles |
+| F | Delaunay sparsification plus Kruskal |
+
+For every floating solution, state the exact combinatorial event being approximated. Epsilon is a policy for a known predicate, not a substitute for choosing the predicate.
+
+# Exercises
+
+A--F form the complete mixed contest.

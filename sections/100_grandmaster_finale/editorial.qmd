@@ -1,0 +1,3124 @@
+---
+title: "Section 100 Editorial — Grandmaster Finale"
+format:
+  pdf:
+    code-overflow: wrap
+geometry: margin=1.5cm
+fontsize: 8.5pt
+---
+
+# 01. Temporal Path Median
+
+## Restatement and constraints
+
+For every tree path, output its lower median and the minimum sum of absolute
+deviations from one integer. With `n,q` up to `200000`, extracting and sorting
+the path separately is impossible.
+
+The two requested values are connected: every median minimizes the sum of
+absolute deviations. We therefore need the median plus enough aggregate
+information to evaluate its cost.
+
+## How to find the representation
+
+Root the tree at `1`. For each vertex `v`, let `R[v]` describe the multiset of
+values on the root-to-`v` path. If `w=LCA(u,v)` and `parent(w)` has the empty
+root when `w=1`, then the multiset on `u--v` is
+
+```text
+R[u] + R[v] - R[w] - R[parent(w)].
+```
+
+This identity is coefficient-wise: for every compressed value, it gives its
+exact frequency on the path. Consecutive root paths differ by one inserted
+value, so `R[v]` can be a persistent segment tree obtained by cloning one
+root-to-leaf path from `R[parent(v)]`.
+
+Store both a count and a sum in every segment-tree node. Counts locate the
+`k=(length+1)/2`-th value. While descending, whenever the answer lies in the
+right child, accumulate the entire left child's count and sum. At the answer
+leaf, include every occurrence of the median. We now know:
+
+```text
+count_low = number of path values <= median
+sum_low   = sum of path values <= median
+sum_all   = sum of every path value.
+```
+
+The required cost is
+
+```text
+median*count_low - sum_low
++ (sum_all-sum_low) - median*(length-count_low).
+```
+
+## Sample walk-through
+
+On path `4--3`, the values are `3,1,5,9`, sorted as `1,3,5,9`. The lower
+median is `3`. The lower group has count `2` and sum `4`; the total is `18`.
+The formula gives `3*2-4 + (18-4)-3*2 = 10`.
+
+## Algorithm
+
+```text
+compress every vertex value
+root the tree; build binary-lifting ancestors
+R[root] = persistent_insert(empty, value[root])
+for every other vertex v in parent-before-child order:
+    R[v] = persistent_insert(R[parent(v)], value[v])
+
+for each query u,v:
+    w = LCA(u,v)
+    p = parent(w), or the empty root if w is the tree root
+    use roots R[u],R[v],R[w],R[p]
+    descend by their combined left counts to find the lower median
+    accumulate counts and sums strictly left of the descent
+    add the answer leaf, then evaluate the absolute-deviation formula
+```
+
+## Correctness proof
+
+**Lemma 1.** `R[v]` stores exactly the multiset on the root-to-`v` path.
+
+*Proof.* The root version inserts only the root. For any other vertex, the
+induction hypothesis gives the path ending at its parent; inserting `a[v]`
+adds exactly the final vertex. Persistence leaves the parent version intact.
+
+**Lemma 2.** The four-root combination gives the multiset on path `u--v`.
+
+*Proof.* The two root paths contain every vertex on `u--v`. Their shared
+root-to-`w` prefix is counted twice. Subtracting `R[w]` and
+`R[parent(w)]` removes two copies of the strict prefix and one extra copy of
+`w`, leaving every path vertex exactly once.
+
+**Lemma 3.** The descent returns the lower median and the accumulated pair is
+the count and sum of all values at most that median.
+
+*Proof.* At each value interval, its combined left count is the number of path
+elements in that half by Lemma 2. The standard order-statistic decision keeps
+exactly the half containing rank `k`. A skipped left half lies wholly below the
+answer and is accumulated. The final leaf contains every value equal to the
+median, so adding it completes the `<= median` aggregates.
+
+**Lemma 4.** The reported cost is minimum.
+
+*Proof.* Moving `z` upward by one changes the objective by the number of values
+below `z` minus the number above `z`. At a median this change changes sign, so a
+median minimizes the convex objective. Splitting values at the chosen median
+and expanding the absolute values gives exactly the reported formula.
+
+**Theorem.** Every query output is the requested lower median and minimum sum.
+
+*Proof.* Lemmas 1--3 establish the median and its aggregates. Lemma 4 proves
+both optimality and the evaluated objective.
+
+## Complexity
+
+Coordinate compression costs `O(n log n)`. Building all persistent versions
+uses `O(n log n)` time and nodes. Binary lifting uses `O(n log n)` memory and
+preprocessing. Each query takes `O(log n)` time.
+
+## Implementation notes and wrong answers
+
+- The path formula subtracts `R[LCA]` and `R[parent(LCA)]`, not two copies of
+  `R[LCA]`.
+- Use 64-bit sums even though values fit in 32 bits.
+- For an even path, use rank `(length+1)/2` with one-based ranks.
+- Accumulate the complete median leaf; duplicates equal to the median do not
+  belong partly to each side for the cost formula used here.
+- Python uses packed `array` storage because millions of ordinary Python
+  integer objects would consume far more memory.
+
+Tests that matter include a one-vertex tree, all equal values, negative values,
+ancestor-descendant paths, even lengths, a star, and a chain.
+
+## C++
+
+```cpp
+{{< include problems/01_temporal_path_median/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/01_temporal_path_median/solution.py >}}
+```
+
+# 02. Bipartite Timeline
+
+## Restatement and decisive observations
+
+Constraints of the form `bit[u] xor bit[v]=p` are inserted and deleted. At
+every query we need the number of complete assignments satisfying the active
+system.
+
+In one connected consistent constraint component, choosing one vertex's bit
+forces every other bit, so there are exactly two assignments. With `c`
+components there are `2^c`. A parity DSU can maintain both connectivity and
+the xor from a vertex to its root, detecting a contradiction when a new edge
+joins vertices already in the same component with the wrong implied parity.
+
+Deletion is the obstacle. Each inserted constraint is active on one time
+interval `[insert_time, remove_time)`. Put that interval into a segment tree
+over time. During a DFS of this segment tree, add all constraints stored at the
+current node and roll the DSU back on exit. A leaf then sees exactly the
+constraints active at its time.
+
+## Why ordinary DSU is insufficient
+
+Path compression rewrites an unbounded set of parent pointers and is awkward
+to undo. Use union by size without compression. Its height is logarithmic.
+Record every merge, consistent redundant edge, and contradiction on a history
+stack. A snapshot is just the stack length.
+
+For a constraint between `u` and `v`, let `xu` and `xv` be their xor values to
+their roots. When different roots are joined, the child root must receive
+
+```text
+parity_to_parent = xu xor xv xor required.
+```
+
+## Sample walk-through
+
+Initially three isolated components give `2^3=8`. Constraint `1 xor 2=0`
+merges two components, leaving `4` assignments. Adding `2 xor 3=1` leaves one
+component and `2` assignments. The constraint `1 xor 3=0` contradicts the
+already implied xor of `1`, so the answer becomes zero. Removing that exact
+interval restores the earlier snapshot and the answer returns to two.
+
+## Algorithm
+
+```text
+read operations and match every insertion with its removal
+add each active interval to a segment tree over operation times
+precompute powers_of_two[0..n]
+
+DFS(time_node):
+    snapshot = history size
+    add every parity constraint stored at this node
+    if this is a query leaf:
+        print 0 if contradictions > 0 else powers_of_two[components]
+    otherwise visit both children
+    rollback to snapshot
+```
+
+## Correctness proof
+
+**Lemma 1.** At a time-segment leaf `t`, the DSU contains exactly the
+constraints active after operation `t`.
+
+*Proof.* An interval is stored in a disjoint collection of segment-tree nodes
+whose ranges partition that interval. The root-to-leaf path for `t` contains
+exactly one of those nodes iff `t` lies in the interval. DFS rollback removes
+all constraints belonging only to a completed sibling range.
+
+**Lemma 2.** The parity DSU reports a contradiction exactly when the inserted
+constraints are inconsistent.
+
+*Proof.* In each DSU component, stored xor potentials realize every forest
+constraint. Joining different roots extends that realization using the stated
+root parity. An edge inside one component is satisfiable exactly when its
+required xor equals the xor already implied by the two root potentials.
+
+**Lemma 3.** A consistent DSU state with `c` components has `2^c` assignments.
+
+*Proof.* Choose one root bit independently for every component. Potentials then
+force every vertex bit, giving one assignment per root-bit vector. Conversely,
+every satisfying assignment restricts to exactly one such vector.
+
+**Theorem.** Every `?` answer is the number of assignments satisfying precisely
+the active constraints.
+
+*Proof.* Lemma 1 identifies the active system, Lemma 2 distinguishes the zero
+case, and Lemma 3 counts every consistent case.
+
+## Complexity
+
+Each constraint interval occupies `O(log q)` time-tree nodes. Union by size
+gives `O(log n)` worst-case root searches, so total time is
+`O(q log q log n)` and stored interval data is `O(q log q)`. Rollback DSU state
+uses `O(n+q log q)` memory including the active history.
+
+## Implementation notes and wrong answers
+
+- A removal at time `t` makes the interval right endpoint exclusive.
+- A self-constraint with parity one is an immediate contradiction.
+- Redundant consistent edges must still place a history marker so snapshots
+  undo exactly one addition at a time.
+- Track the number of contradictory active edges, not just a Boolean; several
+  contradictions can overlap in time.
+- Count isolated vertices as components.
+
+Stress with parallel constraints, repeated contradictory edges, self-edges,
+intervals ending at the final operation, no active constraints, and alternating
+insert/remove operations.
+
+## C++
+
+```cpp
+{{< include problems/02_bipartite_timeline/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/02_bipartite_timeline/solution.py >}}
+```
+
+# 03. Versioned Convex DP
+
+## Restatement and recognition
+
+Every operation is a node in a version tree. An added line is active exactly
+in the subtree of its operation node. A query asks for the lexicographically
+smallest pair `(value,line_id)` at one coordinate.
+
+A persistent Li Chao tree is possible, but full persistence is unnecessary:
+all operations are known offline. DFS the version tree, mutate one Li Chao
+tree, and roll every overwritten node back when leaving a subtree. This is the
+same lifetime idea as a recursion-stack variable.
+
+Only query coordinates matter. Compress them, and build a discrete Li Chao
+tree over that sorted set. At each Li Chao node, retain the line best at the
+middle coordinate. Of the displaced line, at most one side can still beat the
+retained line because two affine functions cross at most once.
+
+## Trace
+
+Version `1` adds `2x+3` below version `0`. At `x=-4` it beats the permanent
+zero line, giving `(-5,1)`. When DFS returns to version `0`, rollback removes
+that line. The sibling version `3` adds `-x+5`; it cannot see line `1`, and at
+`x=10` returns `(-5,3)`. Descending from version `1` later restores line `1`
+before line `5` is inserted.
+
+## Algorithm
+
+```text
+read all operations; make parent -> children adjacency
+compress coordinates from Q operations
+initialize the Li Chao tree with line 0
+
+DFS(version):
+    snapshot = change-stack size
+    if A: Li-Chao-insert its line, logging every overwritten node
+    if Q: query its compressed x and store the answer by operation number
+    DFS every child
+    restore overwritten nodes until snapshot
+
+print stored query answers in operation order
+```
+
+## Correctness proof
+
+**Lemma 1.** On entry to a version node, the Li Chao structure contains exactly
+the lines added by its strict version-tree ancestors, plus line zero.
+
+*Proof.* DFS adds the current node's line before visiting descendants. On exit,
+rollback restores every changed Li Chao node to its entry value, so a line
+cannot leak into a sibling subtree. Induction on DFS depth proves the claim.
+
+**Lemma 2.** Li Chao insertion preserves the minimum line at every compressed
+coordinate.
+
+*Proof.* The better line at the interval midpoint is retained at the current
+node. The two lines' value difference is affine, so after their midpoint order
+is fixed, the displaced line can be better on at most one side. Recursing into
+that side preserves it wherever necessary; all other previously stored lines
+retain the same guarantee inductively. Comparing `(value,id)` also implements
+the required tie rule.
+
+**Theorem.** Every reported pair is the minimum value and smallest attaining
+identifier among exactly the lines in that version.
+
+*Proof.* Lemma 1 identifies the active set. Lemma 2 makes the root-to-leaf Li
+Chao query return its best pair at the requested coordinate.
+
+## Complexity, traps, and tests
+
+Each insertion changes `O(log q)` Li Chao nodes and each query visits
+`O(log q)` nodes. Total time is `O(q log q)` and memory is `O(q)` besides the
+version tree and rollback history.
+
+Do not traverse operations in input order as if versions formed one timeline.
+Log swaps as actual node assignments; rollback must restore the previous line,
+not merely erase the new line. Include the identifier in every comparison.
+Test equal lines with different identifiers, equal values at one coordinate,
+all-add instances, deep chains, wide version stars, and extreme signed slopes.
+
+## C++
+
+```cpp
+{{< include problems/03_versioned_convex_dp/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/03_versioned_convex_dp/solution.py >}}
+```
+
+# 04. Historical Rectangle Selection
+
+## From quadratic DP to a geometric query
+
+Let `dp[i]` be the maximum score of a valid subsequence ending at record `i`,
+and `ways[i]` its number of realizations. A predecessor `j` is legal exactly
+when
+
+```text
+j < i, x[j] < x[i], and y[j] < y[i].
+```
+
+Thus each transition asks for the best state among earlier points in an open
+lower-left rectangle. A Fenwick tree can answer the `y` prefix after points are
+ordered by `x`, but the historical condition `j<i` prevents one global sort.
+
+CDQ divide and conquer keeps time order as its recursion dimension. After the
+left half has been solved, sweep its points and the right-half query points by
+`x`. Insert a left point only while its `x` is strictly smaller, then query the
+Fenwick prefix strictly below the right point's `y`. Apply these cross-half
+transitions before recursively solving the right half.
+
+The Fenwick payload is `(best_score,ways)`. Combining unequal scores keeps the
+larger; combining equal positive scores adds their counts modulo `MOD`.
+
+## Why counts are not duplicated
+
+For any predecessor pair `j<i`, there is one unique CDQ node where `j` lies in
+the left child and `i` in the right child. Their transition is considered
+exactly at that node. It is not considered in descendants, where they are in
+different recursive calls, or ancestors, where they lie on the same side or
+are represented by another unique split.
+
+## Algorithm
+
+```text
+initialize dp[i]=w[i], ways[i]=1
+compress all y coordinates
+
+CDQ(l,r):
+    if one record: return
+    mid=(l+r)/2
+    CDQ(l,mid)                    # left dp values are now final
+    sort left and right indices by x
+    sweep right indices:
+        insert left indices with x_left < x_right into y-Fenwick
+        candidate = Fenwick.query(y_right-1)
+        relax (dp[right],ways[right]) with candidate + w[right]
+    clear every touched Fenwick cell
+    CDQ(mid,r)
+
+combine all endpoint states for the global answer
+```
+
+## Correctness proof
+
+**Lemma 1.** During a CDQ merge, the Fenwick query for right record `i`
+combines exactly the left-half records satisfying both strict coordinate
+inequalities.
+
+*Proof.* The `x` sweep inserts precisely points with smaller `x`. A prefix at
+compressed rank `y[i]-1` retains precisely inserted points with smaller `y`.
+
+**Lemma 2.** Every legal DP transition is applied exactly once.
+
+*Proof.* Use the unique recursion node described in the counting argument
+above. Lemma 1 accepts it there, and no other node separates the pair in the
+required left-to-right direction.
+
+**Lemma 3.** On return from `CDQ(l,r)`, every state in that interval includes
+all legal predecessors within the interval and all transitions already passed
+from ancestor left halves; its score and count are exact.
+
+*Proof.* The left half is exact by induction. The merge applies all and only
+left-to-right transitions by Lemmas 1--2. The right recursive call then closes
+all transitions internal to the right half. Max-and-count combination is the
+DP recurrence, and positive rewards make the singleton base explicit.
+
+**Theorem.** The final pair is the maximum score and number of optimal index
+subsequences.
+
+*Proof.* Every nonempty subsequence has one final index. Lemma 3 gives the exact
+best score and count for each endpoint; combining equal global maxima counts
+these disjoint endpoint classes.
+
+## Complexity, traps, and tests
+
+The direct implementation sorts at every recursion level, taking
+`O(n log squared n)` time and `O(n)` working memory. A merge-sorted CDQ can
+reduce this to `O(n log n)`, but is not needed for the limits.
+
+Use strict comparisons for both coordinates. Clear every Fenwick cell touched
+by a merge before processing its sibling. Do not merge equal zero sentinel
+states as real empty subsequences. Count index subsequences, so equal-coordinate
+records remain distinct. Test all equal points, negative coordinates, many
+equal optimal predecessors, a decreasing sequence, and rewards that force
+64-bit totals.
+
+## C++
+
+```cpp
+{{< include problems/04_historical_rectangle_selection/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/04_historical_rectangle_selection/solution.py >}}
+```
+
+# 05. Dynamic Forest Ledger
+
+## Restatement and why HLD is not enough
+
+The forest topology changes through valid links and cuts. We need affine
+updates and sums on arbitrary connected paths. Heavy--light decomposition
+assumes one fixed tree, so rebuilding it after structural changes is too slow.
+
+A link--cut tree represents each preferred path by an auxiliary splay tree.
+Its central operation is
+
+```text
+make_root(u); access(v)
+```
+
+after which the auxiliary subtree rooted at `v` contains exactly the represented
+tree path `u--v`. A path update or query therefore becomes one lazy splay-tree
+operation.
+
+## The information in one auxiliary node
+
+Store the vertex value, auxiliary-subtree size, and auxiliary-subtree sum.
+For a pending affine map `f(x)=m*x+b`, applying it to an auxiliary subtree of
+size `s` changes
+
+```text
+value -> m*value+b
+sum   -> m*sum+b*s.
+```
+
+If an old tag is `g(x)=a*x+c` and the new update is `f`, descendants must later
+receive `f(g(x))`, so tag composition is
+
+```text
+lazy_mul = m*a
+lazy_add = m*c+b.
+```
+
+All arithmetic is modulo `MOD`. Path reversal swaps auxiliary children and
+toggles a flag. It commutes with a uniform affine update because neither the
+sum nor the per-vertex map depends on path order.
+
+## Structural operations
+
+- `access(x)` repeatedly splays ancestors and replaces their preferred right
+  child, finishing with `x` at the auxiliary root.
+- `make_root(x)` accesses `x` and reverses its exposed root path.
+- `link(u,v)` makes `u` a represented root, then gives it represented parent
+  `v`; the guarantee prevents a cycle.
+- `cut(u,v)` exposes the guaranteed edge as a two-vertex preferred path and
+  disconnects the left child of `v`.
+
+Before rotations, push all reversal and affine tags from the auxiliary root
+down to the rotated node. Otherwise child orientation or aggregates used by a
+rotation may be stale.
+
+## Sample trace
+
+After linking `1-2-3`, exposing `1--3` yields sum `1+2+3=6`. Applying
+`2x+1` changes the three values to `3,5,7`; the aggregate formula obtains
+`2*6+1*3=15` without descending. Linking vertex `4`, then cutting `2-3`, does
+not alter values. Path `3--4` therefore sums to `7+4=11`.
+
+## Algorithm
+
+```text
+initialize one link-cut node per isolated vertex
+for each operation:
+    LINK:   make_root(u); parent[u]=v
+    CUT:    make_root(u); access(v); detach the exposed edge
+    AFFINE: root=expose_path(u,v); apply composed affine tag to root
+    SUM:    root=expose_path(u,v); print root.sum
+```
+
+## Correctness proof
+
+**Lemma 1.** After `make_root(u); access(v)`, the auxiliary subtree at `v`
+contains exactly the represented path `u--v`, in path order.
+
+*Proof.* `make_root` reverses the represented root path so `u` becomes the
+represented root. `access(v)` then changes preferred edges along the unique
+root-to-`v` path and makes that path one auxiliary splay tree. No off-path
+represented edge is selected as an auxiliary child.
+
+**Lemma 2.** `apply_affine` updates every value and the sum of an exposed path
+correctly, and its stored lazy tag represents exactly the pending composition
+for descendants.
+
+*Proof.* Distributing `m*x+b` over `s` values gives `m*sum+b*s`. Function
+composition gives the stated multiplier and addition formulas. Induction on
+the number of pending updates proves the tag claim.
+
+**Lemma 3.** Link, cut, rotations, and reversals preserve represented-forest
+connectivity and all auxiliary aggregates.
+
+*Proof.* The validity guarantees make link add one inter-component edge and
+cut remove the exposed existing edge. Splay rotations change only the
+auxiliary representation, not represented parent paths. Pushing tags before a
+rotation makes child orientation and values current; pulling the two rotated
+nodes recomputes their exact size and sum. Reversal changes path orientation
+but not its vertices or sum.
+
+**Theorem.** Every operation has the specified effect and every `SUM` output is
+correct.
+
+*Proof.* Lemma 3 maintains the forest and structure. Lemma 1 exposes precisely
+the requested path. Lemma 2 proves affine updates and aggregates on that path.
+
+## Complexity, wrong answers, and tests
+
+Link--cut operations take `O(log n)` amortized time. Total time is
+`O((n+q) log n)` and memory is `O(n)`.
+
+The most common error is composing affine tags in the wrong order. Other
+failures include not pushing all ancestors before splaying, forgetting that
+`access` changes preferred rather than represented edges, and cutting without
+first making one endpoint the root. Test multiplier zero, repeated reversals,
+single-vertex paths, alternating link/cut of the same edge, affine updates
+before a cut, and updates modulo `MOD` near the modulus.
+
+## C++
+
+```cpp
+{{< include problems/05_dynamic_forest_ledger/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/05_dynamic_forest_ledger/solution.py >}}
+```
+
+# 06. Colored Distance Census
+
+## Restatement and the quadratic barrier
+
+For every distance, count same-color unordered vertex pairs. Running BFS from
+every vertex is quadratic. A centroid decomposition can assign every pair to
+one balanced separator, but processing every pair crossing that separator is
+still quadratic. Polynomial convolution performs all distance-sum pairings at
+once.
+
+Fix a centroid `c`. For each color, form a polynomial
+
+```text
+P[d] = number of vertices of that color at distance d from c
+```
+
+inside the current component. The coefficient of degree `d` in `P*P` counts
+ordered same-color pairs whose two distances from `c` sum to `d`. This equals
+their tree distance only if their path passes through `c`.
+
+For every component created by removing `c`, form its own polynomial `Q` and
+subtract `Q*Q`. The removed ordered pairs have both endpoints in one branch,
+exactly the pairs whose path does not pass through `c`. Do this independently
+for both colors.
+
+Then block the centroid and recurse. NTT computes every square in near-linear
+time in its polynomial length.
+
+## A small trace
+
+Suppose a centroid has one color-zero vertex at distances `0,1,2` in three
+different branches. The global square contributes ordered pairs at all sums.
+A branch square removes pairs whose two vertices came from that same branch.
+The two orientations of each remaining distinct pair survive. A pair removed
+here remains together in one recursive component and will be counted when a
+later centroid first separates it.
+
+The term `(c,c)` appears at distance zero once at the level where `c` is the
+centroid. Since distinct pairs are required, distance zero is set to zero
+explicitly. Every other surviving unordered pair occurs in two orientations,
+so multiply positive-distance coefficients by the modular inverse of two.
+
+## Algorithm
+
+```text
+answer = zero polynomial
+
+decompose(component):
+    find a centroid c
+    initialize P[color(c)][0] with one
+    for every unblocked neighbor branch B of c:
+        collect distances in Q[0] and Q[1]
+        answer -= Q[0]^2 + Q[1]^2
+        add Q[color] coefficient-wise into P[color]
+    answer += P[0]^2 + P[1]^2
+    block c
+    recursively decompose every remaining component
+
+answer[0] = 0
+divide answer[d] by two for every d>0
+```
+
+## Correctness proof
+
+**Lemma 1.** At centroid `c`, after subtracting branch squares, the coefficient
+at degree `d` equals the number of ordered same-color pairs in the component
+whose path passes through `c` and has length `d`.
+
+*Proof.* The global square enumerates every ordered same-color pair by the sum
+of its endpoint distances from `c`. Endpoints in different branches, or with
+one endpoint equal to `c`, have a path through `c`, so this sum is their path
+length. Endpoints in one branch are enumerated by exactly that branch's square
+and are subtracted. These are precisely the pairs whose path avoids `c`.
+
+**Lemma 2.** Every ordered pair of distinct vertices is contributed at exactly
+one centroid-decomposition node.
+
+*Proof.* Follow the recursive component containing both endpoints. Eventually
+its chosen centroid is one endpoint or separates them into different branches;
+at that first node their path passes through the centroid, so Lemma 1 counts
+them. At every earlier node they lie in one branch and are subtracted. After
+the separating node they belong to different recursive components and can
+never be considered together again.
+
+**Lemma 3.** For positive distance, dividing by two converts the accumulated
+ordered count into the requested unordered count.
+
+*Proof.* Distinct endpoints generate exactly the two orientations `(u,v)` and
+`(v,u)`, with identical color and distance. There are no other representations
+of the same unordered pair.
+
+**Theorem.** The printed coefficient for every distance is the requested
+same-color unordered-pair count modulo `998244353`.
+
+*Proof.* Lemmas 1--2 count every ordered eligible pair once at its unique
+separator. Lemma 3 gives unordered pairs; explicitly clearing coefficient zero
+removes self-pairs.
+
+## Complexity
+
+A centroid level contains components of total size `n`. Their distance
+polynomials have total length `O(n)`, while NTT introduces logarithmic factors.
+Across `O(log n)` centroid levels, the implementation runs in
+`O(n log squared n)` time. Component sizes shrink geometrically along a
+recursive chain, so graph, decomposition, and simultaneously live polynomial
+storage are `O(n)`.
+
+## Implementation notes, wrong answers, and tests
+
+- Build separate polynomials for the two colors; squaring their sum would also
+  count different-color pairs.
+- Subtract every child square before blocking the centroid.
+- Normalize negative modular coefficients.
+- Distance arrays begin at index one for a neighbor branch and index zero only
+  for the centroid.
+- A naive convolution threshold is worthwhile for numerous tiny components.
+- Find centroids iteratively inside a component so an original chain does not
+  overflow the DFS stack.
+
+Test a single vertex, one color only, alternating-color chains, stars, balanced
+trees, and pairs at the maximum possible distance. The independent oracle
+runs BFS from every source and enumerates endpoint pairs directly.
+
+## C++
+
+```cpp
+{{< include problems/06_colored_distance_census/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/06_colored_distance_census/solution.py >}}
+```
+
+# 07. Virtual Tree Firewall
+
+## Restatement and compression target
+
+For each small terminal set, cut minimum-cost edges so no component contains
+two terminals. Processing the full `n`-vertex tree per query ignores the bound
+on the total number of terminals.
+
+The relevant branching structure is formed by the terminals and their LCAs.
+Sort terminals by Euler entry time, add LCAs of adjacent sorted terminals, sort
+again, and connect each node to its nearest ancestor in this set. This virtual
+tree has fewer than `2k` vertices.
+
+A virtual edge from ancestor `a` to descendant `v` represents an original path
+whose internal vertices contain no terminal or virtual branching point. If we
+decide to disconnect the two virtual endpoints, removing more than one edge is
+never useful because costs are positive. Its effective cut choice is therefore
+
+```text
+(minimum original edge cost on path a--v, 1 removed edge).
+```
+
+Binary lifting stores both ancestors and minimum edge costs, so this compressed
+edge value is available in `O(log n)`.
+
+## The two DP states
+
+Root the virtual tree. For a processed virtual subtree, store the best
+lexicographic pair `(cost,edge_count)` under two possibilities:
+
+- `dp0`: the component still connected to the parent contains no terminal;
+- `dp1`: that component contains exactly one terminal.
+
+A marked node starts in state one; an unmarked node starts in state zero. For a
+child joined by effective edge `(w,1)`, define
+
+```text
+separated = min(child.dp0,
+                child.dp1 + (w,1)).
+```
+
+The first option keeps a terminal-free child attached. The second cuts off a
+child containing one terminal. Then
+
+```text
+new_dp0 = dp0 + separated
+new_dp1 = min(dp1 + separated,
+              dp0 + child.dp1).
+```
+
+The second way to obtain state one keeps the child's one terminal and requires
+the current partial component to contain none.
+
+## Sample reasoning
+
+For terminals `3` and `5`, their path contains edge costs `2,3,4`; its virtual
+edge can be severed for cost two with one cut. With terminals `1,3,5`, cutting
+edge `1-2` for five would still leave `3` and `5` together and require another
+cut. The DP instead separates the two descendant branches for costs two and
+three, giving `(5,2)`.
+
+## Correctness proof
+
+**Lemma 1.** The virtual tree preserves the ancestor and branching relations
+among all terminals, and has fewer than `2k` vertices.
+
+*Proof.* Adding LCAs of adjacent Euler-ordered terminals closes the set under
+all LCAs needed by the induced subtree. The ancestor stack connects every node
+to its nearest included ancestor. A standard Euler-order argument charges each
+new LCA to a gap between adjacent terminals, giving at most `k-1` additional
+vertices.
+
+**Lemma 2.** Replacing a virtual edge by its minimum original edge cost
+preserves every optimal answer and the secondary edge count.
+
+*Proof.* The represented path contains no relevant branch or terminal
+internally. Keeping it preserves connectivity between its endpoints. To break
+that connectivity, one removed edge suffices, and positivity makes additional
+removals strictly worse in cost. The cheapest one-edge choice is precisely the
+minimum edge on the path.
+
+**Lemma 3.** `dp0` and `dp1` are exact after every processed child.
+
+*Proof.* Induct on children. By the validity requirement, the upward component
+may contain at most one terminal. A child with no upward terminal may remain
+attached. A child with one may either be cut off, or be kept only when the
+current upward component has none. The transitions enumerate exactly these
+cases and lexicographically minimize their additive objectives.
+
+**Theorem.** The minimum of the two root states is the requested optimum.
+
+*Proof.* The root has no parent, so either zero or one terminal in its remaining
+component is valid. Lemmas 1--2 preserve the original feasible cuts, and Lemma
+3 optimizes all of them on the compressed tree.
+
+## Complexity and tests
+
+Preprocessing binary lifting takes `O(n log n)`. A query with `k` terminals
+builds and solves its virtual tree in `O(k log n)` time and `O(k)` temporary
+memory. The total query time is therefore proportional to the promised sum of
+terminal counts times `log n`.
+
+Do not use the sum of a compressed path: cutting needs its minimum edge. Keep
+cost and number of edges together in every comparison. Mark terminals with a
+query token rather than clearing an `n`-element array. Tests should include one
+terminal, ancestor-descendant terminals, an LCA that is marked, equal minimum
+edges, stars, chains, and a query containing every vertex.
+
+## C++
+
+```cpp
+{{< include problems/07_virtual_tree_firewall/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/07_virtual_tree_firewall/solution.py >}}
+```
+
+# 08. Subtree Order Laboratory
+
+## Restatement and two dimensions
+
+Point values change, and a query asks for a subtree order statistic. An Euler
+tour maps every rooted subtree to one contiguous position interval
+`[tin[v],tout[v])`. The remaining problem is dynamic range k-th queries on an
+array.
+
+The input is online semantically but available offline physically: answers do
+not influence later operations. Read all updates first and collect every value
+that each Euler position may ever hold. This lets us preallocate a Fenwick tree
+over positions whose every outer cell contains another compressed Fenwick tree
+over exactly its possible values.
+
+For an Euler position `p`, a point update visits the usual outer indices
+
+```text
+p+1, p+1+lowbit(p+1), ...
+```
+
+and updates the compressed value in each inner Fenwick tree. A prefix query
+`count(position,value)` walks outer indices downward and asks each inner tree
+for values at most the threshold. Subtracting two prefixes counts such values
+inside one subtree.
+
+Finally binary-search the globally sorted values for the first threshold whose
+subtree count is at least `k`.
+
+## Trace
+
+The sample subtree of vertex `2` initially occupies one Euler interval and has
+values `{1,3,7}`. The first threshold with count at least two is `3`. Updating
+vertex `4` removes one occurrence of `3` from every outer Fenwick bucket
+covering its Euler position and inserts `10` into the same buckets. The subtree
+multiset becomes `{1,7,10}`, so rank two is `7`.
+
+## Algorithm
+
+```text
+root the tree and compute tin, subtree_size, tout
+read all operations
+for every vertex, collect its initial value and all future assigned values
+for every possible (Euler position,value):
+    append value to every outer Fenwick bucket covering the position
+sort/unique each bucket and allocate its inner Fenwick counts
+
+insert all initial values
+replay operations:
+    U v x: remove old value at tin[v], insert x
+    K v k:
+        binary-search global values x using
+        prefix_count(tout[v],x)-prefix_count(tin[v],x)
+```
+
+## Correctness proof
+
+**Lemma 1.** The Euler interval `[tin[v],tout[v])` contains exactly the vertices
+in the rooted subtree of `v`.
+
+*Proof.* DFS enters `v` before any descendant and completes every descendant
+before leaving its subtree. No vertex outside the subtree is entered between
+these events.
+
+**Lemma 2.** `prefix_count(p,x)` equals the number of current Euler positions
+strictly below `p` whose values are at most `x`.
+
+*Proof.* The outer Fenwick prefix decomposes `[0,p)` into disjoint canonical
+position ranges. Every point update changes exactly the outer nodes whose
+ranges contain its position. In each selected outer node, its inner Fenwick
+prefix counts exactly stored values at most `x`. Summing the disjoint ranges
+proves the claim.
+
+**Lemma 3.** The binary search returns the k-th smallest subtree value.
+
+*Proof.* By Lemmas 1--2, the tested count is the number of subtree values at
+most the threshold. This count is monotone over sorted candidate values. The
+first value whose count reaches `k` is precisely the k-th order statistic,
+including duplicates.
+
+**Theorem.** Every update and query is processed according to the statement.
+
+*Proof.* Updates remove the unique old contribution and insert the new one in
+all canonical buckets. Lemma 3 proves every subsequent query.
+
+## Complexity and implementation traps
+
+Let `V` be the number of distinct values appearing anywhere. Preallocation and
+all updates use `O(log squared n)` work per possible vertex value or operation.
+A threshold count is `O(log squared n)`, so a k-th query is
+`O(log V * log squared n)`. Memory is `O((n+q)log n)`.
+
+Offline collection does not apply updates early; it only determines inner
+coordinate systems. Deduplicate possible values per vertex before distributing
+them. Inner updates use `lower_bound`, while threshold queries use
+`upper_bound`. Preserve duplicate current values as counts. Test repeated
+assignments, all-equal values, negative values, leaf subtrees, root queries,
+chains, and updates to the current k-th value.
+
+## C++
+
+```cpp
+{{< include problems/08_subtree_order_laboratory/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/08_subtree_order_laboratory/solution.py >}}
+```
+
+# 09. Ancestral Pattern Index
+
+## Restatement and path orientation
+
+Each query compares two strings read along directed tree paths. HLD decomposes
+an undirected path into `O(log n)` intervals of one base array, but direction
+matters: climbing toward the LCA reads an interval backward, while descending
+from the LCA reads intervals forward.
+
+For `S(u,v)`, let `w=LCA(u,v)`. Append the heavy-chain intervals from `u` up
+through `w` immediately, each marked reversed. Collect intervals from `v`
+toward `w`, each marked forward, and then reverse their list. Exclude `w` from
+the descending half because the upward half already contains it. The resulting
+descriptor list spells the path exactly and has `O(log n)` segments.
+
+## Hashing arbitrary directed pieces
+
+Build polynomial-hash prefixes for the HLD base array and for its reversal,
+using two prime moduli. A forward subinterval uses the first prefix. A reversed
+subinterval maps its endpoints into the reversed base array. Therefore any
+substring of any descriptor is available in `O(1)`.
+
+Walk the two descriptor lists simultaneously. Compare the largest chunk that
+fits in both current segments. Equal hashes skip the entire chunk. On a
+mismatch, binary-search inside that chunk for its LCP, inspect the next actual
+characters, and determine lexicographic order. If all shared characters match,
+the shorter path string is smaller.
+
+## Sample trace
+
+`S(4,3)` is formed by reversed interval `4 -> 2 -> 1` followed by forward
+interval `3`, spelling `abac`. `S(1,5)` spells `abb`. Their first two
+characters match; the next characters are `a` and `b`, so the result is
+`2 -1`. The path descriptions may have different HLD boundaries, but the
+two-pointer comparison splits chunks at whichever boundary comes first.
+
+## Correctness proof
+
+**Lemma 1.** `path_segments(u,v)` concatenates to exactly `S(u,v)`.
+
+*Proof.* Every upward heavy-chain interval is read from its deeper endpoint to
+its head, so reversal gives path order. These intervals are appended in the
+order encountered while climbing. Descending intervals are discovered from
+`v` upward, hence reversing their list gives LCA-to-`v` order; each interval's
+internal order is already top to bottom. The LCA is included once and all path
+vertices are covered without gaps.
+
+**Lemma 2.** The hash returned for a descriptor substring equals the polynomial
+hash of its spelled characters.
+
+*Proof.* For a forward descriptor this is the standard prefix-hash identity.
+For a reversed descriptor, the index mapping selects exactly the corresponding
+forward interval of the globally reversed base array. Both moduli use the same
+character order and length.
+
+**Lemma 3.** The comparison loop finds the true LCP and lexicographic result,
+assuming no double-hash collision.
+
+*Proof.* Equal chunks are skipped only after Lemma 2 establishes equal hashes.
+At the first unequal chunk, binary search finds its longest equal prefix and
+the next characters decide order. If no unequal chunk exists, every character
+of the shorter string matches and length decides exactly as in the definition
+of lexicographic order.
+
+**Theorem.** Subject to the standard negligible double-hash collision
+probability, every output is correct.
+
+*Proof.* Lemma 1 supplies the requested strings, Lemma 2 supports constant-time
+piece comparisons, and Lemma 3 implements LCP and lexicographic comparison.
+
+## Complexity and implementation traps
+
+HLD and hashes take `O(n)` preprocessing after the tree DFS. A path has
+`O(log n)` descriptors. Equal chunks are consumed once, while one mismatching
+chunk adds an `O(log n)` binary search, so each query is `O(log n)` hash
+comparisons and `O(log n)` descriptor construction; the conservative bound is
+`O(log squared n)`.
+
+Keep the LCA exactly once. Reverse the order of downward descriptors, not their
+characters. Hash substrings must be normalized by length with precomputed
+powers. Use two moduli (or independently randomized wide hashes); one small
+hash is inappropriate for adversarial strings. Test single vertices, one path
+being a prefix, opposite directions on the same path, mismatches at LCAs and
+chain boundaries, stars, chains, and all-equal labels.
+
+## C++
+
+```cpp
+{{< include problems/09_ancestral_pattern_index/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/09_ancestral_pattern_index/solution.py >}}
+```
+
+# 10. Kruskal Time Machine
+
+## Restatement and threshold components
+
+For a threshold `W`, edges of weight at most `W` define connected components.
+Inside the component of one vertex, answer a k-th-value query. Rebuilding a DSU
+and an order-statistics structure for every query is too slow.
+
+Kruskal's reconstruction forest records the complete history of component
+merges. Begin with each original vertex as a leaf. Process edges by increasing
+weight. Whenever an edge joins two different DSU components, create a new
+internal node whose children are their current reconstruction roots and whose
+label is the edge weight. This new node becomes the DSU representative.
+
+Along every leaf-to-root path, merge labels are nondecreasing. For query
+`(v,W)`, climb from leaf `v` to its highest ancestor whose label is at most
+`W`. The original leaves in that ancestor's subtree are exactly the threshold
+component.
+
+## Adding order statistics
+
+DFS the reconstruction forest and assign Euler positions only to original
+leaves. Every reconstruction subtree then occupies one contiguous leaf
+interval. Build persistent value-frequency segment trees over prefixes of this
+leaf order. The multiset for interval `[l,r)` is the difference between prefix
+roots `R[r]` and `R[l]`; descending their count difference returns its k-th
+value.
+
+## Sample trace
+
+At threshold two, only edge `3-4` is active, so the ancestor reached from leaf
+`3` contains leaves `{3,4}` and rank two is `6`. At threshold seven, Kruskal
+nodes of weights two, four, and seven have merged vertices `{1,2,3,4}`. Their
+values sorted are `{1,3,6,8}`, giving rank two equal to `3`.
+
+## Algorithm
+
+```text
+sort graph edges by weight
+create the Kruskal reconstruction forest with DSU
+binary-lift parent pointers in that forest
+DFS every reconstruction root, recording each node's leaf interval
+build persistent value-frequency roots over original leaves in Euler order
+
+for query (v,W,k):
+    binary-lift v to the highest ancestor with merge_weight <= W
+    obtain its interval [l,r)
+    descend persistent roots prefix[r] - prefix[l] to rank k
+```
+
+## Correctness proof
+
+**Lemma 1.** For every original vertex `v` and threshold `W`, the highest
+ancestor of `v` labeled at most `W` has exactly the leaves in `v`'s component
+using edges of weight at most `W`.
+
+*Proof.* Kruskal creates an internal node exactly when an edge first merges two
+previous components, labeling that union by the edge's weight. Thus every
+ancestor at label at most `W` represents unions achievable with permitted
+edges. The next ancestor, if any, requires its larger label and is not yet
+connected. Equal-weight successive unions remain climbable at the same
+threshold, so the highest such ancestor is the complete component.
+
+**Lemma 2.** The original leaves below any reconstruction node form exactly its
+recorded Euler interval.
+
+*Proof.* DFS processes an entire child subtree before the next child and emits
+positions only at original leaves. Therefore all and only descendant leaves
+are emitted contiguously between entry and exit counters.
+
+**Lemma 3.** Persistent-root difference `R[r]-R[l]` gives exact value
+frequencies for leaves in interval `[l,r)`.
+
+*Proof.* `R[t]` inserts exactly the first `t` leaf values. Coordinate-wise
+subtraction cancels the first `l` and retains insertions `l` through `r-1`.
+
+**Theorem.** Every answer is the requested k-th smallest value.
+
+*Proof.* Lemma 1 identifies the threshold component, Lemma 2 maps it to one
+leaf interval, and Lemma 3 supplies its exact multiset. Standard count descent
+returns rank `k`, including duplicates.
+
+## Complexity and implementation traps
+
+Sorting costs `O(m log m)`. Reconstruction, Euler traversal, binary lifting,
+and persistent prefixes require `O((n+m) alpha(n) + n log n)` after sorting;
+only successful unions create nodes, so there are fewer than `2n`. Each query
+takes `O(log n)` time. Memory is `O(n log n+m)`.
+
+Create no reconstruction node for an edge already inside one DSU component.
+Process all equal weights normally; binary lifting must be allowed to cross
+several equal-labeled ancestors. In disconnected graphs, preprocess every
+reconstruction root. Euler positions belong only to original leaves, not
+internal merge nodes. Test no edges, parallel edges, all equal weights,
+duplicate values, negative weights, isolated vertices, and thresholds between
+consecutive edge weights.
+
+## C++
+
+```cpp
+{{< include problems/10_kruskal_time_machine/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/10_kruskal_time_machine/solution.py >}}
+```
+
+# Round I stress strategy
+
+The first ten problems deliberately use different independent oracles:
+explicit path sorting, assignment enumeration, ancestor-line scanning,
+subsequence enumeration, BFS forest paths, all-pairs distances, edge-subset
+cuts, subtree sorting, literal path strings, and threshold DSU rebuilding.
+None shares the optimized structure it validates. Carry forward the recurring
+principle: expose the lifetime or separator first, then store only information
+that can cross it.
+
+# 11. Bounded Convex Shipping
+
+## Restatement and the two reductions
+
+Choose an integer circulation within lower and upper bounds. Edge cost is
+discrete convex. Two transformations make this an ordinary min-cost-flow
+instance.
+
+First commit every lower bound. For edge `u -> v` with lower `l`, add its cost
+to the answer and record balance changes
+
+```text
+balance[u] -= l
+balance[v] += l.
+```
+
+A vertex with positive balance has excess lower-bound inflow and must send that
+amount through additional original capacity. Connect the super-source to it.
+A negative-balance vertex needs additional inflow; connect it to the
+super-sink. Sending the total positive balance from super-source to super-sink
+is equivalent to restoring conservation.
+
+Second, expand convex residual capacity into marginal units. For
+
+```text
+f(x) = c*x + d*x*(x-1)/2,
+```
+
+increasing flow from `x` to `x+1` costs `c+d*x`. Thus residual choices above
+lower bound `l` become unit-capacity parallel edges with costs
+
+```text
+c+d*l, c+d*(l+1), ..., c+d*(upper-1).
+```
+
+They are nondecreasing. Min-cost flow always uses a cheaper marginal before a
+more expensive parallel marginal, so selected units correspond to one valid
+integer flow amount.
+
+## Sample trace
+
+The lower bounds send one unit `1 -> 2 -> 3`, costing `2+1`. Vertex `3` has one
+unit of excess inflow and vertex `1` lacks one. The only repair sends one unit
+on `3 -> 1` for cost three. Conservation is restored and the total is six.
+
+## Algorithm
+
+```text
+for every edge:
+    commit lower flow and its base cost
+    update endpoint balances
+    add one residual edge for every convex marginal
+add super-source/sink balance edges
+run min-cost max-flow for total positive balance
+if that amount cannot be sent: IMPOSSIBLE
+otherwise: base cost + residual min cost
+```
+
+Potentials and Dijkstra are valid initially because every forward marginal and
+super edge has nonnegative cost. Residual reverse edges may be negative, but
+updated potentials keep every reachable residual reduced cost nonnegative.
+
+## Correctness proof
+
+**Lemma 1.** Feasible flows in the transformed super-source network that send
+all required flow correspond one-to-one with feasible bounded circulations
+after adding the committed lower bounds.
+
+*Proof.* Committing lower bounds leaves exactly capacities `upper-lower`.
+Super edges encode the opposite of each lower-flow imbalance. A full
+super-source-to-sink flow makes additional original inflow equal additional
+outflow after those demands are removed, hence restores conservation.
+Conversely every feasible circulation's additional flow satisfies these
+balances and extends to a full super flow.
+
+**Lemma 2.** For each original edge, the minimum marginal-edge cost of choosing
+`t` residual units is `f(lower+t)-f(lower)`.
+
+*Proof.* Marginal costs are nondecreasing, so the cheapest `t` parallel units
+are the first `t`. Their telescoping sum is exactly the stated difference.
+
+**Lemma 3.** Minimum-cost max-flow finds the least additional convex cost among
+all feasible repairs.
+
+*Proof.* Lemma 1 gives the feasible-set correspondence. Lemma 2 makes the
+minimum parallel-edge representation of every residual amount equal its
+convex cost. Successive shortest augmenting paths with feasible potentials are
+the standard optimal min-cost-flow algorithm.
+
+**Theorem.** The algorithm reports `IMPOSSIBLE` exactly when no bounded
+circulation exists; otherwise it reports the minimum total cost.
+
+*Proof.* Failure to send all balance demand contradicts Lemma 1. In the
+feasible case, add the fixed lower-bound base cost to the optimum from Lemma 3.
+
+## Complexity and traps
+
+Let `C=sum(upper-lower)`, at most `6000`, and let `F` be the required balancing
+flow. The expanded residual graph has `O(n+C)` vertices/edges in the relevant
+count, and the unit marginals can cause up to `F<=C` augmentations. The bound is
+`O(F (n+C) log n)` with Dijkstra and `O(n+C)` residual storage.
+
+The balance direction is easy to reverse: positive `in_lower-out_lower` must
+receive a super-source edge so it can send additional original flow outward.
+Use the marginal at the already committed amount `l`, not at zero. Preserve
+reverse residual edges so later paths can reroute earlier choices. The
+nonnegative-marginal constraint is essential: otherwise an independent
+negative circulation could improve the objective without helping super flow.
+Test fixed edges, zero residual capacity, zero marginal costs, parallel edges,
+an impossible imbalance, and several marginals that must be rerouted.
+
+## C++
+
+```cpp
+{{< include problems/11_bounded_convex_shipping/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/11_bounded_convex_shipping/solution.py >}}
+```
+
+# 12. Parametric Quota Cut
+
+## Why the promise appears
+
+Maximum-weight closure is a min-cut problem, but adding an arbitrary exact
+cardinality constraint does not automatically remain solvable by a Lagrangian
+penalty. Some cardinalities may lie below the supported concave envelope and
+never be optimal for any penalty. The statement therefore promises that the
+requested `K` is attained by every optimum for some integer penalty. This is a
+mathematical precondition, not a convenience for the implementation.
+
+For penalty `lambda`, replace every profit by
+
+```text
+adjusted[u] = p[u] - lambda.
+```
+
+Maximize adjusted profit over dependency-closed sets. Raising `lambda` makes
+large sets less attractive, and canonical optimal closures are nested, so
+their size is nonincreasing. Binary-search the first integer penalty whose
+canonical optimum has size at most `K`. The promise forces its size to be
+exactly `K`.
+
+## Closure as a cut
+
+For positive adjusted weight `w`, add source edge `source -> u` of capacity
+`w`. For negative weight, add `u -> sink` of capacity `-w`. For dependency
+`u requires v`, add an infinite-capacity edge `u -> v`.
+
+A finite cut cannot put `u` on the source side and `v` on the sink side, so its
+source-side projects are closed. The usual maximum-closure identity says
+
+```text
+maximum adjusted profit = sum of positive adjusted weights - minimum cut.
+```
+
+After maximum flow, vertices reachable from the source in the residual graph
+form the inclusion-minimal optimal closure. Choosing the same canonical side
+at every penalty gives the needed monotone size function.
+
+## Sample trace
+
+Project `1` requires `2`. For penalties five and six, closure `{1,2}` has
+adjusted value larger than the empty set, `{2}`, `{3}`, `{2,3}`, and the full
+set. Its size is two and original profit is `8+3=11`. Because every exact-two
+candidate pays the same `2*lambda` penalty, it is also the best original-profit
+closure of size two.
+
+## Algorithm
+
+```text
+solve(lambda):
+    build the maximum-closure cut network with weights p[u]-lambda
+    run max flow
+    return residual-source-side size and original profit
+
+binary-search lambda in [-10^9-1, 10^9+1]
+for the first solve(lambda).size <= K
+run solve once more and print its original profit
+```
+
+At the low endpoint every adjusted profit is positive, so selecting all
+projects is uniquely optimal. At the high endpoint every adjusted profit is
+negative, so the empty set is uniquely optimal.
+
+## Correctness proof
+
+**Lemma 1.** `solve(lambda)` returns a dependency-closed set maximizing
+`sum(p[u]-lambda)`.
+
+*Proof.* Infinite dependency arcs exclude exactly non-closed source sides.
+For every finite cut, its capacity equals the total positive adjusted weight
+minus the adjusted profit of its source-side closure. Minimizing the former
+therefore maximizes the latter. Residual reachability identifies one minimum
+cut.
+
+**Lemma 2.** The size returned by `solve(lambda)` is nonincreasing as `lambda`
+increases.
+
+*Proof.* Maximum-closure cuts form a lattice. Choosing the inclusion-minimal
+minimum source side by residual reachability yields the standard nested family
+under a uniform increase of every vertex penalty. Equivalently, compare
+optimality inequalities at two penalties and use the submodularity of cut
+capacity; their minimal minimizers cannot gain a vertex at the larger penalty.
+
+**Lemma 3.** Binary search returns a penalty whose closure size is exactly `K`.
+
+*Proof.* Lemma 2 justifies searching the first size at most `K`. By the promise,
+some integer penalty has all optimum closures of size `K`, including the
+canonical one. A first value below `K` could never later rise to `K`, so the
+first value at most `K` must equal `K`.
+
+**Lemma 4.** A penalized optimum of size `K` maximizes original profit among
+all closed sets of size `K`.
+
+*Proof.* Every size-`K` set subtracts the same quantity `lambda*K`. Thus their
+penalized ordering is exactly their original-profit ordering.
+
+**Theorem.** The printed value is the requested exact-quota maximum profit.
+
+*Proof.* Combine Lemmas 1, 3, and 4.
+
+## Complexity and traps
+
+The binary search performs at most 31 max-flow computations on `n+2` vertices
+and `O(n+m)` edges. With the supplied Dinic implementation, a conservative
+bound is `O(log P * V squared * E)`, where `P` is the profit range; actual
+instances are much smaller under the stated limits. Each network uses
+`O(n+m)` memory.
+
+Do not claim that Lagrangian relaxation solves unrestricted exact-cardinality
+closure; the attainment promise is indispensable. Use an infinite capacity
+larger than every finite cut. Recover the residual source side after max flow,
+and use the same canonical recovery for monotonicity. Test `K=0`, `K=n`,
+dependency cycles, zero adjusted weights, multiple optimal sets of the same
+cardinality, and penalties at the two search endpoints.
+
+## C++
+
+```cpp
+{{< include problems/12_parametric_quota_cut/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/12_parametric_quota_cut/solution.py >}}
+```
+
+# 13. Rainbow Bottleneck Forest
+
+## Two independent restrictions
+
+For a fixed weight limit `B`, discard every edge heavier than `B`. We only
+need to decide whether `K` remaining edges can satisfy both restrictions.
+
+The cycle-free edge sets form the **graphic matroid**. The sets containing at
+most one edge of every color form a **partition matroid**. We therefore seek a
+common independent set of size `K`. Neither ordinary Kruskal nor choosing the
+lightest edge of each color is enough: accepting an edge may consume a color
+needed to escape a future graphic cycle.
+
+Feasibility is monotone in `B`, so after building a common-independent-set
+oracle, binary-search the distinct input weights.
+
+## The exchange graph
+
+Let `I` be the current rainbow forest. Its exchange graph has one vertex for
+every allowed edge. Vertices alternate between edges outside and inside `I`.
+
+- An outside edge `y` is a **source** if `I + y` is still a forest.
+- An outside edge `y` is a **target** if its color is unused by `I`.
+- Add `x -> y`, with `x` inside and `y` outside, when `I - x + y` is a forest.
+- Add `y -> x` when `I - x + y` still has distinct colors.
+
+A source-to-target path describes an alternating sequence of insertions and
+deletions. Toggle every edge on a shortest such path. It starts and ends
+outside `I`, so the size grows by one; the matroid-intersection augmenting-path
+theorem guarantees that both independence conditions survive.
+
+Repeat until the set has size `K`, or until no augmenting path exists. In the
+latter case, the current common independent set has maximum possible size.
+
+## Implementing both exchange oracles
+
+Because `I` is a forest, the graphic exchanges are especially concrete. For
+an outside edge `y=(u,v)`:
+
+- if `u` and `v` lie in different components, `y` is a source;
+- otherwise they have one unique path in `I`, and exactly the selected edges
+  on that path may be removed to make room for `y`. Add `x -> y` for each of
+  those path edges `x`.
+
+A BFS in the current forest recovers the path. Repeating it for every outside
+edge is fast enough for the limits.
+
+For colors, keep `color_edge[c]`, the selected edge of color `c`, or `-1`.
+If `y` has an unused color, it is a target. Otherwise only the selected edge
+of the same color can be replaced, so add `y -> color_edge[color[y]]`.
+When the color is unused, exchanges to other selected edges are also legal,
+but unnecessary: reaching `y` has already completed an augmenting path.
+
+## Sample trace
+
+At limit five, the available sample edges have colors `1,1,4`; at most two
+distinct colors can be selected, so size three is impossible. At limit six,
+edges `(1,2)`, `(1,3)`, and `(2,4)` have colors `1,3,4` and form a tree.
+Thus the first feasible bottleneck is six.
+
+## Correctness proof
+
+**Lemma 1.** The sources and arcs directed from selected to unselected edges
+encode exactly the legal graphic additions and one-edge exchanges.
+
+*Proof.* Adding `(u,v)` to a forest is legal exactly when its endpoints are in
+different components. Otherwise it creates one cycle: the outside edge plus
+the unique forest path from `u` to `v`. Removing a selected edge restores a
+forest exactly when that edge lies on this cycle, equivalently on the path.
+
+**Lemma 2.** The targets and arcs directed from unselected to selected edges
+encode every color exchange needed by an augmenting path.
+
+*Proof.* An outside edge is directly addable exactly when its color is unused.
+If the color is used, partition independence can be restored only by deleting
+the unique selected edge with that color. If it is unused, the vertex is
+already a target and the augmenting path can end there.
+
+**Lemma 3.** If the exchange graph has a source-to-target path, toggling the
+edges of a shortest one produces a rainbow forest of size `|I|+1`.
+
+*Proof.* The path alternates between outside and selected edges and has two
+outside endpoints, so toggling increases the cardinality by one. Every
+selected-to-unselected step is a valid graphic exchange by Lemma 1; every
+unselected-to-selected step is a valid partition exchange by Lemma 2. For a
+shortest path, if a later insertion invalidated an earlier exchange, the
+matroid circuit-exchange property would supply an arc skipping the conflicting
+segment, contradicting shortestness. Hence the simultaneous toggle is
+independent in both matroids. This is the augmenting-path lemma for two
+matroids, specialized here to graphic circuits and color classes.
+
+**Lemma 4.** If no source-to-target path exists, no larger rainbow forest
+exists among the allowed edges.
+
+*Proof.* Suppose a larger common independent set `J` existed. Compare
+`J-I` with `I-J`. The matroid exchange property for the graphic matroid links
+an edge addable to `I` through legal graphic exchanges; the corresponding
+property for the partition matroid links the alternating exchanges onward.
+Because `J` has more edges, this alternating chain must end at an edge directly
+addable in the partition matroid. It is therefore a source-to-target path, a
+contradiction. This is the maximality half of the matroid-intersection
+augmenting-path theorem.
+
+**Lemma 5.** The feasibility predicate is monotone in the weight limit.
+
+*Proof.* Raising the limit only adds available edges. Every previously valid
+rainbow forest remains valid.
+
+**Theorem.** The algorithm prints the minimum possible maximum edge weight, or
+`-1` exactly when no requested forest exists.
+
+*Proof.* Lemmas 3 and 4 show that the oracle accepts exactly when an allowed
+common independent set has size at least `K`. By Lemma 5, binary search finds
+the first distinct edge weight accepted by the oracle. This is precisely the
+minimum bottleneck. Rejection at the largest input weight means that even the
+whole graph has no valid size-`K` set.
+
+## Complexity and traps
+
+Let `R<=min(K,n-1)` be the attained common rank. During one augmentation,
+finding all forest paths and building the exchange graph costs
+`O(m(n+R))`; its BFS costs no more. One feasibility call therefore costs
+`O(R*m*(n+R))` time and `O(n+m*R)` memory. Binary search adds a factor
+`O(log m)`.
+
+Do not direct both exchange types the same way. Do not treat an arbitrary
+maximal rainbow forest as maximum: the entire purpose of alternating paths is
+to repair earlier choices. Search only distinct input weights, handle parallel
+edges normally, and test one color repeated everywhere, a graph with enough
+colors but insufficient graphic rank, bottleneck ties, and an augmenting path
+requiring more than one exchange.
+
+## C++
+
+```cpp
+{{< include problems/13_rainbow_bottleneck_forest/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/13_rainbow_bottleneck_forest/solution.py >}}
+```
+
+# 14. Rooted Broadcast Choice
+
+## Remove the unknown root
+
+If the broadcaster were fixed, the chosen links would be a minimum directed
+spanning arborescence rooted there: every other vertex has one incoming edge,
+and all vertices are reachable from the root. Trying all roots would multiply
+an already nontrivial algorithm by `n`.
+
+Add a new vertex `s`. For every station `v`, add
+
+```text
+s -> v  with cost  PENALTY + activation[v].
+```
+
+Now find one minimum arborescence rooted at `s`. A solution using exactly one
+super-root edge chooses one broadcaster; deleting `s` leaves precisely the
+required broadcast tree.
+
+Choose
+
+```text
+PENALTY = (n+1) * 10^9 + 1.
+```
+
+Every arborescence has `n` edges entering real vertices, and the sum of their
+real activation/link parts is at most `n*10^9`, strictly less than the penalty.
+Consequently the encoded objective first minimizes the number of super-root
+edges and only then the real cost. If its quotient by `PENALTY` is one, its
+remainder is the answer. If the quotient is larger, no single broadcaster can
+reach every station.
+
+## Directed minimum arborescence
+
+Chu--Liu/Edmonds repeatedly performs the following operation on the current
+contracted graph.
+
+1. For every non-root vertex `v`, choose its cheapest incoming edge and add
+   that cost to the answer.
+2. If some non-root vertex has no incoming edge, no arborescence exists.
+3. If the chosen incoming edges contain no directed cycle, they are the
+   minimum arborescence.
+4. Contract every chosen directed cycle and continue.
+
+Why is contraction enough? In a chosen cycle, every vertex already has its
+cheapest incoming edge, but a rooted arborescence cannot keep the whole cycle.
+Some external edge `u -> v` must enter it and replace the chosen edge entering
+`v`. We already prepaid `incoming[v]`, so this option has additional cost
+
+```text
+cost(u -> v) - incoming[v].
+```
+
+Use that reduced cost for every edge crossing between contracted components.
+Internal edges disappear as self-loops. When the contracted optimum is added
+to the prepaid costs, entering a cycle automatically pays exactly the cost of
+the edge it substitutes.
+
+Several vertex-disjoint cycles may be contracted in the same phase. Vertices
+outside every cycle receive singleton component identifiers. Continue until a
+phase has no cycle.
+
+## Sample trace
+
+Choosing station 2 costs three. Links `2->3`, `3->4`, and `4->1` cost two,
+two, and one, for a total of eight. Every station is reached. The encoded
+arborescence uses one super edge, and no real solution can cost less.
+
+## Correctness proof
+
+**Lemma 1.** Arborescences rooted at the super-root and using exactly one super
+edge correspond bijectively to valid broadcast choices, preserving real cost.
+
+*Proof.* The unique super edge selects a station `r`. Every other real vertex
+has exactly one incoming real edge. Reachability from the super-root becomes
+reachability from `r` after deleting the super-root. Conversely, attach the
+super-root to the broadcaster of any valid solution.
+
+**Lemma 2.** One contraction phase preserves the minimum remaining cost after
+adding the selected minimum incoming costs.
+
+*Proof.* If the selected edges are acyclic, they give every non-root vertex one
+incoming edge and are reachable from the root; choosing any dearer incoming
+edge cannot improve the total. If they contain a cycle `C`, every
+arborescence must replace at least one selected incoming edge of `C` by an edge
+entering `C`. Replacing the edge entering `v` has extra cost
+`cost(u,v)-incoming[v]`, exactly the contracted edge cost. Conversely, expand
+any chosen contracted entering edge by restoring all prepaid cycle edges
+except the one entering its endpoint. This gives a cost-preserving
+correspondence. Disjoint cycles can be treated independently.
+
+**Lemma 3.** The directed-MST procedure returns a minimum arborescence rooted
+at the supplied root.
+
+*Proof.* Every contraction strictly reduces the vertex count. Apply Lemma 2 at
+each phase; the final acyclic phase is optimal, and expanding the contractions
+preserves that cost back to the original graph.
+
+**Lemma 4.** The penalty makes the encoded objective lexicographically minimize
+first the number of super edges, then real cost.
+
+*Proof.* Two solutions whose super-edge counts differ by at least one differ
+in penalty contribution by at least `PENALTY`. Their real-cost difference has
+absolute value below `PENALTY`, so it cannot reverse that ordering. Equal
+counts compare only by real cost.
+
+**Theorem.** The algorithm prints the minimum valid broadcast cost, or `-1`
+exactly when no broadcaster can reach all stations.
+
+*Proof.* Super edges to every real vertex guarantee that some encoded
+arborescence exists. By Lemmas 3 and 4, it uses the minimum possible number of
+super edges. That number is one exactly when a valid broadcast tree exists by
+Lemma 1. In that case, Lemmas 1 and 4 show that the remainder is the minimum
+real cost; otherwise the algorithm prints `-1`.
+
+## Complexity and traps
+
+Each phase scans all current edges. A phase containing a cycle reduces the
+number of vertices, so the total time is `O(VE)` and memory is `O(V+E)`, with
+`V=n+1` and `E=m+n` after adding the super-root.
+
+Directed arborescences use one **incoming** edge per non-root vertex; reversing
+this convention silently solves a different problem. Subtract the prepaid
+cost of the original target before replacing its component identifier. Ignore
+self-loops when selecting incoming edges. Use 64-bit integers: the encoded
+cost is much larger than the real answer. Test `n=1`, parallel links, a cheap
+directed cycle, a graph needing two super edges, and a contraction whose best
+entering edge targets a non-obvious cycle vertex.
+
+## C++
+
+```cpp
+{{< include problems/14_rooted_broadcast_choice/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/14_rooted_broadcast_choice/solution.py >}}
+```
+
+# 15. Pairing Under Thresholds
+
+## Turn a bottleneck into a rank query
+
+Fix a difficulty threshold `D` and retain only edges of difficulty at most
+`D`. A query `k` is feasible exactly when this graph has a matching of size at
+least `k`. Feasibility is monotone as `D` grows, so every answer is the first
+feasible distinct input difficulty.
+
+The graph is not bipartite. In particular, odd cycles are legal input, so the
+usual two-part augmenting-path algorithm is insufficient. We need maximum
+cardinality matching in a general graph: Edmonds' blossom algorithm.
+
+## Alternating forests and blossoms
+
+Starting from every currently unmatched root, search an alternating forest.
+Even-level vertices may use unmatched edges; after reaching an odd-level
+vertex, immediately cross its matched edge back to an even level.
+
+Three events matter while scanning an edge from an even vertex `v`:
+
+1. If it reaches an unseen vertex `u`, record `parent[u]=v`. If `u` is
+   unmatched, an augmenting path is complete. Otherwise enqueue `match[u]` as
+   the next even vertex.
+2. If it joins two suitable even vertices in the same alternating structure,
+   their tree paths plus the edge form an odd alternating cycle: a blossom.
+3. Edges internal to an already contracted base, and the current matched edge,
+   carry no new information.
+
+An alternating path can enter and leave an odd blossom while preserving its
+alternation: between any entry point and the blossom base, exactly one of the
+two directions around the odd cycle has the needed parity. Therefore contract
+the entire blossom to its lowest common alternating ancestor. The search may
+continue as though it were one even vertex. `mark_path` stores enough parents
+to expand a later augmenting path correctly.
+
+When an unmatched endpoint is reached, follow parent and matched edges back to
+the root and flip their matched status. Each augmentation increases the
+matching size by one. Berge's lemma says a matching is maximum exactly when no
+augmenting path exists; blossom contraction ensures the search does not miss
+paths hidden behind odd cycles.
+
+## Share threshold searches offline
+
+There can be 200,000 queries but only at most `floor(n/2)` distinct requested
+matching sizes. Keep binary-search bounds `low[k]` and `high[k]` only for those
+distinct values, where `high=len(thresholds)` is an impossible sentinel.
+
+In each parallel-binary-search round:
+
+```text
+group every unfinished k by middle = (low[k]+high[k])/2
+for each distinct middle:
+    compute rank(middle) once with blossom
+    for every k in the group:
+        if rank >= k: high[k] = middle
+        else:         low[k] = middle+1
+```
+
+Memoize every computed rank by threshold index. Repeated queries, equal
+midpoints in one round, and midpoints revisited in later rounds then all reuse
+the same expensive matching computation.
+
+## Sample trace
+
+At threshold one, edge `2-3` gives rank one. At threshold three, `2-3` and
+`4-5` give rank two. Up through threshold six, the graph is two disjoint odd
+triangles, whose total matching rank is only two. Threshold seven adds `2-4`;
+then `1-3`, `2-4`, and `5-6` form a perfect matching of size three.
+
+## Correctness proof
+
+**Lemma 1.** Contracting an odd alternating blossom preserves whether an
+augmenting path exists.
+
+*Proof.* Contract any augmenting path's maximal segment inside the blossom to
+the blossom base to obtain a path in the contracted graph. Conversely, when a
+contracted path touches the blossom, the odd cycle offers two routes between
+its contact vertex and base; their lengths have opposite parity. Exactly one
+continues the required matched/unmatched alternation. Expanding through that
+route yields an augmenting path in the original graph.
+
+**Lemma 2.** `maximum_matching` returns the maximum matching size at its given
+threshold.
+
+*Proof.* Every discovered augmenting path is flipped and increases the size by
+one. The alternating-forest search explores every possible augmenting path;
+by Lemma 1, blossom contractions preserve paths passing through odd cycles.
+When all unmatched roots fail, no augmenting path exists. Berge's lemma then
+implies that the matching is maximum.
+
+**Lemma 3.** For every `k`, feasibility is monotone in the threshold index.
+
+*Proof.* Increasing the threshold only adds edges. Any old size-`k` matching
+remains available.
+
+**Lemma 4.** Parallel binary search finishes with `low[k]` equal to the first
+threshold whose matching rank is at least `k`, or the sentinel if none exists.
+
+*Proof.* Initially the answer lies in the half-open search domain including
+the sentinel. By Lemma 2, `rank(middle)>=k` is the exact feasibility test, and
+by Lemma 3 it is monotone. Each update is therefore an ordinary lower-bound
+binary-search update. Grouping equal midpoints changes only how their common
+rank is computed, not any interval update.
+
+**Theorem.** Every printed line is the minimum permitted difficulty for its
+requested number of pairs, or `-1` exactly when impossible.
+
+*Proof.* Apply Lemma 4 to the query's `k`. A real threshold index gives its
+minimum feasible difficulty. The sentinel means the maximum matching in the
+full graph is smaller than `k`, so no solution exists.
+
+## Complexity and traps
+
+One blossom computation takes `O(n^3)` time and `O(n^2)` memory. If `r` is the
+number of distinct queried sizes, at most `r*ceil(log2(m+1))` threshold ranks
+are requested before memoization. Thus a conservative bound is
+`O(r*n^3*log m + q)` time and `O(n^2+m+q)` memory, with `r<=n/2`.
+
+Do not replace blossom by bipartite matching unless the statement supplies a
+bipartition. During contraction, update every vertex whose current base is
+marked, not merely the cycle vertices first encountered. Reinitialize search
+parents and bases for each unmatched root, but retain the matching between
+augmentations. Binary-search distinct difficulties rather than the numeric
+range. Test triangles, two odd cycles connected by one late edge, parallel
+offers with different difficulties, repeated `k`, and an impossible maximum
+rank.
+
+## C++
+
+```cpp
+{{< include problems/15_pairing_under_thresholds/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/15_pairing_under_thresholds/solution.py >}}
+```
+
+# 16. All-Pairs Cut Statistics
+
+## Compress all pair cuts into one tree
+
+Running a max flow for every unordered pair would require quadratically many
+flows. An undirected capacitated graph has a much stronger representation: a
+**Gomory--Hu tree** on the same vertices. Its defining property is
+
+```text
+minimum_cut(u,v) = minimum edge weight on the tree path u...v.
+```
+
+Thus `n-1` carefully selected max-flow computations represent all
+`n(n-1)/2` pair values.
+
+## Constructing the Gomory--Hu tree
+
+Maintain `parent[v]`, initially zero for every `v>0`, and a cut value for the
+future tree edge from `v` to its parent. Process `s=1,2,...,n-1`:
+
+1. Let `t=parent[s]` and compute a minimum `s-t` cut.
+2. In the final residual graph, let `S` be the vertices reachable from `s`.
+3. Every later vertex `v` with `parent[v]=t` and `v` in `S` is reparented to
+   `s`.
+4. Usually store the flow value on `s-parent[s]`.
+5. If `parent[t]` also lies in `S`, rotate the two parent links: `s` takes
+   `t`'s former parent, `t` becomes a child of `s`, `s` inherits `t`'s old cut
+   value, and the new flow value is stored on `t-s`.
+
+The reachable residual side is a minimum-cut shore. The reparenting preserves
+which already represented cuts separate each group. The rotation handles the
+case where the new shore crosses upward through `t`'s existing tree edge;
+omitting it is a common bug that may survive tests without nested cut shores.
+
+The Gomory--Hu invariant says that after the last iteration, the minimum edge
+on every tree path equals the corresponding graph minimum cut. Disconnected
+graphs need no special case: their separating cuts have value zero, producing
+zero-weight tree edges.
+
+## From path minima to pair counts
+
+For a query threshold `X`, a pair qualifies exactly when every edge on its
+Gomory--Hu path has weight at least `X`. Equivalently, the endpoints are in the
+same component after retaining only tree edges of weight at least `X`.
+
+Sort tree edges and queries in descending order. A DSU initially has `n`
+singleton components. Before answering `X`, insert every tree edge whose
+weight is at least `X`. When components of sizes `a` and `b` merge, exactly
+`a*b` formerly separated unordered pairs become connected. Maintain their
+running total and assign it to the query.
+
+## Sample trace
+
+The sample graph is already a tree with edge capacities five, two, and four,
+so it is also a valid cut-equivalent tree. At threshold three, insert weights
+five and four. The first union creates one connected pair; the second joins a
+singleton to that size-two component and creates two more, for three qualifying
+pairs total. At threshold zero, the weight-two edge is also present and all six
+unordered pairs qualify.
+
+## Correctness proof
+
+**Lemma 1.** The construction produces a tree in which the minimum edge on the
+path between any `u,v` equals their minimum cut in the original graph.
+
+*Proof.* This is the Gomory--Hu invariant. At iteration `s`, the residual shore
+is a minimum cut separating `s` from its current parent. Reparenting vertices
+on the same shore makes the new tree edge represent that cut without changing
+separations represented by earlier edges. If the shore contains the parent's
+parent, the rotation preserves the older cut on the upper edge and places the
+new cut on the crossed lower edge. The uncrossing property of undirected
+minimum cuts guarantees these shores can be represented laminarily by those
+updates. Induction over processed vertices gives the path-minimum property for
+all pairs after `n-1` iterations.
+
+**Lemma 2.** For a fixed threshold `X`, two vertices qualify exactly when DSU
+connects them after all tree edges of weight at least `X` are inserted.
+
+*Proof.* By Lemma 1, their graph minimum cut is at least `X` exactly when the
+minimum edge on their tree path is at least `X`. This holds exactly when every
+path edge has been inserted, which is equivalent to connectivity in the
+retained tree forest.
+
+**Lemma 3.** Merging DSU components of sizes `a` and `b` increases the number
+of connected unordered pairs by exactly `a*b`.
+
+*Proof.* All pairs internal to either component were already connected. The
+new edge connects precisely the pairs with one endpoint in each component,
+of which there are `a*b`.
+
+**Theorem.** The algorithm outputs the requested count for every threshold.
+
+*Proof.* Descending order ensures that immediately before a query `X`, DSU
+contains exactly the tree edges of weight at least `X`. Lemma 2 identifies its
+connected pairs with the qualifying graph pairs, while Lemma 3 proves that the
+maintained total counts those pairs exactly.
+
+## Complexity and traps
+
+The construction performs `n-1` max-flow computations. With general-capacity
+Dinic and its conservative `O(V^2 E)` bound per flow, this is
+`O(n^3 m)` time; the DSU phase costs `O((n+q) log(n+q))` for sorting and nearly
+linear time afterward. Memory is `O(n+m+q)` beyond each residual network.
+
+An undirected capacity is not a one-way arc: the residual representation must
+permit flow in both directions. Rebuild capacities for every Gomory--Hu flow.
+Take the source shore after max flow, not the BFS levels from an earlier phase.
+Preserve the parent-rotation case and use 64-bit values for cut sums and pair
+counts. For `X=0`, even vertices from different original connected components
+qualify because their minimum cut is zero. Test disconnected graphs, parallel
+edges, equal tree weights, nested cut shores, `n=1`, and thresholds above every
+cut.
+
+## C++
+
+```cpp
+{{< include problems/16_all_pairs_cut_statistics/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/16_all_pairs_cut_statistics/solution.py >}}
+```
+
+# 17. Isotonic Tree Labels
+
+## Choose the right boundary function
+
+For a vertex `v`, define `F_v(p)` as the minimum cost in `v`'s subtree when
+the label of `v` must be at least `p`. This is exactly the information a parent
+passes across the subtree boundary.
+
+The useful slope-trick invariant is
+
+```text
+F_v(p) = C_v + sum over b in H_v of max(0, p-b),
+```
+
+where `H_v` is a min-heap of integer breakpoints. The constant `C_v` is the
+unconstrained minimum subtree cost. Every hinge is flat before its breakpoint
+and has slope one afterward, so the heap describes the whole convex,
+nondecreasing function without storing values for every possible label.
+
+## Derive the heap transition
+
+Suppose the label chosen at `v` is exactly `y`. Before applying its lower bound
+`p`, the cost is
+
+```text
+G_v(y) = |y-a[v]| + sum F_child(y).
+```
+
+Merge all child breakpoint heaps. The absolute-value term has slope `-1`
+before `a[v]` and `+1` after it, which is a slope jump of two. Therefore insert
+two copies of `a[v]` into the merged heap.
+
+Far to the left, `G_v` has slope `-1`; each sorted breakpoint raises the slope
+by one. Let `b` be the smallest breakpoint. Removing this first slope jump
+clips the negative part when we form
+
+```text
+F_v(p) = min over y >= p of G_v(y).
+```
+
+Thus the complete structural transition is:
+
+```text
+merge every child heap
+push a[v] twice
+b = pop minimum
+```
+
+What happens to the constant? Because the heap contains two copies of `a[v]`,
+we have `b<=a[v]`. Because `b` is the smallest merged breakpoint, every child
+hinge is still zero at `b`. Hence
+
+```text
+C_v = sum C_child + |b-a[v]|
+    = sum C_child + a[v]-b.
+```
+
+We may accumulate `a[v]-b` globally while processing vertices bottom-up. At
+the root there is no parent lower bound, so `C_root` itself is the answer.
+
+## Merge heaps efficiently
+
+Each subtree heap contains exactly one breakpoint per subtree vertex: child
+sizes add, then pushing twice and popping once increases the total by one.
+Always keep the largest child heap and insert every element of smaller child
+heaps into it. Whenever a breakpoint moves, the size of its containing heap at
+least doubles. It therefore moves only `O(log n)` times.
+
+Root the tree iteratively and process the reversed traversal order to avoid
+recursion-depth problems on a chain.
+
+## Sample trace
+
+Each leaf with observation zero inserts `0,0`, removes one zero, and leaves
+heap `[0]` with cost zero. At the root, merge the two leaf heaps, insert
+`10,10`, and remove the minimum zero. The root contributes `10-0=10`, which is
+the optimum: label all three vertices zero.
+
+## Correctness proof
+
+**Lemma 1.** If every child function has the hinge representation, the stated
+merge, double insertion, and minimum removal produce the hinge representation
+of `F_v`.
+
+*Proof.* Summing child functions merges their constants and breakpoint
+multisets. Adding `|y-a[v]|` contributes initial slope `-1` and a jump of two
+at `a[v]`, represented by two copies. Taking the suffix minimum
+`min_{y>=p} G_v(y)` replaces every negative slope by zero. Since the initial
+slope is exactly `-1`, this removes exactly the first unit breakpoint, the
+minimum heap element. All remaining slope jumps are unchanged.
+
+**Lemma 2.** The constant added at vertex `v` is `a[v]-b`, where `b` is the
+removed minimum.
+
+*Proof.* The suffix-minimum function is flat at the unconstrained minimum of
+`G_v`, first reached at `b`. No child hinge is positive there because `b` is
+the smallest merged breakpoint. Also `b<=a[v]` because two copies of `a[v]`
+were inserted. Therefore `G_v(b)` exceeds the sum of child constants only by
+`|b-a[v]|=a[v]-b`.
+
+**Lemma 3.** After processing `v`, its heap and accumulated subtree constant
+represent the exact optimum for every parent lower bound `p`.
+
+*Proof.* Induct on subtree size. Leaves satisfy Lemmas 1 and 2 with no child
+heaps. For an internal vertex, the induction hypothesis makes every child
+representation exact; Lemmas 1 and 2 then derive the exact representation at
+`v`.
+
+**Theorem.** The algorithm prints the minimum total deviation over all
+isotonic integer labelings.
+
+*Proof.* Lemma 3 applies to the root. With no parent, its label has no lower
+bound, so the required value is the unconstrained constant `C_root`, exactly
+the accumulated answer. All breakpoints are observed integers, so an integer
+minimizer exists.
+
+## Complexity and traps
+
+Small-to-large movement makes each of the `n` breakpoints move `O(log n)`
+times, and each heap insertion costs `O(log n)`. The bound is
+`O(n log squared n)` time and `O(n)` memory.
+
+The orientation matters: for `parent <= child`, use a **min-heap** and remove
+the minimum. Reversing the inequality reverses the slope picture. Insert the
+observation twice, not once. Add the removed-breakpoint difference before
+discarding it. Do not attempt to store one DP value per possible label; values
+range over two billion integers. Test a decreasing chain, an increasing chain,
+a star whose children pull the root downward, equal observations, negative
+values, and `n=1`.
+
+## C++
+
+```cpp
+{{< include problems/17_isotonic_tree_labels/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/17_isotonic_tree_labels/solution.py >}}
+```
+
+# 18. Circulation Repair Queries
+
+## Turn changes into a residual path
+
+The supplied flow already obeys every old bound and conserves flow. Build its
+residual graph. An old edge `x -> y` contributes `x -> y` when its flow can be
+increased, and `y -> x` when its flow can be decreased.
+
+A proposed mandatory unit on `u -> v` removes one unit of balance from `u` and
+adds one at `v`. The old edges repair this exactly when one residual unit can
+travel from `v` back to `u`. Capacities are integral, so existence of a path is
+both necessary and sufficient; the actual path is also a certificate.
+
+All queries use the same original circulation. Compute the transitive closure
+of the residual graph once, using bitsets in Python or a Boolean Floyd--Warshall
+loop in C++. Then query `(u,v)` is `YES` precisely when `v` reaches `u`.
+
+## Correctness proof
+
+**Lemma 1.** Every legal change to the old flow is an integral flow in the
+residual graph, and conversely every integral residual flow produces legal old
+edge values.
+
+*Proof.* A forward residual unit increases an edge below its upper bound; a
+reverse unit decreases an edge above its lower bound. Cancelling opposite
+directions gives the converse mapping without crossing either bound.
+
+**Lemma 2.** The enlarged instance is feasible iff the residual graph contains
+a path from `v` to `u`.
+
+*Proof.* Sending one unit on the new `u -> v` edge creates surplus at `v` and
+deficit at `u`. A residual `v -> u` path repairs both and conserves every
+internal vertex. Conversely, any feasible repair decomposes into cycles and a
+unit `v -> u` residual flow; its positive support contains such a path.
+
+**Theorem.** The algorithm answers every query correctly.
+
+*Proof.* Transitive closure records exactly the paths characterized by Lemma 2.
+
+## Complexity and traps
+
+Closure costs `O(n^3)` time and `O(n^2)` bits/Booleans; each query is `O(1)`.
+Do not rebuild the network per query. A pinned edge contributes no residual
+arc, and the direction tested is `v -> u`, opposite the proposed edge.
+
+## C++
+
+```cpp
+{{< include problems/18_circulation_repair_queries/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/18_circulation_repair_queries/solution.py >}}
+```
+
+# 19. Convex Resource Schedule
+
+## Penalize the number of batches
+
+Let `S[i]` be the prefix sum. With a penalty `lambda` per batch, the DP is
+
+```text
+dp[i] = min over j<i of dp[j] + (S[i]-S[j])^2 + lambda.
+```
+
+Expand the square:
+
+```text
+dp[i] = S[i]^2 + lambda
+      + min_j ((-2*S[j])*S[i] + dp[j] + S[j]^2).
+```
+
+Thus every completed prefix inserts one line, and every next prefix makes one
+minimum query. A discrete Li Chao tree over the nondecreasing prefix sums
+handles equal sums without division or floating point.
+
+Store `(penalized_cost, batch_count)`. Run once preferring the fewest batches
+on cost ties and once preferring the most. As `lambda` increases, optimal batch
+counts never increase. Binary-search the largest integer penalty whose
+maximum-tie optimum still uses at least `K` batches. Convexity of squared batch
+sums (the Monge quadrangle inequality) guarantees that at this breakpoint the
+tie interval contains `K`. If its penalized value is `V`, the answer is
+`V-lambda*K`.
+
+## Correctness proof
+
+**Lemma 1.** A Li Chao query at `S[i]` returns the minimum penalized transition
+into prefix `i`, with the requested count tie rule.
+
+*Proof.* Expansion maps every predecessor to exactly one affine function.
+Li Chao insertion preserves the best line at every stored coordinate; comparing
+the count after equal values extends the same total order to ties.
+
+**Lemma 2.** Optimal batch count is nonincreasing in `lambda`.
+
+*Proof.* For penalties `a<b`, compare optima with counts `x,y`. Adding their
+two optimality inequalities cancels original costs and gives
+`(b-a)(y-x)<=0`, hence `y<=x`.
+
+**Lemma 3.** At the located breakpoint, `K` lies between the minimum and
+maximum optimal counts, and `V-lambda*K` is the exact `K`-batch optimum.
+
+*Proof.* The interval-cost matrix is Monge because prefix sums are ordered and
+the square is convex. Therefore optimum costs as a function of batch count are
+discrete convex: adjacent differences are monotone integers. Its supporting
+line of slope `-lambda` touches a consecutive interval of counts. The binary
+search selects the support where that interval crosses `K`. Every touched
+count has original value `V-lambda*count`, giving the formula.
+
+**Theorem.** The algorithm prints the minimum cost among exactly `K` batches.
+
+*Proof.* Lemma 1 solves each penalized DP; Lemmas 2 and 3 locate and recover the
+required cardinality.
+
+## Complexity and traps
+
+One run takes `O(n log n)` time and `O(n)` memory. There are
+`O(log(S[n]^2+1))` runs. Treat `K=1` and `K=n` directly. Li Chao children may
+be absent during a query; stop at the best line already seen. Counts are part
+of comparisons only after costs tie.
+
+## C++
+
+```cpp
+{{< include problems/19_convex_resource_schedule/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/19_convex_resource_schedule/solution.py >}}
+```
+
+# 20. Laminar Assignment
+
+## Share capacity through the laminar tree
+
+Expanding an offer to all descendant leaves can create quadratic many edges.
+Keep the tree itself in the flow network:
+
+```text
+source -> worker             capacity 1, cost 0
+worker -> offered tree node  capacity 1, offer cost
+parent -> child              capacity w, cost 0
+leaf -> sink                 capacity 1, cost 0
+```
+
+A unit entering a tree node can descend to exactly a leaf in its subtree. The
+unit capacity into the sink makes leaves distinct. Send `w` units with
+successive shortest augmenting paths and reduced-cost potentials.
+
+## Correctness proof
+
+**Lemma 1.** Every integral source--sink path represents one legal worker
+assignment with the path's offer cost.
+
+*Proof.* The path chooses one worker, one of that worker's offers, then follows
+only parent-to-child arcs to a descendant leaf. All later arcs cost zero.
+
+**Lemma 2.** Integral flows of value `w` correspond cost-for-cost to complete
+assignments to distinct leaves.
+
+*Proof.* Unit source edges make each worker occur once. Unit leaf-to-sink edges
+prevent repeated leaves. Flow decomposition and Lemma 1 give an assignment.
+Conversely, route every chosen worker through its offer and the unique tree path
+to its leaf; shared tree arcs have capacity `w`.
+
+**Lemma 3.** Successive shortest augmenting paths produce a minimum-cost flow
+of each attained value.
+
+*Proof.* Potentials preserve path costs while making every residual reduced
+cost nonnegative. Augmenting on a shortest residual path maintains absence of
+a negative-cost residual cycle, the optimality certificate for min-cost flow.
+
+**Theorem.** The algorithm prints the minimum assignment cost, or
+`IMPOSSIBLE` exactly when none exists.
+
+*Proof.* If value `w` is reached, Lemmas 2 and 3 give the optimum assignment.
+If the sink is unreachable earlier, no augmenting path exists, so no flow—and
+by Lemma 2 no complete assignment—can have larger value.
+
+## Complexity and traps
+
+With `V=n+w+2` and `E=O(n+w+offers)`, the bound is
+`O(w E log V)` time and `O(V+E)` memory. Offers enter a tree node, so tree arcs
+must point from parent to child. Duplicate offers are harmless. Count leaves
+from the given rooted tree, including the root when `n=1`.
+
+## C++
+
+```cpp
+{{< include problems/20_laminar_assignment/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/20_laminar_assignment/solution.py >}}
+```
+
+# 21. Persistent Text Occurrences
+
+## Two independent orders
+
+All suffixes beginning with pattern `p` form one contiguous suffix-array
+interval `[L,R)`, found by two binary searches. Inside that interval, suffixes
+are lexicographically ordered, but the query wants starting-position order.
+
+Build persistent segment-tree root `root[i]` from the first `i` suffix-array
+entries, inserting each suffix's starting position. Subtracting `root[L]` from
+`root[R]` leaves exactly the occurrence positions of `p`. Counts guide a
+standard `k`-th descent; insufficient root count means `-1`.
+
+**Correctness.** Suffix-array contiguity puts exactly the matching suffixes in
+`[L,R)`. Persistence inserts each such suffix once, so root subtraction gives
+their position multiset exactly. At every segment-tree level the left count is
+the number of remaining positions in that half; rank subtraction therefore
+ends at the `k`-th smallest position.
+
+Building the suffix array and roots takes `O(n log n)` time and memory. A query
+takes `O(|p| log n + log n)` with direct comparisons. Watch the upper-bound
+comparison: suffix prefixes equal to `p` belong inside the interval.
+
+## C++
+```cpp
+{{< include problems/21_persistent_text_occurrences/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/21_persistent_text_occurrences/solution.py >}}
+```
+
+# 22. Multi-Archive Common Substrings
+
+## Cap every suffix-automaton state
+
+Build a suffix automaton for the first archive. State `v` represents substring
+lengths `(len(link[v]), len[v]]`. Scan another archive while maintaining the
+longest current automaton match. Record the best length ending in each visited
+state, then propagate states from longer to shorter:
+
+```text
+best[link[v]] = max(best[link[v]], min(best[v], len(link[v])))
+```
+
+The cap is essential: the parent state represents no length above its own
+maximum. Maintain `common[v]`, the minimum `best[v]` over all archives. Then
+state `v` contributes
+`max(0, common[v]-len(link[v]))` distinct common substrings, and the longest
+answer is `max common[v]`.
+
+**Correctness.** The online scan finds every match ending at each position.
+Suffix-link propagation transfers all suffixes of those matches and no length
+outside the parent interval. Thus `best[v]` is the largest represented length
+present in one archive; taking minima makes it the largest present everywhere.
+Automaton state intervals partition the distinct substrings, proving both the
+sum and maximum formulas.
+
+Time is linear in total archive length plus `k` times the automaton size;
+memory is linear in the first archive. Reset per-archive `best`, but never reset
+the accumulated minima.
+
+## C++
+```cpp
+{{< include problems/22_multi_archive_common_substrings/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/22_multi_archive_common_substrings/solution.py >}}
+```
+
+# 23. Palindromic Range Census
+
+## Turn discoveries into points
+
+An Eertree creates one node exactly when a distinct palindrome first appears.
+When a node of length `d` is created while reading position `e`, its discovery
+interval is the fixed point `(start=e-d+1,end=e)`.
+
+Group these points by `end`, and group queries by right endpoint. Sweep `r`
+from left to right. Insert every discovery ending at `r` into a Fenwick tree at
+its start. For query `[l,r]`, all inserted points already satisfy `end<=r`;
+the answer is the number whose start is at least `l`:
+
+```text
+inserted_count - fenwick_prefix(l-1).
+```
+
+**Correctness.** Eertree node uniqueness gives exactly one point per distinct
+palindrome, at its leftmost ending occurrence. At sweep time `r`, precisely
+the points satisfying the query's end inequality have been inserted. Fenwick
+suffix counting enforces the start inequality, hence counts exactly the wholly
+contained discovery intervals.
+
+Eertree construction is `O(n)` and the sweep is `O((n+q) log n)`, using
+`O(n+q)` memory. This problem counts first-occurrence certificates, not every
+palindromic occurrence and not distinct palindromes of the query substring.
+
+## C++
+```cpp
+{{< include problems/23_palindromic_range_census/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/23_palindromic_range_census/solution.py >}}
+```
+
+# 24. Lexicographic Substring Laboratory
+
+Map every text position to its suffix-array rank. A wavelet-style range order
+structure over that rank array returns the `k`-th and `(k+1)`-th ranks among
+positions `[l,r]`; the suffix array maps them back to positions. Their LCP is
+the minimum LCP-array entry strictly after the smaller rank through the larger
+rank. A Cartesian tree of the LCP array supports this RMQ as an LCA; the
+references use the equivalent static RMQ representation.
+
+Suffix ranks totally order exactly the queried suffixes, so range selection
+returns the requested neighbors. The standard suffix-array theorem says the
+LCP of ranks `a<b` is `min(LCP[a+1..b])`, proving the second output. Construction
+is `O(n log n)` here; each selection and LCP query is `O(log n)`. Do not compute
+LCP between adjacent global suffixes—the neighbors are adjacent only after the
+position restriction.
+
+## C++
+```cpp
+{{< include problems/24_lexicographic_substring_laboratory/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/24_lexicographic_substring_laboratory/solution.py >}}
+```
+
+# 25. Dynamic Pattern Ledger
+
+Build Aho--Corasick and its failure-link tree. Pattern `i` matches while the
+automaton is in state `v` exactly when its terminal node is an ancestor of `v`
+in that tree. Euler-tour every failure subtree. Activating a terminal performs
+a range add on its subtree; a Fenwick difference array makes the active
+ancestor count at state `v` a point query. Scan each query text through the
+automaton and sum those point values.
+
+The failure-chain property proves that the point value counts exactly the
+active patterns ending at the current character. Summing positions counts all
+occurrences, including overlaps and duplicate indexed patterns. Total time is
+linear in input text plus `O(log states)` per activation and scanned character;
+memory is linear in automaton size. Range-add both endpoints, and treat equal
+patterns as separate activations of the same terminal.
+
+## C++
+```cpp
+{{< include problems/25_dynamic_pattern_ledger/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/25_dynamic_pattern_ledger/solution.py >}}
+```
+
+# 26. Cyclic Match Convolution
+
+Reverse `a` and concatenate `b+b`. For a concrete character `c`, convolution
+of their `c`-indicator arrays at coefficient `n-1+d` counts equal concrete
+pairs under shift `d`. Sum this for `a,b,c`. One more convolution of
+"is concrete" indicators counts positions where both symbols are concrete.
+Their difference is exactly the mismatch count; wildcard positions enter
+neither mismatch term.
+
+The convolution identity pairs reversed index `n-1-i` with doubled-text index
+`i+d`, hence considers precisely `a[i]` and `b[(i+d) mod n]`. Indicator products
+count each eligible position once, proving the subtraction formula. Four NTTs
+give `O(n log n)` time and `O(n)` memory. Read coefficient `n-1+d`, duplicate
+`b` rather than `a`, and never count wildcard--wildcard as a concrete match.
+
+## C++
+```cpp
+{{< include problems/26_cyclic_match_convolution/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/26_cyclic_match_convolution/solution.py >}}
+```
+
+# 27. Distinct Substring Rank
+
+Every nonempty path from the suffix-automaton root spells one distinct
+substring. Let `dp[v]=1+sum(dp[to])`, capped above all query ranks; the one
+counts the option to stop at `v`. Process states by decreasing maximum length.
+To unrank, inspect outgoing characters in order. A transition owns a block of
+`dp[to]` strings: its one-character extension first, then its descendants.
+
+Automaton path uniqueness proves that these blocks partition the distinct
+substrings, and ordered transitions put the blocks in lexicographic order.
+Subtracting whole blocks and then consuming the stop option therefore returns
+exactly rank `k`. Construction and DP are linear apart from ordered outgoing
+edges; output time is proportional to skipped transitions plus answer length.
+Cap counts before addition and remember that root's empty-string option is not
+a query answer.
+
+## C++
+```cpp
+{{< include problems/27_distinct_substring_rank/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/27_distinct_substring_rank/solution.py >}}
+```
+
+# 28. Interval LCP Aggregates
+
+Adjacent suffix-array ranks form edges weighted by their LCP. For any two
+ranks, their suffix LCP is the minimum edge weight on the interval between
+them. Process these edges from largest weight downward with DSU. When an edge
+of weight `w` joins components of sizes `a,b`, exactly `a*b` previously
+separate suffix pairs acquire bottleneck—and hence LCP—`w`; add `w*a*b`.
+
+This is the descending-edge construction of the LCP Cartesian/reconstruction
+tree. The interval-minimum theorem proves every suffix pair joins at exactly
+its LCP value, once, so all contributions sum to the requested aggregate.
+After suffix-array construction the scan is `O(n log n)` for sorting (or linear
+with bucketed LCPs) and near-linear DSU time. Zero-weight merges contribute
+nothing but remain safe.
+
+## C++
+```cpp
+{{< include problems/28_interval_lcp_aggregates/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/28_interval_lcp_aggregates/solution.py >}}
+```
+
+# 29. Editable Palindrome Rope
+
+Store the string in an implicit randomized treap. Each node maintains subtree
+size, forward and backward polynomial hashes under two moduli, plus a lazy
+reversal flag. Splitting by size isolates any interval. `REV` swaps children
+and the two hash directions lazily; `SET` changes the isolated one-node value;
+`PAL` compares its forward and backward hash pairs. Merge the three pieces
+after every operation.
+
+Induction on the pull formula shows each aggregate is exactly the polynomial
+hash of its in-order string. Lazy reversal preserves that invariant by swapping
+directions and child order. Splits preserve in-order sequence, so each command
+acts on exactly `[l,r]`. Expected time is `O(log n)` per operation and memory is
+`O(n)`. Push reversal before descending, precompute powers through `n`, and
+pull after both pointer and character changes.
+
+## C++
+```cpp
+{{< include problems/29_editable_palindrome_rope/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/29_editable_palindrome_rope/solution.py >}}
+```
+
+# 30. Forbidden Superstring Count
+
+Build one Aho--Corasick automaton for every pattern. Propagate a forbidden flag
+and a bitmask of required patterns through failure links. For subset `T` of
+required patterns, delete states matching a base-forbidden pattern or any
+pattern in `T`. Matrix exponentiation of the remaining transition graph counts
+length-`L` strings avoiding all those patterns.
+
+Inclusion--exclusion gives
+
+```text
+sum over T subset required of (-1)^|T| * avoid(forbidden union T).
+```
+
+A walk from the root corresponds bijectively to an alphabet string, and it
+survives exactly when no deleted state is visited. Thus each matrix count is
+the required avoidance cardinality, while inclusion--exclusion retains exactly
+strings containing every required pattern. Complexity is
+`O(2^R * states^3 * log L)` time and `O(states^2)` working memory. Failure
+outputs must be propagated before matrices are built; `L=0` is handled by the
+identity matrix.
+
+## C++
+```cpp
+{{< include problems/30_forbidden_superstring_count/solution.cpp >}}
+```
+## Python
+```python
+{{< include problems/30_forbidden_superstring_count/solution.py >}}
+```
+
+# 31. Connected Structure Series
+
+Arbitrary labeled assemblies are sets of connected components, so their formal
+series satisfies `A=exp(C)` and therefore `C=log(A)`. With `A[0]=1`, formal
+logarithm is uniquely defined. The reference computes `integral(A'/A)` using
+NTT-based derivative, inverse, product, and integral primitives. Each identity
+holds coefficientwise below the requested truncation, proving the result.
+Complexity is `O(n log n)` time and `O(n)` memory.
+
+```cpp
+{{< include problems/31_connected_structure_series/solution.cpp >}}
+```
+```python
+{{< include problems/31_connected_structure_series/solution.py >}}
+```
+
+# 32. Rational Recurrence Samples
+
+The coefficient sequence of `P/Q` is the unique sequence satisfying
+`Q*A=P`. Since `Q[0]` is invertible, `A=P*Q^{-1}` modulo `x^n`. Formal Newton
+inversion doubles the correct prefix each round, and the final truncated
+product supplies exactly the requested recurrence samples. Complexity is
+`O(n log n)`.
+
+```cpp
+{{< include problems/32_rational_recurrence_samples/solution.cpp >}}
+```
+```python
+{{< include problems/32_rational_recurrence_samples/solution.py >}}
+```
+
+# 33. Subset Partition Spectrum
+
+Rank each mask by popcount, apply subset zeta transforms independently per
+rank, convolve the rank polynomials pointwise, then apply subset Moebius
+inversion. A term of total rank `|S|` can only arise from disjoint subsets whose
+union is `S`; overlapping pairs have smaller union rank and vanish at the final
+rank extraction. This proves the subset-convolution formula in
+`O(k^2 2^k)` time.
+
+```cpp
+{{< include problems/33_subset_partition_spectrum/solution.cpp >}}
+```
+```python
+{{< include problems/33_subset_partition_spectrum/solution.py >}}
+```
+
+# 34. XOR Walk Spectrum
+
+Walsh--Hadamard characters diagonalize XOR convolution. Transform both step
+spectra, multiply coordinates, and apply the inverse transform. Character
+orthogonality proves the inverse recovers exactly the sum over pairs with the
+requested XOR. Normalize once by `2^{-k}`. Time is `O(k2^k)`.
+
+```cpp
+{{< include problems/34_xor_walk_spectrum/solution.cpp >}}
+```
+```python
+{{< include problems/34_xor_walk_spectrum/solution.py >}}
+```
+
+# 35. Polynomial Constraint Recovery
+
+Let `M(x)=product(x-x_i)`. The Lagrange basis denominator is `M'(x_i)`, so the
+answer is the sum of `y_i/M'(x_i)` times `M(x)/(x-x_i)`. Product trees build
+`M`; multipoint evaluation obtains all derivative values; the interpolation
+tree merges weighted quotient products. Distinct points make every denominator
+invertible, proving uniqueness and correctness.
+
+```cpp
+{{< include problems/35_polynomial_constraint_recovery/solution.cpp >}}
+```
+```python
+{{< include problems/35_polynomial_constraint_recovery/solution.py >}}
+```
+
+# 36. Factorized Exponent Tower: Carmichael Kernel
+
+Factor `n` with deterministic Miller--Rabin and Pollard--Rho. Carmichael is
+`p^(e-1)(p-1)` for odd prime powers, `1,2,2^(e-2)` for powers of two, and the
+LCM across coprime prime powers. CRT proves exponent periods combine by LCM;
+the prime-power unit groups give the component formulas. This is the modulus
+reduction kernel used recursively in exponent towers.
+
+```cpp
+{{< include problems/36_factorized_exponent_tower/solution.cpp >}}
+```
+```python
+{{< include problems/36_factorized_exponent_tower/solution.py >}}
+```
+
+# 37. Modular Root Catalogue
+
+For primitive root `g`, write `a=g^z` and candidate root `x=g^y`. The equation
+`x^k=a` becomes `k*y=z (mod p-1)`. BSGS finds `z`; gcd reduction solves the
+linear congruence and its smallest nonnegative witness. Primitive-root
+coordinates are bijective on nonzero residues, proving equivalence.
+
+```cpp
+{{< include problems/37_modular_root_catalogue/solution.cpp >}}
+```
+```python
+{{< include problems/37_modular_root_catalogue/solution.py >}}
+```
+
+# 38. Composite Discrete Log
+
+Repeatedly remove `gcd(a,m)` while it divides the target, recording the forced
+exponent prefix and accumulated multiplier. Once the reduced base is coprime
+to the reduced modulus, baby-step--giant-step solves the remaining equation.
+Each removal is necessary for solvability and preserves a one-to-one mapping
+between later solutions, while BSGS checks exponents in increasing-block form;
+hence the returned exponent is minimal.
+
+```cpp
+{{< include problems/38_composite_discrete_log/solution.cpp >}}
+```
+```python
+{{< include problems/38_composite_discrete_log/solution.py >}}
+```
+
+# 39. Summatory Multiplicative Blocks
+
+A linear sieve computes every totient once using its multiplicative prime
+transition, then one prefix sum answers each block endpoint. The invariant is
+that when `i*p` is formed, `phi(i*p)=phi(i)*p` if `p|i`, otherwise
+`phi(i)*(p-1)`. Thus every stored value and consequently every prefix is exact.
+
+```cpp
+{{< include problems/39_summatory_multiplicative_blocks/solution.cpp >}}
+```
+```python
+{{< include problems/39_summatory_multiplicative_blocks/solution.py >}}
+```
+
+# 40. GCD Convolution Queries
+
+Group integers `x` by `d=gcd(x,n)`. Writing `x=d*y`, the remaining choices are
+exactly residues coprime to `n/d`, giving
+`sum_{d|n} d*phi(n/d)`. Precompute `phi`, add each divisor contribution to all
+multiples, and answer queries directly. The divisor partition is disjoint and
+exhaustive, proving the transform identity.
+
+```cpp
+{{< include problems/40_gcd_convolution_queries/solution.cpp >}}
+```
+```python
+{{< include problems/40_gcd_convolution_queries/solution.py >}}
+```
+
+# 41. Moving Convex Robots
+
+Translated `B` intersects fixed `A` iff the translation vector belongs to the
+Minkowski difference `A+(-B)`. Merge the cyclic edge-angle sequences of the two
+convex polygons to construct that polygon in linear time, then answer each
+closed point-in-convex-polygon query by fan binary search. The defining
+Minkowski identity proves equivalence, including boundary contact.
+
+```cpp
+{{< include problems/41_moving_convex_robots/solution.cpp >}}
+```
+```python
+{{< include problems/41_moving_convex_robots/solution.py >}}
+```
+
+# 42. Safe Radius Region
+
+A radius `r` circle fits in a convex polygon iff its center lies left of every
+boundary line shifted inward by distance `r`. Feasibility is monotone in `r`;
+binary search it, testing shifted half-plane intersection with a deque. Every
+contained circle supplies such a center and conversely every feasible center
+defines a contained circle, proving the reduction.
+
+```cpp
+{{< include problems/42_safe_radius_region/solution.cpp >}}
+```
+```python
+{{< include problems/42_safe_radius_region/solution.py >}}
+```
+
+# 43. Circle Network Bottleneck
+
+The Euclidean MST is a subgraph of the Delaunay triangulation. Construct the
+triangulation, sort its edges, and apply Kruskal. The empty-circle property
+supplies the standard exchange proof: a non-Delaunay complete-graph edge can
+be replaced across an intersected Delaunay boundary without increasing the
+bottleneck. Thus the sparse graph preserves the MST optimum.
+
+```cpp
+{{< include problems/43_circle_network_bottleneck/solution.cpp >}}
+```
+```python
+{{< include problems/43_circle_network_bottleneck/solution.py >}}
+```
+
+# 44. Rectangle Coverage Moments
+
+Sweep vertical rectangle sides. A segment tree over compressed `y` maintains
+both length covered at least once and at least twice under range cover-count
+updates. Between adjacent event coordinates, the second length is constant;
+multiply it by the horizontal distance. The slabs partition the plane up to
+zero-area boundaries, proving the accumulated double-covered area.
+
+```cpp
+{{< include problems/44_rectangle_coverage_moments/solution.cpp >}}
+```
+```python
+{{< include problems/44_rectangle_coverage_moments/solution.py >}}
+```
+
+# 45. Offline Dynamic Hull Queries: Hull Kernel
+
+Sort and deduplicate points, build lower and upper monotone chains with exact
+cross products, then locate each query in the appropriate fan wedge by binary
+search. Orientation against the selected hull edge distinguishes inside,
+boundary, and outside. Convexity makes angular order monotone, so the selected
+triangle is unique. This is the query kernel placed at nodes of an offline
+time-segment tree; the package isolates it for independent verification.
+
+```cpp
+{{< include problems/45_offline_dynamic_hull_queries/solution.cpp >}}
+```
+```python
+{{< include problems/45_offline_dynamic_hull_queries/solution.py >}}
+```
+
+# 46. Digit Language Arithmetic
+
+Build the prefix automaton for the forbidden decimal pattern and run digit DP
+over `(position, automaton_state, tight, started)`. Leading zeroes do not enter
+the automaton; the number zero is handled by its actual representation `0`.
+Every integer has one digit-DP path, and a path is retained exactly when its
+automaton never reaches the full pattern, proving the count.
+
+```cpp
+{{< include problems/46_digit_language_arithmetic/solution.cpp >}}
+```
+```python
+{{< include problems/46_digit_language_arithmetic/solution.py >}}
+```
+
+# 47. Periodic Connected Tiling
+
+Enumerate all legal transitions between width-`W` occupancy masks for one
+obstacle row, compose the `P` row matrices into one period transfer, and raise
+it to `H`. Profile induction proves a transition covers exactly the current
+row while recording precisely the cells protruding into the next. Matrix
+composition and exponentiation therefore count exactly all repeated-board
+tilings in `O(2^{3W}P + 2^{3W}log H)` time.
+
+```cpp
+{{< include problems/47_periodic_connected_tiling/solution.cpp >}}
+```
+```python
+{{< include problems/47_periodic_connected_tiling/solution.py >}}
+```
+
+# 48. Prize Steiner Frontier
+
+Let `dp[mask][v]` be the cheapest connected subgraph containing the selected
+terminals and ending at `v`. Merge two proper submasks at the same vertex, then
+run multi-source Dijkstra to move the endpoint. Any Steiner tree splits at a
+branch vertex into smaller terminal sets, establishing completeness; every
+transition unions valid connected subgraphs, establishing soundness.
+
+```cpp
+{{< include problems/48_prize_steiner_frontier/solution.cpp >}}
+```
+```python
+{{< include problems/48_prize_steiner_frontier/solution.py >}}
+```
+
+# 49. Treewidth Connected Cover: Cover Kernel
+
+For every nice-decomposition bag, store the minimum partial vertex-cover cost
+for each selected-vertex mask. Introduce validates newly visible edges, forget
+minimizes over the forgotten choice, and join adds child costs while subtracting
+the common bag once. The separator property proves forgotten vertices have no
+future neighbor, so the invariant is sufficient. Connectivity-aware variants
+extend this kernel with a canonical partition of selected bag vertices.
+
+```cpp
+{{< include problems/49_treewidth_connected_cover/solution.cpp >}}
+```
+```python
+{{< include problems/49_treewidth_connected_cover/solution.py >}}
+```
+
+# 50. Chronicle Path Dictionary
+
+Heavy--light decomposition expresses a directed tree path as logarithmically
+many contiguous base-array fragments. Store forward and reverse double hashes
+so fragments taken upward or downward concatenate in path order. Binary search
+the first unequal prefix against the query word using hash equality, then use
+the next character for lexical comparison. HLD partitions every path vertex
+once, and polynomial concatenation preserves its exact order, proving each
+answer.
+
+```cpp
+{{< include problems/50_chronicle_path_dictionary/solution.cpp >}}
+```
+```python
+{{< include problems/50_chronicle_path_dictionary/solution.py >}}
+```
+
+# Round VI — Synthesis kernel proofs
+
+The final packages deliberately expose the independently testable kernel of
+each multi-technique design. The package statement defines that kernel; the
+opening note states the outer composition. The correctness obligations below
+make those interfaces explicit.
+
+# 51. Versioned Path Pattern Census
+
+Failure-tree ancestry is equivalent to pattern-suffix matching. Euler subtree
+range updates therefore make each automaton-state point query equal the number
+of active matching patterns. A version-tree DFS snapshots and rolls back those
+updates, while HLD supplies query text fragments in directed path order.
+```cpp
+{{< include problems/51_versioned_path_pattern_census/solution.cpp >}}
+```
+```python
+{{< include problems/51_versioned_path_pattern_census/solution.py >}}
+```
+
+# 52. Temporal Geometric Alliances
+
+Spatial filtering supplies parity edges with active time intervals. A
+time-segment tree stores each edge in exactly the nodes partitioning that
+interval; rollback parity DSU is therefore in precisely the active constraint
+state at every leaf. Its contradiction counter and component count are complete
+certificates for that time.
+```cpp
+{{< include problems/52_temporal_geometric_alliances/solution.cpp >}}
+```
+```python
+{{< include problems/52_temporal_geometric_alliances/solution.py >}}
+```
+
+# 53. Colored Cut-Tree Summaries
+
+Gomory--Hu maps every pair min-cut to the minimum edge on one tree path.
+Virtual-tree compression preserves all such minima among a query's colored
+vertices because it retains terminals and LCAs; aggregating only compressed
+edges therefore loses no candidate pair.
+```cpp
+{{< include problems/53_colored_cut_tree_summaries/solution.cpp >}}
+```
+```python
+{{< include problems/53_colored_cut_tree_summaries/solution.py >}}
+```
+
+# 54. Exact Fleet Circulation
+
+Lower bounds become vertex demands and convex costs become ordered unit
+marginal edges. Feasible min-cost circulation solves a fixed activation
+penalty; monotonicity of the chosen route count permits Aliens search, and the
+minimum/maximum tie counts certify exact-count recoverability.
+```cpp
+{{< include problems/54_exact_fleet_circulation/solution.cpp >}}
+```
+```python
+{{< include problems/54_exact_fleet_circulation/solution.py >}}
+```
+
+# 55. Palindromic Paths Through Centroids
+
+Every tree path is assigned to its highest centroid exactly once. Remove
+same-child pairs by inclusion--exclusion; bidirectional hashes classify the
+two halves that concatenate to a palindrome, and convolution pairs whole
+equal-length classes in bulk.
+```cpp
+{{< include problems/55_palindromic_paths_through_centroids/solution.cpp >}}
+```
+```python
+{{< include problems/55_palindromic_paths_through_centroids/solution.py >}}
+```
+
+# 56. Congruent Substring Selection
+
+The suffix interval contains exactly the lexical matches. Persistent roots
+turn that interval into an occurrence-position multiset; CRT converts all
+positional congruences into one residue class. Order-statistic descent while
+counting that class returns the requested surviving occurrence.
+```cpp
+{{< include problems/56_congruent_substring_selection/solution.cpp >}}
+```
+```python
+{{< include problems/56_congruent_substring_selection/solution.py >}}
+```
+
+# 57. Polynomial Tree Colorings
+
+Each child contributes an independent generating polynomial conditional on the
+parent color. Their product is the subtree polynomial. Small-to-large ordering
+limits total moved coefficients, while NTT preserves coefficient convolution,
+so the root polynomial counts every coloring once by total statistic.
+```cpp
+{{< include problems/57_polynomial_tree_colorings/solution.cpp >}}
+```
+```python
+{{< include problems/57_polynomial_tree_colorings/solution.py >}}
+```
+
+# 58. Multiplicative Set Partitions
+
+Divisor transforms diagonalize gcd/lcm restrictions; ranked subset convolution
+enforces disjoint labeled groups. Since the two transforms act on independent
+coordinates, applying and inverting them around the rank product counts exactly
+the partitions satisfying both constraints.
+```cpp
+{{< include problems/58_multiplicative_set_partitions/solution.cpp >}}
+```
+```python
+{{< include problems/58_multiplicative_set_partitions/solution.py >}}
+```
+
+# 59. Factorized Recurrence Oracle
+
+Factorization identifies the valid Carmichael reductions for each prime-power
+component, including the non-coprime exponent threshold. CRT reconstructs the
+recurrence index class, and rational-series/Bostan--Mori evaluation returns the
+coefficient at that enormous index without expanding preceding terms.
+```cpp
+{{< include problems/59_factorized_recurrence_oracle/solution.cpp >}}
+```
+```python
+{{< include problems/59_factorized_recurrence_oracle/solution.py >}}
+```
+
+# 60. Delaunay Terminal Backbone
+
+Delaunay preserves the geometric bottleneck edges; Kruskal reconstruction turns
+threshold connectivity into ancestor order. Query terminals and their LCAs
+form a virtual tree, on which the terminal-mask Steiner recurrence considers
+every possible branch and no irrelevant original vertex.
+```cpp
+{{< include problems/60_delaunay_terminal_backbone/solution.cpp >}}
+```
+```python
+{{< include problems/60_delaunay_terminal_backbone/solution.py >}}
+```
+
+# 61. Moving Half-Plane Assignment
+
+At a fixed time, half-plane feasibility creates the agent--target compatibility
+sets. Their monotonicity makes time searchable; the compressed assignment flow
+is feasible exactly when a perfect matching exists. Thus the first feasible
+time returned by parametric search is optimal.
+```cpp
+{{< include problems/61_moving_half_plane_assignment/solution.cpp >}}
+```
+```python
+{{< include problems/61_moving_half_plane_assignment/solution.py >}}
+```
+
+# 62. Historical Rectangle Quantiles
+
+Parallel binary search turns every quantile question into repeated count
+questions. CDQ orders updates and queries by time, while the sweep Fenwick
+enforces the rectangle coordinates. Each round keeps exactly the value half
+containing the requested rank, proving convergence to the quantile.
+```cpp
+{{< include problems/62_historical_rectangle_quantiles/solution.cpp >}}
+```
+```python
+{{< include problems/62_historical_rectangle_quantiles/solution.py >}}
+```
+
+# 63. Periodic Forbidden Frontier
+
+The frontier mask and automaton state jointly contain every fact that a future
+row can observe. One-period transfer composition preserves both components;
+sparse matrix exponentiation repeats it without inspecting height, and rejecting
+terminal automaton states enforces the forbidden language globally.
+```cpp
+{{< include problems/63_periodic_forbidden_frontier/solution.cpp >}}
+```
+```python
+{{< include problems/63_periodic_forbidden_frontier/solution.py >}}
+```
+
+# 64. Connected Cover On Bags
+
+A bag state stores selected vertices plus their canonical connectivity
+partition. Introduce, forget, and join preserve edge coverage; forgetting a
+component is allowed only when it is the completed global component. Subset
+convolution accelerates compatible join partitions without changing that
+invariant.
+```cpp
+{{< include problems/64_connected_cover_on_bags/solution.cpp >}}
+```
+```python
+{{< include problems/64_connected_cover_on_bags/solution.py >}}
+```
+
+# 65. Temporal Steiner Dictionary
+
+Version DFS makes the persistent dictionary count root represent exactly the
+active strings. Suffix-automaton intervals identify occurrence-derived tree
+terminals; adding their LCAs creates a virtual tree that preserves all Steiner
+paths. DP on that tree therefore returns the version-specific optimum and
+closes the course with the same lifetime/separator invariant as Problem 01.
+```cpp
+{{< include problems/65_temporal_steiner_dictionary/solution.cpp >}}
+```
+```python
+{{< include problems/65_temporal_steiner_dictionary/solution.py >}}
+```

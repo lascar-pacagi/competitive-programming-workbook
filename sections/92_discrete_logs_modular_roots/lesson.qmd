@@ -1,0 +1,39 @@
+---
+title: "Section 92 — Discrete Logarithms And Modular Roots"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# Invert exponentiation by exposing group structure
+
+This lesson derives A--C. Problem D is editorial-only.
+
+# A. Primitive roots of a prime
+
+The nonzero residues modulo prime `p` form a cyclic group of order `p-1`. A candidate `g` has full order exactly when
+
+```text
+g^((p-1)/q) != 1 mod p
+```
+
+for every distinct prime divisor `q` of `p-1`. If its order were proper, it would divide `(p-1)/q` for some missing prime factor; conversely any proper divisor misses one such factor. Factor `p-1`, then test candidates upward to obtain the smallest root.
+
+# B. Baby-step--giant-step
+
+Write an exponent as `x=i*m+j`, with `m` near `sqrt(modulus)`. Store baby powers `a^j`. Walk giant values `b*(a^m)^(-i)` until one matches. The equality is exactly `a^(im+j)=b`. Retaining the first baby index and minimizing candidates returns the smallest exponent.
+
+Time and memory are both `O(sqrt(m))`. This is a meet-in-the-middle algorithm: split one long unknown exponent into two short coordinates.
+
+# C. When the inverse does not exist
+
+If `g=gcd(a,m)>1`, every positive power of `a` is divisible by `g`. Therefore `b` must also be divisible by `g`; otherwise no solution exists. Divide the modulus and target by `g`, record one forced exponent, and update the accumulated scale. Repeat until base and reduced modulus are coprime, then use BSGS on the adjusted target.
+
+Check `x=0` and the accumulated scale at every reduction. Those early solutions are precisely what a careless coprime-only derivation loses.
+
+# Recognition guide
+
+First identify the algebraic domain: a prime-field multiplicative group, a smaller subgroup, or a non-group monoid containing nonunits. Group algorithms require inverses; a gcd reduction is not an optimization but the bridge that makes those inverses legal.
+
+# Exercises
+
+A--C cover group generators, meet-in-the-middle logarithms, and non-coprime reduction. D asks for square roots through the two-adic structure of `p-1`.

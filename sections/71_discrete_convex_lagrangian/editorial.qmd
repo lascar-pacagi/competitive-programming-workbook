@@ -1,0 +1,232 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 71 Editorial: Discrete Convexity And Lagrangian Optimization"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+
+# How to use this editorial
+
+For each problem, identify the reduction before reading the code. The proof paragraph names the invariant that should have appeared in your own derivation.
+
+# A. Monotone L1 Repair
+
+The prefix optimum as a function of its final value is convex. Its derivative changes only at stored breakpoints. Adding |x-a| inserts x twice; truncating choices that violate monotonicity removes the largest left breakpoint and charges its displacement. Thus the heap maintains the exact compressed derivative.
+
+## How to find it
+
+Start from the quadratic DP “best prefix cost when the final repaired value is
+`x`.” Its value as a function of `x` is convex and piecewise linear. Storing
+all values is unnecessary: a convex piecewise-linear function is determined by
+the ordered positions where its derivative changes.
+
+## Correctness
+
+The max-heap stores the left breakpoints of the prefix value function. Adding
+`|x-a[i]|` introduces two unit slope changes at `a[i]`. The monotonicity
+transition takes a prefix minimum over legal previous final values; in the
+derivative representation this removes the largest left breakpoint. If that
+breakpoint is `y`, moving it to `a[i]` increases the minimum by `y-a[i]`.
+These are exactly the two pushes, one pop, and cost update in the code.
+Induction over prefixes therefore proves that the accumulated minimum equals
+the isotonic L1 optimum.
+
+## Complexity and tests
+
+Each item performs three heap operations, so time is `O(n log n)` and memory
+is `O(n)`. Test already sorted, strictly decreasing, repeated values, negative
+values, and prefixes whose optimal medians are not unique.
+
+## C++
+
+```cpp
+{{< include problems/a_monotone_l1/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_monotone_l1/solution.py >}}
+```
+
+# B. Exact Red Spanning Tree
+
+Price every red edge by lambda. Kruskal solves the penalized problem, and the red count is nonincreasing in lambda. Opposite tie rules give the extreme red counts among equally optimal trees. Matroid basis exchange fills the interval between them, so subtracting lambda*k recovers the exact-k objective.
+
+## How to find it
+
+The difficult condition is the exact red count; everything else is an MST.
+Move that condition into the objective by charging `lambda` for each red edge.
+For a fixed charge the solver remains Kruskal, while increasing the charge can
+only decrease the red count of an optimum.
+
+## Correctness
+
+Kruskal minimizes `weight + lambda*red`. Among equal modified weights, the two
+tie orders return the largest and smallest red counts of modified-optimal
+trees. The basis-exchange property of the graphic matroid connects optimal
+spanning trees by equal-cost exchanges, changing the red count one step at a
+time; consequently every count between those extremes is attainable at the
+same modified value. Binary search finds the last integer price whose
+red-preferring optimum still uses at least `k` reds. At that boundary `k` is
+in the optimal count interval, so subtracting `lambda*k` gives exactly the
+minimum original weight with `k` reds.
+
+## Complexity and tests
+
+Each price evaluation sorts `m` edges, and `O(log W)` prices are tested, giving
+`O(m log m log W)` here. Test impossible extreme counts, many equal modified
+weights, negative weights, all-one-color graphs, and cases with several MSTs.
+
+## C++
+
+```cpp
+{{< include problems/b_exact_red_mst/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_exact_red_mst/solution.py >}}
+```
+
+# C. Massive Convex Allocation
+
+The j-th unit on a machine has marginal cost a(2j-1)+b, an increasing arithmetic progression. Binary-search the K-th smallest marginal globally. Take every marginal below the threshold and only as many tied threshold marginals as still needed.
+
+## How to find it
+
+Expanding `K` units is impossible, but convexity makes the units ordered. The
+`j`-th unit on machine `i` costs `a[i](2j-1)+b[i]`; the problem is exactly to
+select the globally smallest `K` values from capped arithmetic progressions.
+
+## Correctness
+
+Within one machine, selecting a later marginal without every earlier marginal
+can only increase cost, so every optimal selection is a prefix on each
+machine. Binary search finds the smallest threshold `T` with at least `K`
+available marginals at most `T`. All marginals below `T` must be selected:
+replacing one by a larger value cannot improve an optimum. Every remaining
+selected marginal can be chosen among values equal to `T`. The construction
+therefore selects exactly the global `K` smallest marginals, whose telescoping
+sum is the original quadratic objective.
+
+## Complexity and tests
+
+One threshold count is `O(n)` and 128-bit binary search uses `O(log C)` counts;
+memory is `O(n)`. Test `K=0`, insufficient capacity, negative first marginals,
+many ties at the threshold, and products beyond signed 64-bit range.
+
+## C++
+
+```cpp
+{{< include problems/c_convex_allocation/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_convex_allocation/solution.py >}}
+```
+
+# D. Weighted Bounded Isotonic
+
+## Restatement and first reductions
+
+We need a nondecreasing integer sequence inside one global interval. Each
+target has a potentially enormous multiplicity `w[i]`, so expanding it into
+repeated unweighted targets is impossible.
+
+First clamp every target to `[L,R]`. For any legal `b`, if `a<L` then
+
+```text
+|b-a| = (L-a) + |b-L|,
+```
+
+and the symmetric identity holds above `R`. Thus clamping adds a fixed cost
+and leaves an ordinary bounded target. Once all targets lie in the interval,
+the unbounded isotonic optimum also remains in their range, so it automatically
+respects the bounds.
+
+## Weighted slope representation
+
+In the unweighted algorithm, target `x` inserts two breakpoint copies, removes
+one largest copy, and charges its displacement from `x`. Weight `w` scales the
+absolute-value derivative by `w`: insert breakpoint mass `2w`, remove largest
+mass `w`, and charge
+
+```text
+(removed_position - x) * removed_mass.
+```
+
+A max-heap stores `(position,mass)`. If only part of its maximum mass is
+removed, return the unused part to the heap. Because mass `2w` at `x` was just
+inserted, every removed position is at least `x`, so every charged increment is
+nonnegative.
+
+## Correctness proof
+
+**Lemma 1.** Clamping targets changes every feasible objective by exactly the
+fixed outside-interval cost accumulated by the algorithm.
+
+**Proof.** The displayed identity holds for every legal chosen value, position
+by position. Summing with weights proves the claim. QED.
+
+**Lemma 2.** After each prefix, the weighted heap and accumulated cost encode
+the exact convex optimum as a function of the last chosen value.
+
+**Proof.** A weighted absolute value changes the derivative by `2w` at its
+target, represented by inserting mass `2w`. Taking the prefix minimum required
+by nondecreasing order removes `w` units from the largest left breakpoints.
+Moving removed mass from position `y` to the new target `x` raises the minimum
+by `(y-x)` per unit. This is exactly the heap transition. Induction over the
+prefix proves the invariant. QED.
+
+By Lemma 2 the heap computes the optimum for clamped targets, and Lemma 1 adds
+back precisely the cost lost by clamping. Therefore the printed value is the
+minimum legal weighted objective.
+
+## Complexity and numeric range
+
+Each inserted mass can be split once when it is partially removed; aggregate
+heap work is `O(n log n)` and memory is `O(n)`. Mass totals fit in signed
+64-bit integers, but cost may not, so C++ uses `__int128`.
+
+## Wrong answers and tests
+
+- Repeating a target `w` times.
+- Inserting mass `w` rather than `2w` before removing `w`.
+- Clamping the eventual answer without charging the fixed outside distance.
+- Using 64-bit total cost.
+- Assuming the optimum is unique; only its minimum value is required.
+
+Test one item below `L`, one above `R`, `L=R`, a sharply decreasing pair with
+opposite weight ratios, repeated targets, and weights near `10^9`.
+
+## C++
+
+```cpp
+{{< include problems/d_weighted_bounded_isotonic/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_weighted_bounded_isotonic/solution.py >}}
+```
+
+# Stress-testing summary
+
+The D oracle enumerates every nondecreasing sequence over a tiny bounded value
+domain and evaluates the weighted objective directly. It does not use heaps,
+derivatives, clamping identities, or convex optimization.

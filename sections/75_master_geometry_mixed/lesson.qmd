@@ -1,0 +1,113 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 75: Master+ Geometry Mixed Contest"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+# Contest contract
+
+This six-problem contest synthesizes Sections 73--74 with entirely new local
+statements.
+
+| Problem | Main invariant |
+|---|---|
+| A | strict hull plus lattice count per edge |
+| B | unimodal triangle area on a convex boundary |
+| C | collision translations form a Minkowski difference |
+| D | weighted active set under inclusive sweep events |
+| E | lengths covered at least once and at least twice |
+| F | strict hull plus logarithmic fan location |
+
+# Suggested use
+
+Allow four hours. Draw all degeneracies before coding: collinear input,
+duplicate points, endpoint contact, equal event coordinates, and zero-area
+rectangles. For every pointer or event order, write the monotonicity or
+inclusion statement that makes it legal.
+
+# How to choose the geometric compression
+
+| Statement evidence | First model to test |
+|---|---|
+| only extreme points can optimize the objective | strict convex hull |
+| one support point changes as another boundary feature advances | rotating calipers |
+| positions collide after adding a translation | Minkowski difference |
+| objects enter and leave along one coordinate | sweep line and active structure |
+| coverage threshold is “at least one/two” | layered covered-length state |
+| many points ask membership in one convex polygon | fan binary search |
+
+The model should reduce the number of candidates or the dimension of active
+state. If it merely renames the original quadratic search, keep looking.
+
+# Discovery walkthrough: Robot Collision Translations
+
+Two occupied convex sets collide after translation `t` when there exist points
+`a` and `b` with `a+t=b`. Rearranging gives
+
+```text
+t = b-a.
+```
+
+Therefore every collision translation lies in `B-A`, a Minkowski difference.
+This algebraic rearrangement is the decisive step; polygon edge merging is only
+its efficient implementation. Querying a translation becomes ordinary point
+membership in one precomputed convex polygon.
+
+# Discovery walkthrough: Double-Painted Map
+
+Ordinary union area stores length covered at least once. Asking for area
+covered at least twice does not require a separate sweep. Strengthen each node
+to retain two thresholds: length covered at least once and at least twice.
+A node's local cover count shifts what its children must provide:
+
+```text
+cover >= 2: both lengths are the full interval
+cover == 1: once is full; twice is children's once-covered length
+cover == 0: take both thresholds from the children
+```
+
+This is a general state-design habit: when the requested threshold increases,
+store the small ladder of lower thresholds needed to reconstruct it.
+
+# Proof map
+
+For hull and Minkowski problems, prove the boundary compression before the
+pointer or binary search. For sweeps, prove the active-set invariant immediately
+before each event type. For coverage trees, prove a node formula by cases on
+its local cover count. For calipers, name the unimodal quantity rather than
+asserting that a pointer “obviously” moves forward.
+
+# Stress-oracle map
+
+- A and B: enumerate all points or all vertex triples on tiny inputs.
+- C: enumerate every pairwise point difference before taking its hull.
+- D: test every horizontal–vertical segment pair directly.
+- E: rasterize small integer rectangles and count coverage per unit cell.
+- F: compare logarithmic location with a linear edge-sign scan.
+
+Use adversarial collinearity, duplicated raw points, parallel edges, touching
+boundaries, equal x-events, nested rectangles, and queries on polygon vertices.
+
+# Submission checklist
+
+- Is polygon orientation known and consistent?
+- Are cross products promoted before multiplication?
+- Are equal-angle Minkowski edges merged?
+- Does event ordering match closed or half-open geometry?
+- Do compressed leaves use coordinate differences rather than index counts?
+- Are boundary queries classified according to the statement?
+
+# Exercises
+
+Solve A--F without opening the editorials. The set has exactly six exercises
+and collectively covers every principal technique from Sections 73--74.

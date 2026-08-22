@@ -1,0 +1,44 @@
+---
+title: "Section 81 — Master Graph Decomposition Mixed Contest"
+format: pdf
+geometry: margin=1.8cm
+---
+
+# Contest contract
+
+Six new problems mix condensation degrees, Euler reconstruction, bridge theorems, block-cut paths, and dominator sets. Suggested order: A, D, B, C, E, F.
+
+| Problem | Main invariant |
+|---|---|
+| A | the only possible universal destination is the unique sink SCC |
+| B | every source and sink SCC needs a new incident direction |
+| C | words are labeled directed edges consumed by Hierholzer |
+| D | Robbins' theorem: a connected undirected graph is strongly orientable iff it has no bridge |
+| E | failed-vertex connectivity is the negation of block-cut path membership |
+| F | a vertex dominates exactly the targets whose dominator set contains it |
+
+# Recognition and discovery
+
+| Quantifier or operation | Compression |
+|---|---|
+| reachable from every vertex | unique sink SCC |
+| add edges for strong connectivity | source/sink SCC counts |
+| use every labeled transition once | Euler trail |
+| strongly orient every undirected edge | bridges and Robbins |
+| connectivity after one failure | block-cut path |
+| lies on every directed root path | dominators |
+
+After SCC contraction, every source needs new indegree and every sink needs new
+outdegree, giving `max(sources,sinks)` additions unless there is one SCC.
+For Robbins orientation, a bridge makes strong orientation impossible;
+without bridges, downward tree edges and upward back edges let every DFS
+subtree travel both ways.
+
+Undirected “every path” becomes articulation membership in a block-cut tree.
+Directed rooted “every path” becomes domination. Tiny oracles should use
+transitive closure, enumerate orientations, delete failed vertices followed by
+BFS, and enumerate simple root-to-target paths.
+
+# Exercises
+
+Problems A--F form the complete mixed contest.

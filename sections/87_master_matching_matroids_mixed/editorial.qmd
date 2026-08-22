@@ -1,0 +1,196 @@
+---
+title: "Section 87 Editorial — Master Matching And Matroids Mixed Contest"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. Bottleneck Assignment
+
+## How to find it
+
+Binary-search the threshold at which a perfect bipartite matching first exists.
+
+## Correctness
+
+Feasibility is monotone and equivalent to an assignment with maximum cost at most the threshold.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+There are logarithmically many threshold decisions, each one bipartite
+matching. Feasibility is monotone because raising the threshold only adds
+edges; without that sentence, binary search has not been justified.
+
+## C++
+
+```cpp
+{{< include problems/a_bottleneck_assignment/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_bottleneck_assignment/solution.py >}}
+```
+
+# B. Roommate Rescue
+
+## How to find it
+
+Use a maximum matching in the compatibility graph.
+
+## Correctness
+
+Each matched edge covers exactly two participants, so maximum edge count minimizes the unmatched remainder.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+General matching takes `O(n cubed)` in the reference. The final number is
+`n-2*matching_size`; maximizing the number of edges and maximizing covered
+vertices are equivalent because matching edges are disjoint.
+
+## C++
+
+```cpp
+{{< include problems/b_roommate_rescue/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_roommate_rescue/solution.py >}}
+```
+
+# C. Cut Threshold Pairs
+
+## How to find it
+
+Enumerate and sort all Gomory--Hu path minima.
+
+## Correctness
+
+Each stored value is exactly one unordered pair cut, so upper bound answers every threshold count.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+After the `n-1` flows used to build the cut tree, the reference extracts all
+pair path minima in `O(n cubed)` and answers each threshold by binary search.
+This is appropriate for the stated size; larger limits would call for
+offline tree-edge aggregation rather than changing the cut-tree theorem.
+
+## C++
+
+```cpp
+{{< include problems/c_cut_threshold_pairs/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_cut_threshold_pairs/solution.py >}}
+```
+
+# D. Rainbow Spanning Tree
+
+## How to find it
+
+Seek common independent size `n-1` in graphic and color matroids.
+
+## Correctness
+
+A forest of `n-1` edges is spanning, making the size test necessary and sufficient.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+The target size matters: graphic independence only promises a forest, and
+partition independence only promises distinct colors. Reaching exactly
+`n-1` turns the forest into a spanning tree and completes the equivalence.
+
+## C++
+
+```cpp
+{{< include problems/d_rainbow_spanning_tree/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_rainbow_spanning_tree/solution.py >}}
+```
+
+# E. Broadcast Backbone
+
+## How to find it
+
+Apply directed minimum-arborescence contraction with signed reduced costs.
+
+## Correctness
+
+Loops and parallel or negative edges do not alter the minimum-incoming/cycle replacement proof.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+The implementation is `O(VE)`. Negative weights are harmless because each
+contraction charges mandatory incoming minima and carries only replacement
+costs onward; reachability from the root remains a separate feasibility issue.
+
+## C++
+
+```cpp
+{{< include problems/e_broadcast_backbone/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/e_broadcast_backbone/solution.py >}}
+```
+
+# F. Two-Map Forest
+
+## How to find it
+
+Seek size `n-1` in two graphic matroids.
+
+## Correctness
+
+That size is a spanning tree on both n-vertex maps, and every common spanning tree is such a common independent set.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+Both endpoint maps must have the same vertex count stated by the problem, but
+their connectivity evolves independently. A common independent set of size
+below `n-1` is not a partial answer: it certifies that no common spanning tree
+exists only after matroid intersection has reached maximum cardinality.
+
+## C++
+
+```cpp
+{{< include problems/f_two_map_forest/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/f_two_map_forest/solution.py >}}
+```
+
+# Mixed-contest stress plan
+
+Use permutation enumeration for A, recursive matching enumeration for B,
+pairwise max flow for C, subset enumeration for D and F, and incoming-edge
+enumeration for E. Generate both feasible and impossible targets. This set is
+particularly sensitive to reductions that are almost right, so compare the
+reported optimum as well as the validity of any reconstructed object.

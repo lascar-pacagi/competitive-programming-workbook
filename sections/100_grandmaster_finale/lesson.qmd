@@ -1,0 +1,94 @@
+---
+title: "Section 100 — Grandmaster Finale"
+format: pdf
+geometry: margin=1.7cm
+---
+
+# How to use the finale
+
+This section is an examination and synthesis bank, not a catalogue of new
+named algorithms. Its sixty-five original problems reuse material from the
+course under less explicit modeling. Attempt each problem before opening its
+editorial.
+
+For every attempt, write five items:
+
+1. the literal slow model;
+2. the bottleneck preventing it from meeting the limits;
+3. the lifetime, separator, algebraic identity, or monotonicity that removes
+   that bottleneck;
+4. the compressed state and the information it deliberately forgets;
+5. a tiny independent oracle.
+
+Difficulty is progressive inside each round and across rounds. Problems
+01--10 emphasize histories and tree separators. Problems 11--20 cover
+optimization, flow, matching, and cuts. Problems 21--30 cover strings and
+sequences. Problems 31--40 cover algebra and computational number theory.
+Problems 41--50 cover geometry and frontier DP. Problems 51--65 are
+synthesis-first.
+
+# Round I contract
+
+The first ten published problems share one question: what information survives
+when time branches or a tree is compressed?
+
+Do not infer the solution merely from the problem order. Persistence, rollback,
+offline divide and conquer, dynamic trees, centroids, virtual trees, Euler
+intervals, HLD, and reconstruction trees appear in different roles. The
+exercise is to recognize which boundary the future can still cross.
+
+# Submission checklist
+
+- Prove that every queried object maps to exactly one compressed interval,
+  version, separator, or state.
+- Prove that no object is counted in two branches or decomposition levels.
+- Audit strict versus non-strict comparisons and all tie rules.
+- Use wide arithmetic before modular reduction.
+- Test a chain, a star, one element, all equal keys, and the smallest legal
+  history.
+- Compare against the supplied independent random oracle before optimizing.
+
+# Round II contract
+
+Problems 11--20 ask the same modeling question in optimization form: what is
+the smallest network, dual variable, exchange graph, or convex boundary that
+still certifies the optimum? Lower bounds become vertex imbalances; exact
+counts become a Lagrange multiplier plus a tie interval; laminar choices become
+shared tree capacity. Write down that reduction before choosing an algorithm.
+
+# Exercises
+
+All six rounds contain Problems 01--65. Every published package has a statement,
+independent oracle, two references, proof notes, and rendering checks.
+
+# Round III contract
+
+String structures become useful only after a substring is translated into a
+state, suffix interval, or first-occurrence certificate. Problems 21--30 ask
+which numeric query remains after that translation. Keep equality boundaries,
+suffix-link propagation limits, and the difference between occurrences and
+distinct strings explicit.
+
+# Round IV contract
+
+Problems 31--40 alternate between two coordinate systems: coefficients versus
+values or transforms, and integers versus their prime-power coordinates. State
+the isomorphism before using it. In particular, document truncation degree,
+transform normalization, non-coprime reductions, and whether a returned
+exponent is a witness or a residue.
+
+# Round V contract
+
+Geometry and frontier DP both succeed by replacing a large interior with a
+small boundary. For geometry, identify the exact predicate preserved by a
+Minkowski sum, half-plane deque, Delaunay edge set, or sweep status. For
+frontier DP, define precisely what the mask or bag remembers and prove that
+forgotten cells or vertices can no longer affect the future.
+
+# Round VI contract
+
+The last fifteen packages isolate the critical kernel of a larger synthesis.
+For each one, explain both interfaces: what the outer technique supplies to the
+kernel, and what certificate or compressed result the kernel returns. A list of
+algorithm names is not a proof; the composition is correct only when those
+interfaces preserve the same object and tie rules.

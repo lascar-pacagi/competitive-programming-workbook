@@ -1,0 +1,112 @@
+---
+title: "Section 95 Editorial — Geometric Optimization And Delaunay Structure"
+format:
+  pdf:
+    code-overflow: wrap
+geometry: margin=1.6cm
+fontsize: 9pt
+---
+
+# A. Minimum Enclosing Circle
+
+## How to find it
+
+Randomize insertion order and rebuild only when a point violates the current circle, fixing one, two, then three boundary witnesses.
+
+## Correctness
+
+At every nesting level the violating fixed points must lie on the new optimum boundary; one to three such points uniquely determine the minimum circle for the processed prefix.
+
+## Complexity
+
+Expected `O(n)` time and `O(n)` storage.
+
+## C++
+
+```cpp
+{{< include problems/a_minimum_enclosing_circle/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_minimum_enclosing_circle/solution.py >}}
+```
+
+# B. Delaunay Radius Sum
+
+## How to find it
+
+Use Bowyer--Watson cavity deletion and sum the circumradii of final non-supertriangle faces.
+
+## Correctness
+
+The cavity boundary is retriangulated with the inserted point; the empty-circumcircle invariant is restored after every insertion. Generic position makes the final triangulation unique.
+
+## Complexity
+
+Expected `O(n squared)` for the supplied incremental implementation.
+
+## C++
+
+```cpp
+{{< include problems/b_delaunay_radius_sum/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_delaunay_radius_sum/solution.py >}}
+```
+
+# C. Euclidean Network
+
+## How to find it
+
+Build Delaunay edges and run Kruskal on that sparse graph.
+
+## Correctness
+
+Every Euclidean MST edge has an empty-disk certificate and belongs to Delaunay, so discarding all other complete-graph edges preserves an optimum.
+
+## Complexity
+
+Expected `O(n squared + n log n)` here.
+
+## C++
+
+```cpp
+{{< include problems/c_euclidean_network/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_euclidean_network/solution.py >}}
+```
+
+# D. Largest Empty Delaunay Circle
+
+## How to find it
+
+Enumerate the final Delaunay triangles and maximize their circumradii.
+
+## Correctness
+
+A finite empty circle through three sites is a Delaunay face circumcircle, and every Delaunay face supplies such an empty circle.
+
+## Complexity
+
+Expected `O(n squared)` here.
+
+## C++
+
+```cpp
+{{< include problems/d_largest_empty_delaunay_circle/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_largest_empty_delaunay_circle/solution.py >}}
+```

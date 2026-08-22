@@ -1,0 +1,63 @@
+---
+title: "Section 87 — Master Matching And Matroids Mixed Contest"
+format: pdf
+geometry: margin=1.8cm
+---
+
+# Contest contract
+
+Six new problems combine threshold matching, blossom modeling, cut-tree aggregation, matroid intersection, and directed arborescence contraction.
+
+| Problem | Main idea |
+|---|---|
+| A | binary search plus bipartite feasibility |
+| B | unmatched vertices from general matching |
+| C | all pair cuts represented by tree paths |
+| D | graphic/partition matroid intersection |
+| E | minimum incoming edges and cycle contraction |
+| F | common spanning tree in two graphic matroids |
+
+# Recognition map
+
+Ask first what a feasible object is, not which named algorithm seems nearby.
+
+- A bijection between two sides suggests bipartite matching or assignment.
+- Disjoint pairs in one unrestricted vertex set require general matching.
+- Many pair minimum-cut queries on one undirected graph suggest a cut tree.
+- A largest set satisfying two hereditary exchange systems suggests matroid
+  intersection; identify both independence oracles explicitly.
+- One incoming edge per non-root vertex in a directed graph is not ordinary
+  MST. Directed cycles lead to arborescence contraction.
+
+# Two representative derivations
+
+For bottleneck assignment, fix a threshold `T` and keep only edges of cost at
+most `T`. A perfect matching is now exactly a certificate that maximum chosen
+cost is at most `T`. Increasing `T` only adds edges, so feasibility is monotone
+and binary search becomes justified. This “optimize the maximum by deciding a
+threshold” pattern is reusable far beyond matching.
+
+For directed arborescence, first choose the cheapest incoming edge of every
+non-root vertex. If these choices contain no directed cycle, they already form
+the optimum. If a cycle appears, every arborescence must replace at least one
+of its chosen incoming edges. Add all chosen costs, contract the cycle, and
+reduce each entering edge by the chosen cost of the vertex it enters. The
+reduced value is exactly the extra price of choosing that entry instead.
+
+# Contest proof checklist
+
+For each solution, answer all four questions before coding:
+
+1. What mathematical objects correspond one-to-one with valid outputs?
+2. Which invariant survives an augmentation or contraction?
+3. What certifies that no better object remains?
+4. Do signed weights, parallel edges, loops, or an impossible target alter the
+   reduction?
+
+Tiny exhaustive oracles are especially valuable here: enumerate all
+assignments, matchings, or subsets for small instances and compare objective
+values, not only validity.
+
+# Exercises
+
+A--F form the complete mixed contest.

@@ -1,0 +1,209 @@
+---
+title: "Section 78 Editorial — Master Suffix Structures Mixed Contest"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+Each solution starts from the uncompressed object, identifies the bottleneck, and states the invariant that justifies the compressed structure.
+
+# A. Minimum Rotation
+
+### How to find it
+
+Compare two candidate starts and skip every start inside the losing matched block; none can beat the winner. This is Booth's elimination argument.
+
+### Correctness
+
+After a mismatch at offset `k`, the losing candidate and the next `k` starts have the same obstructing prefix relation and cannot be minimal. Thus discarded starts are safe, and one survivor is globally minimal.
+
+### Complexity
+
+`O(n)` time and `O(1)` auxiliary memory.
+
+At a mismatch, advance the losing start by the matched length plus one; if both
+candidate indices coincide, advance one again. Compare through the doubled
+string modulo `n` without constructing all rotations. Test unary strings,
+periodic strings with several equal minimum rotations, and a winner near the
+last index.
+
+### Reference C++
+
+```cpp
+{{< include problems/a_minimum_rotation/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/a_minimum_rotation/solution.py >}}
+```
+
+# B. Repetition Spectrum
+
+### How to find it
+
+Treat adjacent suffix-array positions as edges weighted by LCP. Add edges from high to low; a DSU component of size `k` certifies a prefix occurring in those `k` suffixes.
+
+### Correctness
+
+At threshold `L`, components are exactly maximal groups connected by LCP values at least `L`, hence exactly groups sharing a length-`L` prefix. Recording merge sizes and suffix-maximizing over `k` gives every at-least threshold.
+
+### Complexity
+
+`O(n log n)` after suffix-array construction and `O(n)` memory.
+
+Process all edges of the same LCP weight as one threshold before recording
+answers, or equivalent merge ordering must be justified. A final suffix
+maximum over occurrence counts is necessary because a substring occurring
+`s` times also satisfies every smaller threshold. Compare with literal
+substring-frequency maps on tiny periodic strings.
+
+### Reference C++
+
+```cpp
+{{< include problems/b_repetition_spectrum/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/b_repetition_spectrum/solution.py >}}
+```
+
+# C. K-th Substring With Multiplicity
+
+### How to find it
+
+A SAM path still identifies a distinct substring, but its terminal state's occurrence count is the multiplicity of that path label. Weight each path endpoint by this count.
+
+### Correctness
+
+Transition blocks partition the sorted multiset by next letter. Within a block, the immediate label contributes `occ[target]` copies before all longer extensions, exactly matching lexicographic multiset order.
+
+### Complexity
+
+`O(n alphabet)` time and memory, with saturated 64-bit counts.
+
+Occurrence counts flow from longer SAM states to suffix links before weighted
+path DP. During reconstruction, the immediate label contributes
+`occ[next]` identical copies, not one. Saturate every addition above the
+largest requested rank. Test overlapping occurrences and a unary string,
+where multiplicities vary at every path depth.
+
+### Reference C++
+
+```cpp
+{{< include problems/c_kth_substring_with_multiplicity/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/c_kth_substring_with_multiplicity/solution.py >}}
+```
+
+# D. Common Distinct Substrings
+
+### How to find it
+
+While scanning the second string, record the best accepted match ending in each SAM state, then propagate capped values down suffix links.
+
+### Correctness
+
+A state represents all lengths from `len(link)+1` through `len(state)`. After propagation, precisely the lengths up to `best[state]` occur in both strings, giving the stated interval contribution without duplication.
+
+### Complexity
+
+`O(|a|+|b|)` time apart from fixed transition initialization.
+
+Streaming visits alone are insufficient: a shorter suffix state may never be
+the final state of the scan despite representing common strings. Propagate
+best lengths in decreasing `len`, clamping by the suffix-link state's maximum.
+For state `v`, contribute
+`max(0,best[v]-len[link[v]])`. Test disjoint strings, complete containment,
+and repeated borders.
+
+### Reference C++
+
+```cpp
+{{< include problems/d_common_distinct_substrings/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/d_common_distinct_substrings/solution.py >}}
+```
+
+# E. Palindrome Frequency Value
+
+### How to find it
+
+Create one node per palindrome, count visits to the current longest suffix, then propagate counts from longer nodes to their palindromic suffix links.
+
+### Correctness
+
+Every occurrence is first credited to the longest palindromic suffix at its endpoint. Suffix-link propagation credits that endpoint to every shorter palindromic suffix exactly once.
+
+### Complexity
+
+`O(n alphabet)` memory and amortized `O(n)` traversal.
+
+Initialize direct occurrence count only when the node is the current longest
+palindromic suffix at an endpoint, then propagate nodes in decreasing
+palindrome length. Multiply each distinct palindrome's length by its final
+occurrence count only after propagation. Do not count the two roots. Palindromic
+borders and unary strings are the strongest small tests.
+
+### Reference C++
+
+```cpp
+{{< include problems/e_palindrome_frequency_value/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/e_palindrome_frequency_value/solution.py >}}
+```
+
+# F. Multi-Archive Commonality
+
+### How to find it
+
+Use the first archive's SAM as the candidate universe. For every other archive, scan matches and suffix-link-propagate the maximum supported length per state. The k-th largest archive support is that state's feasible length.
+
+### Correctness
+
+Every common candidate occurs in the first archive and belongs to one state. Per-archive propagation computes its maximum valid length; requiring at least `k` archives is exactly taking the k-th largest support.
+
+### Complexity
+
+`O(total length + m n + m n log m)` with `m <= 20`, and `O(mn)` memory.
+
+Clear per-archive streaming evidence without erasing accumulated evidence from
+previous archives. After link propagation, collect each archive's supported
+length for a state and choose the required order statistic, capped below by
+`len[link]+1`. Test duplicate archives, an archive sharing only short suffixes,
+and qualification thresholds one and `m`.
+
+# Stress-testing and carry-forward
+
+The random oracles enumerate rotations, substring occurrence maps, and
+palindromic intervals directly. The key distinction to preserve in future
+problems is whether a compressed state represents one string, an interval of
+string lengths, or an occurrence class; most wrong solutions mix two of those
+meanings.
+
+### Reference C++
+
+```cpp
+{{< include problems/f_multi_archive_commonality/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/f_multi_archive_commonality/solution.py >}}
+```

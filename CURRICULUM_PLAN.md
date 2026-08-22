@@ -85,6 +85,8 @@ The course uses these broad bands:
 - Core: Codeforces 1200-1700, AtCoder ABC E/F and beginner ARC.
 - Advanced: Codeforces 1700-2200, AtCoder ARC C/D, ICPC regional.
 - Red training: Codeforces 2200-2800, AtCoder ARC/AGC hard, ICPC finals.
+- Master+: Codeforces 2100 entry exercises progressing toward 2400-3000,
+  Topcoder red-style algebraic modeling, and ICPC World Finals techniques.
 
 ## Phase 0: Contest Foundations
 
@@ -432,6 +434,298 @@ harder mixed problems.
       data structures, strings, flows, geometry, and advanced optimization.
     - Original pedagogical editorials that connect each task back to the
       relevant course sections.
+
+63. **AtCoder Difficulty Ladder**
+    - A 50-problem progression weighted toward intermediate through red tasks.
+    - Original local companion statements and course-specific editorials.
+
+## Phase 8: Master+ Mathematics I
+
+Goal: move beyond formula application and learn the algebraic transforms that
+compress divisor families, coefficient models, and enormous sequence indices.
+All required exercises in this phase are original, self-contained local
+packages. Contest sources inform style and difficulty only; no external link is
+required to understand or solve them.
+
+64. **Multiplicative Number Theory**
+    - Dirichlet convolution and divisor zeta/Mobius inversion.
+    - Jordan-totient expansions for gcd aggregates.
+    - Harmonic quotient blocks and memoized summatory functions.
+    - Prefix-count oracles for arithmetic order statistics.
+
+65. **Polynomial Algorithms And Recurrences**
+    - NTT and convolution under `998244353`.
+    - Correlation indexing and product trees for generating functions.
+    - Kitamasa-style polynomial reduction for huge recurrence indices.
+    - Berlekamp--Massey recurrence recovery.
+
+66. **Master+ Mathematics Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 64--65.
+    - Final problems synthesize graph-walk modeling with recurrence recovery,
+      and Mobius inversion with factorial-scaled convolution.
+
+The research and coverage map for this phase is recorded in
+`MASTER_PLUS_SOURCES.md`. Later master+ phases should cover persistent and
+rollback structures, advanced tree decompositions, lower-bound/min-cost flow,
+convex DP, advanced geometry, and additional polynomial operations. Each
+future mixed checkpoint remains capped at six problems so it behaves like a
+contest rather than an exercise dump.
+
+## Phase 9: Master+ Structures And Trees I
+
+Goal: make time-travel data structures and tree compression techniques usable
+from their invariants, including noncommutative and query-local variants.
+
+67. **Persistence, Rollback, And Time**
+    - Path-copying persistent frequency trees.
+    - Persistent range additions without destructive lazy pushes.
+    - Rollback DSU and segment trees over edge-lifetime intervals.
+
+68. **Advanced Tree Decompositions**
+    - Direction-aware heavy-light decomposition.
+    - Centroid paths for dynamic distance queries.
+    - Virtual trees for sparse marked-set queries.
+    - Small-to-large subtree map merging.
+
+69. **Master+ Structures And Trees Mixed Contest**
+    - Exactly six original local problems.
+    - One required problem for every category in Sections 67--68.
+    - Progression from persistent range ranks to centroid branch subtraction
+      and weighted virtual-tree aggregation.
+
+## Phase 10: Master+ Flow And Convex Optimization I
+
+Goal: treat conservation constraints and discrete convexity as modeling tools,
+not isolated templates. Every exercise remains an original, self-contained
+local package.
+
+70. **Bounded And Minimum-Cost Flows**
+    - Feasible circulation through lower-bound subtraction and imbalances.
+    - Exact-value minimum-cost flow with residual reverse edges.
+    - Feasible potentials, reduced costs, and Dijkstra augmentation.
+    - Quota modeling and convex marginal-cost edges.
+
+71. **Discrete Convexity And Lagrangian Optimization**
+    - Slope-trick breakpoints for isotonic L1 optimization.
+    - Lagrangian/WQS pricing of an exact combinatorial count.
+    - Tie intervals justified by graphic-matroid basis exchange.
+    - Huge separable convex allocation through marginal thresholds.
+
+72. **Master+ Flow And Convex Optimization Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 70--71.
+    - Progression from bounded bipartite degree feasibility to an assignment
+      combining quotas, profits, and convex congestion costs.
+
+## Phase 11: Master+ Geometry I
+
+Goal: progress from exact primitives to boundary compression, monotone
+geometric motion, and sweeps whose data structures encode geometric measure.
+Every required exercise is an original self-contained local package.
+
+73. **Convex Geometry And Minkowski Sums**
+    - Strict monotone-chain hulls and degeneracy conventions.
+    - Rotating calipers through monotone supporting vertices.
+    - Minkowski edge-angle merging.
+    - Logarithmic point location in convex polygons.
+
+74. **Geometric Sweeps And Proximity**
+    - Inclusive orthogonal-segment event ordering with Fenwick trees.
+    - Rectangle-union area using covered-length segment trees.
+    - Closest-pair divide and conquer with the strip packing proof.
+
+75. **Master+ Geometry Mixed Contest**
+    - Exactly six new original local problems.
+    - Complete coverage of Sections 73--74.
+    - Progression from hull/lattice composition to collision configuration
+      spaces, weighted sweeps, and logarithmic fortress queries.
+
+## Phase 12: Master+ String Structures I
+
+Goal: move beyond pattern matching into ordered suffix geometry, compressed
+end-position classes, and one-node-per-palindrome representations. The taught
+sections each derive three representative problems and reserve a fourth new
+transfer problem for the problem set and editorial.
+
+76. **Suffix Arrays And LCP Structure**
+    - Prefix-doubling suffix construction and the rank invariant.
+    - Kasai's amortized LCP construction.
+    - Repetition as sliding minima over adjacent LCP values.
+    - Pattern intervals and disjoint-occurrence feasibility.
+
+77. **Suffix Automata And Palindromic Trees**
+    - Suffix-automaton paths as distinct substrings.
+    - Lexicographic path DP and streaming cross-string matches.
+    - Palindromic-tree creation and suffix-link invariants.
+    - Shortest absent words as ordered graph search.
+
+78. **Master+ Suffix Structures Mixed Contest**
+    - Exactly six new original local problems.
+    - Complete coverage of Sections 76--77 plus Booth rotation elimination.
+    - Progression through LCP/DSU thresholds, occurrence-weighted automaton
+      paths, cross-archive propagation, and palindrome frequency aggregation.
+
+## Phase 13: Master+ Graph Decomposition
+
+Goal: close the graph-theory foundation gap before using decomposition trees
+inside harder reductions and query problems.
+
+79. **Directed Graph Decomposition**
+    - Strongly connected components and condensation DAGs.
+    - Constructive 2-SAT assignments from component order.
+    - Directed Euler trails and degree/connectivity conditions.
+    - Dominators and unavoidable directed checkpoints.
+
+80. **Undirected Connectivity Decomposition**
+    - Bridges, articulation vertices, and low-link invariants.
+    - Edge-biconnected components and bridge forests.
+    - Vertex-biconnected components and block-cut trees.
+    - Connectivity queries under one failed edge or vertex.
+
+81. **Master+ Graph Decomposition Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 79--80.
+    - Progression from condensation-degree arguments to constructive bridge
+      orientation, block-cut queries, and dominator applications.
+
+## Phase 14: Master+ Dynamic Data Structures
+
+Goal: represent value order, nonlinear range updates, editable sequences, and
+forests whose topology changes between queries.
+
+82. **Wavelet Structures And Segment Tree Beats**
+    - Static range order statistics and frequency queries.
+    - Wavelet matrices and value-domain navigation.
+    - Range `chmin`/`chmax` through extrema multiplicities.
+    - Amortized segment-tree-beats proofs.
+
+83. **Implicit Treaps And Dynamic Forests**
+    - Split/merge sequence representation with lazy reversal and affine tags.
+    - Link-cut-tree preferred paths and path aggregates.
+    - Dynamic connectivity and rerooting through `makeroot`.
+    - Kruskal reconstruction trees for threshold connectivity.
+
+84. **Master+ Dynamic Structures Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 82--83.
+    - Progression from range quantiles to nonlinear clamps, editable ropes,
+      dynamic forest paths, and reconstruction-tree thresholds.
+
+## Phase 15: Master+ Matching, Cuts, And Matroids
+
+Goal: move beyond bipartite cardinality matching into weighted assignment,
+general graphs, all-pairs cuts, and exchange-graph algorithms.
+
+85. **Weighted And General Matching**
+    - Hungarian primal-dual assignment.
+    - Rectangular and forbidden-edge assignment models.
+    - Edmonds' blossom contraction for general matching.
+    - Alternating-forest invariants and reconstruction.
+
+86. **Cut Trees And Matroid Intersection**
+    - Gomory--Hu trees for undirected all-pairs minimum cuts.
+    - Partition, graphic, and transversal matroid oracles.
+    - Exchange graphs and augmenting paths for matroid intersection.
+    - Directed minimum arborescences as contraction-based optimization.
+
+87. **Master+ Matching And Matroids Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 85--86.
+    - Progression from bottleneck assignment to blossom modeling, cut-tree
+      aggregation, rainbow forests, and common-independence augmentation.
+
+## Phase 16: Master+ Polynomial Algebra
+
+Goal: turn NTT multiplication into a reusable formal-power-series and
+evaluation toolbox.
+
+88. **Formal Power Series**
+    - Newton iteration for polynomial inverses.
+    - Derivative/integral reductions for logarithm and exponential.
+    - Formal square roots and coefficient preconditions.
+    - Truncation invariants and transform-length accounting.
+
+89. **Polynomial Evaluation And Subset Transforms**
+    - Product/remainder trees for multipoint evaluation.
+    - Interpolation from arbitrary distinct points.
+    - Walsh--Hadamard transforms for XOR/AND/OR convolution.
+    - Ranked zeta transforms and subset convolution.
+
+90. **Master+ Polynomial Algebra Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 88--89.
+    - Composition of FPS operations, evaluation trees, interpolation,
+      transform selection, and subset convolution.
+
+## Phase 17: Master+ Computational Number Theory
+
+Goal: handle integers too large for bounded sieves and modular equations not
+solved by a single inverse.
+
+91. **Primality And Integer Factorization**
+    - Deterministic 64-bit Miller--Rabin.
+    - Pollard-rho factor discovery and recursive splitting.
+    - Overflow-safe modular multiplication.
+    - Multiplicative functions from large prime factorizations.
+
+92. **Discrete Logarithms And Modular Roots**
+    - Primitive roots of prime moduli.
+    - Baby-step--giant-step discrete logarithms.
+    - Non-coprime reductions for generalized discrete logs.
+    - Tonelli--Shanks modular square roots.
+
+93. **Master+ Computational Number Theory Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 91--92.
+    - Progression from 64-bit factor queries to multiplicative orders,
+      discrete-log reductions, and modular-root reconstruction.
+
+## Phase 18: Master+ Geometry II
+
+Goal: extend exact convex geometry to continuous feasible regions, circular
+objects, randomized geometric optimization, and proximity subdivisions.
+
+94. **Half-Planes And Circle Geometry**
+    - Directed-line half-planes and deque intersection.
+    - Parallel-line and empty-region degeneracies.
+    - Circle intersections and common tangents.
+    - Robust predicate and output-tolerance policies.
+
+95. **Geometric Optimization And Delaunay Structure**
+    - Randomized minimum enclosing circles.
+    - Voronoi/Delaunay empty-circle duality.
+    - Delaunay-based Euclidean minimum spanning trees.
+    - Incremental triangulation and degeneracy handling.
+
+96. **Master+ Continuous Geometry Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 94--95.
+    - Progression from clipped feasible regions to tangent constructions,
+      enclosing circles, empty circles, and proximity graphs.
+
+## Phase 19: Master+ Frontier Dynamic Programming
+
+Goal: design compressed boundary states for enormous implicit state spaces and
+prove that forgotten information can no longer affect the future.
+
+97. **Digit And Broken-Profile DP**
+    - Tight/started digit states and range subtraction.
+    - Digit DP combined with finite automata.
+    - Row-profile transitions for tilings and independent sets.
+    - Transfer matrices for repeated profile transitions.
+
+98. **Plug DP And Treewidth Frontiers**
+    - Connectivity labels on grid frontiers.
+    - Canonical relabeling and cycle-closure rules.
+    - Steiner subset DP and subset merging.
+    - Dynamic programming over supplied tree decompositions.
+
+99. **Master+ Frontier DP Mixed Contest**
+    - Exactly six original local problems.
+    - Complete coverage of Sections 97--98.
+    - Progression from automaton digit counts through profile exponentiation
+      to connectivity frontiers and treewidth-constrained optimization.
 
 ## Practice Queue Policy
 

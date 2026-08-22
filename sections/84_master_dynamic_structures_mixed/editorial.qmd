@@ -1,0 +1,175 @@
+---
+title: "Section 84 Editorial — Master Dynamic Structures Mixed Contest"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. Quantile Prefix Sum
+
+## How to find it
+
+Alongside zero counts, store prefix sums of the zero subsequence at every wavelet level.
+
+## Correctness
+
+Whenever k passes the zero block, all those values are among the k smallest and their sum is added once. The remaining path ends at one equal value class supplying the final copies.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/a_quantile_prefix_sum/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_quantile_prefix_sum/solution.py >}}
+```
+
+# B. Clamped Terrain
+
+## How to find it
+
+Maintain symmetric maximum and minimum beats metadata and push both inherited bounds.
+
+## Correctness
+
+Each fast upper or lower operation changes one extremal value class exactly. Recursive cases partition until every changed class is handled, while push preserves all ancestor clamps.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/b_clamped_terrain/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_clamped_terrain/solution.py >}}
+```
+
+# C. Reversible String Hash
+
+## How to find it
+
+An implicit treap stores forward and reverse polynomial hashes; reversal swaps both children and hashes.
+
+## Correctness
+
+The in-order hash recurrence is exact after every pull. Lazy reversal produces the reverse sequence and swaps its two hashes, so equality is exactly the maintained palindrome certificate.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/c_reversible_string_hash/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_reversible_string_hash/solution.py >}}
+```
+
+# D. Dynamic Forest Sum
+
+## How to find it
+
+Use path exposure exactly as for XOR, but store additive aggregates and point assignments.
+
+## Correctness
+
+Exposure selects exactly the represented path and splay pulls maintain its vertex sum, hence every query returns precisely those vertices once.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/d_dynamic_forest_sum/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_dynamic_forest_sum/solution.py >}}
+```
+
+# E. Earliest Connection
+
+## How to find it
+
+Label each Kruskal reconstruction merge by its input edge index.
+
+## Correctness
+
+Two vertices first become connected at the merge represented by their reconstruction-tree LCA. If they have different final roots they never connect; identical vertices connect at time zero.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/e_earliest_connection/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/e_earliest_connection/solution.py >}}
+```
+
+# F. Affine Forest Paths
+
+## How to find it
+
+Apply affine tags to an exposed path and compose a new tag after the pending old tag.
+
+## Correctness
+
+For a subtree of size s, `x -> ax+b` changes its sum to `a*sum+b*s`. Composition `new(old(x))` gives the stored multiplication and addition formulas, so delayed updates remain chronological.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/f_affine_forest_paths/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/f_affine_forest_paths/solution.py >}}
+```
+
+# Contest-wide validation
+
+Compare A with sorted slices and prefix sums, B with direct element clamps, C
+with literal strings, D/F with BFS path reconstruction in an adjacency-list
+forest, and E with replayed edge prefixes. Include all-equal values, empty
+effective clamps, palindrome reversals, one-vertex paths, failed duplicate
+links, and many edges sharing one threshold.
+
+The reusable habit is to separate represented state from storage state:
+wavelet partitions, treap rotations, splay preferred paths, and reconstruction
+nodes are correct only insofar as their summaries preserve the original query
+boundary.

@@ -1,0 +1,6 @@
+{
+  "section": 77,
+  "title": "Longest Common Substring",
+  "checker": "tokens",
+  "time_limit_seconds": 7
+}

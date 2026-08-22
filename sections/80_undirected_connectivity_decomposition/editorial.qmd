@@ -1,0 +1,124 @@
+---
+title: "Section 80 Editorial — Undirected Connectivity Decomposition"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. Bridge Distance Queries
+
+## How to find it
+
+Delete bridges conceptually, contract the remaining components, and answer distance in the resulting bridge tree.
+
+## Correctness
+
+A DFS tree edge is a bridge exactly when its child subtree has no back edge reaching the parent or above. Contracting all nonbridge edges preserves precisely the separations caused by bridges. The quotient is a tree: a quotient cycle would give every edge on it an alternate route. Hence every route between two components crosses exactly the bridge-tree path, whose length is the answer.
+
+## Complexity
+
+`O((n+m) log n + q log n)` time and `O((n+m) log n)` memory.
+
+## C++
+
+```cpp
+{{< include problems/a_bridge_distance_queries/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_bridge_distance_queries/solution.py >}}
+```
+
+# B. Articulation Pair Damage
+
+## How to find it
+
+Low-link separating child subtrees plus the outside remainder are precisely the components after deletion; sum cross-group pairs.
+
+## Correctness
+
+For every child with `low[child] >= tin[v]`, no vertex in that child subtree can escape to the rest after deleting `v`; different such subtrees become different components. All vertices not in these subtrees form one remaining component. These groups partition the survivors, and a pair is disconnected exactly when its endpoints lie in distinct groups, which the incremental cross-product sum counts once.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/b_articulation_pair_damage/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_articulation_pair_damage/solution.py >}}
+```
+
+# C. Mandatory Station Queries
+
+## How to find it
+
+Construct vertex-biconnected blocks. The queried station is mandatory exactly when its original-vertex node lies on the block-cut-tree path.
+
+## Correctness
+
+Every original path alternates through the biconnected blocks containing its vertices, and every block offers internal routes avoiding any other non-endpoint vertex. Consequently an original vertex is unavoidable between `u` and `v` exactly when its node separates their nodes in the block-cut tree. In a tree this is equivalent to `dist(u,v)=dist(u,c)+dist(c,v)`.
+
+## Complexity
+
+`O((n+m) log n + q log n)` time and `O((n+m) log n)` memory.
+
+## C++
+
+```cpp
+{{< include problems/c_mandatory_station_queries/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_mandatory_station_queries/solution.py >}}
+```
+
+# D. Two-Edge Connectivity Completion
+
+## How to find it
+
+Every leaf of the bridge tree needs a new route; one added edge can repair two leaves, and pairing leaves attains the lower bound.
+
+## Correctness
+
+Each leaf component of the bridge tree has only one old edge to the remainder, so any bridgeless augmentation must give it at least one new incident route. One added edge can serve at most two leaves, giving `ceil(leaves/2)` as a lower bound. Pairing leaves across the tree creates cycles covering their incident bridge paths and attains this bound.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/d_two_edge_completion/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_two_edge_completion/solution.py >}}
+```
+
+# Upsolving and stress testing
+
+For A, delete each physical edge ID and compare component counts; parallel
+edges are the decisive case. For B, delete every candidate vertex and count
+separated unordered pairs directly. For C, enumerate simple paths and compare
+their intersection with block-cut path membership. For D, enumerate added
+edges on tiny component forests and retest bridge-freedom.
+
+Every proof should begin with the exact allowed escape route encoded by
+`low`. From that one invariant, the strict bridge inequality, non-strict
+articulation boundary, and edge-stack block extraction follow with different
+roles. Copying one inequality into another problem is a common near-correct
+failure.

@@ -1,0 +1,49 @@
+---
+title: "Section 80 — Undirected Connectivity Decomposition"
+format: pdf
+geometry: margin=1.8cm
+---
+
+# Low links describe escape routes
+
+This lesson derives Problems A--C. Problem D is reserved for the editorial.
+
+# Problem A: bridges and the bridge forest
+
+During DFS, `tin[u]` is the entry time and `low[u]` is the smallest entry time reachable from `u`'s subtree using tree edges and at most one back edge. A tree edge `u-v` is a bridge exactly when `low[v] > tin[u]`: the subtree has no route to `u` or an ancestor without that edge.
+
+Remove bridges and flood-fill the remaining edge-biconnected components. Every bridge becomes an edge between components, forming a tree for a connected graph. Therefore the mandatory bridge count between two vertices is their tree distance, answered by LCA.
+
+Use edge IDs, not parent vertices: otherwise two parallel edges are incorrectly treated as one bridge.
+
+# Problem B: articulation damage
+
+For a child `v` with `low[v] >= tin[u]`, deleting `u` isolates the entire DFS subtree of `v`. These child-subtree sizes and the one remaining outside group partition all surviving vertices. The answer is the sum of products over distinct groups; accumulate it incrementally as `answer += seen * group_size`.
+
+# Problem C: block-cut trees
+
+Keep DFS edges on a stack. Whenever `low[v] >= tin[u]`, pop through edge `u-v`; the popped endpoints form one vertex-biconnected block. Build a bipartite tree containing original vertices and block nodes. An original vertex `c` lies on every `u-v` path exactly when its node lies on the unique block-cut-tree path from `u` to `v`, testable with three distances.
+
+# Worked traces and implementation
+
+If DFS uses one of two parallel `u-v` edges as its tree edge, the other is a
+back edge to `u`, so `low[v] <= tin[u]`; neither is a bridge. Skip only the
+exact parent edge ID, not every edge whose endpoint is the parent.
+
+If deleting `u` leaves group sizes `2,3,4`, separated pairs number
+`2*3+2*4+3*4`. Incrementally add `seen*group_size` and include the outside
+group. The DFS root is special: it has no ancestor-side group and is an
+articulation vertex only with at least two DFS children.
+
+Block nodes and original vertices form a tree because a cycle in their
+incidence graph would join its blocks into a larger biconnected block. Thus
+path membership is tested by
+`dist(u,c)+dist(c,v)=dist(u,v)` after endpoint cases are handled.
+
+Use shared edge IDs and an edge stack for block extraction. Tiny oracles should
+delete each edge or vertex and rerun BFS; include parallel edges, a star, one
+cycle, and a DFS root with one child.
+
+# Exercises
+
+A--C develop bridges, articulation partitions, and block-cut paths. D is the independent transfer problem.

@@ -39,7 +39,11 @@ class Audit:
 
 
 def section_dirs() -> list[Path]:
-    return sorted(path for path in SECTIONS.glob("[0-9][0-9]_*") if path.is_dir())
+    return sorted(
+        path
+        for path in SECTIONS.iterdir()
+        if path.is_dir() and re.match(r"^[0-9]+_", path.name)
+    )
 
 
 def audit_problem(problem: Path, report: Audit) -> None:
@@ -98,7 +102,24 @@ def audit_section(section: Path, report: Audit) -> None:
                 f"{editorial.relative_to(ROOT)}: {generic_count} generic proof/complexity marker(s); "
                 "replace with problem-specific derivations"
             )
-        headings = re.findall(r"^# (?:Problem )?[A-Z](?:\.|:)", text, flags=re.MULTILINE)
+        # Most sections use A/B/C slugs and the external ladder uses numeric
+        # slugs, but Section 62 deliberately contains both.  Detect both
+        # heading styles instead of letting one lettered companion make all
+        # fifty numbered editorial blocks invisible.
+        prefixes = [problem.name.split("_", 1)[0] for problem in problems]
+        has_numeric = any(prefix.isdigit() for prefix in prefixes)
+        has_letter = any(len(prefix) == 1 and prefix.isalpha() for prefix in prefixes)
+        if has_numeric and has_letter:
+            heading_key = r"(?:[0-9]+|[A-Z])"
+        elif has_numeric:
+            heading_key = r"[0-9]+"
+        else:
+            heading_key = r"[A-Z]"
+        headings = re.findall(
+            rf"^# (?:Problem )?{heading_key}(?:\.|:)",
+            text,
+            flags=re.MULTILINE,
+        )
         if len(headings) < min(3, len(problems)):
             report.notice(
                 f"{editorial.relative_to(ROOT)}: fewer than one top-level editorial block per local problem"

@@ -1,0 +1,110 @@
+---
+title: "Section 91 Editorial — Primality And Integer Factorization"
+format: pdf
+geometry: margin=1.6cm
+fontsize: 9pt
+---
+
+# A. Prime Or Composite
+
+## How to find it
+
+Decompose `n-1` into an odd part and powers of two, then test the deterministic 64-bit witness set.
+
+## Correctness
+
+For prime inputs the strong Fermat chain condition holds for every base. The cited bounded witness theorem guarantees every composite below `2^64` fails at least one selected base.
+
+## Complexity
+
+`O(log n)` modular multiplications per base.
+
+## C++
+
+```cpp
+{{< include problems/a_prime_or_composite/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_prime_or_composite/solution.py >}}
+```
+
+# B. Complete Factorization
+
+## How to find it
+
+Use Miller--Rabin as the stopping certificate and Pollard--rho only to split composite work items.
+
+## Correctness
+
+Each split preserves the product invariant. Every accepted leaf is prime, so termination yields exactly a prime factorization; sorting fixes the output order.
+
+## Complexity
+
+Expected roughly `O(n^(1/4))` per difficult factor discovery, with small memory.
+
+## C++
+
+```cpp
+{{< include problems/b_complete_factorization/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_complete_factorization/solution.py >}}
+```
+
+# C. Large Totient
+
+## How to find it
+
+Factor first and apply the prime reduction once per distinct factor.
+
+## Correctness
+
+Inclusion--exclusion over divisibility by the distinct prime factors gives `n product (1-1/p)`.
+
+## Complexity
+
+Expected factorization time plus `O(number of prime factors)`.
+
+## C++
+
+```cpp
+{{< include problems/c_large_totient/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_large_totient/solution.py >}}
+```
+
+# D. Large Divisor Statistics
+
+## How to find it
+
+For each prime power independently choose an exponent from zero through `e`.
+
+## Correctness
+
+Unique factorization makes these choices bijective with divisors. Counts multiply, and distributivity makes the geometric sums multiply.
+
+## Complexity
+
+Expected factorization time.
+
+## C++
+
+```cpp
+{{< include problems/d_large_divisor_statistics/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_large_divisor_statistics/solution.py >}}
+```

@@ -1,0 +1,110 @@
+---
+title: "Section 92 Editorial — Discrete Logarithms And Modular Roots"
+format: pdf
+geometry: margin=1.6cm
+fontsize: 9pt
+---
+
+# A. Smallest Primitive Root
+
+## How to find it
+
+Factor `p-1` and reject a candidate if removing any distinct prime factor from the exponent makes it one.
+
+## Correctness
+
+The order divides `p-1`; it is proper exactly when it divides `(p-1)/q` for some prime divisor `q`.
+
+## Complexity
+
+Factorization plus `O(number tested * omega(p-1) log p)`.
+
+## C++
+
+```cpp
+{{< include problems/a_smallest_primitive_root/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_smallest_primitive_root/solution.py >}}
+```
+
+# B. Prime Discrete Log
+
+## How to find it
+
+Meet baby exponents and giant exponent blocks.
+
+## Correctness
+
+A table match is algebraically equivalent to the target power equation, and every exponent has one such split.
+
+## Complexity
+
+`O(sqrt(p))` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/b_prime_discrete_log/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_prime_discrete_log/solution.py >}}
+```
+
+# C. General Discrete Log
+
+## How to find it
+
+Strip common gcd factors until modular inverses become legal, then run BSGS on the adjusted equation.
+
+## Correctness
+
+Each stripping step is necessary and equivalent after accounting for its forced base factor; the final coprime equation is handled exhaustively by BSGS.
+
+## Complexity
+
+`O(log m + sqrt(m))` expected time and `O(sqrt(m))` memory.
+
+## C++
+
+```cpp
+{{< include problems/c_general_discrete_log/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_general_discrete_log/solution.py >}}
+```
+
+# D. Modular Square Roots
+
+## How to find it
+
+Use Euler classification, split `p-1=q*2^s`, and cancel the two-power discrepancy with a known nonresidue.
+
+## Correctness
+
+Tonelli--Shanks maintains `x squared = a*t` and moves `t` into successively smaller two-power subgroups until `t=1`.
+
+## Complexity
+
+`O(log squared p)` modular operations.
+
+## C++
+
+```cpp
+{{< include problems/d_modular_square_roots/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_modular_square_roots/solution.py >}}
+```

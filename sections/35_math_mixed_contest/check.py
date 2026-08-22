@@ -26,6 +26,12 @@ PROBLEMS = [
     SECTION / "problems" / "j_target_lcm_subsets",
     SECTION / "problems" / "k_weighted_coupon_collection",
     SECTION / "problems" / "l_random_divisor_descent",
+    SECTION / "problems" / "m_totient_prefix",
+    SECTION / "problems" / "n_squarefree_queries",
+    SECTION / "problems" / "o_gcd_sum",
+    SECTION / "problems" / "p_subarray_gcd_sum",
+    SECTION / "problems" / "q_coprime_rectangles",
+    SECTION / "problems" / "r_exact_divisor_count",
 ]
 
 def main() -> int:

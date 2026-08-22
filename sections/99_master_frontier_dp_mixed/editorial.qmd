@@ -1,0 +1,164 @@
+---
+title: "Section 99 Editorial — Master Frontier DP Mixed Contest"
+format:
+  pdf:
+    code-overflow: wrap
+geometry: margin=1.6cm
+fontsize: 9pt
+---
+
+# A. Checksum Digit Sum
+
+## How to find it
+
+Group queries by modulus, precompute fixed-length suffix counts by sum and remainder, then scan tight prefixes.
+
+## Correctness
+
+For each smaller prefix digit, the required suffix sum and remainder are uniquely determined; the table counts exactly those suffixes.
+
+## Complexity
+
+For each distinct modulus `M`: `O(19 * 171 * M * 10)` preprocessing, then `O(19 * 10)` per bound.
+
+## C++
+
+```cpp
+{{< include problems/a_checksum_digit_sum/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_checksum_digit_sum/solution.py >}}
+```
+
+# B. Serial Filter
+
+## How to find it
+
+Combine the KMP automaton with a bounded digit-sum dimension.
+
+## Correctness
+
+KMP remembers exactly the suffix relevant to a future forbidden match, while the sum dimension is exact.
+
+## Complexity
+
+`O(19 * |P| * S * 10)` per query.
+
+## C++
+
+```cpp
+{{< include problems/b_serial_filter/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_serial_filter/solution.py >}}
+```
+
+# C. Repeating Domino Tower
+
+## How to find it
+
+Compose one matrix per obstacle row into a period matrix, then exponentiate it.
+
+## Correctness
+
+Row matrices enforce local obstacles; composition represents one period and exponentiation represents exactly `H` periods.
+
+## Complexity
+
+`O(P * 2^(3W) + 2^(3W) log H)` with dense matrices.
+
+## C++
+
+```cpp
+{{< include problems/c_repeating_domino_tower/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_repeating_domino_tower/solution.py >}}
+```
+
+# D. Connected Reserve
+
+## How to find it
+
+Use connectivity labels, but prohibit skipping every `T` cell.
+
+## Correctness
+
+Every required cell is selected, and the disappearance rule accepts exactly selections ending in one component.
+
+## Complexity
+
+Exponential in `W` and polynomial in `H`.
+
+## C++
+
+```cpp
+{{< include problems/d_connected_reserve/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_connected_reserve/solution.py >}}
+```
+
+# E. Terminal Backbone
+
+## How to find it
+
+Compute every terminal-mask Steiner row once and answer queries from those rows.
+
+## Correctness
+
+The subset-merge and shortest-path proof applies independently to every queried mask.
+
+## Complexity
+
+`O(3^k n + 2^k m log n + qn)`.
+
+## C++
+
+```cpp
+{{< include problems/e_terminal_backbone/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/e_terminal_backbone/solution.py >}}
+```
+
+# F. Decomposition Profit
+
+## How to find it
+
+A vertex cover is the complement of an independent set.
+
+## Correctness
+
+The complement covers every edge exactly when the chosen set contains no edge, so the answer is total weight minus maximum independent-set weight.
+
+## Complexity
+
+Let `B = sum(2^|bag|)` over the supplied nodes. The reference uses `O(nB)` time and `O(B)` memory.
+
+## C++
+
+```cpp
+{{< include problems/f_decomposition_profit/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/f_decomposition_profit/solution.py >}}
+```

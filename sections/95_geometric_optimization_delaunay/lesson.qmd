@@ -1,0 +1,33 @@
+---
+title: "Section 95 — Geometric Optimization And Delaunay Structure"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# A few boundary witnesses determine the optimum
+
+This lesson derives A--C. Problem D is editorial-only.
+
+# A. Randomized minimum enclosing circle
+
+Shuffle the points. Maintain the minimum circle for the processed prefix. If a new point lies outside, it must lie on the new boundary. Rebuild with that point fixed; whenever an earlier point is outside, both become boundary points; a third violation fixes the unique circumcircle.
+
+The nested loops look cubic, but random insertion order gives linear expected time: a circle determined by at most three boundary points changes with probability at most `3/i` at step `i`. The correctness proof is deterministic; only the running-time analysis uses randomness.
+
+# B. Incremental Delaunay triangulation
+
+A triangle is Delaunay when its open circumdisk contains no input point. Begin with a supertriangle. For each point, remove every triangle whose circumcircle contains it. Those bad triangles form a cavity; edges occurring once on their boundaries form its polygon. Join the new point to every cavity boundary edge.
+
+The in-circle determinant must be interpreted with the triangle orientation. With counterclockwise triangles, a positive sign means inside. Generic-position constraints remove zero-sign ambiguity; production implementations still need a symbolic or deterministic tie policy.
+
+# C. Euclidean MST from Delaunay edges
+
+Every Euclidean MST edge belongs to the Delaunay triangulation. One proof uses the empty diameter disk: if an MST edge had a point strictly inside that disk, replacing it by a shorter edge across the induced cut would contradict minimality. Therefore construct Delaunay edges, sort only those by length, and run Kruskal.
+
+# Recognition guide
+
+When an optimum circle or proximity edge seems to depend on all points, ask which small witness set makes it tight. Enclosing circles need at most three boundary points; Voronoi vertices are fixed by three equidistant sites; MST edges admit an empty-region certificate.
+
+# Exercises
+
+A--C develop enclosing disks, empty-circle triangulation, and proximity sparsification. D asks you to extract the largest finite empty circumcircle.

@@ -1,0 +1,33 @@
+---
+title: "Section 94 — Half-Planes And Circle Geometry"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# Continuous feasible regions need oriented predicates
+
+This lesson derives A--C. Problem D is editorial-only.
+
+# A. Half-plane intersection
+
+A directed line `p + t*v` keeps points `x` satisfying `cross(v,x-p) >= 0`. Sort boundaries by direction. Equal-direction lines carry redundant information: retain only the one whose left side is smaller. A deque then stores the boundaries of the current intersection in angular order, while a second deque stores consecutive intersection points.
+
+Before appending a new line, remove boundaries from the back while their last corner violates it, and from the front while their first corner violates it. Each line enters and leaves once. Close the deque with the same two tests, intersect its last and first lines, then use the shoelace formula.
+
+The invariant is geometric: after every insertion, deque lines occur in angle order and its stored corners are exactly the boundary corners that satisfy every processed half-plane. Parallel lines require an explicit policy; never divide by a cross product merely because two floating angles look different.
+
+# B. Two-disk overlap
+
+Classify before applying trigonometry: disjoint disks have area zero; containment gives the smaller disk area. Otherwise the common lens is two circular sectors minus two triangles. Obtain each sector angle from the cosine rule and clamp the `acos` argument into `[-1,1]` to absorb roundoff.
+
+# C. Common tangents
+
+For external tangents compare center distance `d` with `|r1-r2|`; for internal tangents compare it with `r1+r2`. A strict inequality gives two mirror-image lines, equality gives one, and failure gives none. Coincident equal circles are the exceptional infinite family.
+
+# How to find it
+
+Write one signed predicate first. Then list degeneracies before deriving coordinates: parallel support lines, empty regions, coincident centers, containment, and tangency. Continuous geometry becomes reliable when combinatorial classification happens before division, square roots, or inverse trigonometry.
+
+# Exercises
+
+A--C cover oriented feasible regions and circle classification. D combines offset half-planes with monotone binary search.

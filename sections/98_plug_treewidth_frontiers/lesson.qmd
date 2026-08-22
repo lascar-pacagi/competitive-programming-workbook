@@ -1,0 +1,31 @@
+---
+title: "Section 98 — Plug DP And Treewidth Frontiers"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# A frontier may need connectivity, not just occupancy
+
+This lesson derives A--C. Problem D is editorial-only.
+
+# A. Transfer matrices for repeated profiles
+
+The one-row domino transition is a matrix indexed by incoming and outgoing masks. Repeating an identical row `H` times is matrix exponentiation; the empty-to-empty entry is the answer. This separates local geometry from repetition and changes linear dependence on huge `H` into `O(log H)` matrix products.
+
+# B. Canonical connectivity labels
+
+For connected cell subsets, each nonzero frontier label names a currently open connected component. Selecting a cell creates a label or merges its left and upper labels. Skipping a cell may make a label disappear; if another component remains open, the vanished component can never reconnect and the state is invalid. If it is the last component, mark the solution closed and prohibit future selections.
+
+Relabel components by first appearance after every transition: `(7,0,7,4)` becomes `(1,0,1,2)`. Labels are names, not information; canonicalization merges equivalent states.
+
+# C. Steiner subset merging
+
+Let `dp[mask][v]` be the minimum cost of a connected subgraph containing terminals in `mask` and ending at `v`. Combine two proper submasks at the same `v`, then run multi-source Dijkstra to move the meeting point through graph edges. Every Steiner tree can be split at a branching vertex, while every transition joins connected valid subgraphs.
+
+# Boundary-design checklist
+
+Ask which facts can still interact with unseen input. Occupancy needs bits; connectivity needs an equivalence relation; a bounded-width graph decomposition needs the choices on the active bag. Prove that forgotten objects have no edge or path to the future before dropping them.
+
+# Exercises
+
+A--C cover repeated, connected, and terminal-subset frontiers. D applies introduce/forget/join transitions on a supplied nice tree decomposition.

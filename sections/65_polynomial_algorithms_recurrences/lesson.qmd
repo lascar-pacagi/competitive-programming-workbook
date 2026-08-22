@@ -1,0 +1,200 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 65: Polynomial Algorithms And Recurrences"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Why polynomials appear in contests
+
+A coefficient array can encode choices. If `A[i]` counts ways to make sum `i`
+and `B[j]` counts ways to make sum `j`, then the coefficient of `x^s` in their
+product is
+
+```text
+C[s] = sum(A[i] * B[s-i]).
+```
+
+That is exactly the number of ways to choose one object from each family with
+total `s`. Polynomial multiplication is therefore a fast engine for many-sum
+DP, correlations, string alignment, and linear recurrences.
+
+# Convolution and correlation are different index equations
+
+Convolution uses `i+j=s`. Correlation uses a difference such as `j-i=r`.
+Reverse one array to convert a difference into a sum. Never memorize only an
+offset: derive the requested indices on paper.
+
+For cyclic comparison
+
+```text
+score[r] = sum_i [s[i] = t[(i+r) mod n]],
+```
+
+duplicate the indicator array of `t`, reverse the indicator of `s`, and read
+coefficient `n-1+r`.
+
+```text
+reverse_s[n-1-i] pairs with doubled_t[r+i]
+indices add to n-1+r.
+```
+
+# The NTT model
+
+Evaluating a degree-`n` polynomial at sufficiently many points, multiplying
+pointwise, and interpolating recovers its product. The number theoretic
+transform performs these operations inside a finite field.
+
+We use `MOD = 998244353 = 119 * 2^23 + 1` and primitive root `3`. For every
+power-of-two length up to `2^23`, the field contains a root `w` whose powers
+cycle through exactly that length.
+
+At one butterfly:
+
+```text
+u = left
+v = right * current_root
+new_left  = u + v
+new_right = u - v
+```
+
+Each stage doubles the block length. Bit-reversal places coefficients in the
+order required by the iterative butterfly graph. The inverse transform uses
+inverse roots and finally divides every value by the transform length.
+
+## A four-position trace
+
+Ignoring the concrete modular root, the dataflow is:
+
+```text
+(a0, a1, a2, a3)
+bit reverse -> (a0, a2, a1, a3)
+length 2    -> (a0+a2, a0-a2, a1+a3, a1-a3)
+length 4    -> combine the two halves with powers 1 and w
+```
+
+Every stage performs linear work, and there are `log n` stages. Forward and
+inverse transforms are `O(n log n)`.
+
+# Product trees for many factors
+
+Multiplying factors from left to right can repeatedly grow a large polynomial.
+Instead, multiply balanced halves recursively (or always combine the two
+smallest polynomials). Truncate every intermediate result after the largest
+coefficient the problem can query.
+
+For an item contributing any value from `0` through `a`, its generating
+polynomial is
+
+```text
+1 + x + x^2 + ... + x^a.
+```
+
+The coefficient of the product counts bounded compositions. This is a direct
+application of the ordinary generating-function product rule, not a symbolic
+trick.
+
+# Huge indices in linear recurrences
+
+Suppose
+
+```text
+a[m] = c[0]a[m-1] + c[1]a[m-2] + ... + c[k-1]a[m-k].
+```
+
+Introduce the characteristic relation
+
+```text
+x^k = c[0]x^(k-1) + c[1]x^(k-2) + ... + c[k-1].
+```
+
+Reduce `x^n` modulo this relation:
+
+```text
+x^n = p[0] + p[1]x + ... + p[k-1]x^(k-1).
+```
+
+The same relation holds for every shifted recurrence window, so
+
+```text
+a[n] = p[0]a[0] + ... + p[k-1]a[k-1].
+```
+
+Binary exponentiation computes the reduced polynomial `x^n`. Multiplication
+followed by descending-degree reduction costs `O(k^2)`; total cost is
+`O(k^2 log n)`, independent of the magnitude of `n` except for its bits.
+
+# Discovering a recurrence from observations
+
+Berlekamp--Massey maintains the shortest relation that explains the processed
+prefix. When the current term disagrees with that relation, the discrepancy
+tells us how much of an older successful relation must be shifted and scaled to
+repair the new position.
+
+The important conceptual states are:
+
+- `C`: current relation;
+- `B`: relation saved at the last length increase;
+- `b`: discrepancy at that save point;
+- `shift`: how far the saved relation must move;
+- `L`: current recurrence length.
+
+If the discrepancy is zero, the relation already predicts this term. If it is
+nonzero, subtract `discrepancy / b` times the shifted saved relation. When the
+processed prefix has become too long for the previous `L`, promote the old
+current relation to the saved one and increase `L`.
+
+The theorem requires a field, because discrepancy scaling divides by `b`. Our
+prime modulus provides inverses for every nonzero `b`.
+
+# Recognition table
+
+| Statement shape | Algebraic model |
+|---|---|
+| all pair sums or matching shifts | convolution/correlation |
+| combine many independent bounded choices | product of generating polynomials |
+| recurrence order moderate, index enormous | polynomial reduction / Kitamasa |
+| many observed terms, recurrence hidden | Berlekamp--Massey, then recurrence evaluation |
+
+# Common mistakes
+
+- Forgetting that linear convolution needs padding to at least `len(A)+len(B)-1`.
+- Reading the wrong correlation coefficient because the reversal was guessed.
+- Using an NTT length beyond the power of two supported by the modulus.
+- Reducing a high degree upward; reduction must go from high degree downward.
+- Running Berlekamp--Massey over a composite modulus as if every discrepancy
+  were invertible.
+- Assuming a short observed prefix uniquely determines the future without the
+  guarantee in the statement.
+
+# Exercises
+
+A isolates correlation indexing. B forces the generating-function product
+model. C separates recurrence evaluation from matrix exponentiation. D is a
+blind synthesis problem: the lesson names the machinery but does not reveal
+how its input should be normalized or checked.
+
+# Before submitting
+
+- Test convolution against `O(nm)` on random arrays of length at most eight.
+- Test cyclic shifts `0`, `1`, and `n-1` with a hand-written pair.
+- For recurrence code, test `n<k`, `k=1`, all-zero coefficients, and Fibonacci.
+- Feed Berlekamp--Massey a constant sequence, a geometric sequence, and leading
+  zeros before a nonzero recurrence.

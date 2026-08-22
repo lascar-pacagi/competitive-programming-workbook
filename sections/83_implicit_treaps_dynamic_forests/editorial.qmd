@@ -1,0 +1,123 @@
+---
+title: "Section 83 Editorial — Implicit Treaps And Dynamic Forests"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. Sequence Cut And Paste
+
+## How to find it
+
+Represent positions by subtree sizes and express removal/insertion through split and merge.
+
+## Correctness
+
+Split preserves in-order order on both sides and merge concatenates its operands. The four operations therefore remove precisely `[l,r]` and insert that unchanged block at the requested remaining position.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/a_sequence_cut_paste/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_sequence_cut_paste/solution.py >}}
+```
+
+# B. Reversible Range Ledger
+
+## How to find it
+
+Attach whole-subtree addition and reversal tags to an implicit treap.
+
+## Correctness
+
+Each tag has exactly the stated effect on the stored aggregate; pushing composes it into both children before structural inspection, and pulling restores the parent invariant.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/b_reversible_range_ledger/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_reversible_range_ledger/solution.py >}}
+```
+
+# C. Dynamic Forest XOR
+
+## How to find it
+
+Expose each represented path with `makeroot(u); access(v)` and aggregate its auxiliary tree.
+
+## Correctness
+
+After exposure, the auxiliary subtree rooted at `v` contains exactly the u-v path in order. XOR is associative and reversal-independent, so its stored aggregate is the answer.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/c_dynamic_forest_xor/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_dynamic_forest_xor/solution.py >}}
+```
+
+# D. Threshold Component Size
+
+## How to find it
+
+Kruskal creates a new parent whenever two components merge; label it with the edge weight and component size.
+
+## Correctness
+
+Ancestors of a leaf are exactly its successive Kruskal components in nondecreasing threshold order. The highest ancestor of weight at most x is therefore precisely the requested component.
+
+## Complexity
+
+`O((n+q) log n)` expected/amortized time and `O(n log sigma)` or `O(n)` structure memory, as appropriate.
+
+## C++
+
+```cpp
+{{< include problems/d_threshold_component_size/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_threshold_component_size/solution.py >}}
+```
+
+# Upsolving and stress testing
+
+For A/B, maintain a literal Python-style list and apply every cut, paste,
+reverse, and addition directly. For C, maintain the represented forest as
+adjacency sets and reconstruct each path with BFS. For D, replay all edges up
+to the queried threshold and run DSU from scratch.
+
+Adversarial sequences should repeatedly reverse overlapping intervals, compose
+updates before any query forces a push, link and cut the same edge, query a
+single vertex, and use equal reconstruction thresholds. The central invariant
+is always which order or tree is represented; randomized storage and preferred
+paths are implementation details.

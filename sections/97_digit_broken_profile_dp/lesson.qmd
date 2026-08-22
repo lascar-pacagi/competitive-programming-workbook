@@ -1,0 +1,31 @@
+---
+title: "Section 97 — Digit And Broken-Profile DP"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# Remember only the boundary between fixed and unknown choices
+
+This lesson derives A--C. Problem D is editorial-only.
+
+# A. Tight digit DP
+
+Process digits from most significant to least. `tight` says whether the chosen prefix still equals the bound; if false, every remaining digit may range through nine. For a digit-sum target, the other state is the accumulated sum. The base case accepts exactly the target.
+
+To answer `[L,R]`, compute `count(R)-count(L-1)`. Leading zeroes are harmless for digit sums and naturally make zero one fixed-length representation. The state boundary is the prefix summary: the future depends on its exact digits only through `tight` and the sum.
+
+# B. Digit DP with an automaton
+
+For a forbidden substring, compile the pattern with KMP failure links. The automaton state is the longest pattern prefix matching a suffix of the digits already emitted. A transition reaching the full pattern is rejected. Add `started` so padding zeroes are not mistaken for representation digits; handle the number zero explicitly at the base case.
+
+This is a general product construction: digit-bound automaton times property automaton. The same method supports remainders, occurrence counts, and any finite-state language.
+
+# C. Broken-profile tiling
+
+Scan one row while a mask records cells already occupied from the previous row. At the first free cell, every valid tiling makes exactly one local choice: a horizontal domino if its neighbor is free, or a vertical domino that sets a bit in the next-row mask. Blocked cells behave as already occupied but may never overlap incoming bits.
+
+Induction on the first unprocessed cell proves that the recursion enumerates every tiling exactly once. The important ordering fact is that after a cell leaves the profile, no future domino can touch it.
+
+# Exercises
+
+A--C build tight, automaton, and occupancy profiles. D transfers the row profile to local exclusion rather than covering.

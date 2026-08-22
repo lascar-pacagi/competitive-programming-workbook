@@ -19,6 +19,18 @@ the phase matching your experience.
 | Data structures | 36--42 | Fenwick and segment trees, lifting, advanced queries |
 | Advanced algorithms | 43--50 | Strings, flows, tree DP, optimization |
 | Contest preparation | 51--63 | Hard techniques, workflow, and contest ladders |
+| Master+ mathematics I | 64--66 | Divisor transforms, NTT, and linear recurrences |
+| Master+ structures I | 67--69 | Persistence, rollback, and tree decompositions |
+| Master+ flow/convex I | 70--72 | Bounded flows, slope trick, and Lagrangian optimization |
+| Master+ geometry I | 73--75 | Convex boundaries, Minkowski sums, and geometric sweeps |
+| Master+ string structures I | 76--78 | Suffix arrays, automata, LCP, and palindromic trees |
+| Master+ graph decomposition | 79--81 | SCCs, Euler trails, low links, block-cut trees, and dominators |
+| Master+ dynamic structures | 82--84 | Wavelet matrices, beats, implicit treaps, and dynamic forests |
+| Master+ matching/matroids | 85--87 | Hungarian, blossom, cut trees, arborescences, and matroid intersection |
+| Master+ polynomial algebra | 88--90 | Formal series, product trees, interpolation, and subset transforms |
+| Master+ computational number theory | 91--93 | 64-bit factorization, discrete logarithms, and modular roots |
+| Master+ continuous geometry | 94--96 | Half-planes, circle geometry, enclosing disks, and Delaunay structure |
+| Master+ frontier DP | 97--99 | Digit automata, profiles, plug DP, Steiner subsets, and treewidth DP |
 
 The approved long-term structure is in
 [`CURRICULUM_PLAN.md`](CURRICULUM_PLAN.md).
@@ -40,12 +52,50 @@ Each completed section contains:
 - local online-judge tests;
 - a friendly section checker.
 
-The course currently has 63 sections. Section 61 is the ICPC readiness module,
-Section 62 is a 50-problem Codeforces ladder, and Section 63 is a 50-problem
-AtCoder ladder weighted toward intermediate, advanced, orange, and red tasks.
+The course currently has 99 sections. Section 61 is the ICPC readiness module,
+Sections 62--63 are the Codeforces and AtCoder ladders, and Sections 64--66
+begin the master+ extension with multiplicative transforms and polynomial
+algorithms. Sections 67--69 continue with persistence, rollback, heavy-light,
+centroid, virtual-tree, and small-to-large techniques. Sections 70--72 add
+bounded circulation, potential-based min-cost flow, slope trick, exact-count
+Lagrangian relaxation, and discrete convex allocation.
+Sections 73--75 continue with convex hull compression, rotating calipers,
+Minkowski sums, geometric sweeps, union area, and closest-pair geometry.
+Sections 76--78 add suffix-array interval geometry, LCP aggregation,
+suffix-automaton path and occurrence DP, palindromic trees, and a six-problem
+mixed suffix-structures contest.
+Sections 79--81 repair the advanced graph-decomposition gap with SCC
+condensation, constructive 2-SAT reasoning, directed Euler trails, bridges,
+articulation vertices, block-cut trees, and dominators.
+Sections 82--84 add value-domain range navigation, segment-tree beats,
+editable implicit-treap sequences, link-cut-tree forest paths, and Kruskal
+reconstruction trees.
+Sections 85--87 add weighted assignment, general-graph matching, Gomory--Hu
+cut trees, directed arborescences, and graphic/partition matroid intersection.
+Sections 88--90 develop formal power series through Newton iteration, fast
+multipoint evaluation and interpolation, Walsh and OR transforms, and ranked
+subset convolution.
+Sections 91--93 add deterministic 64-bit Miller--Rabin, Pollard--rho,
+large-integer multiplicative functions, primitive roots, generalized discrete
+logarithms, and Tonelli--Shanks modular square roots.
+Sections 94--96 add half-plane intersection, robust circle classification,
+randomized minimum enclosing circles, incremental Delaunay triangulation,
+empty-circle queries, and Euclidean MST sparsification.
+Sections 97--99 finish the extension with digit DP products, broken profiles,
+transfer matrices, canonical connectivity labels, Steiner subset DP, and
+dynamic programming over nice tree decompositions.
 
 Problem statements are written locally or summarized briefly. External
 Codeforces, AtCoder, and ICPC problems are linked instead of copied.
+Every required problem in the master+ extension is instead a complete original
+local package; external sources are used only for topic and difficulty
+calibration. See [`MASTER_PLUS_SOURCES.md`](MASTER_PLUS_SOURCES.md).
+
+Maximum-constraint certification for Sections 64--99 is tracked separately in
+[`sections/MASTER_PLUS_COMPLEXITY_AUDIT.md`](sections/MASTER_PLUS_COMPLEXITY_AUDIT.md).
+It records adversarial invariants, measured C++/Python time and memory, and any
+constraint or support-limit failures; small random-oracle acceptance alone is
+not treated as complexity evidence.
 
 ## Requirements
 

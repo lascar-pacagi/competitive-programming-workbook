@@ -1,0 +1,64 @@
+---
+title: "Section 90 — Master Polynomial Algebra Mixed Contest"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# Contest contract
+
+Six new problems combine the polynomial and transform tools of Sections 88--89.
+
+| Problem | Main decision |
+|---|---|
+| A | division as multiplication by a formal inverse |
+| B | logarithm extracts connected components |
+| C | product-tree evaluation with repeated queries |
+| D | interpolation in arbitrary input order |
+| E | OR zeta transform and Möbius inversion |
+| F | rank-refined subset convolution |
+
+Do not choose a transform merely because masks or polynomials appear. State the binary operation that combines indices, then choose the transform whose characters diagonalize that operation.
+
+# Recognition workflow
+
+1. Write the requested coefficient as an explicit sum over input indices.
+2. Identify how those indices combine: addition, XOR, OR, AND, or disjoint
+   union.
+3. Check algebraic preconditions such as an invertible constant coefficient or
+   distinct interpolation points.
+4. Only then select multiplication, an FPS operation, a product tree, or a mask
+   transform.
+
+For connected-series problems, the decisive clue is an exponential assembly:
+an arbitrary object is a set of connected components. Taking a formal
+logarithm reverses that assembly and isolates the connected contribution.
+This is not a generic instruction to apply `log` whenever the word “connected”
+appears; the exact generating-function identity must be established first.
+
+For OR convolution, define the subset-zeta transform
+
+```text
+Fhat[S] = sum of F[T] over all T contained in S.
+```
+
+The product `Fhat[S]*Ghat[S]` counts all pairs with both masks contained in
+`S`, equivalently all pairs whose OR is contained in `S`. Subset Möbius
+inversion then isolates pairs whose OR is exactly each mask. The analogous
+unranked argument is insufficient for disjoint union, because two submasks may
+overlap; popcount ranks expose and remove that ambiguity.
+
+# Oracle map
+
+- Use naive coefficient recurrence for inverse and small FPS operations.
+- Use Horner independently at every evaluation point.
+- Enumerate the Lagrange basis directly for interpolation.
+- Use a quadratic pair loop for XOR/OR convolution.
+- Enumerate every ordered pair of submasks for disjoint covers.
+
+Also test the smallest legal precision, zero-heavy polynomials, repeated
+evaluation points, shuffled interpolation input, the empty mask, and maximum
+mask dimensions with sparse nonzero entries.
+
+# Exercises
+
+A--F form the complete mixed contest; all are new and self-contained.

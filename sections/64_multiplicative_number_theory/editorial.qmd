@@ -1,0 +1,360 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 64 Editorial: Multiplicative Number Theory"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Editorial overview
+
+These problems share one discipline: define the cumulative family before
+inverting it. A formula containing `mu`, `phi`, or a divisor loop is not yet a
+solution; the proof must say which objects each term counts.
+
+| Problem | Cumulative family | Recovery step |
+|---|---|---|
+| A | pairs whose two values are divisible by `d` | expand `gcd^k` over its divisors |
+| B | totients weighted by the number of multiples | isolate the summatory function and group quotients |
+| C | pairs whose lcm divides `m` | subtract exact proper-divisor counts |
+| D | integers divisible by each square `d^2` | Mobius inclusion-exclusion, then binary search |
+
+# A. GCD Pair Energy
+
+## Restatement and constraints
+
+We need the sum of `gcd(ai,aj)^k` over all `i<j`. Enumerating pairs is
+quadratic; factorizing each pair does not repair that. The value bound
+`M <= 200000` suggests sieve loops over all multiples.
+
+## Finding the transform
+
+Define `J[d]` by the divisor identity
+
+```text
+x^k = sum(J[d] for d dividing x).
+```
+
+We can compute it without memorizing a closed form. Start with `J[x]=x^k` and
+subtract `J[d]` from every proper multiple of `d`, processing `d` increasingly.
+When `J[x]` is reached, every proper-divisor contribution has been removed.
+
+For one pair with gcd `g`, its energy becomes
+
+```text
+g^k = sum(J[d] for d dividing g).
+```
+
+The condition `d | gcd(ai,aj)` is exactly “`d` divides both values.” If
+`cnt[d]` input values are multiples of `d`, precisely `C(cnt[d],2)` pairs
+receive the contribution `J[d]`.
+
+## Worked trace
+
+For `2,4,6` and `k=2`, inversion of `x^2` begins
+
+```text
+J[1]=1
+J[2]=4-J[1]=3
+J[3]=9-J[1]=8
+J[4]=16-J[1]-J[2]=12
+```
+
+All three values are divisible by `2`, so `J[1]*C(3,2) + J[2]*C(3,2)`
+already gives `3+9=12`. Larger divisors contain fewer than two values.
+
+## Algorithm
+
+1. Build value frequencies.
+2. For every `d`, sum frequencies at `d,2d,3d,...` into `cnt[d]`.
+3. Set `J[d]=d^k`; invert its divisor sums in increasing order.
+4. Add `J[d]*cnt[d]*(cnt[d]-1)/2` for every `d`.
+
+## Correctness proof
+
+**Lemma 1.** After the inversion loop, `x^k` equals the sum of `J[d]` over
+all divisors `d` of `x`.
+
+**Proof.** When processing `x`, its initial value is `x^k`. Each already
+finalized proper divisor `d` subtracts `J[d]` exactly once. Therefore the
+remaining value is the unique amount required to make the divisor sum equal
+`x^k`. Induction over increasing `x` proves the identity. QED.
+
+**Lemma 2.** `C(cnt[d],2)` is the number of pairs whose gcd is divisible by
+`d`.
+
+**Proof.** Their gcd is divisible by `d` exactly when both values are divisible
+by `d`; choosing two of the `cnt[d]` qualifying indices counts each pair once.
+QED.
+
+**Theorem.** The algorithm prints the required energy sum.
+
+**Proof.** By Lemma 1, each pair of gcd `g` contributes `J[d]` once for every
+`d|g`. By Lemma 2, the outer sum counts exactly all pairs receiving each such
+contribution. Thus every pair contributes exactly `g^k`. QED.
+
+## Complexity and tests
+
+Both sieve loops cost `O(M log M)` and memory is `O(M)`. Modular powers add
+`O(M log k)`. Test `k=0`, all ones, all equal values, and values with several
+shared divisors.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/a_gcd_pair_energy/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/a_gcd_pair_energy/solution.py >}}
+```
+
+# B. Summatory Totient
+
+## Why the ordinary sieve is insufficient
+
+A sieve to `n` is excellent when `n` is a few million. It cannot allocate an
+array of length `10^9`. We need a recurrence whose distinct arguments are the
+few values of `floor(n/i)`.
+
+## Derivation
+
+Start from `sum_{d|m} phi(d)=m` and sum over `m=1..n`:
+
+```text
+sum_{d=1..n} phi(d) * floor(n/d) = n(n+1)/2.
+```
+
+There is another way to expose the desired prefix. Count the same left side by
+the quotient `q=floor(n/d)`. Equivalently, isolate the copy of every `phi(d)`
+whose multiplier includes at least one and recursively remove the extra
+copies. This yields
+
+```text
+Phi(n) = n(n+1)/2 - sum_{l=2..n} Phi(floor(n/l)).
+```
+
+Equal quotients are repeated. If `q=floor(n/l)`, it remains equal through
+`r=floor(n/q)`, so the whole block subtracts
+`(r-l+1)*Phi(q)`.
+
+For `n=10`, the blocks starting at two are
+
+```text
+[2,2] -> 5, [3,3] -> 3, [4,5] -> 2, [6,10] -> 1.
+```
+
+## Algorithm
+
+Precompute `Phi` through `10^6`. For a larger argument, initialize its answer
+to the triangular number, traverse quotient blocks starting at `2`, recursively
+subtract each block contribution, and memoize the result.
+
+## Correctness proof
+
+**Lemma 1.** The ungrouped recurrence for `Phi(n)` is valid.
+
+**Proof.** In the divisor identity summed through `n`, `phi(d)` occurs once for
+each multiple of `d`, hence `floor(n/d)` times. Removing the first occurrence
+of every `phi(d)` leaves the extra occurrences; regrouping them by the chosen
+multiple produces `sum_{l=2..n} Phi(floor(n/l))`. The remaining first copies
+sum to `Phi(n)`. QED.
+
+**Lemma 2.** The grouped loop equals the ungrouped sum.
+
+**Proof.** The formula for `r` gives the maximal consecutive interval on which
+`floor(n/i)=q`. Multiplying `Phi(q)` by its interval length accounts for every
+index in that interval once. The intervals are disjoint and cover `2..n`.
+QED.
+
+**Theorem.** Every returned value is `Phi(n)` modulo the modulus.
+
+**Proof.** Small values are exact sieve prefixes. For a larger value, all
+recursive arguments are smaller. Strong induction with Lemmas 1 and 2 proves
+the computed recurrence exact; memoization changes only repeated work. QED.
+
+## Complexity and tests
+
+The precomputation uses `O(B log log B)` time and `O(B)` memory for
+`B=10^6`. Harmonic blocking and memoization give the standard sublinear
+summatory-function behavior; for this bound it is comfortably below a linear
+sieve to `n`. Test around `B`, repeated queries, and compare with a direct
+totient sieve for random `n <= 500`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/b_summatory_totient/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/b_summatory_totient/solution.py >}}
+```
+
+# C. LCM Pair Spectrum
+
+## Observation
+
+For a fixed `m`, let `inside[m]` be the number of input values dividing `m`.
+Any pair chosen among them has lcm dividing `m`, and every pair whose lcm
+divides `m` has both values dividing `m`. Therefore
+
+```text
+C(inside[m],2) = sum(exact[d] for d dividing m).
+```
+
+This equivalence is the entire reduction. It changes a two-value operation
+(`lcm`) into two one-dimensional divisor transforms.
+
+## Trace
+
+For `1,2,3,6`, `inside[6]=4`, so six pairs have lcm dividing six. We already
+recover one pair at lcm two and one at lcm three; none has lcm one. Subtracting
+these proper-divisor spectra leaves four pairs at lcm six.
+
+## Algorithm
+
+1. Sieve each frequency into all of its multiples to obtain `inside`.
+2. Initialize `exact[m]=C(inside[m],2)`.
+3. In increasing order, subtract `exact[d]` from every proper multiple of `d`.
+
+## Correctness proof
+
+**Lemma 1.** Before inversion, `exact[m]` (temporarily) counts pairs whose lcm
+divides `m`.
+
+**Proof.** As shown above, this family is exactly the pairs drawn from values
+that divide `m`, of which there are `C(inside[m],2)`. QED.
+
+**Lemma 2.** After processing index `m`, `exact[m]` counts pairs whose lcm is
+exactly `m`.
+
+**Proof.** By increasing induction, every exact count for a proper divisor is
+already known and subtracted once. Lemma 1 says the cumulative count contains
+only exact lcms dividing `m`; the remainder is exactly lcm `m`. QED.
+
+The theorem follows from Lemma 2 for every output position.
+
+## Complexity and tests
+
+Time is `O(M log M+n)` and memory is `O(M)`. Test repeated equal values,
+many ones, prime values, and an `M` larger than every input value.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/c_lcm_pair_spectrum/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/c_lcm_pair_spectrum/solution.py >}}
+```
+
+# D. Square-Free Rank
+
+## From a slow recognizer to a prefix counter
+
+Checking every integer and factorizing it would require work proportional to
+the answer. Instead count how many valid integers are at most `X`.
+
+An integer is divisible by no prime square. Inclusion-exclusion over prime
+squares can be packaged by the Mobius function:
+
+```text
+count(X) = sum mu(d) * floor(X/(d*d)), for d*d <= X.
+```
+
+If `d` is square-free with `t` prime factors, `mu(d)=(-1)^t`, exactly the
+inclusion-exclusion sign for being divisible by those `t` prime squares. If
+`d` itself contains a square, `mu(d)=0`, so a repeated condition contributes
+nothing.
+
+## Trace
+
+For `X=10`:
+
+```text
+d=1: +10
+d=2: -floor(10/4) = -2
+d=3: -floor(10/9) = -1
+total: 7
+```
+
+Indeed `1,2,3,5,6,7,10` are the seven square-free values.
+
+## Algorithm
+
+Sieve `mu` up to the square root of the largest binary-search upper bound.
+For every rank, binary-search the smallest `X` for which `count(X)>=k`.
+`3k` is a safe course bound; the density of square-free integers is bounded
+away from zero, and the implementation can also double the bound if desired.
+
+## Correctness proof
+
+**Lemma 1.** `count(X)` equals the number of square-free integers at most `X`.
+
+**Proof.** Fix an integer `x`. Its total coefficient in the sum is
+`sum_{d*d|x} mu(d)`. This is one when no prime square divides `x`, and zero
+otherwise by inclusion-exclusion. Summing those indicators over `x<=X` gives
+the formula. QED.
+
+**Lemma 2.** The binary search returns the k-th square-free integer.
+
+**Proof.** `count(X)` is monotone. At the returned smallest `X`, at least `k`
+valid values are no larger than `X`, while fewer than `k` are no larger than
+`X-1`. Therefore `X` itself is precisely the k-th. QED.
+
+## Complexity and tests
+
+For one query, each count costs `O(sqrt(X))` and binary search uses `O(log X)`
+counts. The Mobius sieve uses `O(sqrt(max X))` memory. Test ranks surrounding
+perfect squares and compare the first several hundred answers with trial
+division.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_squarefree_rank/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_squarefree_rank/solution.py >}}
+```
+
+# Stress-testing strategy
+
+The supplied randomized tests deliberately use tiny domains and independent
+brute definitions: explicit pairs for A and C, direct gcd counts for phi in B,
+and trial square divisibility in D. This is stronger than comparing two
+implementations of the same optimized formula.
+
+# What to carry forward
+
+When a hard arithmetic problem asks for exact gcd/lcm classes, first count an
+easier cumulative divisibility family. When `floor(n/i)` appears, enumerate its
+constant intervals. When the target is the k-th valid integer, search on a
+proven prefix-count oracle.

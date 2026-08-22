@@ -1,0 +1,414 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 66 Editorial: Master+ Mathematics Mixed Contest"
+author: "Competitive Programming Course"
+date: last-modified
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+    include-in-header:
+      text: |
+        \usepackage{microtype}
+        \usepackage{amsmath}
+        \usepackage{booktabs}
+execute:
+  enabled: false
+---
+
+# Coverage and progression
+
+| Problem | First model | Decisive compression |
+|---|---|---|
+| A | words grouped by minimal period | Mobius inversion, then rotation orbit size |
+| B | a range as two prefixes | memoized harmonic quotient blocks |
+| C | concrete conflicts at every rotation | five cyclic correlations |
+| D | independent weighted choices | sparse generating-function product |
+| E | one matrix-power entry | learn a scalar recurrence from `2n+1` terms |
+| F | fixed-size subsets divisible by `d` | Mobius sum becomes one factorial convolution |
+
+# A. Primitive Necklaces
+
+## Derivation
+
+Temporarily distinguish a starting position, so we count linear words. Let
+`primitive[d]` be the number of length-`d` words whose minimal period is `d`.
+Every length-`n` word has one minimal period `d` dividing `n`, and is obtained
+by repeating its primitive block. Therefore
+
+```text
+c^n = sum(primitive[d] for d dividing n).
+```
+
+Mobius inversion gives
+
+```text
+primitive[n] = sum(mu[d] * c^(n/d) for d dividing n).
+```
+
+Every primitive length-`n` word has exactly `n` distinct rotations: equality
+after a smaller rotation would be a smaller period. Thus each primitive
+necklace contains exactly `n` linear representatives, and the answer is
+`primitive[n]/n`.
+
+For binary length three, there are eight words. The two constant words have
+period one; the other six are primitive and form two orbits of three.
+
+## Algorithm
+
+Sieve `mu` through the largest queried `n`. Enumerate each query's divisors in
+`O(sqrt(n))`, evaluate the Mobius sum by modular exponentiation, and multiply
+by the modular inverse of `n`.
+
+## Correctness proof
+
+**Lemma 1.** The Mobius sum counts exactly the linear words of minimal period
+`n`.
+
+**Proof.** The cumulative divisor equation above partitions all words by their
+unique minimal period. Mobius inversion is the inverse of this divisor sum.
+QED.
+
+**Lemma 2.** Each primitive rotation orbit has size `n`.
+
+**Proof.** If two of its `n` rotations were equal, their nonzero displacement
+would be a period smaller than `n`, contradicting primitiveness. QED.
+
+Dividing Lemma 1's labeled count by the orbit size from Lemma 2 counts every
+primitive necklace once.
+
+## Complexity and tests
+
+The sieve costs `O(N)` with the linear implementation. A query costs
+`O(sqrt(n) log n)` for divisor enumeration and powers; memory is `O(N)`. Test
+one color, `n=1`, prime `n`, and brute rotation classes for tiny alphabets.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/a_primitive_necklaces/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/a_primitive_necklaces/solution.py >}}
+```
+
+# B. Totient Interval
+
+## Reduction to the learned primitive
+
+Let `Phi(x)=sum_{i=1..x} phi(i)`, with `Phi(0)=0`. The range answer is
+
+```text
+Phi(R) - Phi(L-1).
+```
+
+The main work is the Section 64 summatory recurrence:
+
+```text
+Phi(n) = n(n+1)/2
+         - sum from i=2 to n of Phi(floor(n/i)).
+```
+
+If `q=floor(n/l)`, the quotient stays constant through `r=floor(n/q)`, so the
+whole interval contributes `(r-l+1)*Phi(q)`. Precompute the first million
+prefixes and memoize larger recursive arguments shared by all range endpoints.
+
+For `[6,10]`, the answer is `Phi(10)-Phi(5)=32-10=22`.
+
+## Correctness proof
+
+The identity `sum_{d|m}phi(d)=m`, summed over `m<=n`, yields the summatory
+recurrence as proved in Section 64. Harmonic blocks partition every index
+`2..n` without changing its quotient, so the grouped evaluation is equal to
+the recurrence. Finally, subtracting prefixes removes exactly terms below
+`L`, leaving `phi(L)..phi(R)`.
+
+## Complexity and tests
+
+The base sieve is `O(B log log B)` time and `O(B)` memory. Memoized large
+states use harmonic-block traversal rather than a linear scan. Test singleton
+ranges, `L=1`, endpoints around the precompute boundary, and random small
+ranges against direct gcd counting.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/b_totient_interval/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/b_totient_interval/solution.py >}}
+```
+
+# C. Wildcard Rotation
+
+## Count conflicts, not compatibility cases
+
+A position is invalid only when both characters are concrete and unequal. For
+each shift, compute:
+
+```text
+both_concrete = number of positions where neither side is '?'
+same_concrete = sum over A,C,G,T of equal-letter positions
+conflicts = both_concrete - same_concrete
+```
+
+The shift is valid exactly when `conflicts=0`.
+
+Each count is a cyclic correlation. For binary indicator arrays `left` and
+`right`, reverse `left`, duplicate `right`, convolve, and read coefficient
+`n-1+shift`. One correlation counts concrete/concrete pairs and four count
+equal concrete letters.
+
+In the sample, shift two aligns `t` as `ACGT`; the wildcard in `s` accepts
+`C`, and the other three letters match. Every other shift has a concrete
+mismatch.
+
+## Correctness proof
+
+**Lemma 1.** The correlation coefficient read for a shift counts exactly the
+positions where both chosen indicator predicates hold.
+
+**Proof.** Reversed index `n-1-i` pairs at coefficient `n-1+r` with doubled
+index `i+r`, representing `t[(i+r) mod n]`. QED.
+
+**Lemma 2.** A shift is compatible exactly when `both_concrete=same_concrete`.
+
+**Proof.** Every same-concrete position is included among both-concrete
+positions. Their difference is precisely the positions with two distinct
+concrete letters, the only forbidden case. QED.
+
+The scan therefore counts all and only valid shifts and records the smallest.
+
+## Complexity and tests
+
+Five convolutions cost `O(n log n)` time and `O(n)` memory. Test all wildcards,
+no valid shift, length one, and ties. A frequent bug is reading `n-1-r`
+instead of deriving `n-1+r`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/c_wildcard_rotation/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/c_wildcard_rotation/solution.py >}}
+```
+
+# D. Weighted Compositions
+
+## Sparse factors
+
+Type `i` contributes one of `0,wi,2wi,...,ai*wi`, so encode it by
+
+```text
+Pi(x) = 1 + x^wi + x^(2wi) + ... + x^(ai*wi).
+```
+
+The coefficient of `x^K` in the product chooses exactly one legal exponent per
+type and counts choices whose weights sum to `K`. Terms above `K` can be
+discarded because all future exponents are nonnegative.
+
+Use a min-heap of current polynomial lengths and repeatedly convolve the two
+shortest, truncating to `K+1` coefficients. This avoids repeatedly transforming
+a nearly complete product with a tiny factor.
+
+For the sample, the solutions are `(x1,x2,x3)=(2,1,1),(0,2,1),(1,0,2)`.
+
+## Correctness proof
+
+Induct over multiplied types. The coefficient at degree `s` counts partial
+choices totaling `s`; convolution with the next sparse factor appends each
+legal count exactly once. Associativity makes the heap order irrelevant.
+Discarded degrees exceed `K` and can never decrease, so they cannot influence
+the requested coefficient. Thus the final degree-`K` coefficient is exact.
+
+## Complexity and tests
+
+With balanced merges and truncation, the course bound is
+`O(K log K log n)` transform work, plus construction of the stated total
+number of nonzero factor coefficients. Memory is `O(K+n)` live coefficients.
+Test `K=0`, weights larger than `K`, zero caps, and compare with weighted
+knapsack DP.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_weighted_compositions/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_weighted_compositions/solution.py >}}
+```
+
+# E. Black-Box Walks
+
+## Why a scalar recurrence exists
+
+Let `A` be the weighted adjacency matrix and let `v_k` contain total walk
+weights from `s` to every vertex after `k` edges. Then
+
+```text
+v_(k+1) = A * v_k
+answer sequence z_k = component t of v_k.
+```
+
+Matrix exponentiation would cost roughly `O(n^3 log K)`. Cayley--Hamilton says
+the `n` by `n` matrix satisfies its degree-`n` characteristic polynomial.
+Multiplying that matrix identity by the starting vector and selecting the
+target component proves that `z_k` satisfies a linear recurrence of order at
+most `n`.
+
+We do not compute the characteristic polynomial. Generate `2n+1` scalar terms
+by sparse edge DP, recover their minimal recurrence with Berlekamp--Massey, and
+evaluate term `K` by polynomial reduction.
+
+In the sample, a length-five walk moves from 1 to 2 on exactly one of its five
+edges; loops fill the other positions, giving five walks.
+
+## Correctness proof
+
+**Lemma 1.** The generated term `z_k` is the sum of weights of all length-`k`
+walks from `s` to `t`.
+
+**Proof.** Initially only the empty walk at `s` has weight one. Every transition
+extends every existing walk by one outgoing edge and multiplies its weight;
+summing at destinations counts all extensions exactly once. QED.
+
+**Lemma 2.** The infinite scalar sequence has recurrence order at most `n`.
+
+**Proof.** Apply the Cayley--Hamilton matrix relation to every `A^k v_0`, then
+take target component. This yields the same degree-at-most-`n` relation among
+consecutive scalar terms. QED.
+
+Berlekamp--Massey recovers a minimal order-`r` recurrence from at least `2r`
+correct terms. We generate more than `2n`, hence enough by Lemma 2. Section 65's
+polynomial evaluator then returns the exact `K`-th recurrence term, which is
+the desired walk sum by Lemma 1.
+
+## Complexity and tests
+
+Generating terms costs `O(nm)`. Recovery costs `O(n^2)` and evaluation
+`O(n^2 log K)`; memory is `O(n+m)`. Test `K=0`, no edges, parallel edges,
+self-loops, and compare small `K` with direct walk DP.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/e_black_box_walks/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_black_box_walks/solution.py >}}
+```
+
+# F. GCD-One Size Spectrum
+
+## First transform: exact gcd by Mobius
+
+For divisor `d`, let `cnt[d]` be the number of input values divisible by `d`.
+For a fixed subset size `k`, `C(cnt[d],k)` counts subsets whose every value is
+divisible by `d`. Mobius inclusion-exclusion gives
+
+```text
+answer[k] = sum_d mu[d] * C(cnt[d], k).
+```
+
+Computing this for every `(d,k)` is quadratic. We need to evaluate all `k` in
+one convolution.
+
+## Group equal counts and expose a convolution
+
+Define
+
+```text
+bucket[c] = sum(mu[d] for d with cnt[d]=c).
+```
+
+Then
+
+```text
+answer[k]
+ = sum_{c>=k} bucket[c] * c! / (k! (c-k)!).
+```
+
+Factor out `1/k!`. Set
+
+```text
+X[c] = bucket[c] * c!
+Y[j] = 1/j!
+```
+
+The remaining sum is `sum_{c>=k} X[c]Y[c-k]`. Reverse `X` by setting
+`RX[n-c]=X[c]`; convolution coefficient `n-k` is exactly this sum because
+`(n-c)+(c-k)=n-k`. Multiply it by `1/k!` to obtain the answer.
+
+For `2,3,6`, no singleton has gcd one, only pair `{2,3}` does, and the full
+triple does, producing `0 1 1`.
+
+## Correctness proof
+
+**Lemma 1.** The Mobius sum counts size-`k` subsets with gcd exactly one.
+
+**Proof.** Fix a chosen subset with gcd `g`. Its total coefficient is
+`sum_{d|g}mu(d)`, which is one for `g=1` and zero otherwise. QED.
+
+**Lemma 2.** Convolution coefficient `n-k`, multiplied by inverse factorial
+`k`, equals the Mobius sum of Lemma 1.
+
+**Proof.** The coefficient pairs reversed index `n-c` only with index `c-k`.
+Its term is `bucket[c]*c!*1/(c-k)!`; multiplying by `1/k!` gives
+`bucket[c]C(c,k)`. Summing over valid `c` is precisely the grouped Mobius sum.
+QED.
+
+Together the lemmas prove every printed spectrum entry.
+
+## Complexity and tests
+
+Divisible counts and the Mobius sieve cost `O(M log M)` and `O(M)` memory.
+One NTT costs `O(n log n)` with `O(n)` memory. Test all ones, no gcd-one subset,
+duplicates, and brute all subsets for `n<=15`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_gcd_one_size_spectrum/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_gcd_one_size_spectrum/solution.py >}}
+```
+
+# Stress-testing strategy
+
+The randomized generators do not call the optimized references. They enumerate
+rotation orbits for A, gcds for B, rotations for C, bounded DP for D, direct
+walk transitions for E, and every subset for F. At this level, a reference
+algorithm and an oracle should fail for different reasons.
+
+# What to carry forward
+
+The hardest two problems first compress a large structured state into a scalar
+sequence or a count histogram. Only after that compression does the advanced
+algebra become useful. This order—model, compress, then accelerate—is more
+reliable than searching the statement for the name of a technique.

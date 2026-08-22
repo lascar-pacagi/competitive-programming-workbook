@@ -1,0 +1,167 @@
+---
+title: "Section 76 Editorial — Suffix Arrays And LCP Structure"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+Each solution starts from the uncompressed object, identifies the bottleneck, and states the invariant that justifies the compressed structure.
+
+# A. Suffix Order And LCP
+
+### How to find it
+
+Replace suffix strings by ranks of power-of-two prefixes. Kasai then reuses all but the first character of the previous comparison.
+
+### Correctness
+
+The doubling invariant proves the final ranks are the exact suffix order. Kasai compares the suffix preceding each suffix in that order, so every requested adjacent LCP is produced.
+
+### Complexity
+
+`O(n log^2 n)` time and `O(n)` memory with comparison sorting.
+
+### Trace, pseudocode, and traps
+
+For `banana`, first-character ranks tie positions `1,3,5`; successive pair
+ranks separate suffix `a`, `ana`, and `anana`. In each round sort positions by
+`(rank[i],rank[i+length])`, assign equal new ranks to equal pairs, and double
+`length`. Kasai then scans text positions, compares only with the previous
+suffix in final order, and reuses `max(h-1,0)` characters.
+
+Do not build copied suffix strings, confuse text order with suffix-array order,
+or omit the smaller sentinel rank for a block ending past `n`. Test length one,
+all equal characters, and a string whose suffix is a prefix of another.
+
+### Reference C++
+
+```cpp
+{{< include problems/a_suffix_order_lcp/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/a_suffix_order_lcp/solution.py >}}
+```
+
+# B. Repeated At Least K Times
+
+### How to find it
+
+Sort the occurrence starts indirectly as suffixes. A length shared by `k` consecutive suffixes is exactly the minimum of the intervening LCP values.
+
+### Correctness
+
+Every substring with `k` occurrences yields a block whose LCP minimum is at least its length. Conversely, a block minimum `L` makes the first `L` characters equal in all suffixes of that block.
+
+### Complexity
+
+`O(n log^2 n)` construction and `O(n)` deque processing.
+
+### Worked window and traps
+
+For four consecutive suffixes with LCP values `5,3,4`, their shared prefix is
+length 3. A `k`-suffix block contains `k-1` adjacent LCP entries, so the deque
+window has length `k-1`, not `k`. For `k=1`, the entire string is a valid
+one-occurrence substring and must be handled separately.
+
+Maintain increasing LCP values in the deque and remove indices leaving the
+window before reading its front. Taking the maximum LCP instead of the minimum
+confuses one good adjacent pair with a prefix common to the whole block.
+
+### Reference C++
+
+```cpp
+{{< include problems/b_repeated_at_least_k/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/b_repeated_at_least_k/solution.py >}}
+```
+
+# C. Pattern Occurrence Queries
+
+### How to find it
+
+All suffixes prefixed by a fixed pattern are consecutive. Binary-search the first suffix not smaller than the pattern and the first suffix strictly greater under prefix comparison.
+
+### Correctness
+
+The comparator partitions the sorted suffixes into smaller, matching, and greater groups. Their middle interval contains exactly all occurrence starts.
+
+### Complexity
+
+`O(n log^2 n + sum |p| log n)` time and `O(n)` memory.
+
+### Comparator contract and tests
+
+The lower search asks whether a suffix is lexicographically smaller than the
+pattern. The upper search asks whether it still begins with the complete
+pattern. Compare directly in the source text; if the pattern ends first, it is
+a match, while a suffix ending first is smaller.
+
+Test a pattern equal to the entire text, longer than every suffix, absent
+between two suffixes, and repeated at overlapping starts. Returning suffix-
+array ranks instead of original start positions is another common mistake.
+
+### Reference C++
+
+```cpp
+{{< include problems/c_pattern_occurrence_queries/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/c_pattern_occurrence_queries/solution.py >}}
+```
+
+# D. Disjoint Repeated Substring
+
+### How to find it
+
+Binary-search the length. LCP values at least that length join maximal groups of suffixes sharing the candidate prefix; track the minimum and maximum starting positions in each group.
+
+### Correctness
+
+Two equal occurrences are disjoint exactly when their starts differ by at least the tested length. The scan examines precisely every maximal equal-prefix group, so feasibility is exact and monotone.
+
+### Complexity
+
+`O(n log^2 n + n log n)` time and `O(n)` memory.
+
+### Detailed feasibility proof and pseudocode
+
+For a tested length `L`, scan the suffix array and start a new group whenever
+the intervening LCP is below `L`. Within one group, maintain the minimum and
+maximum suffix start. The group is feasible exactly when
+`maximum_start-minimum_start >= L`; then the two equal length-`L` occurrences
+do not overlap.
+
+```text
+feasible(L):
+    begin first group with min_start=max_start=sa[0]
+    for each adjacent LCP:
+        if lcp >= L: extend extrema with next suffix
+        else: test old group and start a new one
+    test final group
+```
+
+If `L` is feasible, every shorter length is feasible using the same starts, so
+binary search is valid. Check the final group after the loop, use `>=L` rather
+than `>L`, and test occurrences that touch end-to-start exactly.
+
+### Reference C++
+
+```cpp
+{{< include problems/d_disjoint_repeated_substring/solution.cpp >}}
+```
+
+### Reference Python
+
+```python
+{{< include problems/d_disjoint_repeated_substring/solution.py >}}
+```

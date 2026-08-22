@@ -1,0 +1,194 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 74 Editorial: Geometric Sweeps And Proximity"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+
+
+# How to use this editorial
+
+Recover the geometric invariant and degeneracy policy before comparing code.
+
+# A. Orthogonal Crossings
+
+## How to find it
+
+Sweeping by x turns every horizontal into an active interval in time and every vertical into a y-range query. Write the endpoint convention before selecting the add/query/remove order.
+
+## Derivation and correctness
+
+At sweep coordinate x, the Fenwick tree contains exactly horizontals whose closed x-range contains x because adds precede queries and removals follow them. A vertical query sums exactly active y-values in its closed interval. Total time is `O((H+V) log(H+V))`.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/a_orthogonal_crossings/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_orthogonal_crossings/solution.py >}}
+```
+
+# B. Rectangle Union
+
+## How to find it
+
+Do not attempt inclusion-exclusion over rectangles. Sweep between consecutive vertical sides; the only changing quantity is the one-dimensional union length on y.
+
+## Derivation and correctness
+
+The active rectangle set changes only at vertical sides. Between event x-values, covered y-length is constant, so multiplying it by the width is exact. The cover-count segment tree stores the union length of active y-intervals. Complexity is `O(n log n)`.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/b_rectangle_union/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_rectangle_union/solution.py >}}
+```
+
+# C. Closest Pair
+
+## How to find it
+
+The slow pair search becomes useful after splitting by x: recursive answers eliminate everything except a narrow cross-boundary strip. The remaining question is why y-order plus packing makes that strip linear.
+
+## Derivation and correctness
+
+A better cross-half pair must lie inside the width-sqrt(d) strip. Sorting it by y permits stopping once the y-gap reaches sqrt(d); planar packing bounds the remaining comparisons per point by a constant. Merging y-orders at every recursion gives `O(n log n)`.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/c_closest_pair/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_closest_pair/solution.py >}}
+```
+
+# D. Rectangle Union Perimeter
+
+## Why covered length is insufficient
+
+Problem B's covered y-length gives area, but horizontal perimeter depends on
+how many disjoint covered y-components exist. Each segment-tree node therefore
+stores:
+
+```text
+cover count
+covered length
+number of covered components
+whether its left and right boundaries are covered
+```
+
+If local cover is positive, the node is one fully covered component. Otherwise
+merge its children and subtract one component when their touching boundaries
+are both covered.
+
+## Sweep accounting
+
+Between consecutive x-coordinates, coverage is constant. For strip width
+`dx`, add
+
+```text
+area      += covered_length * dx
+perimeter += 2 * components * dx.
+```
+
+At an event coordinate, vertical boundary equals the length covered on exactly
+one side of the sweep. Process all additions before removals and, after each
+update, add the absolute change in covered length. Additions measure coverage
+new on the right; subsequent removals measure coverage lost from the left
+that was not replaced by an addition.
+
+## Correctness proof
+
+**Lemma 1.** The tree root stores the exact active covered length and number of
+connected y-components.
+
+**Proof.** A positively covered node is its complete geometric interval and
+one component. An uncovered leaf contributes nothing. For an uncovered
+internal node, child unions are disjoint except possibly at their shared
+endpoint; their component counts add, merging exactly once when both touching
+boundaries are covered. Structural induction proves every stored field. QED.
+
+**Lemma 2.** Strip contributions equal all nonvertical boundary and area in
+that strip.
+
+**Proof.** Active coverage is constant inside the open strip. Its Cartesian
+product with width `dx` has the stated area. Every covered y-component has one
+top and one bottom boundary spanning the strip, producing `2*components*dx`.
+QED.
+
+**Lemma 3.** Event contributions equal all vertical union boundary at that x.
+
+**Proof.** Vertical boundary is the symmetric difference of covered y-sets
+immediately before and after the batch. Adding intervals first accumulates the
+measure newly covered after the event. Removing ending intervals afterward
+accumulates measure covered before but absent after, while portions replaced
+by additions remain covered and cause no decrease. QED.
+
+The three lemmas partition the union's area and boundary, proving both outputs.
+
+## Complexity, mistakes, and tests
+
+There are `2n` events and `O(n)` compressed y-intervals. Sorting costs
+`O(n log n)` and every update costs `O(log n)`.
+
+Common mistakes include using compressed index counts as length, omitting the
+child-boundary merge, processing removals before additions at the same x, and
+adding `2*covered_length` instead of `2*components` per unit width. Test
+identical rectangles, shared edges, corner contact, nesting, disjoint pieces,
+and several starts and ends at one x.
+
+## C++
+
+```cpp
+{{< include problems/d_rectangle_union_perimeter/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_rectangle_union_perimeter/solution.py >}}
+```
+
+# Stress testing and carry-forward
+
+The D oracle rasterizes small integer rectangles into unit cells. Area is the
+number of occupied cells and perimeter is the number of cell sides adjacent to
+an unoccupied cell. The transferable state-design lesson is that covered
+length alone loses topology; component count plus endpoint flags is the
+smallest extra boundary summary needed here.

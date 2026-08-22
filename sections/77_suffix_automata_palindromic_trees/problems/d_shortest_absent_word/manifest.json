@@ -1,0 +1,6 @@
+{
+  "section": 77,
+  "title": "Shortest Absent Word",
+  "checker": "tokens",
+  "time_limit_seconds": 7
+}

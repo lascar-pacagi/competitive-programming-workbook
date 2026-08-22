@@ -1,0 +1,162 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 69 Editorial: Master+ Structures And Trees Mixed Contest"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+# A. Snapshot Range Rank
+
+Every append creates a node in the version tree and a persistent value-frequency
+root. Binary lifting finds the ancestor version whose sequence length is `r`
+and the ancestor of length `l-1`. Subtracting their segment counts leaves
+exactly positions `[l,r]`; k-th descent on the two roots returns the rank.
+
+**Proof.** A version's ancestors are precisely its sequence prefixes because
+each version appends once to its parent. Persistent-root differences therefore
+remove exactly the first `l-1` values from the first `r`. At every k-th descent,
+the difference of left counts is the number of remaining range values in the
+left half, so rank selection is correct.
+
+Time is `O(log q+log M)` per query or append; memory is `O(q(log q+log M))`.
+Test branching versions and intervals not ending at the queried version depth.
+
+```cpp
+{{< include problems/a_snapshot_rank/solution.cpp >}}
+```
+```python
+{{< include problems/a_snapshot_rank/solution.py >}}
+```
+
+# B. Seasonal Component Size
+
+Convert every edge lifetime to a half-open interval, store it in a time segment
+tree, and DFS with rollback DSU. At a size-query leaf, return the size stored at
+the representative of `u`.
+
+**Proof.** Exactly the active edges cover the leaf's time, so its ancestor
+time-tree nodes unite exactly the current graph. Union-by-size DSU stores the
+cardinality of each resulting component. Snapshot rollback prevents one time
+subtree from affecting its sibling.
+
+Total time is `O(q log q log n)` and memory `O(q log q+n)`. Test a component
+splitting after a bridge removal and edges active through the final operation.
+
+```cpp
+{{< include problems/b_seasonal_component_size/solution.cpp >}}
+```
+```python
+{{< include problems/b_seasonal_component_size/solution.py >}}
+```
+
+# C. Route Matrices
+
+Heavy-light decomposition gives `O(log n)` intervals. Every segment node stores
+left-to-right and right-to-left matrix products. Accumulate `u`-side chunks in
+travel order, prepend `v`-side chunks, and place the final same-chain interval
+between them.
+
+**Proof.** Segment induction proves both directional products. HLD chunks are a
+disjoint partition of the path, and the two accumulators concatenate them in
+the exact vertex order. Associativity permits chunking; no commutativity is
+assumed. Thus the printed matrix is the requested product.
+
+Updates are `O(log n)`, queries `O(log^2 n)`, memory `O(n)`. Use matrices where
+`AB != BA` when testing reverse paths.
+
+```cpp
+{{< include problems/c_route_matrices/solution.cpp >}}
+```
+```python
+{{< include problems/c_route_matrices/solution.py >}}
+```
+
+# D. Beacon Distance Sum
+
+For each centroid `c`, maintain the active count and sum of active distances to
+`c`. Also maintain the same pair for each component branch incident to `c`.
+For query vertex `u`, each centroid ancestor contributes
+
+```text
+total_sum[c] + total_count[c] * dist(u,c),
+```
+
+then subtracts the corresponding branch subtotal when `u` lies in a branch.
+
+**Proof.** At centroid `c`, the total expression counts routes through `c` to
+all active vertices. Those in `u`'s same branch may not pass through `c` and
+will be accounted for at a lower centroid, so subtract exactly that branch.
+For each active vertex, the first centroid separating it from `u` is the unique
+level where it is included but not subtracted; there the route through the
+centroid is its true path. Hence every distance appears once.
+
+Build uses `O(n log n)` memory/time. Toggle and query are `O(log n)` expected
+with hash-table branch totals. Test empty/all-active states and repeated toggles.
+
+```cpp
+{{< include problems/d_beacon_distance_sum/solution.cpp >}}
+```
+```python
+{{< include problems/d_beacon_distance_sum/solution.py >}}
+```
+
+# E. Weighted Marked Pairs
+
+Construct the virtual tree of marked vertices and necessary LCAs. Let `sub[u]`
+be the sum of coefficients below virtual edge `(p,u)`, and `total` the sum of
+all query coefficients. Add
+
+```text
+(dist[u]-dist[p]) * sub[u] * (total-sub[u]).
+```
+
+**Proof.** Expanding `sub*(total-sub)` selects every cross-edge marked pair with
+weight product `ci*cj` exactly once. Such a pair's original path uses every
+edge compressed into `(p,u)`. Summing virtual edges therefore gives each pair's
+coefficient product times its complete distance.
+
+After `O(n log n)` LCA preprocessing, a query is `O(k log k)` and `O(k)` memory.
+
+```cpp
+{{< include problems/e_weighted_marked_pairs/solution.cpp >}}
+```
+```python
+{{< include problems/e_weighted_marked_pairs/solution.py >}}
+```
+
+# F. Subtree Mode Profile
+
+Process bottom-up, retaining the largest child frequency map and merging all
+smaller maps into it. While increasing a color count, reset the number of modes
+to one on a new maximum or increment it on a tie.
+
+**Proof.** The merged maps partition the descendants, and adding the current
+color completes the subtree. The update rule maintains exactly the largest
+frequency and the number of colors equal to it. Smaller-to-larger merging does
+not alter counts, only their storage.
+
+Each entry moves `O(log n)` times, giving expected `O(n log n)` time and `O(n)`
+memory. Test all colors equal, all distinct, and several tied modes.
+
+```cpp
+{{< include problems/f_subtree_frequency_profile/solution.cpp >}}
+```
+```python
+{{< include problems/f_subtree_frequency_profile/solution.py >}}
+```
+
+# Stress testing and carry-forward
+
+All six random generators use copied sequences, fresh BFS components, explicit
+path products, all-pairs distances, or complete subtree counters. The important
+master+ habit is to validate both the compressed structure and the ordering in
+which its summaries are combined.

@@ -44,9 +44,17 @@ a precise object before reaching for a formula.
 | J | Target LCM Subsets |
 | K | Weighted Coupon Collection |
 | L | Random Divisor Descent |
+| M | Totient Prefix |
+| N | Square-Free Queries |
+| O | GCD Sum |
+| P | Subarray GCD Sum |
+| Q | Coprime Rectangles |
+| R | Exact Divisor Count |
 
-Problems F through L form the harder half of the contest. They deliberately
-combine tools instead of isolating one chapter at a time:
+Problems F through L form the original harder half of the contest. The added
+M through R sequence supplies two easy warm-ups, two more difficult problems,
+and two challenging but bounded problems. These exercises deliberately combine
+tools instead of isolating one chapter at a time:
 
 | Problem | Combination to recognize |
 |---|---|
@@ -57,6 +65,12 @@ combine tools instead of isolating one chapter at a time:
 | J | target factorization plus bitmask union of required exponents |
 | K | tail-sum expectation plus inclusion-exclusion over missing coupons |
 | L | expectation recurrence evaluated by a divisor sieve |
+| M | Euler's totient sieve and prefix sums |
+| N | square divisibility marking and prefix sums |
+| O | classify integers by their exact GCD and use Euler's phi function |
+| P | compress the distinct GCDs of subarrays ending at each position |
+| Q | Möbius inversion plus quotient-interval grouping |
+| R | divisor-count sieve and offline prefix sweep |
 
 For these problems, first write the slow or unrestricted mathematical model.
 The efficient solution usually appears only after identifying repeated divisor

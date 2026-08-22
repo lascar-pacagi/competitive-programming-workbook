@@ -1,0 +1,112 @@
+---
+title: "Section 97 Editorial — Digit And Broken-Profile DP"
+format:
+  pdf:
+    code-overflow: wrap
+geometry: margin=1.6cm
+fontsize: 9pt
+---
+
+# A. Digit Sum Range
+
+## How to find it
+
+Precompute suffix counts by length and sum, then scan each tight prefix.
+
+## Correctness
+
+Every smaller prefix digit is paired with all suffixes having the one required remaining sum; the bound itself is added exactly when its sum matches. Range subtraction leaves precisely the interval.
+
+## Complexity
+
+`O(19 * 171 * 10)` preprocessing and `O(19 * 10)` per bound.
+
+## C++
+
+```cpp
+{{< include problems/a_digit_sum_range/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_digit_sum_range/solution.py >}}
+```
+
+# B. Forbidden Decimal Pattern
+
+## How to find it
+
+Take the product of digit-bound state and a KMP prefix automaton.
+
+## Correctness
+
+The KMP state exactly summarizes every suffix relevant to a future pattern occurrence; rejecting the terminal state is necessary and sufficient.
+
+## Complexity
+
+`O(19 * |P| * 10)` per query.
+
+## C++
+
+```cpp
+{{< include problems/b_forbidden_decimal_pattern/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_forbidden_decimal_pattern/solution.py >}}
+```
+
+# C. Obstacle Domino Tilings
+
+## How to find it
+
+Scan the first uncovered cell under an incoming occupancy mask.
+
+## Correctness
+
+Every tiling covers that cell horizontally or vertically exactly once, and each legal transition preserves nonoverlap and complete coverage.
+
+## Complexity
+
+`O(n * 2^m * m)` up to transition constants.
+
+## C++
+
+```cpp
+{{< include problems/c_obstacle_domino_tilings/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_obstacle_domino_tilings/solution.py >}}
+```
+
+# D. Grid Independent Sets
+
+## How to find it
+
+Enumerate horizontally valid row masks and reject overlap with blocked cells or the previous row.
+
+## Correctness
+
+These tests are exactly the horizontal and vertical adjacency constraints, so row induction is bijective.
+
+## Complexity
+
+`O(n * V^2)`, where `V` is the number of horizontally valid masks.
+
+## C++
+
+```cpp
+{{< include problems/d_grid_independent_sets/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_grid_independent_sets/solution.py >}}
+```

@@ -33,6 +33,8 @@ execute:
 | combinatorics under modulo | A, G, I |
 | inclusion-exclusion | B, D, G, H, I, K |
 | probability and expected value | C, K, L |
+| totients, Möbius, and divisor sieves | M, N, O, Q, R |
+| compressed GCD-state techniques | O, P, Q |
 
 Modular Appointment supplies the Euclidean/congruence reasoning that Coprime Pairs
 does not exercise directly. Its complete local package is included by this
@@ -60,6 +62,12 @@ the corresponding block before studying its implementation:
 | J | prime-exponent requirements as bits | target `12` | keeping values that do not divide the target |
 | K | sum tail probabilities | two unequal coupon weights | treating coupon arrivals as independent |
 | L | expectation from proper divisors | values `4` and `6` | including the current value as a divisor choice |
+| M | prefix sums after a totient sieve | `n=1,5,10` | treating `phi` as a prime-only function |
+| N | mark multiples of prime squares | `x=1,10,20` | marking multiples of `p` instead of `p^2` |
+| O | group integers by exact GCD | `n=6` | counting coprime integers without the scaling factor |
+| P | rolling map of ending-subarray GCDs | `2,4,6,3` | retaining every subarray separately |
+| Q | Möbius sum with constant floor quotients | rectangle `3 by 3` | using one loop iteration per divisor for every query |
+| R | divisor-count sieve and offline sweep | `N=10, K=4` | building a prefix table for every possible `K` |
 
 The source listings are intentionally compact reference implementations. The
 checklist supplies the constraints, pseudocode, proof checkpoints, complexity,
@@ -79,6 +87,12 @@ language notes, adversarial tests, and brute-force oracle to use before code.
 | J. Target LCM Subsets | factorization, bitmask DP |
 | K. Weighted Coupon Collection | expectation, inclusion-exclusion |
 | L. Random Divisor Descent | expectation DP, divisor sieve |
+| M. Totient Prefix | Euler's totient sieve, prefix sums |
+| N. Square-Free Queries | prime-square marking, prefix sums |
+| O. GCD Sum | exact-GCD classes, Euler's totient |
+| P. Subarray GCD Sum | rolling distinct GCD states |
+| Q. Coprime Rectangles | Möbius inversion, quotient grouping |
+| R. Exact Divisor Count | divisor sieve, offline query ordering |
 
 # A. Blocked Path
 
@@ -511,46 +525,11 @@ The mixed contest generators compare against direct combinatorics, brute-force
 gcd pair checks, and exact rational probability. This phase is especially prone
 to off-by-one and complement mistakes, so stress tests are part of the workflow.
 
-# What to carry forward
+# A--C Upsolve Workshop
 
-Math contest problems are often a composition of small tools. The main skill is
-recognizing the composition early: combinations plus subtraction, sieve plus
-inclusion-exclusion, or probability plus complement.
-# Extended upsolve workshop
-
-**A. Blocked Path.** Subtract `ways(start,block)*ways(block,finish)` from all
-monotone paths. Test a blocked start or finish, where every path is forbidden.
-
-**B. Coprime Pairs.** For each value, inclusion-exclusion over its distinct
-prime factors counts earlier values sharing any factor; subtract from prior
-count. Test value one and repeated composite values.
-
-**C. At Least One.** Compute `1-product(1-p_i/q_i)`. Directly adding event
-probabilities double-counts overlapping outcomes; test one certain event.
-# Full upsolve notes
-
-**A. Blocked Path.** Every forbidden monotone path has a unique prefix ending
-at `(R,C)` and suffix from it, so subtract
-`C(R+C-2,R-1)*C(H-R+W-C,H-R)` from all paths. For a 3-by-3 grid blocked in the
-middle: `6-2*2=2`. Test a blocked start/end, where the answer is zero.
-
-**B. Coprime Pairs.** Maintain `seen[d]`, the number of prior values divisible
-by square-free `d`. For `30` after `[6,10,21]`, inclusion-exclusion gives
-`seen[2]+seen[3]+seen[5]-seen[6]-seen[10]-seen[15]+seen[30]=3`; all earlier
-values share a factor. Count before updating the subset products. SPF plus at
-most 127 subsets per local value gives safe complexity. Test one, duplicates,
-and a three-factor value.
-
-**C. At Least One.** Compute `none=product((q-p)*inverse(q))`, then answer
-`1-none`. For `1/2` and `1/3`, this is `1-1/2*2/3=2/3`. Independence justifies
-the product; a certain event and a zero-probability event are essential tests.
-
-**D. Complete Alphabet.** Let a bad event be that one named symbol is absent.
-For `n=4,k=3`, inclusion-exclusion is `3^4-3*2^4+3*1^4=36`. Test `n<k`, one
-symbol, and a huge exponent; the alternating signs repair all overlaps between
-absent-symbol events.
-
-# Problem-local upsolve checklist
+The first three compact editorials predate the later contest expansion. This
+workshop keeps their longer derivations beside them; Problem D already has a
+full derivation, and Problems E--R then continue in normal editorial order.
 
 ## A. Blocked Path
 
@@ -655,14 +634,17 @@ method if events are dependent or a denominator is zero modulo `MOD`.
 
 For each query, find the smallest `x >= 0` such that:
 
+In the following displayed equations, `=` means equality modulo the modulus
+written on the right.
+
 ```text
-a*x + c ≡ b (mod m)
+a*x + c = b (mod m)
 ```
 
 Move the constant term to the other side:
 
 ```text
-a*x ≡ b-c (mod m)
+a*x = b-c (mod m)
 ```
 
 This is a linear congruence, not always a modular-division problem. Writing
@@ -682,7 +664,7 @@ sufficient.
 If the condition holds, divide the congruence by `g`:
 
 ```text
-(a/g) * x ≡ target/g (mod m/g)
+(a/g) * x = target/g (mod m/g)
 ```
 
 Now `a/g` and `m/g` are coprime, so `a/g` has an inverse modulo `m/g`.
@@ -695,7 +677,17 @@ For each query:
 2. Use extended Euclid on `(a,m)` to obtain `g` and a coefficient `p` such
    that `a*p + m*q = g`.
 3. If `target % g != 0`, print `-1`.
-4. Otherwise compute:
+4. Otherwise, divide the congruence by `g`. Extended Euclid gave
+   `a*p + m*q = g`; dividing this identity by `g` shows that `p` is the
+   inverse of `a/g` modulo `m/g`:
+
+```text
+(a/g)*p + (m/g)*q = 1
+(a/g)*p = 1 (mod m/g)
+```
+
+   The reduced equation is `(a/g)*x = target/g (mod m/g)`. Multiply both
+   sides by that inverse `p`:
 
 ```text
 modulus = m/g
@@ -705,21 +697,34 @@ x = (target/g) * p mod modulus
 5. Normalize `x` into `[0,modulus)`. This is the smallest nonnegative member
    of the solution class.
 
+For example, take `6*x = 8 (mod 14)`. Here `g=2`, and extended Euclid can
+return `p=-2` because `6*(-2) + 14*1 = 2`. After division, `p=-2` is the
+inverse of `3` modulo `7`. Therefore:
+
+```text
+x = (8/2) * (-2) mod 7
+  = -8 mod 7
+  = 6
+```
+
+Indeed, `6*6 = 36`, which has the same remainder as `8` modulo `14`.
+
 ## Correctness proof
 
 If `target` is not divisible by `g`, the Diophantine equation has no solution,
 so printing `-1` is correct.
 
-Otherwise extended Euclid gives `a*p + m*q = g`. Multiplying by `target/g`
-and reducing modulo `m` gives:
+Otherwise divide both the target congruence and Bézout identity by `g`:
 
 ```text
-a * (p * target/g) ≡ target (mod m)
+(a/g)*x = target/g (mod m/g)
+(a/g)*p = 1        (mod m/g)
 ```
 
-Thus the computed residue is a solution. After division by `g`, the coefficient
-`a/g` is invertible modulo `m/g`, so there is exactly one solution class
-modulo `m/g`. Normalizing that class into `[0,m/g)` selects its unique smallest
+Multiplying the first equation by `p` therefore gives
+`x = p*(target/g) (mod m/g)`, exactly the value computed in item 4. Since
+`a/g` is invertible modulo `m/g`, there is exactly one solution class modulo
+`m/g`. Normalizing that class into `[0,m/g)` selects its unique smallest
 nonnegative representative. Therefore every query output is correct.
 
 ## Complexity and integer safety
@@ -798,6 +803,51 @@ second congruence, while the representation `r1+m1*k` satisfies the first by
 construction. Changing `k` by `m2/g` changes `x` by `m1*m2/g`, the lcm. Thus
 normalizing gives the unique common solution in `[0,lcm)`, which is the
 smallest nonnegative one.
+
+## Möbius inversion: the same idea in a compressed form
+
+The downward subtraction above is a form of Möbius inversion. A tiny example
+makes the coefficients easier to see. Consider ordered pairs `(x,y)` with
+`1 <= x,y <= 3`. There are `9` pairs in total. The pairs whose two entries
+are both divisible by `2` contribute `floor(3/2)^2 = 1`, and the same is true
+for `3`. Therefore the number of coprime pairs is:
+
+```text
+9 - 1 - 1 = 7
+```
+
+The signs are given by the Möbius function `mu`:
+
+```text
+mu(1) = 1,  mu(2) = -1,  mu(3) = -1,  mu(6) = 1
+```
+
+In general, for every positive integer `g`:
+
+```text
+sum of mu(d) over all divisors d of g = 1, if g = 1
+                                          0, otherwise
+```
+
+Thus, weighting every pair by `mu(d)` for each common divisor `d` keeps it
+exactly when its GCD is `1`. This gives the familiar coprime-pair formula:
+
+```text
+sum over d of mu(d) * floor(A/d) * floor(B/d)
+```
+
+The same compression applies here. Since `all_divisible[d]` counts subsets
+whose GCD is a multiple of `d`, the answer can also be written as:
+
+```text
+sum over d of mu(d) * all_divisible[d]
+```
+
+Only square-free `d` matter: `mu(d)=0` otherwise, and the sign is negative or
+positive according to whether `d` has an odd or even number of distinct prime
+factors. The editorial solution uses downward subtraction because it is often
+more direct to implement, but both formulas express the same divisor
+inversion.
 
 ## Complexity and tests
 
@@ -1175,3 +1225,141 @@ do not include x itself, which would create a self-reference
 ```python
 {{< include problems/l_random_divisor_descent/solution.py >}}
 ```
+
+# M. Totient Prefix
+
+Euler's totient satisfies `phi(p)=p-1` for a prime `p`, and multiplying by a
+prime factor `p` removes the fraction `1/p` of the candidates that are not
+coprime. Therefore initialize `phi[x]=x`, and for every prime `p` update all
+of its multiples with `phi[multiple] -= phi[multiple]/p`. A prefix sum answers
+all queries after one sieve.
+
+The complexity is `O(M log log M + q)` time and `O(M)` memory, where `M` is the
+largest query.
+
+```cpp
+{{< include problems/m_totient_prefix/solution.cpp >}}
+```
+
+```python
+{{< include problems/m_totient_prefix/solution.py >}}
+```
+
+# N. Square-Free Queries
+
+An integer is not square-free exactly when it is divisible by `p*p` for some
+prime `p`. Mark every multiple of each prime square, then prefix-sum the values
+that remain. The marking starts at `p*p` and advances by `p*p`.
+
+This takes `O(M log log M + q)` time and `O(M)` memory.
+
+```cpp
+{{< include problems/n_squarefree_queries/solution.cpp >}}
+```
+
+```python
+{{< include problems/n_squarefree_queries/solution.py >}}
+```
+
+# O. GCD Sum
+
+Group the integers `i` according to their exact GCD with `n`. The number of
+`i` in `1..n` with `gcd(i,n)=d` is `phi(n/d)`, because after dividing by `d`
+we obtain a number at most `n/d` that is coprime with `n/d`. Hence:
+
+```text
+sum gcd(i,n) = sum over d dividing n of d * phi(n/d)
+```
+
+Precompute `phi` once and enumerate the divisors of each query by paired
+divisors. The complexity is `O(M log log M + sum sqrt(n))` time and `O(M)`
+memory.
+
+```cpp
+{{< include problems/o_gcd_sum/solution.cpp >}}
+```
+
+```python
+{{< include problems/o_gcd_sum/solution.py >}}
+```
+
+# P. Subarray GCD Sum
+
+For every right endpoint, retain pairs `(g,count)` for the subarrays ending
+there with GCD `g`. Appending `x` changes each old GCD `g` to `gcd(g,x)`, and
+the singleton subarray contributes `(x,1)`. Equal consecutive GCDs are merged.
+There are only logarithmically many distinct values in practice and in the
+standard divisibility bound, so the total number of states is `O(n log A)`.
+
+```cpp
+{{< include problems/p_subarray_gcd_sum/solution.cpp >}}
+```
+
+```python
+{{< include problems/p_subarray_gcd_sum/solution.py >}}
+```
+
+# Q. Coprime Rectangles
+
+Möbius inversion gives the number of coprime pairs in the rectangle:
+
+```text
+answer(A,B) = sum over d of mu(d) * floor(A/d) * floor(B/d)
+```
+
+The two floor quotients are constant on intervals of `d`. At a current left
+endpoint `l`, let `qa=A//l` and `qb=B//l`; the last endpoint with both values
+unchanged is `min(A//qa, B//qb)`. Prefix sums of `mu` then evaluate one whole
+interval at once. This gives `O(M log log M + q sqrt(M))` time after a linear
+Möbius sieve.
+
+```cpp
+{{< include problems/q_coprime_rectangles/solution.cpp >}}
+```
+
+```python
+{{< include problems/q_coprime_rectangles/solution.py >}}
+```
+
+# R. Exact Divisor Count
+
+If `x = p1^e1 * p2^e2 * ...`, then its divisor count is:
+
+```text
+tau(x) = (e1+1)(e2+1)...
+```
+
+For this bounded-query version, build every divisor count with the harmonic
+sieve: increment `tau[multiple]` once for every divisor. Sort the queries by
+`N`, sweep the values from `1` upward, and maintain how many numbers have each
+divisor count. This is an offline ordering trick: every query is answered when
+the sweep reaches its own `N`.
+
+The complexity is `O(M log M + q log q)` time and `O(M+q)` memory. The formula
+for `tau` explains why the divisor sieve is counting exactly the requested
+objects, while the sorted sweep avoids a separate prefix array for every `K`.
+
+```cpp
+{{< include problems/r_exact_divisor_count/solution.cpp >}}
+```
+
+```python
+{{< include problems/r_exact_divisor_count/solution.py >}}
+```
+
+# What to Carry Forward
+
+The contest now ends after all eighteen problems, rather than after its
+original four-problem version. The reusable workflow is:
+
+1. Write the exact objects being counted or the exact recurrence being solved.
+2. Identify whether divisibility, complements, or exact-GCD classes create a
+   partition.
+3. Choose the corresponding tool: inclusion--exclusion, Möbius inversion,
+   divisor aggregation, or expectation linearity.
+4. Prove that each object contributes once before optimizing the loops.
+5. Compare small instances with direct enumeration, then add boundary and
+   scale tests aimed at the formula's preconditions.
+
+The common thread is composition: a difficult-looking problem is often one
+standard counting identity followed by one efficient precomputation.

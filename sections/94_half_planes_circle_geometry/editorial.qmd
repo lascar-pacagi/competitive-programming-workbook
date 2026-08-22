@@ -1,0 +1,112 @@
+---
+title: "Section 94 Editorial — Half-Planes And Circle Geometry"
+format:
+  pdf:
+    code-overflow: wrap
+geometry: margin=1.6cm
+fontsize: 9pt
+---
+
+# A. Half-Plane Region
+
+## How to find it
+
+Sort directed boundaries by angle, discard weaker parallel copies, and maintain feasible consecutive intersections in a deque.
+
+## Correctness
+
+The deque invariant retains exactly the processed region boundaries in angular order; every removed corner violates the new constraint and can never return. Closing yields precisely the intersection polygon.
+
+## Complexity
+
+`O(n log n)` time and `O(n)` memory.
+
+## C++
+
+```cpp
+{{< include problems/a_half_plane_region/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_half_plane_region/solution.py >}}
+```
+
+# B. Circle Overlap
+
+## How to find it
+
+Separate disjoint and containment cases before using the two-sector lens formula.
+
+## Correctness
+
+In the proper-overlap case the common region partitions into two sectors minus their center triangles; the other classifications are immediate.
+
+## Complexity
+
+`O(1)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/b_circle_overlap/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_circle_overlap/solution.py >}}
+```
+
+# C. Common Tangent Count
+
+## How to find it
+
+Count external and internal tangent families by comparing center distance with radius difference and sum.
+
+## Correctness
+
+Each positive perpendicular offset produces two mirror lines, zero produces their merged tangent, and a negative squared offset produces none.
+
+## Complexity
+
+`O(1)`.
+
+## C++
+
+```cpp
+{{< include problems/c_common_tangent_count/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_common_tangent_count/solution.py >}}
+```
+
+# D. Largest Inscribed Circle
+
+## How to find it
+
+Offset every counterclockwise edge inward by radius `r`; exploit the convex polygon edge order for a linear deque feasibility test, then binary-search `r`.
+
+## Correctness
+
+A center supports radius `r` exactly when its distance from every edge is at least `r`. The deque finds a candidate intersection in edge order, and the final all-edge witness check certifies that candidate before declaring feasibility.
+
+## Complexity
+
+`O(n log precision)` time and `O(n)` memory.
+
+## C++
+
+```cpp
+{{< include problems/d_largest_inscribed_circle/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_largest_inscribed_circle/solution.py >}}
+```

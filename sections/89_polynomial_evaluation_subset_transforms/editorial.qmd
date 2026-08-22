@@ -1,0 +1,135 @@
+---
+title: "Section 89 Editorial — Polynomial Evaluation And Subset Transforms"
+format: pdf
+geometry: margin=1.55cm
+fontsize: 8.5pt
+---
+
+# A. Multipoint Evaluation
+
+## How to find it
+
+Organize all moduli `x-X_i` in a product tree and propagate remainders.
+
+## Correctness
+
+Remainder transitivity makes each child remainder congruent to the original polynomial modulo its subtree product; at a leaf its constant is exactly the requested value.
+
+## Complexity
+
+`O(M(n+q) log q)` time and `O((n+q) log q)` aggregate polynomial storage.
+
+At each node store `P mod product[node]`; since a child product divides its
+parent product, reducing the parent's remainder again is equivalent to
+reducing the original polynomial. Repeated points are legal and simply create
+equal linear factors at different leaves.
+
+## C++
+
+```cpp
+{{< include problems/a_multipoint_evaluation/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_multipoint_evaluation/solution.py >}}
+```
+
+# B. Polynomial Interpolation
+
+## How to find it
+
+Evaluate the derivative of the root product, form Lagrange weights, and merge them upward.
+
+## Correctness
+
+The root expansion is the Lagrange formula. It matches every sample value and has degree below `n`, so uniqueness proves equality.
+
+## Complexity
+
+`O(M(n) log n)` time.
+
+The points must be distinct so that every `M'(X_i)` is invertible. Preserve
+the association between each point and ordinate even if the tree is padded or
+balanced internally.
+
+## C++
+
+```cpp
+{{< include problems/b_polynomial_interpolation/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_polynomial_interpolation/solution.py >}}
+```
+
+# C. XOR Convolution
+
+## How to find it
+
+Use Walsh--Hadamard butterflies because XOR is addition in the vector space of bits.
+
+## Correctness
+
+Each Walsh character turns XOR into multiplication; inversion restores coefficients after pointwise products.
+
+## Complexity
+
+`O(k 2^k)` time and `O(2^k)` storage.
+
+The forward and inverse butterflies have the same additions and subtractions;
+only the inverse multiplies all entries by `inverse(2^k)`. A direct double
+loop over pairs of masks is the ideal small oracle.
+
+## C++
+
+```cpp
+{{< include problems/c_xor_convolution/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_xor_convolution/solution.py >}}
+```
+
+# D. Subset Convolution
+
+## How to find it
+
+Separate values by popcount, zeta-transform every rank, convolve ranks, then Möbius-invert.
+
+## Correctness
+
+Rank equality removes overlapping pairs: if ranks add to `|S|` and both sets lie in `S`, their union is `S` exactly when they are disjoint.
+
+## Complexity
+
+`O(k squared 2^k)` time and `O(k 2^k)` storage.
+
+After zeta transformation, convolve the popcount ranks at each mask. Möbius
+inversion must be applied rank by rank before selecting rank `|S|`; omitting
+the ranks computes a different convolution that includes overlapping pairs.
+
+## C++
+
+```cpp
+{{< include problems/d_subset_convolution/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_subset_convolution/solution.py >}}
+```
+
+# Distinguishing the tools
+
+Use a product tree when many unrelated scalar evaluation moduli share one
+polynomial. Use Walsh butterflies for XOR, subset-zeta for OR, supermask-zeta
+for AND, and ranked subset-zeta for disjoint union. Stress each implementation
+against its literal defining sum on dimensions up to five; this catches a
+reversed loop direction more reliably than large samples.

@@ -1,0 +1,125 @@
+---
+title: "Section 79 Editorial — Directed Graph Decomposition"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. Condensation Profile
+
+## How to find it
+
+Contract mutual-reachability classes; the quotient is a DAG. Scan only inter-component edges to mark sources and sinks.
+
+## Correctness
+
+SCCs partition the vertices by mutual reachability. Any directed cycle between contracted classes would make all classes on it mutually reachable, a contradiction, so the quotient is a DAG. The final scan marks a class precisely when an original edge crosses its boundary; therefore the unmarked indegrees and outdegrees are exactly those requested.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/a_condensation_profile/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_condensation_profile/solution.py >}}
+```
+
+# B. Clause Satisfiability
+
+## How to find it
+
+Translate every clause into two contraposed implications. Unsatisfiability is exactly collision of a literal with its negation inside one SCC.
+
+## Correctness
+
+If a literal and its negation share an SCC, each implies the other, so either truth choice forces a contradiction. If no pair collides, take SCCs in reverse topological order and set an unassigned component false and its complementary component true. Every implication goes forward in this order, so no true premise can have a false conclusion; hence every clause holds.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/b_clause_satisfiability/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_clause_satisfiability/solution.py >}}
+```
+
+# C. Lexicographic Euler Trail
+
+## How to find it
+
+Check degree imbalance, consume sorted outgoing edges with Hierholzer, and require exactly m+1 output vertices.
+
+## Correctness
+
+The degree conditions follow by counting arrivals and departures of a trail. Hierholzer appends a vertex only when it has no unused outgoing edge, so reversing the appended list makes consecutive vertices endpoints of consumed edges and uses every consumed edge once. A list of length `m+1` proves all edges were consumed; otherwise the edge set was disconnected from the start. Ordered adjacency gives the first differing feasible edge the smallest endpoint.
+
+## Complexity
+
+`O(n+m)` time and memory.
+
+## C++
+
+```cpp
+{{< include problems/c_lexicographic_euler_trail/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_lexicographic_euler_trail/solution.py >}}
+```
+
+# D. Unavoidable Checkpoints
+
+## How to find it
+
+Start with every reachable vertex as a possible dominator, intersect predecessor sets to a fixed point, and inspect the target's set.
+
+## Correctness
+
+The root dominates only itself initially. For any other reachable vertex, a checkpoint dominates it exactly when it dominates every immediate predecessor, except the vertex itself which always dominates itself. Thus the fixed-point equation is necessary. Starting from the universal reachable set and repeatedly intersecting can only delete false candidates and converges to the greatest solution, which is the actual family of all-path dominators.
+
+## Complexity
+
+At most `O(n(n+m))` set-intersection work under `n <= 1500`; bit-parallel storage uses `O(n^2 / word_size)` machine words.
+
+## C++
+
+```cpp
+{{< include problems/d_unavoidable_checkpoints/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_unavoidable_checkpoints/solution.py >}}
+```
+
+# Upsolving and stress testing
+
+For A, compare SCC IDs against mutual Floyd--Warshall reachability and verify
+condensation degrees after deduplicating only when an exact edge count is
+required. For B, enumerate all assignments; test unit clauses and a variable
+forced both ways. For C, enumerate edge-ID permutations and verify the route
+uses `m+1` vertices; degrees without connectivity are insufficient. For D,
+enumerate all simple root-to-target paths on tiny graphs and intersect their
+vertex sets. These oracles deliberately avoid the optimized decompositions.
+
+Carry forward the semantic distinction: SCCs compress mutual reachability,
+Euler stacks compress unused-edge traversal, and dominators compress a
+universal quantifier over rooted paths. They are not interchangeable merely
+because all produce DAGs or trees afterward.

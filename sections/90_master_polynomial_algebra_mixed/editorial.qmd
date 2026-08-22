@@ -1,0 +1,192 @@
+---
+title: "Section 90 Editorial — Master Polynomial Algebra Mixed Contest"
+format: pdf
+geometry: margin=1.55cm
+fontsize: 8.5pt
+---
+
+# A. Rational Series
+
+## How to find it
+
+Compute `Q` inverse to precision `n`, then multiply by `P` and truncate.
+
+## Correctness
+
+Multiplying the output by `Q` gives `P` modulo `x^n` by the inverse invariant, which uniquely determines the quotient prefix.
+
+## Complexity
+
+`O(M(n))` time and `O(n)` storage.
+
+This requires `Q[0]` to be nonzero. Truncation is essential: coefficients of
+`P` or the inverse at degree at least `n` cannot affect the requested prefix.
+
+## C++
+
+```cpp
+{{< include problems/a_rational_series/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_rational_series/solution.py >}}
+```
+
+# B. Connected Series
+
+## How to find it
+
+The assembly product becomes an additive connected-component series under formal logarithm.
+
+## Correctness
+
+The requested encoding defines the connected series as the unique zero-constant series whose exponential is `A`; formal log is its inverse.
+
+## Complexity
+
+`O(M(n))` time and `O(n)` storage.
+
+Check the exact generating-function convention in the statement. The
+constant term must be one before taking the normalized logarithm, and the
+answer's constant term is zero.
+
+## C++
+
+```cpp
+{{< include problems/b_connected_series/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_connected_series/solution.py >}}
+```
+
+# C. Archive Evaluation
+
+## How to find it
+
+Use one product tree; repeated keys need no special case because evaluation, unlike interpolation, permits repeated leaves.
+
+## Correctness
+
+Each leaf still receives the polynomial modulo `x-X_i`, so duplicates independently obtain the same correct value.
+
+## Complexity
+
+`O(M(n+q) log q)` time.
+
+Repeated evaluation keys are allowed because no denominator is formed. Keep
+them as separate leaves so output order and multiplicity are preserved.
+
+## C++
+
+```cpp
+{{< include problems/c_archive_evaluation/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_archive_evaluation/solution.py >}}
+```
+
+# D. Recover Polynomial
+
+## How to find it
+
+Input order is irrelevant: pair each ordinate with its own leaf and use the product-tree Lagrange construction.
+
+## Correctness
+
+At `X_i`, every other basis term contains `X_i-X_i`, while its own term evaluates to one.
+
+## Complexity
+
+`O(M(n) log n)` time.
+
+Unlike evaluation, interpolation requires distinct keys: otherwise
+`M'(X_i)=0` can occur and the data need not identify a unique degree-bounded
+polynomial. Shuffling the input pairs must not change the reconstructed answer.
+
+## C++
+
+```cpp
+{{< include problems/d_recover_polynomial/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_recover_polynomial/solution.py >}}
+```
+
+# E. OR Convolution
+
+## How to find it
+
+Use subset zeta transform: a transformed coordinate sums all submasks.
+
+## Correctness
+
+Multiplying two zeta sums counts exactly pairs whose OR is a submask; Möbius subtraction isolates pairs with OR equal to each mask.
+
+## Complexity
+
+`O(k 2^k)` time and `O(2^k)` storage.
+
+The forward loop adds each value into supersets; the inverse performs the same
+traversal with subtraction. Reversing the subset relation silently produces
+AND rather than OR convolution.
+
+## C++
+
+```cpp
+{{< include problems/e_or_convolution/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/e_or_convolution/solution.py >}}
+```
+
+# F. Disjoint Cover Counts
+
+## How to find it
+
+This is subset convolution under a story name; use ranked zeta transforms.
+
+## Correctness
+
+The rank filter and Möbius inversion leave precisely ordered disjoint pairs whose union is the output mask.
+
+## Complexity
+
+`O(k squared 2^k)` time and `O(k 2^k)` storage.
+
+The empty mask participates and must occupy rank zero. Ordered pairs are
+counted because `F` supplies the first set and `G` the second; do not divide by
+two even when the two arrays happen to be equal.
+
+## C++
+
+```cpp
+{{< include problems/f_disjoint_cover_counts/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/f_disjoint_cover_counts/solution.py >}}
+```
+
+# Final verification
+
+For A and B, substitute the result into the defining FPS identity. For C and
+D, use Horner and direct Lagrange interpolation. For E and F, enumerate all
+mask pairs. Run these independent oracles on every dimension small enough for
+exhaustion, including all-zero data and singleton precision. The transform is
+an optimization of the defining sum; that sum remains the clearest oracle.

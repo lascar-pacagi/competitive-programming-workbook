@@ -1,0 +1,47 @@
+---
+title: "Section 91 — Primality And Integer Factorization"
+format: pdf
+geometry: margin=1.75cm
+---
+
+# Beyond the last sieve cell
+
+This lesson derives A--C. Problem D is editorial-only.
+
+# A. Deterministic Miller--Rabin for 64 bits
+
+For odd `n`, write `n-1 = d * 2^s` with odd `d`. If `n` is prime, Fermat plus repeated squaring forces `a^d` either to be `1`, or to reach `-1` before reaching `1`. A base that violates this is a compositeness witness.
+
+One base only gives a probabilistic statement. For every unsigned 64-bit input, the fixed bases
+
+```text
+2, 325, 9375, 28178, 450775, 9780504, 1795265022
+```
+
+are a proven deterministic witness set. This is a bounded-domain theorem, not a pattern that may be extended to arbitrary integers.
+
+In C++, multiply residues with unsigned 128-bit arithmetic before reducing. Python integers already expand. Trial-divide a few tiny primes first: it removes edge cases and accelerates common composites.
+
+# B. Pollard--rho factor discovery
+
+Iterate `x <- x*x+c mod n`. Modulo an unknown prime factor, the sequence eventually cycles. Floyd's two-speed pointers make `gcd(|x-y|,n)` reveal a nontrivial shared factor when the two positions first coincide modulo that factor.
+
+The attempt can return `n`; restart with new `c` and seed. A discovered divisor need not be prime. Recursively split both pieces until Miller--Rabin certifies every leaf, then sort. The invariant is multiplicative: the product of values on the work stack and accepted leaves is always the original number.
+
+# C. Multiplicative functions after factorization
+
+From `n = product p^e`, Euler's function is obtained once per distinct prime:
+
+```text
+phi(n) = n * product (p-1)/p.
+```
+
+Perform `answer = answer/p*(p-1)` in that order, so the intermediate division is exact. This separates two concerns cleanly: randomized factor discovery and deterministic evaluation from the certified prime multiset.
+
+# How to find it
+
+When a bounded sieve is impossible, ask whether the task needs all primes up to a limit or only the factors of a few individual integers. The second shape suggests primality certification plus recursive splitting. Always state the integer domain before selecting witness bases or a multiplication method.
+
+# Exercises
+
+A--C develop the primality/factorization pipeline. D transfers the factor multiset to two new multiplicative statistics.

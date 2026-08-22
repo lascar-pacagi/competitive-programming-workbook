@@ -1,0 +1,124 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 68 Editorial: Advanced Tree Decompositions"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+# A. Path Affine Composition
+
+Store every HLD interval in a segment tree with forward and backward affine
+composition. Merging adjacent intervals composes left-forward then
+right-forward; backward uses right-backward then left-backward. Split a path
+into upward `u` chunks, a same-chain middle, and downward `v` chunks, preserving
+their order.
+
+**Correctness.** Segment induction proves both stored directions. Each HLD
+chunk is a contiguous part of the path. The accumulation rules concatenate
+these disjoint chunks in exact `u -> v` order, so the final affine function is
+precisely the sequence requested. Applying it to `x` gives the answer.
+
+Preprocessing is `O(n)`. Updates cost `O(log n)` and queries `O(log^2 n)`;
+memory is `O(n)`. Test reversed paths with functions that do not commute.
+
+```cpp
+{{< include problems/a_path_affine_composition/solution.cpp >}}
+```
+```python
+{{< include problems/a_path_affine_composition/solution.py >}}
+```
+
+# B. Toggle Nearest Beacon
+
+Build centroid decomposition and record every vertex's distance to each
+centroid ancestor. Each centroid owns a multiset of distances contributed by
+active vertices. Toggle inserts or erases one distance along the vertex's
+centroid path. Query minimizes its own distance to `c` plus the multiset minimum
+at `c`.
+
+**Correctness.** For any query vertex `u` and active vertex `v`, their centroid
+paths share the first separator at which their original-tree path crosses
+between decomposition components; at that centroid `c`,
+`dist(u,v)=dist(u,c)+dist(v,c)`. The candidate is therefore present. Every
+candidate is the length of a concrete route through its centroid and cannot be
+smaller than the true distance. Taking the minimum is exact.
+
+Build time is `O(n log n)`. Toggle and query cost `O(log^2 n)` with multisets;
+memory is `O(n log n)`. Python uses paired lazy-deletion heaps.
+
+```cpp
+{{< include problems/b_toggle_nearest_beacon/solution.cpp >}}
+```
+```python
+{{< include problems/b_toggle_nearest_beacon/solution.py >}}
+```
+
+# C. Marked Pair Distances
+
+Sort marked vertices by Euler time, add LCAs of consecutive entries, sort and
+deduplicate, then connect them by an ancestor stack. Initialize each marked
+virtual vertex with count one. Process virtual vertices bottom-up. For edge
+`p-u`, add
+
+```text
+(dist[u]-dist[p]) * count[u] * (k-count[u]).
+```
+
+and transfer `count[u]` to `p`.
+
+**Correctness.** The virtual tree preserves every branching LCA and compresses
+only degree-two unmarked paths, so its edge length equals the removed original
+path. Removing edge `p-u` separates `count[u]` marks from the other
+`k-count[u]`; exactly their cross pairs use every original edge represented by
+it. Summing over virtual edges counts each pair once per edge on its path,
+which is exactly its distance.
+
+Preprocessing costs `O(n log n)`. A query costs `O(k log k)` and uses `O(k)`
+temporary memory. Test one mark, ancestor relations, and LCAs absent from the
+input set.
+
+```cpp
+{{< include problems/c_marked_pair_distances/solution.cpp >}}
+```
+```python
+{{< include problems/c_marked_pair_distances/solution.py >}}
+```
+
+# D. Subtree Mode Sum
+
+Process vertices bottom-up. Reuse the largest child frequency map, merge every
+smaller child map into it, then add the current color. Maintain the maximum
+frequency and sum of colors attaining it whenever a count increases.
+
+**Correctness.** By induction, child maps contain exactly their disjoint
+subtrees. Their union plus the current vertex is exactly the current subtree,
+independent of merge order. The maintained maximum resets its sum when a
+strictly larger count appears and adds a color when it ties, so the reported
+sum is exact.
+
+Every color entry moves only into a map at least twice as large, at most
+`O(log n)` times. Expected time is `O(n log n)` and memory `O(n)`. Test ties,
+all equal colors, all distinct colors, chains, and stars.
+
+```cpp
+{{< include problems/d_subtree_mode_sum/solution.cpp >}}
+```
+```python
+{{< include problems/d_subtree_mode_sum/solution.py >}}
+```
+
+# Stress testing and carry-forward
+
+The generators use explicit path reconstruction, all-pairs tree distances, and
+complete subtree color counters. The recurring discovery move is to choose the
+small boundary: logarithmically many chains/centroids, `O(k)` virtual vertices,
+or entries that can move only logarithmically often.

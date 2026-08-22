@@ -1,0 +1,181 @@
+---
+title: "Competitive Programming"
+subtitle: "Section 73 Editorial: Convex Geometry And Minkowski Sums"
+author: "Competitive Programming Course"
+format:
+  pdf:
+    pdf-engine: xelatex
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    number-sections: true
+    colorlinks: true
+    geometry: [margin=25mm]
+execute: {enabled: false}
+---
+
+
+
+# How to use this editorial
+
+Recover the geometric invariant and degeneracy policy before comparing code.
+
+# A. Hull Statistics
+
+## How to find it
+
+The raw set has no useful cyclic order. Ask which points can maximize a dot product in some direction; only extreme points survive, suggesting a convex hull before any area computation.
+
+## Derivation and correctness
+
+Sort and deduplicate. The lower and upper stacks retain only strict left turns. Every popped point lies on or inside the segment joining its neighbors, so it cannot be an extreme vertex. The two chains contain every extreme point once. Shoelace on that canonical cycle gives doubled area. Time is `O(n log n)`.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/a_hull_statistics/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_hull_statistics/solution.py >}}
+```
+
+# B. Farthest Pair
+
+## How to find it
+
+The quadratic search remains quadratic even after building a hull. Plot the area against one fixed hull edge: convexity makes the farthest supporting vertex move in one direction, which is the signal for calipers.
+
+## Derivation and correctness
+
+Only hull vertices can form a farthest pair. For each directed hull edge, advance the opposite pointer while its cross product with that edge increases. Convexity makes this value unimodal and makes the pointer monotone. Rotating calipers visits every antipodal candidate in `O(h)` after the hull.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/b_farthest_pair/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_farthest_pair/solution.py >}}
+```
+
+# C. Sum Polygon Queries
+
+## How to find it
+
+The quantifier “choose one point from each polygon and add them” names a Minkowski sum. Looking at one support direction shows both why the sum is convex and why its boundary edges can be merged by angle.
+
+## Derivation and correctness
+
+Support functions add under Minkowski sum, proving convexity and the edge-angle merge. Starting at the sum of lowest vertices and merging the sorted edge vectors traces the entire boundary once. A fan binary search then locates each query in `O(log(n+m))`.
+
+## Failure-focused tests
+
+Compare with the independent tiny brute-force oracle. Include collinearity, duplicates, equal event coordinates, boundary contact, and the smallest legal instance.
+
+## C++
+
+```cpp
+{{< include problems/c_sum_polygon_queries/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_sum_polygon_queries/solution.py >}}
+```
+
+# D. Convex Polygon Distance
+
+## Restatement and decisive reduction
+
+The distance is the minimum norm of `a-b` over `a` in A and `b` in B. The set
+of all such differences is the convex polygon
+
+```text
+A - B = A + (-B).
+```
+
+Thus the problem becomes: construct one Minkowski sum and find the distance
+from the origin to it. If the origin is inside or on its boundary, the original
+polygons intersect or touch and the answer is zero.
+
+## Algorithm
+
+Rotate A and `-B` to their lowest-leftmost vertices. Their CCW edge vectors are
+cyclically sorted by angle. Merge the two lists, adding equal-direction vectors,
+to construct `A-B` in linear time.
+
+Test the origin against every directed boundary edge. For a CCW polygon it is
+inside exactly when it never lies strictly to the right. Otherwise, project the
+origin onto every boundary segment, clamp the projection parameter to `[0,1]`,
+and take the minimum Euclidean distance.
+
+## Correctness proof
+
+**Lemma 1.** The merged polygon is exactly `A-B`.
+
+**Proof.** Negation is a 180-degree rotation, so `-B` remains convex and CCW.
+Support functions add under Minkowski sums. Traversing the two angle-sorted
+edge lists in merged order traces every support-direction change of
+`A+(-B)` exactly once, beginning at the sum of their lowest vertices. QED.
+
+**Lemma 2.** A and B intersect exactly when the origin belongs to `A-B`.
+
+**Proof.** The origin belongs to `A-B` exactly when `a-b=0` for some points,
+equivalently when the same point belongs to both polygons. QED.
+
+**Lemma 3.** If the origin is outside `A-B`, the minimum checked segment
+distance is its distance to the polygon.
+
+**Proof.** A closest point of a closed convex polygon lies on its boundary.
+The boundary is the union of the checked segments, and orthogonal projection
+clamped to one segment returns the closest point on that segment. Taking the
+minimum therefore returns the closest boundary point. QED.
+
+Together, the lemmas prove that the algorithm returns the minimum distance
+between the original polygons.
+
+## Complexity, mistakes, and tests
+
+The construction and boundary scan take `O(n+m)` time and memory. Integer
+orientation uses wide exact arithmetic; only the final projection uses
+floating point.
+
+Common mistakes are reversing B's vertex order unnecessarily after negation,
+failing to merge parallel edge vectors, treating a boundary origin as outside,
+and measuring only vertex-to-vertex distance. Test overlapping polygons,
+touching edges, touching vertices, parallel closest edges, and a closest
+vertex-to-edge projection.
+
+## C++
+
+```cpp
+{{< include problems/d_convex_polygon_distance/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_convex_polygon_distance/solution.py >}}
+```
+
+# Stress testing and carry-forward
+
+The D oracle does not build a Minkowski polygon. On tiny polygons it checks
+intersection directly and compares every vertex with every opposite edge.
+The reusable discovery move is algebraic: turn a relation between two convex
+sets into a query about the origin in their sum or difference.

@@ -1,0 +1,138 @@
+---
+title: "Section 86 Editorial — Cut Trees And Matroid Intersection"
+format: pdf
+geometry: margin=1.65cm
+fontsize: 9pt
+---
+
+# A. All-Pairs Cut Queries
+
+## How to find it
+
+Represent all pair minimum cuts by minimum edges on Gomory--Hu tree paths.
+
+## Correctness
+
+Residual cut-side reparenting preserves the tree-cut invariant at every construction step; path minima therefore equal original pair cuts.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+The construction performs exactly `n-1` maximum-flow computations. Querying a
+pair by walking its tree path is `O(n)` here; binary lifting can reduce this to
+`O(log n)` when the query count requires it. The residual reachable side, not
+the set of edges used by the flow, determines reparenting.
+
+## C++
+
+```cpp
+{{< include problems/a_all_pairs_cut_queries/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/a_all_pairs_cut_queries/solution.py >}}
+```
+
+# B. Rainbow Forest
+
+## How to find it
+
+Intersect the graphic matroid with the color partition matroid.
+
+## Correctness
+
+Every exchange-path flip preserves both independences and grows the set; absence of a path certifies maximum cardinality.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+With independence rebuilt directly for every tested exchange, the reference
+is deliberately polynomial rather than asymptotically optimal. Under these
+limits that keeps both oracles auditable. Exhaustive subset enumeration is the
+recommended tiny-instance oracle.
+
+## C++
+
+```cpp
+{{< include problems/b_rainbow_forest/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/b_rainbow_forest/solution.py >}}
+```
+
+# C. Dual Forest
+
+## How to find it
+
+Use two DSU forest oracles on different endpoint maps.
+
+## Correctness
+
+This is exactly two-matroid intersection, so the final common independent set is maximum.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+Each graphic oracle is a DSU cycle test. Remember that the same selectable
+element has two different endpoint pairs; using one DSU state for both maps
+would test the wrong independence system.
+
+## C++
+
+```cpp
+{{< include problems/c_dual_forest/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/c_dual_forest/solution.py >}}
+```
+
+# D. Directed Arborescence
+
+## How to find it
+
+Select minimum incoming edges, contract their directed cycles, and subtract those minima from crossing costs.
+
+## Correctness
+
+Every solution pays the accumulated minima and replaces exactly one entry per contracted cycle; reduced costs preserve the remaining choice.
+
+## Complexity
+
+The reference follows the standard polynomial bound of the named augmentation, flow, or contraction algorithm; explicit problem limits keep oracle-based matroid intersection practical.
+
+The dense Chu--Liu/Edmonds implementation is `O(VE)`. Before contracting, fail
+if a non-root component has no incoming edge. When an edge enters a contracted
+cycle at vertex `v`, subtract the minimum incoming cost already charged for
+`v`; this is the exact extra replacement cost.
+
+## C++
+
+```cpp
+{{< include problems/d_directed_arborescence/solution.cpp >}}
+```
+
+## Python
+
+```python
+{{< include problems/d_directed_arborescence/solution.py >}}
+```
+
+# What to verify independently
+
+For cut trees, compute a fresh max flow for every vertex pair on very small
+graphs and compare it with every tree-path minimum. For matroid problems,
+enumerate subsets and test both independence predicates. For arborescences,
+enumerate one incoming edge per non-root vertex and retain only selections
+reachable from the root. Parallel edges, zero capacities, directed cycles,
+and unreachable vertices should all appear in the stress generator.
