@@ -31,6 +31,7 @@ the phase matching your experience.
 | Master+ computational number theory | 91--93 | 64-bit factorization, discrete logarithms, and modular roots |
 | Master+ continuous geometry | 94--96 | Half-planes, circle geometry, enclosing disks, and Delaunay structure |
 | Master+ frontier DP | 97--99 | Digit automata, profiles, plug DP, Steiner subsets, and treewidth DP |
+| Grandmaster finale | 100 | Sixty-five Master-to-Grandmaster synthesis problems |
 
 The approved long-term structure is in
 [`CURRICULUM_PLAN.md`](CURRICULUM_PLAN.md).
@@ -52,7 +53,7 @@ Each completed section contains:
 - local online-judge tests;
 - a friendly section checker.
 
-The course currently has 99 sections. Section 61 is the ICPC readiness module,
+The course currently has 100 sections. Section 61 is the ICPC readiness module,
 Sections 62--63 are the Codeforces and AtCoder ladders, and Sections 64--66
 begin the master+ extension with multiplicative transforms and polynomial
 algorithms. Sections 67--69 continue with persistence, rollback, heavy-light,
@@ -83,7 +84,9 @@ randomized minimum enclosing circles, incremental Delaunay triangulation,
 empty-circle queries, and Euclidean MST sparsification.
 Sections 97--99 finish the extension with digit DP products, broken profiles,
 transfer matrices, canonical connectivity labels, Steiner subset DP, and
-dynamic programming over nice tree decompositions.
+dynamic programming over nice tree decompositions. Section 100 is the
+Grandmaster Finale: sixty-five original problems, including a final synthesis
+gauntlet that combines multiple technique families.
 
 Problem statements are written locally or summarized briefly. External
 Codeforces, AtCoder, and ICPC problems are linked instead of copied.
@@ -95,7 +98,10 @@ Maximum-constraint certification for Sections 64--99 is tracked separately in
 [`sections/MASTER_PLUS_COMPLEXITY_AUDIT.md`](sections/MASTER_PLUS_COMPLEXITY_AUDIT.md).
 It records adversarial invariants, measured C++/Python time and memory, and any
 constraint or support-limit failures; small random-oracle acceptance alone is
-not treated as complexity evidence.
+not treated as complexity evidence. Section 100 has its own
+[`finale complexity audit`](sections/100_grandmaster_finale/COMPLEXITY_AUDIT.md),
+which distinguishes completed kernels from synthesis layers still awaiting
+implementation.
 
 ## Requirements
 
