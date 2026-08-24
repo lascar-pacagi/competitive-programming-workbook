@@ -20,12 +20,14 @@ Open the cloned `competitive-programming-workbook` folder in your editor. No
 installation step is needed to begin: Python 3 and either `g++` or Python are
 enough to run the first exercise.
 
-Start with these two files:
+Open the first lesson:
 
-1. `sections/01_complexity_io_constraints/README.md` — the first lesson and
-   study order.
-2. `sections/01_complexity_io_constraints/problems/a_sum_constraints/README.md`
-   — your first problem.
+`sections/01_complexity_io_constraints/lesson.pdf`
+
+If the PDF is unavailable in your editor, open `lesson.qmd` in the same
+folder. After the lesson, open your first problem:
+
+`sections/01_complexity_io_constraints/problems/a_sum_constraints/README.md`
 
 Choose one language and write your answer in the matching starter file:
 
