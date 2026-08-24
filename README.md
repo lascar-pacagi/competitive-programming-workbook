@@ -24,8 +24,7 @@ Open the first lesson:
 
 `sections/01_complexity_io_constraints/lesson.pdf`
 
-If the PDF is unavailable in your editor, open `lesson.qmd` in the same
-folder. After the lesson, open your first problem:
+After the lesson, open your first problem:
 
 `sections/01_complexity_io_constraints/problems/a_sum_constraints/README.md`
 
