@@ -90,8 +90,8 @@ def main() -> int:
         "command",
         choices=("seed", "migrate"),
         help=(
-            "seed copies only missing files; migrate backs up every current "
-            "submission and resets all public solve files to TODO stubs"
+            "seed copies only missing files; migrate copies public solve files "
+            "and resets them to TODO stubs"
         ),
     )
     parser.add_argument(
@@ -99,12 +99,28 @@ def main() -> int:
         default=".submissions",
         help="overlay root (default: .submissions)",
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="allow migrate to replace existing overlay files",
+    )
     args = parser.parse_args()
     destination = resolve_destination(args.destination)
 
+    existing = [
+        destination / source.relative_to(ROOT) for source in submission_files()
+        if (destination / source.relative_to(ROOT)).exists()
+    ]
+    if args.command == "migrate" and existing and not args.overwrite:
+        parser.error(
+            f"refusing to overwrite {len(existing)} existing overlay file(s) in "
+            f"{destination}; make a backup and rerun with --overwrite only if "
+            "that is intentional"
+        )
+
     copied, preserved = copy_submissions(
         destination,
-        overwrite=args.command == "migrate",
+        overwrite=args.command == "migrate" and args.overwrite,
     )
     print(f"Verified {copied} copied submission file(s) in {destination}.")
     if preserved:

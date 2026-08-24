@@ -8,6 +8,47 @@ Every section combines explanation, local exercises, automated checking,
 randomized tests, and detailed editorials. Start at the beginning or enter at
 the phase matching your experience.
 
+## Start the course in two minutes
+
+Clone the repository:
+
+```bash
+git clone https://github.com/lascar-pacagi/competitive-programming-workbook.git
+```
+
+Open the cloned `competitive-programming-workbook` folder in your editor. No
+installation step is needed to begin: Python 3 and either `g++` or Python are
+enough to run the first exercise.
+
+Start with these two files:
+
+1. `sections/01_complexity_io_constraints/README.md` — the first lesson and
+   study order.
+2. `sections/01_complexity_io_constraints/problems/a_sum_constraints/README.md`
+   — your first problem.
+
+Choose one language and write your answer in the matching starter file:
+
+- `sections/01_complexity_io_constraints/problems/a_sum_constraints/solve.cpp`
+- `sections/01_complexity_io_constraints/problems/a_sum_constraints/solve.py`
+
+The `solve.cpp` and `solve.py` files are starter files: the repository contains
+no completed learner submissions. Your work begins there. When you are ready,
+test that first problem from the repository root:
+
+```bash
+python3 sections/01_complexity_io_constraints/check.py -p a --lang cpp
+```
+
+Replace `cpp` with `py` if you chose Python. Once it passes, continue with
+problem B in the same section. Read the editorial only after a serious try.
+
+## When you want more
+
+Everything below is optional for your first session: the full roadmap, extra
+checker options, private-submission workflow, debugging, and course-building
+tools.
+
 ## Course Roadmap
 
 | Phase | Sections | Main topics |
@@ -103,14 +144,16 @@ not treated as complexity evidence. Section 100 has its own
 which distinguishes completed kernels from synthesis layers still awaiting
 implementation.
 
-## Requirements
+## Requirements and optional setup
 
 - Python 3.11 or newer
 - `g++` with C++23 support
 - `gdb` (optional, for interactive C++ debugging)
-- Quarto and a LaTeX distribution to build PDFs
+- Quarto and a LaTeX distribution only if you want to build PDFs yourself
 
-## Setup
+You do not need a virtual environment or extra packages to solve and test the
+first exercises. Contributors who want the development tools can install them
+with:
 
 ```bash
 python3 -m venv .venv
@@ -118,7 +161,7 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 
-## Study A Section
+## Checking more exercises
 
 ### Keep personal work outside the public course
 
@@ -126,18 +169,20 @@ Maintainers can keep attempts in the ignored `.submissions/` overlay. Its
 directory structure mirrors the course, and the checker selects an overlay
 `solve.cpp` or `solve.py` automatically when it exists.
 
-To preserve current attempts and replace the public copies with clean TODO
-stubs, run this once:
-
-```bash
-python3 tools/manage_submissions.py migrate
-```
-
-When new course problems are added, seed their missing personal files without
-overwriting existing attempts:
+For a new overlay, seed only files that are missing; this never replaces an
+existing attempt:
 
 ```bash
 python3 tools/manage_submissions.py seed
+```
+
+`migrate` is a maintainer-only operation: it copies public `solve.*` files to
+an overlay and resets the public copies to TODO stubs. It now refuses to
+overwrite an existing overlay unless `--overwrite` is supplied. Make a backup
+first, and prefer a fresh destination:
+
+```bash
+python3 tools/manage_submissions.py migrate --destination .submissions-new
 ```
 
 The overlay may instead be an entirely separate private repository:

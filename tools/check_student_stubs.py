@@ -18,7 +18,11 @@ def main() -> int:
         print("Personal code was found in public student stubs:")
         for path in invalid:
             print(f"- {path}")
-        print("Run: python3 tools/manage_submissions.py migrate")
+        print(
+            "First back up personal work. Then migrate into a fresh overlay with: "
+            "python3 tools/manage_submissions.py migrate --destination "
+            ".submissions-new"
+        )
         return 1
 
     print(f"All {len(submission_files())} public student stubs are clean.")
