@@ -943,40 +943,40 @@ node that does contain one. Point assignments and searches both cost
 {{< include problems/k_budget_prefix_search/solution.py >}}
 ```
 
-# L. Dynamic Inversion Swaps
+# L. Range Add Threshold Search
 
-## Local change formula
+## Lazy maximum tree
 
-Assume `i<j`, `x=a[i]`, and `y=a[j]`. Pairs wholly outside these positions do
-not change. If `x<y`, their mutual pair contributes `+1` after swapping. Every
-middle value `z` with `x<z<y` changes two non-inversions into two inversions;
-all other middle values have zero net change. Therefore
+Store the maximum value of each segment. A range addition increases both the
+stored maximum and the lazy tag of every fully covered node by the same
+amount. Before entering a partially covered node, push its tag to its two
+children.
 
-```text
-delta = +(1 + 2*count(i<k<j and x<a[k]<y)).
-```
+For `Q l r x`, a node can be discarded if it is outside `[l,r]` or its maximum
+is less than `x`. Otherwise, if it is not a leaf, push its lazy tag and search
+the left child before the right child. The first reachable leaf is the
+smallest valid position.
 
-For `x>y`, the same quantity is subtracted.
+## Correctness and cost
 
-## Data structure, proof, and cost
+Every node maximum equals the greatest current array value in its segment:
+range addition preserves the invariant by shifting all covered values and the
+stored maximum equally, and pulling takes the maximum of the children.
 
-Split positions into blocks and keep each block sorted. Count middle values in
-the open value interval using binary search on full blocks and direct checks
-on the two boundary fragments. After a swap, rebuild its one or two blocks.
-The formula considers every pair involving a changed position exactly once,
-so adding it preserves the exact inversion total.
+A discarded in-range node contains no qualifying value because its maximum is
+below the threshold. Every node before the query interval is also discarded.
+Searching left before right therefore returns the smallest qualifying index,
+or `-1` when the root search finds none.
 
-Compute the initial total with a Fenwick tree. With block size about
-`sqrt(n)`, a swap costs `O(sqrt(n) log n)`, initialization costs
-`O(n log n)`, and memory is `O(n)`. Open value bounds and `i=j` are essential
-edge cases.
+Both range addition and guided descent take `O(log n)` time. Building takes
+`O(n)` time and the tree uses `O(n)` memory.
 
 ## Full solutions
 
 ```cpp
-{{< include problems/l_dynamic_inversion_swaps/solution.cpp >}}
+{{< include problems/l_range_add_threshold_search/solution.cpp >}}
 ```
 
 ```python
-{{< include problems/l_dynamic_inversion_swaps/solution.py >}}
+{{< include problems/l_range_add_threshold_search/solution.py >}}
 ```

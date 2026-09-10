@@ -25,7 +25,7 @@ PROBLEMS = [
     SECTION / "problems" / "i_dynamic_maximum_subarray",
     SECTION / "problems" / "j_sliding_median_cost",
     SECTION / "problems" / "k_budget_prefix_search",
-    SECTION / "problems" / "l_dynamic_inversion_swaps",
+    SECTION / "problems" / "l_range_add_threshold_search",
 ]
 
 def main() -> int:

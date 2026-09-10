@@ -36,7 +36,7 @@ In a mixed contest, start from the operations, not the container name.
 | I | Dynamic Maximum Subarray |
 | J | Sliding Median Cost |
 | K | Budget Prefix Search |
-| L | Dynamic Inversion Swaps |
+| L | Range Add Threshold Search |
 
 Problems E and F complete the direct category coverage. Problems G--L form a
 second, progressively harder half: each adds one modeling or invariant burden

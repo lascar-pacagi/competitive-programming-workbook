@@ -74,10 +74,16 @@ def case(name: str, rng: random.Random):
                     if s>b:answer=r+1;break
                 ops.append(f"Q {l+1} {b}");out.append(answer)
         return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
-    if name == "l_dynamic_inversion_swaps":
-        n=rng.randint(1,12);q=rng.randint(1,25);a=list(range(1,n+1));rng.shuffle(a);initial=a[:];ops=[];out=[]
-        for _ in range(q):i=rng.randrange(n);j=rng.randrange(n);a[i],a[j]=a[j],a[i];ops.append(f"{i+1} {j+1}");out.append(sum(a[x]>a[y] for x in range(n) for y in range(x+1,n)))
-        return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+"\n".join(ops)+"\n","\n".join(map(str,out))+"\n"
+    if name == "l_range_add_threshold_search":
+        n=rng.randint(1,12);q=rng.randint(1,25);a=[rng.randint(-9,9) for _ in range(n)];initial=a[:];ops=[];out=[]
+        for _ in range(q):
+            l=rng.randrange(n);r=rng.randrange(l,n)
+            if rng.random()<.55:
+                x=rng.randint(-7,7);ops.append(f"A {l+1} {r+1} {x}")
+                for i in range(l,r+1):a[i]+=x
+            else:
+                x=rng.randint(-12,12);ops.append(f"Q {l+1} {r+1} {x}");out.append(next((i+1 for i in range(l,r+1) if a[i]>=x),-1))
+        return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
 
     if name in {"e_subtree_add_point_query","f_dynamic_path_maximum","g_subtree_value_count","j_subtree_kth_smallest","l_path_add_path_maximum"}:
         n=rng.randint(1,11);q=rng.randint(1,22);edges,g,parent,desc=tree(rng,n);a=[rng.randint(-9,9) for _ in range(n)];initial=a[:];edge_text="".join(f"{u+1} {v+1}\n" for u,v in edges);ops=[];out=[]

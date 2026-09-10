@@ -9,10 +9,10 @@ second half, so the complete contest has twelve local exercises.
 | Data-structure category | Problem |
 |---|---|
 | Fenwick tree | B. List Removals; D. Salary Queries |
-| Segment tree | A. Hotel Queries |
+| Segment tree | A. Hotel Queries; L. Range Add Threshold Search |
 | Static queries and binary lifting | [E. Functional Walk Minimum](problems/e_functional_walk_minimum/README.md) |
 | Heaps and priority queues | [F. Running Lower Median](problems/f_running_lower_median/README.md) |
-| Progressive synthesis | G. Streaming Room Count through L. Dynamic Inversion Swaps |
+| Progressive synthesis | G. Streaming Room Count through L. Range Add Threshold Search |
 
 Mo Distinct Queries remains an additional offline-query challenge rather than
 a substitute for the static-query category.
