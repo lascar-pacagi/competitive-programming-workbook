@@ -823,20 +823,6 @@ PROBLEMS = {
             ALLOC_PY,
         ),
     ],
-    72: [
-        ("a_exam_room_bounds", "A. Exam Room Bounds", "matrix", MATRIX_CPP, MATRIX_PY),
-        ("b_night_delivery", "B. Night Delivery", "shipment", SHIP_CPP, SHIP_PY),
-        ("c_team_quota_profit", "C. Team Quota Profit", "quota", QUOTA_CPP, QUOTA_PY),
-        ("d_monotone_signal", "D. Monotone Signal", "monotone", MONO_CPP, MONO_PY),
-        ("e_exact_discount_tree", "E. Exact Discount Tree", "mst", MST_CPP, MST_PY),
-        (
-            "f_congested_team_assignment",
-            "F. Congested Team Assignment",
-            "convex_quota",
-            CONVEX_QUOTA_CPP,
-            CONVEX_QUOTA_PY,
-        ),
-    ],
 }
 
 SECTION_NAMES = {
@@ -1448,6 +1434,10 @@ def write(path: Path, content: str) -> None:
 
 def build() -> None:
     for section, problems in PROBLEMS.items():
+        if section == 72:
+            # Section 72 is a hand-maintained six-problem mixed contest.
+            # Do not let the legacy story-copy generator overwrite it.
+            continue
         base = ROOT / "sections" / SECTION_DIRS[section]
         base.mkdir(parents=True, exist_ok=True)
         rows = "\n".join(

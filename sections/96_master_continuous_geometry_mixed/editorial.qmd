@@ -7,30 +7,35 @@ geometry: margin=1.6cm
 fontsize: 9pt
 ---
 
-# A. Safe Operating Region
+# A. Safe Region Diameter
 
 ## How to find it
 
-Sort directed boundaries by angle, discard weaker parallel copies, and maintain feasible consecutive intersections in a deque.
+First recover the convex intersection polygon with the half-plane deque. Then
+use rotating calipers to find its farthest pair of vertices.
 
 ## Correctness
 
-The deque invariant retains exactly the processed region boundaries in angular order; every removed corner violates the new constraint and can never return. Closing yields precisely the intersection polygon.
+The deque produces exactly the feasible polygon. A diameter of a convex polygon
+has antipodal endpoints; rotating calipers enumerates every antipodal pair while
+the opposite pointer moves only forward, so the largest tested distance is the
+region diameter.
 
 ## Complexity
 
-`O(n log n)` time and `O(n)` memory.
+`O(n log n)` time for sorting half-planes plus `O(h)` calipers time, and `O(n)`
+memory.
 
 ## C++
 
 ```cpp
-{{< include problems/a_safe_operating_region/solution.cpp >}}
+{{< include problems/a_safe_region_diameter/solution.cpp >}}
 ```
 
 ## Python
 
 ```python
-{{< include problems/a_safe_operating_region/solution.py >}}
+{{< include problems/a_safe_region_diameter/solution.py >}}
 ```
 
 # B. Round Table Clearance
@@ -111,30 +116,34 @@ Expected `O(n)` time and `O(n)` storage.
 {{< include problems/d_emergency_broadcast_disk/solution.py >}}
 ```
 
-# E. Empty Observation Zone
+# E. Delaunay Route
 
 ## How to find it
 
-Enumerate the final Delaunay triangles and maximize their circumradii.
+Build the Delaunay edges, weight them by Euclidean length, and run Dijkstra from
+the requested source site.
 
 ## Correctness
 
-A finite empty circle through three sites is a Delaunay face circumcircle, and every Delaunay face supplies such an empty circle.
+The construction returns exactly the graph permitted by the statement.
+Euclidean edge lengths are nonnegative, so Dijkstra's settled-distance
+invariant gives the shortest permitted route.
 
 ## Complexity
 
-Expected `O(n squared)` here.
+Expected `O(n squared)` for the local incremental triangulation, followed by
+`O(n log n)` shortest-path work on the linear-size Delaunay graph.
 
 ## C++
 
 ```cpp
-{{< include problems/e_empty_observation_zone/solution.cpp >}}
+{{< include problems/e_delaunay_route/solution.cpp >}}
 ```
 
 ## Python
 
 ```python
-{{< include problems/e_empty_observation_zone/solution.py >}}
+{{< include problems/e_delaunay_route/solution.py >}}
 ```
 
 # F. Low-Cost Fiber

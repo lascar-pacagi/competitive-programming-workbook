@@ -6,14 +6,16 @@ struct Fenwick {
     explicit Fenwick(int n) : bit(n + 1, 0) {}
 
     void add(int index, int delta) {
-        for (int n = (int)bit.size(); index < n; index += index & -index) {
+        int size = static_cast<int>(bit.size());
+        for (; index < size; index += index & -index) {
             bit[index] += delta;
         }
     }
 
     int sum(int index) const {
         int result = 0;
-        for (; index > 0; index -= index & -index) result += bit[index];
+        for (; index > 0; index -= index & -index)
+            result += bit[index];
         return result;
     }
 };
@@ -47,9 +49,13 @@ int main() {
     }
 
     sort(coords.begin(), coords.end());
-    coords.erase(unique(coords.begin(), coords.end()), coords.end());
+    auto unique_end = unique(coords.begin(), coords.end());
+    coords.erase(unique_end, coords.end());
     auto rank_of = [&](long long value) {
-        return int(lower_bound(coords.begin(), coords.end(), value) - coords.begin()) + 1;
+        auto iterator = lower_bound(
+            coords.begin(), coords.end(), value
+        );
+        return int(iterator - coords.begin()) + 1;
     };
 
     Fenwick bit((int)coords.size());
@@ -64,9 +70,18 @@ int main() {
         } else {
             long long low = operation.first;
             long long high = operation.second;
-            int before_low = int(lower_bound(coords.begin(), coords.end(), low) - coords.begin());
-            int through_high = int(upper_bound(coords.begin(), coords.end(), high) - coords.begin());
-            cout << bit.sum(through_high) - bit.sum(before_low) << '\n';
+            auto low_iterator = lower_bound(
+                coords.begin(), coords.end(), low
+            );
+            auto high_iterator = upper_bound(
+                coords.begin(), coords.end(), high
+            );
+            int before_low = int(low_iterator - coords.begin());
+            int through_high = int(high_iterator - coords.begin());
+            int answer = (
+                bit.sum(through_high) - bit.sum(before_low)
+            );
+            cout << answer << '\n';
         }
     }
     return 0;

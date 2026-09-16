@@ -45,8 +45,11 @@ int main() {
     add(a[i], 1);
   for (int l = 0;; l++) {
     int p = cnt.kth((k + 1) / 2);
-    ll m = v[p - 1], cl = cnt.sum(p), sl = sum.sum(p), ct = cnt.sum(v.size()),
-       st = sum.sum(v.size());
+    ll m = v[p - 1];
+    ll cl = cnt.sum(p);
+    ll sl = sum.sum(p);
+    ll ct = cnt.sum(v.size());
+    ll st = sum.sum(v.size());
     ll ans = m * cl - sl + (st - sl) - m * (ct - cl);
     if (l)
       cout << ' ';

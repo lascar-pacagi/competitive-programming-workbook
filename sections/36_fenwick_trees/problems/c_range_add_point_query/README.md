@@ -1,25 +1,42 @@
 # C. Range Add Point Query
 
-        Maintain an array. Operation `1 l r x` adds `x` to every element in `[l,r]`. Operation `2 i` asks for the current value of `a[i]`.
+Maintain an array under two kinds of operations:
 
-        ## Input
+- `1 l r x`: add `x` to every value in `a[l..r]`.
+- `2 i`: print the current value of `a[i]`.
 
-        See the operation format described above. All indices are 1-based.
+All indices are 1-based.
 
-        ## Output
+## Input
 
-        Print each requested answer in order.
+The first line contains `n` and `q`. The second line contains the `n` initial
+array values. Each of the next `q` lines describes one operation.
 
-        ## Sample
+Constraints:
 
-        Input:
+- `1 <= n, q <= 200,000`
+- `-10^9 <= a[i], x <= 10^9`
+- `1 <= i <= n`
+- `1 <= l <= r <= n`
 
-        ```text
-        5 5
+## Output
+
+For every operation of type `2`, print the requested value on its own line.
+
+## Sample
+
+```text
+5 5
 10 20 30 40 50
 2 3
 1 2 4 5
 2 3
 1 1 5 -10
 2 5
-        ```
+```
+
+```text
+30
+35
+40
+```

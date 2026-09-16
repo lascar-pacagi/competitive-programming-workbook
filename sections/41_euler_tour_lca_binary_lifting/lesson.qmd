@@ -19,221 +19,835 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{tikz}
+        \usetikzlibrary{decorations.pathreplacing,arrows.meta}
 execute:
   enabled: false
 ---
 
-# Tree paths by powers of two
+# What this section adds
 
-Lowest common ancestor turns a path query into two root paths. Store
-`up[k][v]`, the `2^k`-th ancestor of `v`, and combine values while lifting.
-This section extends Section 38's ancestor jumps to full path queries.
+Section 38 built the jump table and used it to answer one question: *where do I
+land after `k` upward edges?* That question is about a single vertex. This
+section answers questions about a **path between two vertices**, which is the
+shape almost every tree problem actually takes.
+
+Everything from Section 38 carries over unchanged:
+
+```text
+up[k][v] = node reached after exactly 2^k upward edges
+up[0][v] = parent[v]
+up[k][v] = up[k-1][ up[k-1][v] ]
+```
+
+Recall the two conventions from Section 38, because both matter here. The
+exponent `k` is a table level, not an edge count: `up[2][v]` means four edges.
+And node `0` is the sentinel meaning *no such ancestor*; every `up[k][0]` stays
+`0`, so a jump that overshoots the root is harmless.
+
+The new ingredient is that **one DFS produces everything at once**. The same
+traversal that fills `depth` and `up[0]` can also stamp two timestamps per
+vertex, and those timestamps answer ancestor questions without any lifting at
+all. So a single preprocessing pass gives four arrays:
+
+| Array | Meaning | Used for |
+|---|---|---|
+| `depth[v]` | edges from the root to `v` | equalizing depths, distance |
+| `up[0][v]` | parent of `v` | seeding the jump table |
+| `tin[v]`, `tout[v]` | entry and exit clock | subtree tests, subtree ranges |
+
+One term runs through every chapter, so it is worth fixing before anything
+uses it. The **lowest common ancestor** of `u` and `v`, written `lca(u,v)`, is
+the deepest vertex that is an ancestor of both. Equivalently: walk from `u` up
+to the root and from `v` up to the root, and take the first vertex the two
+walks have in common.
+
+A vertex counts as an ancestor of itself. That convention is not decoration —
+it is what makes `lca(u,v) = v` the right answer when `v` already lies on the
+root path of `u`, and it is why the algorithm below can stop early when the two
+vertices become equal.
+
+Here is the tree that everything below is built on. It is rooted at `1`, and
+its edges carry weights that the next three chapters ignore and the last one
+uses. A single pair, `u = 13` and `v = 12`, runs through every figure, table and
+trace, so each picture builds on the one before it.
+
+Read the six questions in the box as the plan for the section. The first is
+answered by timestamps alone and needs no table at all. The second is the
+lowest common ancestor just defined, answered by the jump table. The remaining
+four all reduce to the second, which is why it is worth building carefully
+before anything else.
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=6.6mm,inner sep=0pt,font=\small},
+  qu/.style={nd,fill=orange!30,very thick},
+  qv/.style={nd,fill=blue!18,very thick},
+  ed/.style={draw,gray!60},
+  wl/.style={font=\scriptsize,text=black!72,fill=white,inner sep=1.2pt},
+  dep/.style={font=\scriptsize,text=gray!55,anchor=east}]
+
+  \node[nd] (n1)  at (3.6, 0)    {$1$};
+  \node[nd] (n2)  at (0.9,-1.3)  {$2$};
+  \node[nd] (n3)  at (3.6,-1.3)  {$3$};
+  \node[nd] (n4)  at (6.3,-1.3)  {$4$};
+  \node[nd] (n5)  at (0,  -2.6)  {$5$};
+  \node[nd] (n6)  at (1.8,-2.6)  {$6$};
+  \node[nd] (n7)  at (5.4,-2.6)  {$7$};
+  \node[nd] (n8)  at (7.2,-2.6)  {$8$};
+  \node[nd] (n9)  at (0,  -3.9)  {$9$};
+  \node[nd] (n11) at (1.8,-3.9)  {$11$};
+  \node[nd] (n10) at (0,  -5.2)  {$10$};
+  \node[qv] (n12) at (1.8,-5.2)  {$12$};
+  \node[qu] (n13) at (0,  -6.5)  {$13$};
+
+  \foreach \a/\b/\w in {n1/n2/4,n1/n3/7,n1/n4/2,n2/n5/9,n2/n6/3,n4/n7/5,n4/n8/6,
+                        n5/n9/1,n6/n11/2,n9/n10/8,n11/n12/6,n10/n13/5}
+    \draw[ed] (\a) -- node[wl] {$\w$} (\b);
+
+  \foreach \d/\y in {0/0,1/-1.3,2/-2.6,3/-3.9,4/-5.2,5/-6.5}
+    \node[dep] at (-1.15,\y) {depth \d};
+
+  \node[font=\scriptsize,text=orange!60!black,anchor=east] at (-0.45,-6.5) {$u$};
+  \node[font=\scriptsize,text=blue!55!black,anchor=west]  at (2.35,-5.2)  {$v$};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt] at (3.0,-3.3)
+    {\textbf{One tree, one pair, six questions.}\\[3pt]
+     Every figure, table and trace below uses this rooted, edge-weighted tree,
+     and\\
+     the pair $u=13$, $v=12$ throughout. The questions, in the order we answer\\
+     them:\\[4pt]
+     \begin{tabular}{@{}ll@{}}
+       Is $v$ inside the subtree of $u$? & Euler tour\\
+       What is $\mathrm{lca}(u,v)$? & lifting, two phases\\
+       How many edges lie between them? & problem A\\
+       What is the heaviest edge between them? & problem B\\
+       Which vertex is $k$-th along the path? & problem C\\
+       What is the total weight between them? & problem D\\
+     \end{tabular}\\[4pt]
+     Edge labels are weights; they are ignored until the weighted questions.};
+\end{tikzpicture}
+\end{center}
+```
+
+# Euler tour: a subtree is an interval
+
+Run a DFS from the root and keep a single clock. On entering `v`, record
+`tin[v]` and tick the clock. On leaving `v`, record `tout[v]` without ticking.
+
+```text
+tin[v]  = clock value when the DFS enters v
+tout[v] = clock value when the DFS leaves v
+```
+
+Because a DFS finishes a whole subtree before it returns, every descendant of
+`v` is entered after `v` and left before `v`:
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  bx/.style={draw,rounded corners=2pt,align=center,minimum width=1.15cm,
+             minimum height=.82cm,inner sep=1.5pt,font=\scriptsize},
+  b5/.style={bx,fill=orange!25},
+  b6/.style={bx,fill=blue!18},
+  b0/.style={bx,fill=white},
+  ed/.style={draw,gray!65},
+  dep/.style={font=\scriptsize,text=gray!60,anchor=east}]
+
+  \node[b0] (n1)  at (3.6, 0)    {$1$\\$[0,13)$};
+  \node[b0] (n2)  at (0.9,-1.45) {$2$\\$[1,9)$};
+  \node[b0] (n3)  at (3.6,-1.45) {$3$\\$[9,10)$};
+  \node[b0] (n4)  at (6.3,-1.45) {$4$\\$[10,13)$};
+  \node[b5] (n5)  at (0,  -2.90) {$5$\\$[2,6)$};
+  \node[b6] (n6)  at (1.8,-2.90) {$6$\\$[6,9)$};
+  \node[b0] (n7)  at (5.4,-2.90) {$7$\\$[11,12)$};
+  \node[b0] (n8)  at (7.2,-2.90) {$8$\\$[12,13)$};
+  \node[b5] (n9)  at (0,  -4.35) {$9$\\$[3,6)$};
+  \node[b6] (n11) at (1.8,-4.35) {$11$\\$[7,9)$};
+  \node[b5] (n10) at (0,  -5.80) {$10$\\$[4,6)$};
+  \node[b6] (n12) at (1.8,-5.80) {$12$\\$[8,9)$};
+  \node[b5] (n13) at (0,  -7.25) {$13$\\$[5,6)$};
+
+  \foreach \a/\b in {n1/n2,n1/n3,n1/n4,n2/n5,n2/n6,n4/n7,n4/n8,
+                     n5/n9,n6/n11,n9/n10,n11/n12,n10/n13}
+    \draw[ed] (\a) -- (\b);
+
+  \foreach \d/\y in {0/0,1/-1.45,2/-2.90,3/-4.35,4/-5.80,5/-7.25}
+    \node[dep] at (-1.05,\y) {depth \d};
+
+  \node[font=\scriptsize,align=left,anchor=north west] at (2.75,-3.52)
+    {\textbf{One DFS stamps two times per node.}\\[2pt]
+     \texttt{tin[v]}\ \ = clock when the DFS enters \texttt{v}\\
+     \texttt{tout[v]} = clock when it leaves \texttt{v}\\[4pt]
+     Every descendant is entered after \texttt{v}\\
+     and left before \texttt{v}, so the subtree of \texttt{v}\\
+     is exactly the times in $[\texttt{tin[v]},\texttt{tout[v]})$.\\[4pt]
+     $\texttt{v}$ is an ancestor of $\texttt{u}$ iff\\
+     \quad$\texttt{tin[v]}\le\texttt{tin[u]}<\texttt{tout[v]}$\\[4pt]
+     one comparison, no climbing.};
+\end{tikzpicture}
+\end{center}
+```
+
+That containment is the whole idea, and it gives an ancestor test with no
+climbing and no table:
+
+```text
+v is an ancestor of u  <=>  tin[v] <= tin[u] < tout[v]
+```
+
+Laying the intervals on a time axis makes the nesting explicit. Sibling
+subtrees occupy disjoint, adjacent blocks; a parent's block exactly spans its
+children's blocks plus its own entry tick:
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[x=.88cm,y=1cm,font=\scriptsize,
+  bar/.style={draw,minimum height=.42cm,inner sep=0pt},
+  gl/.style={draw,gray!22,very thin},
+  dep/.style={font=\scriptsize,text=gray!60,anchor=east}]
+
+  \foreach \t in {0,...,13} \draw[gl] (\t,.34) -- (\t,-3.12);
+
+  % depth 0
+  \draw[fill=gray!12] (0,-.21) rectangle (13,.21);   \node at (6.5,0) {$1$};
+  % depth 1
+  \draw[fill=gray!12] (1,-.77) rectangle (9,-.35);   \node at (5,-.56) {$2$};
+  \draw[fill=gray!12] (9,-.77) rectangle (10,-.35);  \node at (9.5,-.56) {$3$};
+  \draw[fill=gray!12] (10,-.77) rectangle (13,-.35); \node at (11.5,-.56) {$4$};
+  % depth 2
+  \draw[fill=orange!30] (2,-1.33) rectangle (6,-.91); \node at (4,-1.12) {$5$};
+  \draw[fill=blue!18]   (6,-1.33) rectangle (9,-.91); \node at (7.5,-1.12) {$6$};
+  \draw[fill=gray!12]  (11,-1.33) rectangle (12,-.91);\node at (11.5,-1.12) {$7$};
+  \draw[fill=gray!12]  (12,-1.33) rectangle (13,-.91);\node at (12.5,-1.12) {$8$};
+  % depth 3
+  \draw[fill=orange!30] (3,-1.89) rectangle (6,-1.47); \node at (4.5,-1.68) {$9$};
+  \draw[fill=blue!18]   (7,-1.89) rectangle (9,-1.47); \node at (8,-1.68) {$11$};
+  % depth 4
+  \draw[fill=orange!30] (4,-2.45) rectangle (6,-2.03); \node at (5,-2.24) {$10$};
+  \draw[fill=blue!18]   (8,-2.45) rectangle (9,-2.03); \node at (8.5,-2.24) {$12$};
+  % depth 5
+  \draw[fill=orange!30] (5,-3.01) rectangle (6,-2.59); \node at (5.5,-2.80) {$13$};
+
+  \foreach \d/\y in {0/0,1/-.56,2/-1.12,3/-1.68,4/-2.24,5/-2.80}
+    \node[dep] at (-.25,\y) {depth \d};
+
+  % time axis
+  \draw[->,gray!70] (0,-3.32) -- (13.35,-3.32);
+  \foreach \t in {0,...,13} {
+    \draw[gray!70] (\t,-3.26) -- (\t,-3.38);
+    \node[text=gray!70,anchor=north,inner sep=2pt] at (\t,-3.40) {$\t$};}
+  \node[anchor=west,text=gray!70] at (13.45,-3.32) {time};
+
+  % callout
+  \draw[decorate,decoration={brace,amplitude=4pt,mirror},gray!70]
+    (1,-3.82) -- (9,-3.82);
+  \node[anchor=north,align=center,font=\scriptsize] at (5,-3.98)
+    {the $8$ nodes of subtree $2$ occupy the $8$ consecutive times $[1,9)$};
+\end{tikzpicture}
+\end{center}
+```
+
+Reading the interval `[tin[v], tout[v])` as a range is what turns subtree
+questions into array questions. If you write every vertex into an array at
+position `tin[v]`, the subtree of `v` becomes a contiguous slice, so "add to
+every node in a subtree" or "sum a subtree" becomes a range update or range
+query on a Fenwick or segment tree from Sections 36 and 37. Section 42 leans on
+this directly.
+
+Two conventions are in circulation, and mixing them is an easy off-by-one. This
+section stores `tout[v]` as the clock value on *leaving* `v`, which is one past
+the last time in the subtree, so the interval is half-open and the ancestor test
+ends in a strict `<`. Others store `tout[v]` as the last time *inside* the
+subtree and write the closed interval `[tin[v], tout[v]]` with a `<=` test;
+Section 42 uses that closed form. Both describe the same set of vertices. Pick
+one per solution and keep it.
+
+For the running tree the stamps are:
+
+```text
+v        1   2   3   4   5   6   7   8   9  10  11  12  13
+depth    0   1   1   1   2   2   2   2   3   4   3   4   5
+tin      0   1   9  10   2   6  11  12   3   4   7   8   5
+tout    13   9  10  13   6   9  12  13   6   6   9   9   6
+```
+
+Check one row against the picture: `tin[2] = 1` and `tout[2] = 9`, an interval
+of length `8`, and the subtree of `2` is `{2,5,6,9,10,11,12,13}` — exactly `8`
+vertices. The length of the interval is the size of the subtree.
+
+An ancestor test is worth having even when you also have the jump table.
+`lca(u,v) == u` costs `O(log n)`; `tin[u] <= tin[v] < tout[u]` costs one
+comparison.
+
+# LCA by lifting
+
+The jump table answers the path questions through one primitive: the lowest
+common ancestor. The algorithm has two phases, and the second one is where the
+subtlety lives.
+
+1. Make `u` the deeper vertex.
+2. **Equalize.** Lift `u` by `depth[u] - depth[v]`, using the bits of that
+   difference exactly as in Section 38.
+3. If `u == v`, then `v` was an ancestor of `u` and it is the answer.
+4. **Climb together.** Working from the largest level down to zero, lift
+   **both** vertices by `2^k`, but only when `up[k][u] != up[k][v]`.
+5. The two vertices now sit immediately below the answer, so return `up[0][u]`.
+
+One word of warning about the usual name for step 4. Both vertices only ever
+move **upward** in it; nothing descends the tree. What counts downward is `k`,
+the loop over jump sizes, from `2^(LOG-1)` down to `2^0`. The step is often
+called *descending the table* for exactly that reason, and the phrase trips
+people up: it is the jump sizes that descend, never the vertices.
+
+Here is the full table for the running tree, followed by a complete trace:
+
+```text
+v        1   2   3   4   5   6   7   8   9  10  11  12  13
+up[0]    0   1   1   1   2   2   4   4   5   9   6  11  10
+up[1]    0   0   0   0   1   1   1   1   2   5   2   6   9
+up[2]    0   0   0   0   0   0   0   0   0   1   0   1   2
+up[3]    0   0   0   0   0   0   0   0   0   0   0   0   0
+```
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=6.6mm,inner sep=0pt,font=\small},
+  uS/.style={nd,fill=orange!30},
+  vS/.style={nd,fill=blue!18},
+  lc/.style={nd,fill=green!35,very thick},
+  sk/.style={nd,fill=white,draw=gray!45,densely dashed,text=gray!55},
+  ir/.style={nd,fill=gray!10,draw=gray!35,text=gray!45},
+  ed/.style={draw,gray!55},
+  ju/.style={->,very thick,>=Latex},
+  dep/.style={font=\scriptsize,text=gray!55,anchor=east}]
+
+  \node[nd]  (n1)  at (3.6, 0)    {$1$};
+  \node[lc]  (n2)  at (0.9,-1.3)  {$2$};
+  \node[ir]  (n3)  at (3.6,-1.3)  {$3$};
+  \node[ir]  (n4)  at (6.3,-1.3)  {$4$};
+  \node[uS]  (n5)  at (0,  -2.6)  {$5$};
+  \node[vS]  (n6)  at (1.8,-2.6)  {$6$};
+  \node[ir]  (n7)  at (5.4,-2.6)  {$7$};
+  \node[ir]  (n8)  at (7.2,-2.6)  {$8$};
+  \node[sk]  (n9)  at (0,  -3.9)  {$9$};
+  \node[sk]  (n11) at (1.8,-3.9)  {$11$};
+  \node[uS]  (n10) at (0,  -5.2)  {$10$};
+  \node[vS]  (n12) at (1.8,-5.2)  {$12$};
+  \node[uS]  (n13) at (0,  -6.5)  {$13$};
+
+  \foreach \a/\b in {n1/n2,n1/n3,n1/n4,n2/n5,n2/n6,n4/n7,n4/n8,
+                     n5/n9,n6/n11,n9/n10,n11/n12,n10/n13}
+    \draw[ed] (\a) -- (\b);
+
+  \foreach \d/\y in {0/0,1/-1.3,2/-2.6,3/-3.9,4/-5.2,5/-6.5}
+    \node[dep] at (-1.75,\y) {depth \d};
+
+  % phase 1: equalize
+  \draw[ju,orange!80!black] (n13) to[bend left=58] node[left=4pt,font=\scriptsize,
+        text=orange!60!black,align=right,pos=.5] {\textbf{1}\\bit $0$} (n10);
+  % phase 2: the k=1 jump, both sides at once
+  \draw[ju,orange!80!black] (n10) to[bend left=42] node[left=4pt,font=\scriptsize,
+        text=orange!60!black,align=right,pos=.5] {\textbf{2}\\$k{=}1$} (n5);
+  \draw[ju,blue!70!black]   (n12) to[bend right=42] node[right=4pt,font=\scriptsize,
+        text=blue!55!black,align=left,pos=.5] {\textbf{2}\\$k{=}1$} (n6);
+
+  \node[font=\scriptsize,text=green!35!black,anchor=west] at (1.35,-1.05)
+    {$=\mathtt{up[0][5]}$};
+
+  % decision log
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt] at (3.45,-3.15)
+    {\textbf{lca(13,\,12)}\ \ \ depths $5$ and $4$\\[3pt]
+     \textbf{Phase 1 -- equalize.} Lift the deeper\\
+     endpoint by $5-4=1$: \ $13\to10$.\\
+     Both endpoints now sit at depth $4$.\\[5pt]
+     \textbf{Phase 2 -- climb together, biggest jump first.}\\
+     Jump only when the ancestors \emph{differ}.\\[3pt]
+     \begin{tabular}{@{}llll@{}}
+       $k$ & \texttt{up[k][u]} & \texttt{up[k][v]} & \\[1pt]
+       $3$ & $0$ & $0$ & equal, no jump\\
+       $2$ & $1$ & $1$ & equal, no jump\\
+       $1$ & $5$ & $6$ & \textbf{differ, jump both}\\
+       $0$ & $2$ & $2$ & equal, no jump\\
+     \end{tabular}\\[4pt]
+     Stops at $u=5$, $v=6$: the two children\\
+     of the answer. \ \textbf{lca} $=\mathtt{up[0][5]}=2$.};
+\end{tikzpicture}
+\end{center}
+```
+
+**Why the comparison comes before the jump.** Step 4 tests `up[k][u]` against
+`up[k][v]` and moves only when they differ. If the two ancestors are *equal*,
+the jump would land on or above the LCA, and from there the two vertices could
+never be separated again. Jumping only on a difference keeps both vertices
+strictly below the LCA at every moment, so the loop can never overshoot.
+
+Read the trace above in that light. At `k = 1` the ancestors are `5` and `6`,
+which differ, so both move — they are still below the answer. At `k = 0` the
+ancestors are both `2`, so the loop refuses to move, and `2` is precisely the
+answer. The final `up[0][u]` is not an extra step; it is the one jump the loop
+deliberately declined to make.
+
+Note also that `up[2][10] = up[2][12] = 1` did not trigger a jump even though
+`1` is a genuine common ancestor. That is the same rule working correctly: `1`
+is common but not *lowest*, and equality is exactly the signal to stay put.
+
+# Three path queries from one primitive
+
+Once `c = lca(u,v)` is known, the path from `u` to `v` splits into two disjoint
+upward legs, `u -> c` and `c <- v`. Every path query is a statement about those
+two legs.
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=6.6mm,inner sep=0pt,font=\small},
+  uS/.style={nd,fill=orange!30},
+  vS/.style={nd,fill=blue!18},
+  lc/.style={nd,fill=green!35,very thick},
+  ir/.style={nd,fill=gray!10,draw=gray!35,text=gray!45},
+  ed/.style={draw,gray!55},
+  pu/.style={draw,very thick,orange!80!black},
+  pv/.style={draw,very thick,blue!70!black},
+  kk/.style={font=\scriptsize,text=gray!45},
+  dep/.style={font=\scriptsize,text=gray!55,anchor=east}]
+
+  \node[nd]  (n1)  at (3.6, 0)    {$1$};
+  \node[lc]  (n2)  at (0.9,-1.3)  {$2$};
+  \node[ir]  (n3)  at (3.6,-1.3)  {$3$};
+  \node[ir]  (n4)  at (6.3,-1.3)  {$4$};
+  \node[uS]  (n5)  at (0,  -2.6)  {$5$};
+  \node[vS]  (n6)  at (1.8,-2.6)  {$6$};
+  \node[ir]  (n7)  at (5.4,-2.6)  {$7$};
+  \node[ir]  (n8)  at (7.2,-2.6)  {$8$};
+  \node[uS]  (n9)  at (0,  -3.9)  {$9$};
+  \node[vS]  (n11) at (1.8,-3.9)  {$11$};
+  \node[uS]  (n10) at (0,  -5.2)  {$10$};
+  \node[vS]  (n12) at (1.8,-5.2)  {$12$};
+  \node[uS]  (n13) at (0,  -6.5)  {$13$};
+
+  \foreach \a/\b in {n1/n2,n1/n3,n1/n4,n4/n7,n4/n8} \draw[ed] (\a) -- (\b);
+  \foreach \a/\b in {n2/n5,n5/n9,n9/n10,n10/n13} \draw[pu] (\a) -- (\b);
+  \foreach \a/\b in {n2/n6,n6/n11,n11/n12} \draw[pv] (\a) -- (\b);
+
+  \foreach \d/\y in {0/0,1/-1.3,2/-2.6,3/-3.9,4/-5.2,5/-6.5}
+    \node[dep] at (-1.9,\y) {depth \d};
+
+  % k indices
+  \node[kk,anchor=east] at (-0.45,-6.5) {$k=1$};
+  \node[kk,anchor=east] at (-0.45,-5.2) {$k=2$};
+  \node[kk,anchor=east] at (-0.45,-3.9) {$k=3$};
+  \node[kk,anchor=east] at (-0.45,-2.6) {$k=4$};
+  \node[kk,anchor=east] at ( 0.40,-1.02) {$k=5$};
+  \node[kk,anchor=west] at ( 2.25,-2.6) {$k=6$};
+  \node[kk,anchor=west] at ( 2.25,-3.9) {$k=7$};
+  \node[kk,anchor=west] at ( 2.25,-5.2) {$k=8$};
+
+  \node[font=\scriptsize,text=orange!60!black,anchor=east,align=right] at (-0.5,-4.55)
+    {\textbf{u leg}\\$13\to2$\\$5$ nodes};
+  \node[font=\scriptsize,text=blue!55!black,anchor=west,align=left] at (2.3,-4.55)
+    {\textbf{v leg}\\$6\to12$\\$3$ nodes};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt] at (4.75,-3.18)
+    {\textbf{The path breaks at the LCA.}\\[3pt]
+     $c=\mathrm{lca}(13,12)=2$\\[4pt]
+     $\mathtt{dist}=\mathtt{depth[13]}+\mathtt{depth[12]}-2\,\mathtt{depth[2]}$\\
+     \hphantom{$\mathtt{dist}$}$=5+4-2\cdot1=7$ edges, so $8$ nodes\\[3pt]
+     The root-to-$c$ stretch is counted once for each\\
+     endpoint, so it is subtracted twice.\\[6pt]
+     \textbf{$k$-th node, $1$-based from $u$.}\\[3pt]
+     $\mathtt{left}=\mathtt{depth[13]}-\mathtt{depth[2]}+1=5$\\
+     $\mathtt{total}=7+1=8$\\[3pt]
+     $k\le\mathtt{left}$:\ \ \ lift $u$ by $k-1$\\
+     $k>\mathtt{left}$:\ \ \ lift $v$ by $\mathtt{total}-k$\\[4pt]
+     $k=4\Rightarrow$ lift $13$ by $3=5$\\
+     $k=6\Rightarrow$ lift $12$ by $2=6$\\[3pt]
+     Reject $k<1$ or $k>\mathtt{total}$ before lifting.\\[5pt]
+     \textbf{The LCA belongs to the u leg only.} That is what\\
+     the $+1$ in \texttt{left} counts, and why the two legs\\
+     are $5$ and $3$ rather than $5$ and $4$: $5+3=8$, with\\
+     $c$ counted exactly once.};
+\end{tikzpicture}
+\end{center}
+```
+
+**Distance.** The two legs share only `c`, and the root-to-`c` stretch is
+counted once inside `depth[u]` and once inside `depth[v]`, so it is removed
+twice:
 
 ```text
 distance(u,v) = depth[u] + depth[v] - 2*depth[lca(u,v)]
 ```
 
-The preprocessing root can be any fixed node, usually `1`. A DFS/BFS records
-three pieces of information:
+That formula counts **edges**. The number of vertices on the path is one more.
+Confusing the two is the most common wrong answer in this section, and `u == v`
+is the test that catches it: zero edges, one vertex.
 
-- `depth[v]`: number of edges from the root to `v`;
-- `up[0][v]`: the parent of `v`;
-- optional edge aggregate from `v` to `up[0][v]`, such as edge maximum.
-
-Then the jump table is built by doubling:
-
-```text
-up[k][v] = up[k-1][ up[k-1][v] ]
-```
-
-If `best[k][v]` stores the maximum edge on the upward path of length `2^k`
-starting at `v`, then:
+**K-th node.** The same split decides which leg holds the answer, as annotated
+in the figure above. A `k` counted from `u` either lands on the `u` leg, where
+it is a plain lift, or on the `v` leg, where it is easier to count *upward from
+`v`* than downward from `c`:
 
 ```text
-best[k][v] = max(best[k-1][v], best[k-1][up[k-1][v]])
+left  = depth[u] - depth[c] + 1        (vertices on the u leg, u..c)
+total = depth[u] + depth[v] - 2*depth[c] + 1
+
+k <= left : answer = lift(u, k - 1)
+k >  left : answer = lift(v, total - k)
 ```
 
-This is the same table shape, with a value carried alongside the ancestor.
+The reverse lift is what avoids materializing the path as a list. Reject
+`k < 1` or `k > total` before lifting, or the sentinel will quietly return `0`.
 
-## LCA algorithm
-
-To compute `lca(u, v)`:
-
-1. Make `u` the deeper vertex.
-2. Lift `u` upward until `depth[u] == depth[v]`.
-3. If `u == v`, this is the LCA.
-4. From the largest power down to zero, if `up[k][u] != up[k][v]`, lift both.
-5. Now the two vertices are children of the LCA, so return `up[0][u]`.
-
-Diagram:
+**Maximum edge.** Store a second table with the same shape, where `mx[k][v]` is
+the heaviest edge on the `2^k`-edge upward run starting at `v`:
 
 ```text
-        lca
-       /   \
-   ...u'   v'...
-      |     |
-      u     v
+mx[0][v] = weight of the edge from v to its parent
+mx[k][v] = max( mx[k-1][v], mx[k-1][ up[k-1][v] ] )
 ```
-
-The simultaneous lifting step keeps `u` and `v` strictly below the LCA until
-the last move. This is why we compare ancestors before jumping.
-
-## Path aggregates
-
-For maximum edge on path `u-v`, do the same lifting but update an answer
-whenever you jump:
 
 ```text
-ans = max(ans, best[k][u])
-u = up[k][u]
+v        1   2   3   4   5   6   7   8   9  10  11  12  13
+mx[0]    0   4   7   2   9   3   5   6   1   8   2   6   5
+mx[1]    0   4   7   2   9   4   5   6   9   8   3   6   8
+mx[2]    0   4   7   2   9   4   5   6   9   9   4   6   9
 ```
 
-You do this while equalizing depths and while lifting both sides. The path is
-partitioned into disjoint upward chunks, so every edge is included exactly once.
+Entries whose jump overshoots the root — `mx[1][2]`, for instance — describe a
+truncated run and are meaningless, but they are never read: phase 1 only uses
+bits of a real depth difference, and phase 2 only jumps when the ancestors
+differ, which keeps both vertices below the LCA.
 
-For maximum edge on a path, lift the deeper endpoint upward while taking
-maximums from the same jump table. For the k-th node on a path, split the
-path at the LCA: first move upward from `u`, otherwise move upward from `v`
-by the remaining distance from the far end.
+Now run the LCA exactly as before, but merge the corresponding `mx` entry into
+the answer *before* each move. The lifts partition the path into disjoint
+chunks, each of which is one table entry:
 
-## K-th node on a path
 
-Let `w = lca(u, v)`.
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,minimum size=6.6mm,inner sep=0pt,font=\small},
+  uS/.style={nd,fill=orange!30},
+  vS/.style={nd,fill=blue!18},
+  lc/.style={nd,fill=green!35,very thick},
+  wl/.style={font=\scriptsize,fill=white,inner sep=1.5pt},
+  br/.style={decorate,decoration={brace,amplitude=4pt,mirror},gray!65},
+  cl/.style={font=\scriptsize,align=center}]
+
+  \foreach \v/\x/\s in {13/0/uS,10/1.6/uS,9/3.2/uS,5/4.8/uS,
+                        2/6.4/lc,6/8.0/vS,11/9.6/vS,12/11.2/vS}
+    \node[\s] (p\v) at (\x,0) {$\v$};
+  \foreach \a/\b/\w in {13/10/5,10/9/8,9/5/1,5/2/9,2/6/3,6/11/2,11/12/6}
+    \draw[draw=gray!70] (p\a) -- node[wl] {$\w$} (p\b);
+
+  \node[font=\scriptsize,text=gray!60,anchor=south] at (0,0.42)  {$u$};
+  \node[font=\scriptsize,text=gray!60,anchor=south] at (11.2,0.42) {$v$};
+  \node[font=\scriptsize,text=green!35!black,anchor=south] at (6.4,0.42) {lca};
+
+  % chunk braces
+  \draw[br] (-.30,-.52) -- (1.90,-.52);
+  \draw[br] (1.30,-1.55) -- (5.10,-1.55);
+  \draw[br] (4.50,-.52) -- (6.70,-.52);
+  \draw[br] (6.10,-1.55) -- (8.30,-1.55);
+  \draw[br] (7.70,-.52) -- (11.50,-.52);
+
+  \node[cl,text=orange!60!black,anchor=north] at (0.8,-0.72)
+    {\texttt{mx[0][13]}$=5$\\{\scriptsize phase 1}};
+  \node[cl,text=orange!60!black,anchor=north] at (3.2,-1.75)
+    {\texttt{mx[1][10]}$=8$\\{\scriptsize phase 2, $k{=}1$}};
+  \node[cl,text=green!30!black,anchor=north] at (5.6,-0.72)
+    {\texttt{mx[0][5]}$=\mathbf{9}$\\{\scriptsize final merge}};
+  \node[cl,text=green!30!black,anchor=north] at (7.2,-1.75)
+    {\texttt{mx[0][6]}$=3$\\{\scriptsize final merge}};
+  \node[cl,text=blue!55!black,anchor=north] at (9.6,-0.72)
+    {\texttt{mx[1][12]}$=6$\\{\scriptsize phase 2, $k{=}1$}};
+
+  \node[anchor=north west,align=left,font=\scriptsize,inner sep=0pt] at (-0.45,-2.62)
+    {Every one of the seven edges lies in exactly one chunk, and each chunk is a
+     single table entry,\\
+     so the answer is one maximum over five lookups:\ \
+     $\max(5,\,8,\,\mathbf{9},\,3,\,6)=\mathbf{9}$.};
+  \node[draw=red!45,rounded corners,fill=red!5,align=left,font=\scriptsize,
+        anchor=north west,inner sep=4pt] at (-0.45,-3.35)
+    {\textbf{The trap.} The heaviest edge $9$ sits in a \emph{final-merge} chunk, below the
+     last jump.\\
+     Code that returns \texttt{up[0][u]} without first merging \texttt{mx[0][u]} and
+     \texttt{mx[0][v]} prints $8$.\\
+     Always merge the aggregate \emph{before} overwriting the vertex.};
+\end{tikzpicture}
+\end{center}
+```
+
+**Weighted distance** is the same table shape with a different merge. Because
+sums telescope, it does not even need a per-chunk merge: keep `sw[v]`, the
+summed weight from the root to `v`, in the same DFS, and reuse the distance
+identity.
 
 ```text
-u-side length = depth[u] - depth[w] + 1
-total nodes   = depth[u] + depth[v] - 2*depth[w] + 1
+weighted_distance(u,v) = sw[u] + sw[v] - 2*sw[lca(u,v)]
 ```
 
-If `k` is inside the `u` side, lift `u` by `k-1`. Otherwise the answer lies on
-the `v` side. Convert it to a distance upward from `v`:
+For `u = 13`, `v = 12`: `sw[13] = 27`, `sw[12] = 15`, `sw[2] = 4`, giving
+`27 + 15 - 8 = 34`, which matches the edge weights along the path,
+`5+8+1+9+3+2+6 = 34`. Maximum does not telescope — there is no inverse — which
+is exactly why it needs the `mx` table while sums do not.
 
-```text
-need_from_v = total_nodes - k
-answer = ancestor(v, need_from_v)
-```
+# Implementation
 
-The most common bug is off-by-one: the first node on the path is `u`, so
-queries usually use 1-based `k`.
+Everything in this section comes from one traversal and two tables. This
+chapter writes them out in full; the code below is the code that produced every
+number in the figures.
 
-## Minimal C++ lifting helper
+## One DFS, five arrays
+
+Recursion is not an option at `n = 2e5`: a path-shaped tree overflows the C++
+stack and blows Python's recursion limit. The iterative version pushes every
+vertex twice — once to enter it, once to leave it — which is exactly what gives
+`tout` its meaning.
 
 ```cpp
-int jump(int v, int d) {
-    for (int k = 0; d; k++, d >>= 1) {
-        if (d & 1) v = up[k][v];
+int n, LOG, timer = 0;
+vector<vector<pair<int,int>>> adj;    // (neighbour, edge weight)
+vector<int> par, wpar;                // parent, and its edge weight
+vector<int> dep, tin, tout;           // depth, plus the Euler stamps
+vector<long long> sw;                 // weighted depth from the root
+
+void root_tree(int r) {
+    // stack holds (vertex, 0 = entering, 1 = leaving)
+    vector<pair<int,int>> st{{r, 0}};
+    par[r] = 0;
+    while (!st.empty()) {
+        auto [v, leaving] = st.back();
+        st.pop_back();
+        if (leaving) { tout[v] = timer; continue; }
+        tin[v] = timer++;
+        st.push_back({v, 1});             // schedule the exit stamp
+        for (auto it = adj[v].rbegin(); it != adj[v].rend(); ++it) {
+            auto [c, w] = *it;        // reversed: pops in order
+            if (c == par[v]) continue;    // the only edge back up
+            par[c]  = v;
+            wpar[c] = w;
+            dep[c]  = dep[v] + 1;
+            sw[c]   = sw[v] + w;
+            st.push_back({c, 0});
+        }
     }
-    return v;
 }
 ```
 
-## Minimal Python lifting helper
+```python
+def root_tree(r):
+    timer = 0
+    st = [(r, 0)]                     # (vertex, 0 enter, 1 leave)
+    par[r] = 0
+    while st:
+        v, leaving = st.pop()
+        if leaving:
+            tout[v] = timer
+            continue
+        tin[v] = timer
+        timer += 1
+        st.append((v, 1))                 # schedule the exit stamp
+        for c, w in reversed(adj[v]):     # the stack pops them in order
+            if c == par[v]:
+                continue
+            par[c], wpar[c] = v, w
+            dep[c] = dep[v] + 1
+            sw[c]  = sw[v] + w
+            st.append((c, 0))
+```
+
+The exit stamp is pushed *before* the children, so it is popped *after* all of
+them — that is the entire trick, and it is why `tout[v]` ends up one past the
+last time in the subtree.
+
+A stack reverses whatever you push, so the children are pushed in reverse to
+come back out in ascending order — which is what makes the stamps above match
+the figures exactly. Any child order is equally correct; only the numeric stamps
+change, never the containment property, and no query depends on it.
+
+If the input is a parent list rather than an edge list, `par`, `wpar` and `dep`
+can be filled while reading, and this DFS is still needed only if you want the
+Euler stamps.
+
+## Two tables, one loop
+
+```cpp
+vector<vector<int>> up;            // up[k][v]: 2^k-th ancestor
+vector<vector<long long>> mx;      // mx[k][v]: heaviest edge there
+
+LOG = 1;
+while ((1 << LOG) <= n + 1) LOG++;
+up.assign(LOG, vector<int>(n + 1, 0));   // 0 = the sentinel
+mx.assign(LOG, vector<long long>(n + 1, 0));
+
+for (int v = 1; v <= n; v++) { up[0][v] = par[v]; mx[0][v] = wpar[v]; }
+
+for (int k = 1; k < LOG; k++)
+    for (int v = 1; v <= n; v++) {
+        int m = up[k - 1][v];         // midpoint of the 2^k jump
+        up[k][v] = up[k - 1][m];
+        mx[k][v] = max(mx[k - 1][v], mx[k - 1][m]);
+    }
+```
+
+Naming the midpoint is worth the extra line: `up[k-1][v]` is read twice, once
+as the destination of the first half-jump and once as the start of the second.
+
+## The queries
+
+```cpp
+bool is_ancestor(int u, int v) {          // no lifting at all
+    return tin[u] <= tin[v] && tin[v] < tout[u];
+}
+
+int lift(int v, int d) {
+    for (int k = 0; d; k++, d >>= 1)
+        if (d & 1) v = up[k][v];
+    return v;
+}
+
+int lca(int u, int v) {
+    if (dep[u] < dep[v]) swap(u, v);
+    u = lift(u, dep[u] - dep[v]);          // phase 1: equalize
+    if (u == v) return u;                  // v was an ancestor
+    for (int k = LOG - 1; k >= 0; k--)     // phase 2: climb both
+        if (up[k][u] != up[k][v]) { u = up[k][u]; v = up[k][v]; }
+    return up[0][u];                       // the jump we declined
+}
+```
+
+The two `dist` queries need no new code:
+
+```cpp
+int dist(int u, int v) {
+    int c = lca(u, v);
+    return dep[u] + dep[v] - 2 * dep[c];
+}
+
+long long wdist(int u, int v) {
+    int c = lca(u, v);
+    return sw[u] + sw[v] - 2 * sw[c];
+}
+```
+
+The maximum-edge query is the same walk with one `max` merged in **before**
+every move:
+
+```cpp
+long long max_edge(int u, int v) {
+    long long best = 0;
+    if (dep[u] < dep[v]) swap(u, v);
+    int d = dep[u] - dep[v];
+    for (int k = 0; d; k++, d >>= 1)
+        if (d & 1) { best = max(best, mx[k][u]); u = up[k][u]; }
+    if (u == v) return best;
+    for (int k = LOG - 1; k >= 0; k--)
+        if (up[k][u] != up[k][v]) {
+            best = max({best, mx[k][u], mx[k][v]});
+            u = up[k][u]; v = up[k][v];
+        }
+    return max({best, mx[0][u], mx[0][v]});   // below the LCA
+}
+```
+
+That last line is the one the figure warned about. Delete it and the running
+example prints `8` instead of `9`.
+
+```cpp
+int kth(int u, int v, int k) {
+    int c = lca(u, v);
+    int left  = dep[u] - dep[c] + 1;
+    int total = dep[u] + dep[v] - 2 * dep[c] + 1;
+    if (k < 1 || k > total) return -1;        // reject before lifting
+    return k <= left ? lift(u, k - 1) : lift(v, total - k);
+}
+```
+
+In Python the tables and queries translate line for line; only `lca` is shown,
+since it is the one with the two phases:
 
 ```python
-def jump(v, d):
+def lca(u, v):
+    if dep[u] < dep[v]:
+        u, v = v, u
+    d = dep[u] - dep[v]                       # phase 1: equalize
     k = 0
     while d:
         if d & 1:
-            v = up[k][v]
+            u = up[k][u]
         d >>= 1
         k += 1
-    return v
+    if u == v:
+        return u
+    for k in range(LOG - 1, -1, -1):          # phase 2: climb both
+        if up[k][u] != up[k][v]:
+            u, v = up[k][u], up[k][v]
+    return up[0][u]
 ```
 
-## Worked LCA trace
+## Constraints and language notes
 
-Consider:
+With `n, q` near `2e5`, preprocessing is `O(n log n)` and each query is
+`O(log n)`. `LOG = ceil(log2(n+1))` is the smallest safe number of levels.
 
-```text
-        1
-      /   \
-     2     3
-    / \     \
-   4   5     6
+**C++.** Value initialization already sets row `0` of `up` to the sentinel, so
+there is nothing to clear. Use `long long` for `sw` and for `mx` if weights can
+sum — weighted depth on a path of `2e5` maximal weights overflows `int` easily.
+Initialize an empty maximum to `0` only when weights are known to be
+nonnegative; otherwise use `LLONG_MIN`.
+
+**Python.** Bind the table rows to locals inside the build loop
+(`upk, upp = up[k], up[k-1]`) before iterating; attribute and index lookups
+dominate otherwise. Read input with `sys.stdin.buffer.read().split()`.
+`LOG = (n+1).bit_length()` is clear and safe.
+
+## Pitfalls
+
+| Mistake | Test that catches it |
+|---|---|
+| confusing edges and vertices in distance | `u == v` must print zero |
+| omitting the equalize phase | an ancestor-descendant pair |
+| jumping when ancestors are equal | any query whose LCA is the root |
+| merging the aggregate after moving the vertex | one heavy edge just below the LCA |
+| dropping the final `mx[0]` merge | the running example prints `8`, not `9` |
+| treating a 1-based `k` as 0-based | the first and last vertex on a path |
+| forgetting to reject out-of-range `k` | `k = 0` and `k = total + 1` |
+| recursive DFS | a path-shaped tree of `2e5` vertices |
+| `int` overflow on weighted sums | a deep path of maximal weights |
+
+Run the local reference suite with:
+
+```bash
+CP_TARGET=solution \
+  python3 sections/41_euler_tour_lca_binary_lifting/check.py
 ```
 
-Query `lca(4,5)`: both depths are equal. Their immediate parents are both `2`,
-so after the simultaneous lifting loop the answer is `2`.
-
-Query `lca(4,6)`: both depths are equal, but parents differ:
-
-```text
-parent(4)=2, parent(6)=3
-```
-
-Lifting both by `1` gives nodes `2` and `3`; their parents match at `1`, so the
-answer is `1`.
-
-When edge weights are present, the same jumps collect maximums along the lifted
-chunks. Always update the aggregate before overwriting the vertex.
+For trees of at most 20 vertices, a parent-walk oracle can enumerate each path
+directly and check distance, maximum edge, weighted distance, and every valid
+and invalid `k`.
 
 # Exercises
 
-# A complete lifting trace
-
-Use the parent list from the local sample: `parent[2]=1, parent[3]=1,
-parent[4]=2, parent[5]=2`. Depths are `0,1,1,2,2`. The binary table records
-`up[j][v]`, the ancestor `2^j` edges above `v`; the root points to itself.
-
-```text
-v        1  2  3  4  5
-up[0]    1  1  1  2  2
-up[1]    1  1  1  1  1
-depth    0  1  1  2  2
-```
-
-To find `lca(4,5)`, depths are equal. At bit one both ancestors are one, so do
-not jump; at bit zero the parents are equal, so their common parent two is the
-LCA. For distance, use `depth[4]+depth[5]-2*depth[2]=2`. For `lca(3,4)`, lift
-four by one to two, then the parents are both one.
-
-The invariant for `up[j][v]` is exact: it is the ancestor reached after
-`2^j` parent edges. The recurrence `up[j][v]=up[j-1][up[j-1][v]]` composes two
-correct half-jumps, proving the table by induction. Descending bits only jumps
-when the two nodes remain below their LCA; the final parents are therefore the
-lowest common ancestor.
-
-# Three path queries from one primitive
-
-**Distance.** Once `c=lca(u,v)`, the path has the two disjoint upward pieces
-`u -> c` and `v -> c`, so its edge count is
-`depth[u]+depth[v]-2*depth[c]`.
-
-**Maximum edge.** Store `mx[j][v]`, the maximum edge on the same `2^j` upward
-segment. When a lift uses bit `j`, merge `mx[j][v]` into the answer before
-moving `v`. Its recurrence uses `max` over the two halves. For `u==v`, the
-local answer is zero because the path contains no edge.
-
-**K-th node.** Let `left=depth[u]-depth[c]+1` and
-`total=depth[u]+depth[v]-2*depth[c]+1`. If `k<=left`, lift `u` by `k-1`.
-Otherwise the requested vertex is `total-k` edges above `v`; this reverse lift
-avoids constructing a path vector. Reject `k<1` or `k>total` first.
-
-# Constraints, implementation, and tests
-
-For `n,q` near `2e5`, a parent climb per query is a chain-length disaster;
-`LOG=ceil(log2(n+1))` gives `O(n log n)` preprocessing and `O(log n)` query
-time. The local parent order makes depths available while reading. In an
-arbitrary edge-list tree, build adjacency and perform iterative DFS/BFS first.
-
-**C++.** Allocate `vector<vector<int>> up(LOG, vector<int>(n+1))`; use
-`long long` for weighted aggregates if weights can sum, and initialize the
-empty maximum as zero only because local weights are nonnegative.
-
-**Python.** Avoid recursive DFS on a long chain. Use lists indexed `0..n` and
-an iterative stack/queue; `LOG = (n+1).bit_length()` is clear and safe.
-
-| Mistake | Test |
-|---|---|
-| confuse nodes and edges in distance | `u==v` must output zero |
-| omit equal-depth lift | ancestor/descendant query |
-| use a one-based `k` as zero-based | first and last node on a path |
-| aggregate after moving | one heavy edge immediately above a node |
-
-Run `CP_TARGET=solution python3 sections/41_euler_tour_lca_binary_lifting/check.py`.
-For trees of at most 20 nodes, a parent-walk oracle can list each path and
-check distance, maximum edge, and every valid or invalid `k` directly.
+Use A to separate edge counts from vertex counts in the distance formula, B to
+place the aggregate merge before the vertex move, and C to split a path at the
+LCA and count from the correct end. Use D as the blind synthesis problem:
+decide what a lift must accumulate when the answer is a sum rather than a
+maximum, and whether the `mx` table is needed at all. Test `u == v`, an
+ancestor-descendant pair, a query whose LCA is the root, the first and last `k`
+on a path, and a `k` one past the end.
 
 - A. Tree Distances: Given a rooted tree and queries `u v`, print the number of edges on the path.
 - B. Max Edge On Path: Each edge to a parent has a weight. For each `u v`, print the maximum edge weight on the path.
 - C. Kth Node On Path: For query `u v k`, print the k-th node on the path from `u` to `v`, or `-1`.
+- D. Weighted Tree Distances: For each `u v`, print the sum of edge weights on the path.

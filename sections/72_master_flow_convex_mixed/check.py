@@ -12,10 +12,10 @@ PROBLEMS = [
     SECTION / "problems" / name
     for name in (
         "a_exam_room_bounds",
-        "b_night_delivery",
-        "c_team_quota_profit",
-        "d_monotone_signal",
-        "e_exact_discount_tree",
+        "b_bounded_exact_shipment",
+        "c_selective_quota_profit",
+        "d_bounded_convex_allocation",
+        "e_exact_red_forest",
         "f_congested_team_assignment",
     )
 ]

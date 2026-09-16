@@ -20,6 +20,149 @@ execute:
 # Combining data-structure ideas
 
 In a mixed contest, start from the operations, not the container name.
+A statement often hides a familiar operation behind a story: assigning a
+hotel is a search for the first feasible position; removing the k-th live
+element is an order-statistic query; counting values in a changing interval
+is maintaining a frequency invariant.
+
+The transferable skill is translating prose into a small operation contract.
+For example:
+
+```text
+state: an array of capacities
+update: subtract x at one chosen position
+query: first position whose value is at least x
+```
+
+Once written this way, compare the contract against structures you know. A
+Fenwick tree is excellent for invertible prefix information and prefix order
+statistics. A segment tree can store a general associative range summary and
+descend according to that summary. A heap exposes an extreme but does not
+support arbitrary range boundaries. Sometimes no single familiar structure
+supports the operations directly; changing the representation can turn one
+large update into a few point updates.
+
+# Four questions before choosing a structure
+
+## 1. Is the processing online?
+
+An online answer must be produced before later operations are known, or later
+updates depend on it. Offline queries may be reordered and then restored to
+their original output order. Reordering is powerful, but it is invalid when
+updates change the meaning of earlier and later queries unless time is also
+modeled explicitly.
+
+## 2. What does the query return?
+
+An **aggregate** combines a range: sum, minimum, maximum, or GCD. A
+**selection** asks for a position: first feasible, k-th active, or first
+prefix crossing a threshold. A **frequency query** counts values satisfying
+a condition. These require different invariants even when all mention ranges.
+
+## 3. What changes?
+
+Write the update exactly. Point assignment and point addition are different.
+Range addition changes many leaves but has a compact lazy representation.
+Toggling a position is a frequency change of plus or minus one. If nothing
+changes, a static or offline method may preprocess much more aggressively.
+
+## 4. Is the needed summary composable?
+
+A segment-tree node must summarize a segment without looking inside it. Sum,
+minimum, and maximum compose directly. Maximum subarray sum needs four
+fields, because the best answer may cross the child boundary. A proposed
+summary is sufficient only if two child summaries always determine the
+parent summary.
+
+# Selection by descending a tree
+
+Many mixed-contest problems ask for an index rather than an aggregate. The
+central idea is to use a node summary to decide which child can contain the
+answer.
+
+For a first position with value at least `x`, store the maximum in each node:
+
+```text
+if left.maximum >= x: descend left
+otherwise:            descend right
+```
+
+For the k-th active position, store counts:
+
+```text
+if left.count >= k: descend left
+otherwise: subtract left.count from k and descend right
+```
+
+At every level one child is discarded, so the search is `O(log n)`. The proof
+depends on the summary: discarding the left child is safe only because its
+maximum/count proves that the desired position cannot be there.
+
+# Change the representation when updates are awkward
+
+Suppose an operation changes every value in `[l,r]`. Storing the values
+literally makes that update expensive. In the difference array, however, the
+same operation changes only two boundaries:
+
+```text
+d[l]     += x
+d[r + 1] -= x       if r + 1 exists
+```
+
+This does not automatically solve the query. It gives a new operation
+contract: point changes in `d`, reconstruction of one original value by a
+prefix sum, and perhaps a range aggregate over differences. Those pieces may
+belong in different structures.
+
+The general lesson is to search for an identity that exposes the information
+needed by the query. Then assign each resulting operation to the smallest
+structure that supports it. A mixed solution is justified only after its
+invariants describe one consistent underlying array.
+
+# Logical deletion when a structure cannot update in place
+
+A standard heap efficiently inserts and removes its top, but it cannot find
+an arbitrary old entry after that entry's priority changes. One useful pattern
+is to insert the new version and leave the old version in the heap. A separate
+table records the current version of every item.
+
+Whenever the heap top is inspected, compare it with the table. If it is old,
+discard it and continue. This is **lazy deletion**: physical removal is delayed
+until the stale entry reaches the top.
+
+The total cost remains logarithmic per operation because every heap entry is
+inserted once and removed at most once. The key invariant is that the table is
+authoritative; a heap entry is usable only when it agrees with that table.
+
+# Complexity must include the entire workflow
+
+Suppose a query is `O(log n)`, but the code reconstructs the tree or sorts all
+values before every query. The real cost is still too large. Account for:
+
+```text
+reading + compression + sorting + building + all updates + all queries
+```
+
+Also count memory. A nested structure that appears `O(n log n)` may have
+large constants; storing Python integers in millions of nodes can dominate
+runtime and memory even when the asymptotic bound is acceptable.
+
+# A disciplined contest workflow
+
+For each task:
+
+1. Translate the story into state, update, and query.
+2. Reject the direct simulation using the constraints.
+3. Write the invariant of the proposed structure in one sentence.
+4. Trace one update and one query by hand.
+5. Prove why every discarded region cannot contain the answer.
+6. Calculate total time and memory.
+7. Build a tiny brute-force oracle before optimizing tests.
+
+A good tiny test is chosen to break an assumption: duplicate values for
+compression, negative values for prefix searches, touching interval
+endpoints, an empty active set, a full-range query, or repeated updates to the
+same position.
 
 # Complete local contest set
 
@@ -27,10 +170,10 @@ In a mixed contest, start from the operations, not the container name.
 |---|---|
 | A | Hotel Queries |
 | B | List Removals |
-| C | Mo Distinct Queries |
+| C | Range Add, Range GCD |
 | D | Salary Queries |
 | E | Functional Walk Minimum |
-| F | Running Lower Median |
+| F | Mutable Priority Queue |
 | G | Streaming Room Count |
 | H | Toggle K-th Active |
 | I | Dynamic Maximum Subarray |

@@ -10,11 +10,11 @@ Six original problems revisit the predicates and optimization structures of Sect
 
 | Problem | Main tool |
 |---|---|
-| A | half-plane intersection and shoelace area |
+| A | half-plane intersection and rotating-calipers diameter |
 | B | inward offsets plus feasibility search |
 | C | circle-overlap classification |
 | D | randomized minimum enclosing circle |
-| E | Delaunay empty circumcircles |
+| E | Delaunay sparsification plus shortest paths |
 | F | Delaunay sparsification plus Kruskal |
 
 For every floating solution, state the exact combinatorial event being approximated. Epsilon is a policy for a known predicate, not a substitute for choosing the predicate.

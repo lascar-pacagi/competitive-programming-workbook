@@ -6,7 +6,11 @@ int main() {
   int n;
   if (!(cin >> n))
     return 0;
-  priority_queue<long long, vector<long long>, greater<long long>> ends;
+  priority_queue<
+      long long,
+      vector<long long>,
+      greater<long long>
+  > ends;
   int answer = 0;
   for (int i = 0; i < n; i++) {
     long long s, e;

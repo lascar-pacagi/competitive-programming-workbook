@@ -8,7 +8,7 @@ topic.
    - `a_point_add_range_sum`: A. Point Add Range Sum
    - `b_inversion_count`: B. Inversion Count
    - `c_range_add_point_query`: C. Range Add Point Query
-   - `d_range_add_range_sum` (blind practice: attempt it before the editorial)
+   - `d_offline_distinct_queries` (blind practice: attempt it before the editorial)
 3. Run the checker:
 
 ```bash

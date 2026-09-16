@@ -12,7 +12,7 @@ PROBLEMS=[
     SECTION / "problems" / "a_scoreboard_rank",
     SECTION / "problems" / "b_split_workload",
     SECTION / "problems" / "c_quick_mst_decision",
-    SECTION / "problems" / "d_deadline_schedule",
+    SECTION / "problems" / "d_circular_contest_run",
 ]
 
 def main() -> int:

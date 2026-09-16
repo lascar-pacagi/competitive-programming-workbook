@@ -18,7 +18,7 @@ PROBLEMS = [
     SECTION / "problems" / "a_point_add_range_sum",
     SECTION / "problems" / "b_inversion_count",
     SECTION / "problems" / "c_range_add_point_query",
-    SECTION / "problems" / "d_range_add_range_sum",
+    SECTION / "problems" / "d_offline_distinct_queries",
 ]
 
 def main() -> int:

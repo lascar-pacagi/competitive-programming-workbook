@@ -127,6 +127,17 @@ def c72f(size: int) -> str:
     return quota_input(size, True)
 
 
+def c72d(size: int) -> str:
+    wanted = size // 2
+    rows = "".join(f"1 {index} 0 1\n" for index in range(size))
+    return f"{size} {wanted}\n{rows}"
+
+
+def c72d_check(out: str, size: int) -> None:
+    wanted = size // 2
+    assert out.strip() == str(wanted * (wanted + 1) // 2)
+
+
 CASES = [
     AdvancedCase(70, "a_bounded_circulation", c70a, yes, 200),
     AdvancedCase(70, "b_exact_cost_shipment", c70b, arithmetic_cost, 200),
@@ -137,10 +148,7 @@ CASES = [
     AdvancedCase(71, "c_convex_allocation", c71c, k71c, 200_000),
     AdvancedCase(71, "d_weighted_bounded_isotonic", c71d, monotone_check, 200_000),
     AdvancedCase(72, "a_exam_room_bounds", c72a, yes, 200),
-    AdvancedCase(72, "b_night_delivery", c70b, arithmetic_cost, 200),
-    AdvancedCase(72, "c_team_quota_profit", c70c, quota_check, 200),
-    AdvancedCase(72, "d_monotone_signal", c71a, monotone_check, 200_000),
-    AdvancedCase(72, "e_exact_discount_tree", c71b, zero, 200),
+    AdvancedCase(72, "d_bounded_convex_allocation", c72d, c72d_check, 200_000),
     AdvancedCase(72, "f_congested_team_assignment", c72f, quota_check, 250),
 ]
 
@@ -159,7 +167,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="advanced-70-72-") as td:
         for case in selected:
             size = case.full_size if args.profile == "full" else max(10, case.full_size // 100)
-            if case.slug.startswith(("b_exact_red", "e_exact_discount")):
+            if case.slug.startswith("b_exact_red"):
                 size = max(20, size)
             base = next(ROOT.glob(f"sections/{case.section:02d}_*/problems"))
             data = case.make(size)

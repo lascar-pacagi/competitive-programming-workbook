@@ -1,13 +1,16 @@
 import sys
 
 class Fenwick:
+
     def __init__(self, n):
         self.n = n
         self.bit = [0] * (n + 1)
+
     def add(self, i, delta):
         while i <= self.n:
             self.bit[i] += delta
             i += i & -i
+
     def kth(self, k):
         pos = 0
         bit = 1 << self.n.bit_length()
@@ -34,7 +37,6 @@ def main():
         idx = bit.kth(k)
         out.append(str(a[idx - 1]))
         bit.add(idx, -1)
-    print(" ".join(out))
-
-if __name__ == "__main__":
+    print(' '.join(out))
+if __name__ == '__main__':
     main()

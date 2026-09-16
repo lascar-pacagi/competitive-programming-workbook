@@ -23,10 +23,10 @@ the reduction behind assignment, graph, or resource language.
 | Problem | Main compression |
 |---|---|
 | A | lower bounds become vertex imbalances |
-| B | reduced costs and potential-based shortest paths |
-| C | lower-quota slots plus min-cost assignment |
-| D | convex derivative stored as heap breakpoints |
-| E | Lagrangian price for an exact color count |
+| B | exact flow plus lower-bound imbalances |
+| C | choose exactly `K` workers while satisfying project quotas |
+| D | remove mandatory lower allocation, then select marginals |
+| E | Lagrangian price on a fixed-size spanning forest |
 | F | quota flow plus convex marginal-cost edges |
 
 # Suggested contest use
@@ -70,10 +70,10 @@ silently admit fractional or repeated choices that the statement forbids.
 
 # How to find E: price the one awkward statistic
 
-Without the exact number of discounted edges, E is simply an MST. This tells
-us what not to replace: keep Kruskal and move only the exact count into the
-objective. Adding `lambda` per discounted edge creates a family of ordinary
-MST instances.
+Without the exact number of red edges, E is a minimum fixed-size forest. This
+tells us what not to replace: keep Kruskal, stop after `n-components` edges,
+and move only the exact red count into the objective. Adding `lambda` per red
+edge creates a family of ordinary Kruskal instances.
 
 The binary-search predicate is not “the returned tree has exactly `k`.” At a
 tie, equally optimal trees can have different counts. The correct observation
@@ -102,10 +102,10 @@ For A--C and F, use three layers:
 2. prove capacities, bounds, or rewarded slots encode feasibility exactly;
 3. prove the residual algorithm optimizes cost among feasible flows.
 
-For D, name the convex prefix value function and the meaning of every stored
-breakpoint. For E, prove monotonicity with respect to the price and prove tie
-interval attainability. A binary search without both facts is only an
-experiment.
+For D, prove that the marginal costs are ordered and that threshold counting
+selects exactly the globally cheapest remaining units. For E, prove
+monotonicity with respect to the price and tie-interval attainability. A binary
+search without both facts is only an experiment.
 
 # C++ and Python reliability
 

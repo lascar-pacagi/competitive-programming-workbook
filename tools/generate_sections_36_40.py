@@ -201,7 +201,7 @@ def case_kth_ancestor(rng: random.Random) -> str:
     n = rng.randint(1, 60)
     q = rng.randint(1, 80)
     parents = [rng.randint(1, v - 1) for v in range(2, n + 1)]
-    queries = [f"{rng.randint(1, n)} {rng.randint(0, n + 5)}" for _ in range(q)]
+    queries = [f"{rng.randint(1, n)} {rng.randint(0, n)}" for _ in range(q)]
     return f"{n} {q}\n" + (" ".join(map(str, parents)) if parents else "") + "\n" + "\n".join(queries) + "\n"
 
 
@@ -1070,7 +1070,7 @@ PY_KTH_ANCESTOR = dedent(
         if not data:
             return
         n, q = data[0], data[1]
-        LOG = max(1, (n + 5).bit_length())
+        LOG = max(1, n.bit_length())
         up = [[0] * (n + 1) for _ in range(LOG)]
         idx = 2
         for v in range(2, n + 1):
@@ -1083,12 +1083,14 @@ PY_KTH_ANCESTOR = dedent(
         for _ in range(q):
             v, dist = data[idx], data[idx + 1]
             idx += 2
-            bit = 0
-            while dist and v:
+            for bit in range(LOG):
+                if not v:
+                    break
                 if dist & 1:
-                    v = up[bit][v] if bit < LOG else 0
+                    v = up[bit][v]
                 dist >>= 1
-                bit += 1
+            if dist:
+                v = 0
             out.append(str(v if v else -1))
         print("\n".join(out))
 
@@ -1108,7 +1110,7 @@ CPP_KTH_ANCESTOR = dedent(
         int n, q;
         if (!(cin >> n >> q)) return 0;
         int LOG = 1;
-        while ((1 << LOG) <= n + 5) LOG++;
+        while ((1LL << LOG) <= n) LOG++;
         vector<vector<int>> up(LOG, vector<int>(n + 1, 0));
         for (int v = 2; v <= n; v++) cin >> up[0][v];
         for (int k = 1; k < LOG; k++) {
@@ -1119,8 +1121,10 @@ CPP_KTH_ANCESTOR = dedent(
             long long dist;
             cin >> v >> dist;
             for (int k = 0; k < LOG && v; k++) {
-                if (dist & (1LL << k)) v = up[k][v];
+                if (dist & 1LL) v = up[k][v];
+                dist >>= 1;
             }
+            if (dist != 0) v = 0;
             cout << (v ? v : -1) << '\n';
         }
         return 0;
@@ -1947,71 +1951,11 @@ SECTIONS_DATA: tuple[Section, ...] = (
             Problem("c_k_smallest_pair_sums", "C. K Smallest Pair Sums", "Two arrays are sorted. Print the `k` smallest values of `a[i]+b[j]`.", "3 3 5\n1 4 8\n2 3 10\n", PY_PAIR_SUMS, CPP_PAIR_SUMS, "pair_sums"),
         ),
     ),
-    Section(
-        40,
-        "data_structures_mixed_contest",
-        "Data Structures Mixed Contest",
-        dedent(
-            r'''
-            # Combining data-structure ideas
-
-            Contest data-structure problems rarely say "use a segment tree" or
-            "use a Fenwick tree." They describe operations. Your job is to map
-            operations to the smallest structure that supports them.
-
-            # First-fit with a segment tree
-
-            If every hotel has remaining capacity and each group wants the
-            first hotel with capacity at least `x`, store maximum capacity in
-            each segment tree node. If the root maximum is smaller than `x`, no
-            hotel works. Otherwise descend:
-
-            ```text
-            if left_child.max >= x: go left
-            else: go right
-            ```
-
-            This is a binary search guided by aggregate information.
-
-            # Removing by order
-
-            If elements are removed from a list and queries ask for the k-th
-            alive element, store `1` for alive positions and `0` for removed
-            positions. A Fenwick tree can find the smallest index with prefix
-            sum at least `k` by binary lifting on the Fenwick structure.
-
-            # Mo's algorithm
-
-            Mo's algorithm answers offline range queries by ordering them so
-            the current interval changes slowly. Maintain a window `[L,R]` and
-            four operations:
-
-            ```text
-            add_left, add_right, remove_left, remove_right
-            ```
-
-            For distinct count, a frequency table plus a `distinct` counter is
-            enough. Mo is useful when updates are absent and adding/removing one
-            endpoint is cheap.
-
-            # Contest checklist
-
-            ```text
-            Are operations online or can queries be reordered?
-            Is the query about prefix/rank/order? Consider Fenwick.
-            Is the query about arbitrary intervals? Consider segment tree.
-            Is the array static and queries many? Consider sparse table or Mo.
-            ```
-            '''
-        ),
-        "Practice: CSES Hotel Queries, CSES List Removals, CSES Distinct Values Queries, Codeforces Mo's algorithm practice set, AtCoder segment tree practice tasks.",
-        (
-            Problem("a_hotel_queries", "A. Hotel Queries", "For each group size, place it in the first hotel with enough remaining capacity, subtract that size, and print the hotel index or 0.", "5 5\n3 1 4 1 5\n2 4 4 1 6\n", PY_HOTEL, CPP_HOTEL, "hotel"),
-            Problem("b_list_removals", "B. List Removals", "Repeatedly remove and print the `k`-th currently alive element.", "5\n10 20 30 40 50\n2 3 1 1 1\n", PY_LIST_REMOVALS, CPP_LIST_REMOVALS, "list_removals"),
-            Problem("c_mo_distinct_queries", "C. Mo Distinct Queries", "For each offline range query, print the number of distinct values in the range.", "6 4\n1 2 1 3 2 4\n1 3\n2 5\n4 6\n1 6\n", PY_MO_DISTINCT, CPP_MO_DISTINCT, "mo_distinct"),
-        ),
-    ),
 )
+
+# Section 40 grew into a hand-maintained twelve-problem contest. It is
+# intentionally absent here so this legacy three-problem generator cannot
+# overwrite its lesson, checker, or problem set.
 
 
 def render_problem_readme(problem: Problem) -> str:

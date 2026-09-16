@@ -1,23 +1,34 @@
 # B. Course Rooms
 
-        Given half-open intervals `[l,r)`, print the minimum number of rooms needed.
+Given `n` half-open course intervals `[l, r)`, find the minimum number of rooms needed. A room becomes available at the ending time `r`.
 
-        ## Input
+## Input
 
-        See the operation format described above. All indices are 1-based.
+The first line contains `n`. Each of the next `n` lines contains the starting and ending times `l` and `r` of one course.
 
-        ## Output
+## Output
 
-        Print each requested answer in order.
+Print the minimum number of rooms needed.
 
-        ## Sample
+## Constraints
 
-        Input:
+- `1 <= n <= 200000`
+- `0 <= l < r <= 10^9`
 
-        ```text
-        4
+## Sample
+
+Input:
+
+```text
+4
 0 10
 5 7
 10 12
 6 20
-        ```
+```
+
+Output:
+
+```text
+3
+```

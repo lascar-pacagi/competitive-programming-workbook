@@ -19,34 +19,93 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{tikz}
 execute:
   enabled: false
 ---
 
 # Segment trees
 
-A segment tree stores information about intervals. Each node owns a
-segment, and its value is computed by merging its two children.
+A segment tree is useful when we repeatedly ask about an interval, but updates
+make a static prefix table obsolete. It stores summaries for a hierarchy of
+intervals so that both operations touch only a small part of that hierarchy.
+
+## Build intervals by repeatedly splitting in half
+
+The root owns the whole array. Split its interval into a left half and a right
+half, then repeat until every leaf owns one array position:
+
+\begin{center}
+\begin{tikzpicture}[
+  level distance=1.15cm,
+  level 1/.style={sibling distance=7.2cm},
+  level 2/.style={sibling distance=3.45cm},
+  level 3/.style={sibling distance=1.65cm},
+  every node/.style={draw,rounded corners,fill=blue!8,minimum width=1.15cm,
+                     minimum height=.55cm,font=\small},
+  edge from parent/.style={draw,-}
+]
+\node {$[1,8]$}
+  child {node {$[1,4]$}
+    child {node {$[1,2]$}
+      child {node {$[1,1]$}}
+      child {node {$[2,2]$}}
+    }
+    child {node {$[3,4]$}
+      child {node {$[3,3]$}}
+      child {node {$[4,4]$}}
+    }
+  }
+  child {node {$[5,8]$}
+    child {node {$[5,6]$}
+      child {node {$[5,5]$}}
+      child {node {$[6,6]$}}
+    }
+    child {node {$[7,8]$}
+      child {node {$[7,7]$}}
+      child {node {$[8,8]$}}
+    }
+  };
+\end{tikzpicture}
+\end{center}
+
+These are not eight independent paths. Every parent interval is exactly the
+union of its two children, so its summary can be computed by merging the two
+child summaries.
+
+For range sums:
 
 ```text
-           [1,8]
-      /             \
-   [1,4]           [5,8]
-  /     \          /     \
-[1,2]  [3,4]    [5,6]  [7,8]
+tree[node] = tree[left child] + tree[right child]
 ```
 
-If the merge is associative, such as `min`, `max`, `sum`, `gcd`, or
-a custom dynamic-programming state, a range query can be decomposed
-into `O(log n)` tree nodes.
+For range minimum:
+
+```text
+tree[node] = min(tree[left child], tree[right child])
+```
+
+The precise invariant is:
+
+```text
+tree[node] stores the correct summary
+of exactly the node's interval.
+```
+
+Build the leaves from the array, then compute internal nodes bottom-up. The
+tree has `n` leaves and fewer than `n` branching nodes when `n` is a power of
+two, so construction and memory are both `O(n)`.
+
+The merge must be associative: grouping adjacent pieces in a different way
+must not change the answer. This works for `sum`, `min`, `max`, `gcd`, and many
+custom states. The identity value used for an empty piece depends on the merge:
+`0` for sums, `+infinity` for minimum, and so on.
 
 # Point update and range query
 
-For point assignment, update one leaf, then recompute ancestors on
-the path to the root. This costs `O(log n)`. Range minimum queries
-use `merge = min`.
+## Point update: repair one path
 
-Example with 1-based array:
+Suppose nodes store minimums for this 1-based array:
 
 ```text
 a = [7, 2, 6, 3]
@@ -66,18 +125,122 @@ Internal minimum nodes:
 [1,4]=min(2,3)=2
 ```
 
-If `a[2]` becomes `8`, only nodes on the leaf-to-root path change:
+If `a[2]` becomes `8`, first change leaf `[2,2]`. Every interval not containing
+position `2` still summarizes unchanged values, so only its ancestors can be
+wrong:
 
 ```text
-[2,2], [1,2], [1,4]
+[2,2] = 8
+    |
+    v
+[1,2] = min(7,8) = 7
+    |
+    v
+[1,4] = min(7,3) = 3
 ```
 
-This is why updates are logarithmic.
+The interval length doubles at every step toward the root. There are only
+`O(log n)` levels, so the assignment and all necessary repairs take
+`O(log n)` time.
+
+## Range query: take whole nodes whenever possible
+
+For a query `[ql,qr]`, compare it with the interval of the current node:
+
+```text
+no overlap       -> ignore this node and return the identity
+fully contained  -> use this node's stored summary
+                    and stop descending
+partial overlap  -> query both children and merge their answers
+```
+
+For example, querying `[2,7]` in a tree over eight positions selects four
+stored nodes:
+
+\begin{center}
+\begin{tikzpicture}[x=.9cm,y=.72cm,font=\small]
+  \foreach \x in {0,...,8} \draw[gray!45] (\x,0) -- (\x,4.8);
+  \foreach \x in {1,...,8} \node[below] at (\x-.5,0) {\x};
+  \node[anchor=east] at (-.15,4.15) {query $[2,7]$};
+  \draw[fill=blue!12,draw=blue!60!black] (1,3.8) rectangle (7,4.5);
+
+  \node[anchor=east] at (-.15,3.0) {$[2,2]$};
+  \draw[fill=green!28,draw=green!55!black] (1,2.65) rectangle (2,3.35);
+  \node[anchor=east] at (-.15,2.1) {$[3,4]$};
+  \draw[fill=green!28,draw=green!55!black] (2,1.75) rectangle (4,2.45);
+  \node[anchor=east] at (-.15,1.2) {$[5,6]$};
+  \draw[fill=green!28,draw=green!55!black] (4,.85) rectangle (6,1.55);
+  \node[anchor=east] at (-.15,.3) {$[7,7]$};
+  \draw[fill=green!28,draw=green!55!black] (6,-.05) rectangle (7,.65);
+\end{tikzpicture}
+\end{center}
+
+Their intervals are disjoint and their union is exactly `[2,7]`:
+
+```text
+[2,7] = [2,2] + [3,4] + [5,6] + [7,7]
+```
+
+Here is the recursion depth by depth. The root `[1,8]` is only partially inside
+`[2,7]`, so inspect its children. At the next depth:
+
+```text
+[1,4] is partial because it contains the left boundary 2
+[5,8] is partial because it contains the right boundary 7
+```
+
+Inspecting their children gives:
+
+```text
+[1,2] is partial
+[3,4] is fully inside
+[5,6] is fully inside
+[7,8] is partial
+```
+
+For `[3,4]`, use its stored summary immediately. Do not descend to `[3,3]` and
+`[4,4]`; this is what it means to take a whole node. Likewise, use `[5,6]`
+without opening it.
+
+Only the two partial nodes need another step:
+
+```text
+[1,1] is outside       [2,2] is fully inside
+[7,7] is fully inside  [8,8] is outside
+```
+
+At any depth, at most one partial node contains the left query boundary and at
+most one contains the right query boundary. Nodes strictly between them are
+fully inside and are used without further descent; nodes outside are ignored.
+Thus only a constant number of nodes needs inspection per depth. The tree has
+`O(log n)` depths, so the complete query takes `O(log n)` time.
 
 # Rich node states
 
-Segment trees are powerful because a node can store more than one
-number. For maximum subarray sum, each node stores:
+## Start from the merge question
+
+A node does not have to store one number. It should store exactly enough
+information to merge two adjacent segments without reopening their elements.
+
+For maximum subarray sum, suppose the two children contain:
+
+```text
+left child L  = [-5, 4]    best subarray inside L is [4], sum 4
+right child R = [ 3,-5]    best subarray inside R is [3], sum 3
+```
+
+If the parent stored only `max(L.best,R.best)`, it would answer `4`. But after
+joining the children, the parent array is `[-5,4,3,-5]`, whose best subarray is
+`[4,3]` with sum `7`. It starts in the left child and finishes in the right
+child, so neither child's answer contains it completely.
+
+Any subarray that crosses this boundary has a forced shape:
+
+```text
+a suffix of the left child + a prefix of the right child
+```
+
+This is why each node stores four quantities:
 
 ```text
 sum   = total sum of the segment
@@ -86,78 +249,825 @@ suff  = best non-empty suffix sum
 best  = best non-empty subarray sum
 ```
 
-To merge left `L` and right `R`:
+`pref` needs `sum` because a parent prefix may contain the entire left child
+and continue into the right child. Symmetrically, `suff` needs `sum` to cross
+from the right child into the left.
+
+## Derive each merge formula
+
+Let `L` and `R` be adjacent child states.
+
+The parent total has only one possibility:
 
 ```text
 sum  = L.sum + R.sum
+```
+
+A parent prefix either stops inside `L`, or takes all of `L` and continues
+with the best prefix of `R`:
+
+```text
 pref = max(L.pref, L.sum + R.pref)
+```
+
+A parent suffix is symmetric:
+
+```text
 suff = max(R.suff, R.sum + L.suff)
+```
+
+Finally, the best subarray lies entirely in `L`, entirely in `R`, or crosses
+the boundary:
+
+```text
 best = max(L.best, R.best, L.suff + R.pref)
 ```
 
-This is a recurring red-level idea: design exactly the information
-that makes two halves composable.
+There is no fourth case: every subarray either crosses the boundary or it does
+not.
+
+## Worked merge
+
+Merge `L = [2,-3,4]` and `R = [-1,5,-2]`. The highlighted crossing candidate
+uses the best suffix of `L` and the best prefix of `R`:
+
+\begin{center}
+\begin{tikzpicture}[x=.9cm,y=.72cm,font=\small]
+  \foreach \x/\value in {0/2,1/-3,2/4,3/-1,4/5,5/-2} {
+    \draw[fill=blue!7] (\x,2.5) rectangle (\x+1,3.5);
+    \node at (\x+.5,3) {\value};
+  }
+  \draw[fill=orange!32] (2,2.5) rectangle (3,3.5);
+  \node at (2.5,3) {4};
+  \draw[fill=green!30] (3,2.5) rectangle (4,3.5);
+  \draw[fill=green!30] (4,2.5) rectangle (5,3.5);
+  \node at (3.5,3) {$-1$};
+  \node at (4.5,3) {5};
+  \draw[very thick] (3,2.3) -- (3,3.7);
+  \node at (1.5,3.95) {left child $L$};
+  \node at (4.5,3.95) {right child $R$};
+
+  \node[fill=orange!22,draw=orange!65!black,rounded corners,
+        minimum width=5cm] at (3,1.55)
+        {best suffix of $L$: $[4]$, sum $=4$};
+  \node[fill=green!20,draw=green!55!black,rounded corners,
+        minimum width=5cm] at (3,.65)
+        {best prefix of $R$: $[-1,5]$, sum $=4$};
+  \node[fill=blue!12,draw=blue!55!black,rounded corners,
+        minimum width=5cm] at (3,-.25)
+        {crossing subarray: $[4,-1,5]$, sum $=8$};
+\end{tikzpicture}
+\end{center}
+
+The child states are:
+
+```text
+L: sum=3, pref=3, suff=4, best=4
+R: sum=2, pref=4, suff=3, best=5
+```
+
+The merged state is:
+
+```text
+sum  = 3 + 2                         = 5
+pref = max(3, 3 + 4)                 = 7
+suff = max(3, 2 + 4)                 = 6
+best = max(4, 5, 4 + 4)              = 8
+```
+
+This is the general design method for rich segment-tree states: list every
+possible shape of an answer after joining two halves, then store the boundary
+information needed to evaluate those shapes.
 
 # Lazy propagation
 
-If an update covers a whole node segment, do not immediately walk
-into all leaves. Store a pending tag on the node. For range-add and
-range-sum:
+## Why ordinary recursion becomes too slow
+
+A point update follows one root-to-leaf path. A range update may cover almost
+every leaf; changing them separately would cost `O(n)`. But if an update fully
+covers a node interval, we already know its effect on the node summary without
+visiting any child.
+
+For a range-add/range-sum tree, adding `delta` to a node of length `len`
+increases its sum by `delta * len`:
 
 ```text
-seg[node] += delta * segment_length
+seg[node]  += delta * len
 lazy[node] += delta
 ```
 
-Before visiting children, push the tag to them. Lazy propagation
-turns range update plus range query from `O(n)` to `O(log n)`.
+The first line makes the node's own summary correct immediately. The lazy tag
+records work that its children have not received yet. Then the update stops at
+this node.
 
-# Why the maximum-subarray state works
+## What a lazy tag means
 
-When two neighboring segments are merged, the best subarray in the union is one
-of exactly three types:
-
-```text
-entirely in left
-entirely in right
-crosses the boundary
-```
-
-The crossing case must be:
+The invariant is deliberately asymmetric:
 
 ```text
-best suffix of left + best prefix of right
+seg[node] already includes every update
+affecting the whole node interval.
+lazy[node] is the addition still waiting
+to be applied to both children.
 ```
 
-That is why the node stores `pref` and `suff` in addition to `best`.
+Suppose `[1,4]` originally has sum `10`, with child sums `3` and `7`. After
+adding `+3` to all four positions, its new sum is `10 + 3*4 = 22`. Before a
+push, only the parent has been updated. After a push, both children receive the
+tag and the parent tag is cleared:
 
-# Lazy propagation example
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  box/.style={draw,rounded corners,align=center,minimum width=2.5cm,
+              minimum height=.9cm},
+  edge/.style={draw,-}]
+  \node[box,fill=orange!22] (beforeRoot) at (0,2.3)
+    {$[1,4]$\\sum $=22$, lazy $=+3$};
+  \node[box,fill=gray!12] (beforeLeft) at (-1.65,.45)
+    {$[1,2]$\\sum $=3$};
+  \node[box,fill=gray!12] (beforeRight) at (1.65,.45)
+    {$[3,4]$\\sum $=7$};
+  \draw[edge] (beforeRoot) -- (beforeLeft);
+  \draw[edge] (beforeRoot) -- (beforeRight);
+  \node at (0,-.5) {before push: children are stale};
 
-Suppose a node covers `[5,8]` and stores sum `20`. Adding `+3` to the whole
-range changes the sum by:
+  \draw[->,very thick] (3,1.35) -- (4.2,1.35);
+  \node[above] at (3.6,1.35) {push};
+
+  \node[box,fill=blue!14] (afterRoot) at (7.2,2.3)
+    {$[1,4]$\\sum $=22$, lazy $=0$};
+  \node[box,fill=green!20] (afterLeft) at (5.55,.45)
+    {$[1,2]$\\sum $=9$\\lazy $=+3$};
+  \node[box,fill=green!20] (afterRight) at (8.85,.45)
+    {$[3,4]$\\sum $=13$\\lazy $=+3$};
+  \draw[edge] (afterRoot) -- (afterLeft);
+  \draw[edge] (afterRoot) -- (afterRight);
+  \node at (7.2,-.5) {after push: child summaries are current};
+\end{tikzpicture}
+\end{center}
+
+The total remains `9 + 13 = 22`. Pushing does not apply the update twice; it
+merely transfers the deferred information one level downward.
+
+## When to push
+
+If a query or update fully contains the current node, use or update that node
+and stop. If it only partially overlaps, its children must be inspected. Push
+the pending tag first so their summaries describe the correct values, recurse,
+then merge the children back into the parent.
 
 ```text
-4 positions * 3 = 12
-new sum = 32
+range operation at node:
+    no overlap      -> return
+    full cover      -> apply to this node and stop
+    partial overlap -> push, recurse, then merge children
 ```
 
-We record `lazy += 3` and stop. If a later query needs `[5,6]`, we push the tag
-to children before descending:
+Range addition tags compose by addition: two deferred updates `+3` and `-1`
+become one tag `+2`. Other update types need different composition rules. For
+example, a later assignment replaces an earlier assignment rather than adding
+to it.
+
+A range operation uses the same interval decomposition as the earlier query.
+For example, `[2,7]` is represented by the fully covered nodes:
 
 ```text
-left child [5,6]  gets +3 on 2 positions
-right child [7,8] gets +3 on 2 positions
+[2,2], [3,4], [5,6], [7,7]
 ```
 
-The parent tag is then cleared.
+For an update, apply the lazy tag once to each of these nodes and stop there;
+do not visit their leaves. At every tree depth, only the node containing the
+left boundary and the node containing the right boundary can remain partially
+covered and require further descent. Each of those two paths has `O(log n)`
+levels, and only a constant amount of work is done at each visited node.
+Therefore both a range update and a range query take `O(log n)` time.
+
+# Complete implementation templates
+
+## Point assignment and range minimum: C++
+
+This version follows the recursive cases from Chapter 2. Public methods use
+1-based inclusive indices.
+
+```cpp
+struct SegmentTreeMin {
+    static constexpr long long INF = (1LL << 60);
+
+    int n;
+    vector<long long> tree;
+
+    explicit SegmentTreeMin(const vector<long long>& values)
+        : n(static_cast<int>(values.size())), tree(4 * n, INF) {
+        build(1, 1, n, values);
+    }
+
+    void build(
+        int node,
+        int left,
+        int right,
+        const vector<long long>& values
+    ) {
+        if (left == right) {
+            tree[node] = values[left - 1];
+            return;
+        }
+        int middle = (left + right) / 2;
+        build(2 * node, left, middle, values);
+        build(2 * node + 1, middle + 1, right, values);
+        pull(node);
+    }
+
+    void pull(int node) {
+        tree[node] = min(tree[2 * node], tree[2 * node + 1]);
+    }
+
+    void assign(int position, long long value) {
+        assign(1, 1, n, position, value);
+    }
+
+    void assign(
+        int node,
+        int left,
+        int right,
+        int position,
+        long long value
+    ) {
+        if (left == right) {
+            tree[node] = value;
+            return;
+        }
+        int middle = (left + right) / 2;
+        if (position <= middle) {
+            assign(2 * node, left, middle, position, value);
+        } else {
+            assign(
+                2 * node + 1,
+                middle + 1,
+                right,
+                position,
+                value
+            );
+        }
+        pull(node);
+    }
+
+    long long query(int query_left, int query_right) const {
+        return query(1, 1, n, query_left, query_right);
+    }
+
+    long long query(
+        int node,
+        int left,
+        int right,
+        int query_left,
+        int query_right
+    ) const {
+        if (query_left <= left && right <= query_right) {
+            return tree[node];
+        }
+        int middle = (left + right) / 2;
+        long long answer = INF;
+        if (query_left <= middle) {
+            answer = min(
+                answer,
+                query(
+                    2 * node,
+                    left,
+                    middle,
+                    query_left,
+                    query_right
+                )
+            );
+        }
+        if (middle < query_right) {
+            answer = min(
+                answer,
+                query(
+                    2 * node + 1,
+                    middle + 1,
+                    right,
+                    query_left,
+                    query_right
+                )
+            );
+        }
+        return answer;
+    }
+};
+```
+
+## Point assignment and range minimum: Python
+
+```python
+class SegmentTreeMin:
+    INF = 10**30
+
+    def __init__(self, values):
+        self.n = len(values)
+        self.tree = [self.INF] * (4 * self.n)
+        self._build(1, 1, self.n, values)
+
+    def _build(self, node, left, right, values):
+        if left == right:
+            self.tree[node] = values[left - 1]
+            return
+        middle = (left + right) // 2
+        self._build(2 * node, left, middle, values)
+        self._build(2 * node + 1, middle + 1, right, values)
+        self._pull(node)
+
+    def _pull(self, node):
+        self.tree[node] = min(
+            self.tree[2 * node],
+            self.tree[2 * node + 1],
+        )
+
+    def assign(self, position, value):
+        self._assign(1, 1, self.n, position, value)
+
+    def _assign(self, node, left, right, position, value):
+        if left == right:
+            self.tree[node] = value
+            return
+        middle = (left + right) // 2
+        if position <= middle:
+            self._assign(2 * node, left, middle, position, value)
+        else:
+            self._assign(
+                2 * node + 1,
+                middle + 1,
+                right,
+                position,
+                value,
+            )
+        self._pull(node)
+
+    def query(self, query_left, query_right):
+        return self._query(
+            1,
+            1,
+            self.n,
+            query_left,
+            query_right,
+        )
+
+    def _query(
+        self,
+        node,
+        left,
+        right,
+        query_left,
+        query_right,
+    ):
+        if query_left <= left and right <= query_right:
+            return self.tree[node]
+        middle = (left + right) // 2
+        answer = self.INF
+        if query_left <= middle:
+            answer = min(
+                answer,
+                self._query(
+                    2 * node,
+                    left,
+                    middle,
+                    query_left,
+                    query_right,
+                ),
+            )
+        if middle < query_right:
+            answer = min(
+                answer,
+                self._query(
+                    2 * node + 1,
+                    middle + 1,
+                    right,
+                    query_left,
+                    query_right,
+                ),
+            )
+        return answer
+```
+
+## Iterative point assignment and range minimum
+
+The recursive implementation mirrors the interval tree and is easier to
+derive. The iterative version stores the same tree in one flat array:
+
+```text
+tree[1]                 root
+tree[2], tree[3]        children of the root
+tree[size..2*size-1]    leaves
+```
+
+`size` is the first power of two at least `n`. Extra leaves are filled with the
+minimum identity `INF`. A query changes its 1-based inclusive range `[l,r]`
+into a half-open range of leaf indices `[l,r+1)`. While moving both boundaries
+upward, an odd left boundary and an odd right boundary expose nodes that belong
+entirely to the answer.
+
+### C++
+
+```cpp
+struct IterativeSegmentTreeMin {
+    static constexpr long long INF = (1LL << 60);
+
+    int size = 1;
+    vector<long long> tree;
+
+    explicit IterativeSegmentTreeMin(
+        const vector<long long>& values
+    ) {
+        while (size < static_cast<int>(values.size())) {
+            size *= 2;
+        }
+
+        // Leaves occupy tree[size], tree[size+1], ... .
+        tree.assign(2 * size, INF);
+        for (int index = 0; index < int(values.size()); ++index) {
+            tree[size + index] = values[index];
+        }
+
+        // Build every parent from its two children.
+        for (int node = size - 1; node >= 1; --node) {
+            tree[node] = min(
+                tree[2 * node],
+                tree[2 * node + 1]
+            );
+        }
+    }
+
+    void assign(int position, long long value) {
+        // Convert a 1-based array position to its leaf.
+        int node = size + position - 1;
+        tree[node] = value;
+
+        // Repair ancestors until reaching the root.
+        for (node /= 2; node >= 1; node /= 2) {
+            tree[node] = min(
+                tree[2 * node],
+                tree[2 * node + 1]
+            );
+        }
+    }
+
+    long long query(int left, int right) const {
+        // Convert inclusive [left,right] to half-open leaf range.
+        left = size + left - 1;
+        right = size + right;
+        long long answer = INF;
+
+        while (left < right) {
+            if (left % 2 == 1) {
+                // left is a right child fully inside the range.
+                answer = min(answer, tree[left]);
+                ++left;
+            }
+            if (right % 2 == 1) {
+                // The node just before right is fully inside.
+                --right;
+                answer = min(answer, tree[right]);
+            }
+
+            // Move the remaining half-open range to its parents.
+            left /= 2;
+            right /= 2;
+        }
+        return answer;
+    }
+};
+```
+
+The assignment loop ends safely: after repairing `tree[1]`, integer division
+changes the node to zero and the condition fails.
+
+### Python
+
+```python
+class IterativeSegmentTreeMin:
+    INF = 10**30
+
+    def __init__(self, values):
+        self.size = 1
+        while self.size < len(values):
+            self.size *= 2
+
+        # Leaves begin at index self.size.
+        self.tree = [self.INF] * (2 * self.size)
+        for index, value in enumerate(values):
+            self.tree[self.size + index] = value
+
+        # Build parents from bottom to top.
+        for node in range(self.size - 1, 0, -1):
+            self.tree[node] = min(
+                self.tree[2 * node],
+                self.tree[2 * node + 1],
+            )
+
+    def assign(self, position, value):
+        # Convert the 1-based position to a leaf.
+        node = self.size + position - 1
+        self.tree[node] = value
+
+        # Repair every ancestor.
+        node //= 2
+        while node >= 1:
+            self.tree[node] = min(
+                self.tree[2 * node],
+                self.tree[2 * node + 1],
+            )
+            node //= 2
+
+    def query(self, left, right):
+        # Convert inclusive [left,right] to half-open leaf range.
+        left = self.size + left - 1
+        right = self.size + right
+        answer = self.INF
+
+        while left < right:
+            if left % 2 == 1:
+                # This right-child node is fully inside.
+                answer = min(answer, self.tree[left])
+                left += 1
+            if right % 2 == 1:
+                # The node immediately before right is inside.
+                right -= 1
+                answer = min(answer, self.tree[right])
+
+            # Move the unprocessed range to the parent level.
+            left //= 2
+            right //= 2
+
+        return answer
+```
+
+## Range addition and range sum: C++
+
+Here `tree[node]` is always current. `lazy[node]` stores the addition still
+waiting for the children.
+
+```cpp
+struct LazySegmentTree {
+    int n;
+    vector<long long> tree;
+    vector<long long> lazy;
+
+    explicit LazySegmentTree(const vector<long long>& values)
+        : n(static_cast<int>(values.size())),
+          tree(4 * n, 0),
+          lazy(4 * n, 0) {
+        build(1, 1, n, values);
+    }
+
+    void build(
+        int node,
+        int left,
+        int right,
+        const vector<long long>& values
+    ) {
+        if (left == right) {
+            tree[node] = values[left - 1];
+            return;
+        }
+        int middle = (left + right) / 2;
+        build(2 * node, left, middle, values);
+        build(2 * node + 1, middle + 1, right, values);
+        pull(node);
+    }
+
+    void pull(int node) {
+        tree[node] = tree[2 * node] + tree[2 * node + 1];
+    }
+
+    void apply(int node, int length, long long delta) {
+        tree[node] += delta * length;
+        lazy[node] += delta;
+    }
+
+    void push(int node, int left, int right) {
+        if (lazy[node] == 0 || left == right) return;
+        int middle = (left + right) / 2;
+        apply(2 * node, middle - left + 1, lazy[node]);
+        apply(2 * node + 1, right - middle, lazy[node]);
+        lazy[node] = 0;
+    }
+
+    void add(int query_left, int query_right, long long delta) {
+        add(1, 1, n, query_left, query_right, delta);
+    }
+
+    void add(
+        int node,
+        int left,
+        int right,
+        int query_left,
+        int query_right,
+        long long delta
+    ) {
+        if (query_left <= left && right <= query_right) {
+            apply(node, right - left + 1, delta);
+            return;
+        }
+        push(node, left, right);
+        int middle = (left + right) / 2;
+        if (query_left <= middle) {
+            add(
+                2 * node,
+                left,
+                middle,
+                query_left,
+                query_right,
+                delta
+            );
+        }
+        if (middle < query_right) {
+            add(
+                2 * node + 1,
+                middle + 1,
+                right,
+                query_left,
+                query_right,
+                delta
+            );
+        }
+        pull(node);
+    }
+
+    long long query(int query_left, int query_right) {
+        return query(1, 1, n, query_left, query_right);
+    }
+
+    long long query(
+        int node,
+        int left,
+        int right,
+        int query_left,
+        int query_right
+    ) {
+        if (query_left <= left && right <= query_right) {
+            return tree[node];
+        }
+        push(node, left, right);
+        int middle = (left + right) / 2;
+        long long answer = 0;
+        if (query_left <= middle) {
+            answer += query(
+                2 * node,
+                left,
+                middle,
+                query_left,
+                query_right
+            );
+        }
+        if (middle < query_right) {
+            answer += query(
+                2 * node + 1,
+                middle + 1,
+                right,
+                query_left,
+                query_right
+            );
+        }
+        return answer;
+    }
+};
+```
+
+## Range addition and range sum: Python
+
+```python
+class LazySegmentTree:
+    def __init__(self, values):
+        self.n = len(values)
+        self.tree = [0] * (4 * self.n)
+        self.lazy = [0] * (4 * self.n)
+        self._build(1, 1, self.n, values)
+
+    def _build(self, node, left, right, values):
+        if left == right:
+            self.tree[node] = values[left - 1]
+            return
+        middle = (left + right) // 2
+        self._build(2 * node, left, middle, values)
+        self._build(2 * node + 1, middle + 1, right, values)
+        self._pull(node)
+
+    def _pull(self, node):
+        self.tree[node] = (
+            self.tree[2 * node] + self.tree[2 * node + 1]
+        )
+
+    def _apply(self, node, length, delta):
+        self.tree[node] += delta * length
+        self.lazy[node] += delta
+
+    def _push(self, node, left, right):
+        if self.lazy[node] == 0 or left == right:
+            return
+        middle = (left + right) // 2
+        self._apply(
+            2 * node,
+            middle - left + 1,
+            self.lazy[node],
+        )
+        self._apply(
+            2 * node + 1,
+            right - middle,
+            self.lazy[node],
+        )
+        self.lazy[node] = 0
+
+    def add(self, query_left, query_right, delta):
+        self._add(
+            1,
+            1,
+            self.n,
+            query_left,
+            query_right,
+            delta,
+        )
+
+    def _add(
+        self,
+        node,
+        left,
+        right,
+        query_left,
+        query_right,
+        delta,
+    ):
+        if query_left <= left and right <= query_right:
+            self._apply(node, right - left + 1, delta)
+            return
+        self._push(node, left, right)
+        middle = (left + right) // 2
+        if query_left <= middle:
+            self._add(
+                2 * node,
+                left,
+                middle,
+                query_left,
+                query_right,
+                delta,
+            )
+        if middle < query_right:
+            self._add(
+                2 * node + 1,
+                middle + 1,
+                right,
+                query_left,
+                query_right,
+                delta,
+            )
+        self._pull(node)
+
+    def query(self, query_left, query_right):
+        return self._query(
+            1,
+            1,
+            self.n,
+            query_left,
+            query_right,
+        )
+
+    def _query(
+        self,
+        node,
+        left,
+        right,
+        query_left,
+        query_right,
+    ):
+        if query_left <= left and right <= query_right:
+            return self.tree[node]
+        self._push(node, left, right)
+        middle = (left + right) // 2
+        answer = 0
+        if query_left <= middle:
+            answer += self._query(
+                2 * node,
+                left,
+                middle,
+                query_left,
+                query_right,
+            )
+        if middle < query_right:
+            answer += self._query(
+                2 * node + 1,
+                middle + 1,
+                right,
+                query_left,
+                query_right,
+            )
+        return answer
+```
 
 # Mistakes to avoid
 
 ```text
 Mixing inclusive and half-open ranges.
 Forgetting that maximum subarray is non-empty in this section.
-Applying lazy delta to seg[node] without multiplying by segment length.
-Not pushing lazy tags before descending into a partially covered node.
+Applying lazy delta without multiplying by segment length.
+Descending into a partial node without pushing its lazy tag.
 ```
 # Local exercises
 

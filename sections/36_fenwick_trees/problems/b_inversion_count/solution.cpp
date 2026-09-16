@@ -30,7 +30,8 @@ int main() {
     Fenwick bit((int)vals.size());
     long long inv = 0;
     for (int i = 0; i < n; i++) {
-        int rank = int(lower_bound(vals.begin(), vals.end(), a[i]) - vals.begin()) + 1;
+        auto position = lower_bound(vals.begin(), vals.end(), a[i]);
+        int rank = int(position - vals.begin()) + 1;
         inv += i - bit.sum(rank);
         bit.add(rank, 1);
     }

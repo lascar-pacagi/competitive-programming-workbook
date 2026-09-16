@@ -175,7 +175,7 @@ WA, reproduce the smallest failing class before editing. In the postmortem,
 label each miss as recognition, proof, implementation, or time management and
 schedule one targeted reattempt. Run the local drills with `CP_TARGET=solution python3 sections/58_full_virtual_contest_workflow/check.py`.
 
-- A, B, and C: write a one-line model and a candidate invariant before looking
+- A, B, C, and D: write a one-line model and a candidate invariant before looking
   at any prior section or editorial. Keep the postmortem focused on why the
   model was accepted or rejected.
 # Contest checklist

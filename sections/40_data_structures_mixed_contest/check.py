@@ -16,10 +16,10 @@ SECTION = Path(__file__).resolve().parent
 PROBLEMS = [
     SECTION / "problems" / "a_hotel_queries",
     SECTION / "problems" / "b_list_removals",
-    SECTION / "problems" / "c_mo_distinct_queries",
+    SECTION / "problems" / "c_range_add_range_gcd",
     SECTION / "problems" / "d_salary_queries",
     SECTION / "problems" / "e_functional_walk_minimum",
-    SECTION / "problems" / "f_running_lower_median",
+    SECTION / "problems" / "f_mutable_priority_queue",
     SECTION / "problems" / "g_streaming_room_count",
     SECTION / "problems" / "h_toggle_kth_active",
     SECTION / "problems" / "i_dynamic_maximum_subarray",

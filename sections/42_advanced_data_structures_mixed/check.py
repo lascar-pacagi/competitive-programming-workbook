@@ -14,7 +14,7 @@ from tools.section_checker import run_section_checks
 SECTION = Path(__file__).resolve().parent
 PROBLEMS = [
     SECTION / "problems" / "a_dynamic_order_statistics",
-    SECTION / "problems" / "b_range_add_range_sum",
+    SECTION / "problems" / "b_range_assign_add",
     SECTION / "problems" / "c_static_rectangle_count",
     SECTION / "problems" / "d_nested_ranges_count",
     SECTION / "problems" / "e_subtree_add_point_query",

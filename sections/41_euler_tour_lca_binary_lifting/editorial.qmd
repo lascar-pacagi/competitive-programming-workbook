@@ -93,8 +93,9 @@ Given a rooted tree and queries `u v`, print the number of edges on the path.
 
 For `n,q` near `2e5`, parent climbing fails on a chain. Store `up[j][v]`, the
 `2^j` ancestor, and depth. For sample nodes 4 and 5, `lca=2`, hence distance is
-`2+2-2*1=2`. Lift the deeper node, then descend powers from largest to zero,
-lifting both only when their ancestors differ; return their parent.
+`2+2-2*1=2`. Lift the deeper node, then climb both together, trying jump
+sizes from largest to zero and moving only when their ancestors differ; return
+their parent.
 
 ## Correctness proof and complexity
 
@@ -108,53 +109,13 @@ distance formula. Preprocessing is `O(n log n)`, query time `O(log n)`, memory
 ## Full C++ solution
 
 ```cpp
-#include <bits/stdc++.h>
-using namespace std;
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);
- int n,q;if(!(cin>>n>>q)) return 0; int LOG=1; while((1<<LOG)<=n+1) LOG++;
- vector<vector<int>> up(LOG, vector<int>(n+1)); vector<int> depth(n+1);
- for(int v=2;v<=n;v++){cin>>up[0][v]; depth[v]=depth[up[0][v]]+1;}
- for(int k=1;k<LOG;k++) for(int v=1;v<=n;v++) up[k][v]=up[k-1][up[k-1][v]];
- auto lift=[&](int v,int d){for(int k=0;k<LOG;k++) if(d&(1<<k)) v=up[k][v]; return v;};
- auto lca=[&](int a,int b){if(depth[a]<depth[b]) swap(a,b); a=lift(a,depth[a]-depth[b]); if(a==b) return a; for(int k=LOG-1;k>=0;k--) if(up[k][a]!=up[k][b]){a=up[k][a]; b=up[k][b];} return up[0][a];};
- while(q--){int a,b;cin>>a>>b; int c=lca(a,b); cout<<depth[a]+depth[b]-2*depth[c]<<'\n';}
-}
+{{< include problems/a_tree_distances/solution.cpp >}}
 ```
 
 ## Full Python solution
 
 ```python
-import sys
-
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,q=data[0],data[1]; idx=2
-    LOG=max(1,(n+1).bit_length())
-    up=[[0]*(n+1) for _ in range(LOG)]; depth=[0]*(n+1)
-    for v in range(2,n+1):
-        p=data[idx]; idx+=1; up[0][v]=p; depth[v]=depth[p]+1
-    for k in range(1,LOG):
-        for v in range(1,n+1): up[k][v]=up[k-1][up[k-1][v]]
-    def lift(v,d):
-        bit=0
-        while d:
-            if d&1: v=up[bit][v]
-            d//=2; bit+=1
-        return v
-    def lca(a,b):
-        if depth[a]<depth[b]: a,b=b,a
-        a=lift(a,depth[a]-depth[b])
-        if a==b: return a
-        for k in range(LOG-1,-1,-1):
-            if up[k][a]!=up[k][b]: a=up[k][a]; b=up[k][b]
-        return up[0][a]
-    out=[]
-    for _ in range(q):
-        a,b=data[idx],data[idx+1]; idx+=2; c=lca(a,b)
-        out.append(str(depth[a]+depth[b]-2*depth[c]))
-    print("\n".join(out))
-if __name__=="__main__": main()
+{{< include problems/a_tree_distances/solution.py >}}
 ```
 
 ## Tests that matter
@@ -184,51 +145,13 @@ the empty local path `u==v` has maximum zero. QED.
 ## Full C++ solution
 
 ```cpp
-#include <bits/stdc++.h>
-using namespace std;
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);
- int n,q;if(!(cin>>n>>q)) return 0; int LOG=1; while((1<<LOG)<=n+1) LOG++;
- vector<vector<int>> up(LOG, vector<int>(n+1)), mx(LOG, vector<int>(n+1)); vector<int> depth(n+1);
- for(int v=2;v<=n;v++){int p,w;cin>>p>>w; up[0][v]=p; mx[0][v]=w; depth[v]=depth[p]+1;}
- for(int k=1;k<LOG;k++) for(int v=1;v<=n;v++){int mid=up[k-1][v]; up[k][v]=up[k-1][mid]; mx[k][v]=max(mx[k-1][v],mx[k-1][mid]);}
- auto lift=[&](int &v,int d){int ans=0; for(int k=0;k<LOG;k++) if(d&(1<<k)){ans=max(ans,mx[k][v]); v=up[k][v];} return ans;};
- while(q--){int a,b;cin>>a>>b; int ans=0; if(depth[a]<depth[b]) swap(a,b); ans=max(ans,lift(a,depth[a]-depth[b])); if(a!=b){for(int k=LOG-1;k>=0;k--) if(up[k][a]!=up[k][b]){ans=max({ans,mx[k][a],mx[k][b]}); a=up[k][a]; b=up[k][b];} ans=max({ans,mx[0][a],mx[0][b]});} cout<<ans<<'\n';}
-}
+{{< include problems/b_max_edge_path/solution.cpp >}}
 ```
 
 ## Full Python solution
 
 ```python
-import sys
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,q=data[0],data[1]; idx=2; LOG=max(1,(n+1).bit_length())
-    up=[[0]*(n+1) for _ in range(LOG)]; mx=[[0]*(n+1) for _ in range(LOG)]; depth=[0]*(n+1)
-    for v in range(2,n+1):
-        p,w=data[idx],data[idx+1]; idx+=2; up[0][v]=p; mx[0][v]=w; depth[v]=depth[p]+1
-    for k in range(1,LOG):
-        for v in range(1,n+1):
-            mid=up[k-1][v]; up[k][v]=up[k-1][mid]; mx[k][v]=max(mx[k-1][v],mx[k-1][mid])
-    def lift(v,d):
-        ans=0; bit=0
-        while d:
-            if d&1: ans=max(ans,mx[bit][v]); v=up[bit][v]
-            d//=2; bit+=1
-        return v,ans
-    out=[]
-    for _ in range(q):
-        a,b=data[idx],data[idx+1]; idx+=2; ans=0
-        if depth[a]<depth[b]: a,b=b,a
-        a,val=lift(a,depth[a]-depth[b]); ans=max(ans,val)
-        if a!=b:
-            for k in range(LOG-1,-1,-1):
-                if up[k][a]!=up[k][b]:
-                    ans=max(ans,mx[k][a],mx[k][b]); a=up[k][a]; b=up[k][b]
-            ans=max(ans,mx[0][a],mx[0][b])
-        out.append(str(ans))
-    print("\n".join(out))
-if __name__=="__main__": main()
+{{< include problems/b_max_edge_path/solution.py >}}
 ```
 
 ## Tests that matter
@@ -259,51 +182,13 @@ n)` with the shared table. QED.
 ## Full C++ solution
 
 ```cpp
-#include <bits/stdc++.h>
-using namespace std;
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);
- int n,q;if(!(cin>>n>>q)) return 0; int LOG=1; while((1<<LOG)<=n+1) LOG++;
- vector<vector<int>> up(LOG, vector<int>(n+1)); vector<int> depth(n+1);
- for(int v=2;v<=n;v++){cin>>up[0][v]; depth[v]=depth[up[0][v]]+1;}
- for(int k=1;k<LOG;k++) for(int v=1;v<=n;v++) up[k][v]=up[k-1][up[k-1][v]];
- auto lift=[&](int v,int d){for(int k=0;k<LOG;k++) if(d&(1<<k)) v=up[k][v]; return v;};
- auto lca=[&](int a,int b){if(depth[a]<depth[b]) swap(a,b); a=lift(a,depth[a]-depth[b]); if(a==b) return a; for(int k=LOG-1;k>=0;k--) if(up[k][a]!=up[k][b]){a=up[k][a]; b=up[k][b];} return up[0][a];};
- while(q--){int u,v,k;cin>>u>>v>>k; int c=lca(u,v); int left=depth[u]-depth[c]+1,total=depth[u]+depth[v]-2*depth[c]+1; if(k<1||k>total) cout<<-1<<'\n'; else if(k<=left) cout<<lift(u,k-1)<<'\n'; else cout<<lift(v,total-k)<<'\n';}
-}
+{{< include problems/c_kth_node_path/solution.cpp >}}
 ```
 
 ## Full Python solution
 
 ```python
-import sys
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,q=data[0],data[1]; idx=2; LOG=max(1,(n+1).bit_length())
-    up=[[0]*(n+1) for _ in range(LOG)]; depth=[0]*(n+1)
-    for v in range(2,n+1):
-        p=data[idx]; idx+=1; up[0][v]=p; depth[v]=depth[p]+1
-    for k in range(1,LOG):
-        for v in range(1,n+1): up[k][v]=up[k-1][up[k-1][v]]
-    def lift(v,d):
-        for k in range(LOG):
-            if d>>k & 1: v=up[k][v]
-        return v
-    def lca(a,b):
-        if depth[a]<depth[b]: a,b=b,a
-        a=lift(a,depth[a]-depth[b])
-        if a==b: return a
-        for k in range(LOG-1,-1,-1):
-            if up[k][a]!=up[k][b]: a=up[k][a]; b=up[k][b]
-        return up[0][a]
-    out=[]
-    for _ in range(q):
-        u,v,k=data[idx],data[idx+1],data[idx+2]; idx+=3; c=lca(u,v); left=depth[u]-depth[c]+1; total=depth[u]+depth[v]-2*depth[c]+1
-        if k<1 or k>total: out.append("-1")
-        elif k<=left: out.append(str(lift(u,k-1)))
-        else: out.append(str(lift(v,total-k)))
-    print("\n".join(out))
-if __name__=="__main__": main()
+{{< include problems/c_kth_node_path/solution.py >}}
 ```
 
 ## Tests that matter
@@ -521,7 +406,12 @@ the LCA.
 -->
 # Testing discussion
 
-Run `CP_TARGET=solution python3 sections/41_euler_tour_lca_binary_lifting/check.py`.
+Run the local reference suite with:
+
+```bash
+CP_TARGET=solution \
+  python3 sections/41_euler_tour_lca_binary_lifting/check.py
+```
 For random trees of at most 20 vertices, build a path by parent walks and use
 it as an oracle for all three exercises. This catches depth, aggregate-order,
 and one-based-rank mistakes more reliably than samples.

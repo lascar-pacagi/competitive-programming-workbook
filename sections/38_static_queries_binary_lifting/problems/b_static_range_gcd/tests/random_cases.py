@@ -133,7 +133,7 @@ def case_kth_ancestor(rng: random.Random) -> str:
     n = rng.randint(1, 60)
     q = rng.randint(1, 80)
     parents = [rng.randint(1, v - 1) for v in range(2, n + 1)]
-    queries = [f"{rng.randint(1, n)} {rng.randint(0, n + 5)}" for _ in range(q)]
+    queries = [f"{rng.randint(1, n)} {rng.randint(0, n)}" for _ in range(q)]
     return f"{n} {q}\n" + (" ".join(map(str, parents)) if parents else "") + "\n" + "\n".join(queries) + "\n"
 
 

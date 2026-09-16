@@ -4,7 +4,7 @@ def main():
     data = list(map(int, sys.stdin.buffer.read().split()))
     if not data:
         return
-    n, q = data[0], data[1]
+    n, q = (data[0], data[1])
     a = data[2:2 + n]
     req = data[2 + n:2 + n + q]
     size = 1
@@ -18,7 +18,7 @@ def main():
     out = []
     for x in req:
         if seg[1] < x:
-            out.append("0")
+            out.append('0')
             continue
         v = 1
         while v < size:
@@ -33,7 +33,6 @@ def main():
             seg[v] = max(seg[2 * v], seg[2 * v + 1])
             v //= 2
         out.append(str(pos + 1))
-    print(" ".join(out))
-
-if __name__ == "__main__":
+    print(' '.join(out))
+if __name__ == '__main__':
     main()

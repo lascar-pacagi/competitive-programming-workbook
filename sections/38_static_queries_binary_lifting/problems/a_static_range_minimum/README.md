@@ -1,24 +1,39 @@
 # A. Static Range Minimum
 
-        Given an immutable array, answer minimum queries on subarrays.
+Given an immutable array, answer minimum queries on subarrays.
 
-        ## Input
+## Input
 
-        See the operation format described above. All indices are 1-based.
+The first line contains `n` and `q`. The second line contains `n` integers. Each of the next `q` lines contains `l` and `r`, describing an inclusive 1-based range.
 
-        ## Output
+## Output
 
-        Print each requested answer in order.
+For each query, print the minimum value in the range.
 
-        ## Sample
+## Constraints
 
-        Input:
+- `1 <= n, q <= 200000`
+- `-10^9 <= a[i] <= 10^9`
+- `1 <= l <= r <= n`
 
-        ```text
-        6 4
+## Sample
+
+Input:
+
+```text
+6 4
 5 2 7 1 3 4
 1 6
 2 3
 3 5
 4 4
-        ```
+```
+
+Output:
+
+```text
+1
+2
+1
+1
+```

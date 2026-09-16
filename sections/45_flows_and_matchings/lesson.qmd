@@ -19,234 +19,419 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{tikz}
+        \usetikzlibrary{decorations.pathreplacing,arrows.meta}
 execute:
   enabled: false
 ---
 
-# Flow as controlled movement through a network
+# Flow as controlled movement
 
-A flow network has capacities on directed edges. Dinic's algorithm repeats:
-build a BFS level graph, then send blocking flow by DFS along increasing
-levels. Bipartite matching is a special case of flow, and a minimum cut is
-the set of vertices still reachable from the source in the residual graph
-after max flow.
+A flow network is a directed graph whose edges have capacities, plus two
+distinguished vertices: a source `s` that may create material and a sink `t`
+that may absorb it. Every other vertex is a junction that must pass on exactly
+what it receives.
 
-## Flow definitions
-
-Each directed edge `(u, v)` has capacity `c(u, v)`. A feasible flow assigns a
-number `f(u, v)` to each edge such that:
-
-- `0 <= f(u, v) <= c(u, v)`;
-- every vertex except source `s` and sink `t` has equal incoming and outgoing
-  flow.
-
-The value of the flow is the total amount leaving `s`.
-
-Residual capacity tells us how we can still change the flow:
+Formally, a flow assigns a number `f(u,v)` to each edge with
 
 ```text
-forward residual: c(u,v) - f(u,v)
-backward residual: f(u,v)
+0 <= f(u,v) <= c(u,v)                         capacity
+sum of flow in = sum of flow out, for v != s, t   conservation
 ```
 
-The backward edge is essential. It represents undoing or rerouting previous
-flow.
+and its **value** is the net amount leaving `s`. Conservation means that value
+can equally well be measured as the amount arriving at `t`.
 
-## Dinic's algorithm
 
-Dinic works in phases.
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=8mm,inner sep=0pt,font=\small},
+  src/.style={nd,fill=orange!30,very thick},
+  snk/.style={nd,fill=green!30,very thick},
+  ar/.style={draw,->,>=Latex,thick,gray!75},
+  cl/.style={font=\scriptsize,fill=white,inner sep=1.5pt},
+  tg/.style={font=\scriptsize,text=gray!60}]
 
-1. BFS from `s` using only positive residual edges. This gives `level[v]`.
-2. DFS sends flow only along edges where `level[to] == level[v] + 1`.
-3. The DFS continues until no more flow can be sent in this level graph.
-4. Repeat BFS.
+  \node[src] (n1) at (0,0)     {$1$};
+  \node[nd]  (n2) at (2.7,1.2) {$2$};
+  \node[nd]  (n3) at (2.7,-1.2){$3$};
+  \node[snk] (n4) at (5.4,0)   {$4$};
 
-The level graph prevents DFS from wandering in cycles and gives a clear
-progress measure. The pointer array `it[v]` remembers which outgoing edges
-have already been exhausted during the current BFS phase.
+  \draw[ar] (n1) -- node[cl] {$3$} (n2);
+  \draw[ar] (n1) -- node[cl] {$2$} (n3);
+  \draw[ar] (n2) -- node[cl] {$1$} (n3);
+  \draw[ar] (n2) -- node[cl] {$2$} (n4);
+  \draw[ar] (n3) -- node[cl] {$4$} (n4);
 
-Diagram:
+  \node[tg] at (0,-0.72)   {source $s$};
+  \node[tg] at (5.4,-0.72) {sink $t$};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=7.3cm] at (6.5,1.9)
+    {\textbf{One network, four questions.} This is the sample input of
+     problem A, and every figure in this section uses it.\\[4pt]
+     Edge labels are \emph{capacities}. A flow puts a number $f(u,v)$ on each
+     edge with $0\le f(u,v)\le c(u,v)$, and every vertex except $s$ and $t$
+     must send out exactly what it takes in.\\[4pt]
+     \begin{tabular}{@{}ll@{}}
+       What is the largest flow $s\to t$? & problem A\\
+       Which edges form the cheapest barrier? & problem C\\
+       How large can a matching be? & problem B\\
+       Which projects should be taken? & problem D\\
+     \end{tabular}\\[4pt]
+     The answer to the first is $5$, and it is \emph{not} reachable by
+     obvious paths alone --- that is what the rest of this section is about.};
+
+  \node[font=\scriptsize,align=left,anchor=north west,text width=6.2cm] at (-0.75,-2.05)
+    {\textbf{Conservation, read at vertex $2$.} Whatever arrives on $1\to2$
+     must leave again along $2\to3$ and $2\to4$ together. Only $s$ may create
+     flow, and only $t$ may absorb it.};
+\end{tikzpicture}
+\end{center}
+```
+
+Four questions in this section all reduce to that one object, and all four
+problems use graphs of this shape.
+
+# The residual graph
+
+Everything interesting about flow algorithms comes from one idea: a decision
+already made must remain reversible. That is what the residual graph encodes.
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=7.5mm,inner sep=0pt,font=\small},
+  ar/.style={draw,->,>=Latex,thick},
+  cl/.style={font=\scriptsize,fill=white,inner sep=1.5pt}]
+
+  % original
+  \node[nd] (u1) at (0,0)   {$u$};
+  \node[nd] (v1) at (3.8,0) {$v$};
+  \draw[ar,gray!75] (u1) -- node[cl,above=1pt] {$f{=}5,\ c{=}7$} (v1);
+  \node[font=\scriptsize,anchor=north] at (1.9,-0.5) {as the problem states it};
+
+  \draw[->,very thick,gray!55] (4.65,0) -- (5.65,0);
+
+  % residual pair
+  \node[nd] (u2) at (6.6,0)  {$u$};
+  \node[nd] (v2) at (9.8,0)  {$v$};
+  \draw[ar,blue!65] (u2) to[bend left=28]
+       node[cl,text=blue!55!black] {residual $2$} (v2);
+  \draw[ar,orange!80!black] (v2) to[bend left=28]
+       node[cl,text=orange!60!black] {residual $5$} (u2);
+  \node[font=\scriptsize,anchor=north] at (8.2,-0.5) {as the algorithm sees it};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=13.3cm] at (-0.5,-1.6)
+    {\textcolor{blue!55!black}{\textbf{Forward residual}} $c-f=2$: how much more
+     can still be pushed along the edge.\\[2pt]
+     \textcolor{orange!60!black}{\textbf{Backward residual}} $f=5$: how much of
+     the flow already there may be \emph{taken back}.\\[4pt]
+     The backward edge is not a road that exists in the input. It is
+     permission to cancel up to $5$ units of an earlier decision when a better
+     global routing turns up. Without it, an algorithm would have to get every
+     choice right the first time; with it, no choice is ever final.\\[4pt]
+     \textbf{The update.} Pushing $x$ along an edge does two things at once:
+     subtract $x$ from the forward residual and add $x$ to the backward one.
+     Store the index of the reverse edge, not just the endpoint, or the second
+     half of that update cannot be done.};
+\end{tikzpicture}
+\end{center}
+```
+
+Concretely, if an edge of capacity `7` currently carries `5`:
 
 ```text
-s --level 0
-|\
-v v
-level 1 nodes
-|    \
-v     v
-level 2 nodes ... t
+forward residual  c - f = 2      push at most 2 more
+backward residual     f = 5      take back at most 5
 ```
 
-DFS only moves left-to-right through increasing levels.
+An augmenting path is any `s`-to-`t` path in the residual graph, and it may mix
+forward and backward edges freely. Pushing `x` along it subtracts `x` from each
+forward residual and adds `x` to each matching backward residual.
 
-## Bipartite matching as flow
+In code, each edge is stored together with the **index** of its reverse edge,
+so that both halves of that update are one array access apart. Storing only the
+reverse endpoint is not enough: parallel edges between the same pair would
+become indistinguishable.
 
-For a bipartite graph with left side `L` and right side `R`:
+# Dinic's algorithm
+
+Repeatedly augmenting along any residual path terminates, but slowly. Dinic
+organises the search into phases:
+
+1. BFS from `s` over edges with positive residual, giving `level[v]`.
+2. DFS that may only move from `v` to `to` when `level[to] == level[v] + 1`.
+3. Keep sending flow in this level graph until no augmenting path remains.
+4. Relevel and repeat; stop when the BFS cannot reach `t`.
+
+The level restriction is not a heuristic. It forbids sideways and backward
+moves, so the DFS cannot wander, and each phase strictly increases the length
+of the shortest `s`-to-`t` path. That bounds the number of phases by `O(V)`.
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=7.6mm,inner sep=0pt,font=\small},
+  src/.style={nd,fill=orange!30},
+  snk/.style={nd,fill=green!30},
+  ar/.style={draw,->,>=Latex,gray!70},
+  hi/.style={draw,->,>=Latex,very thick},
+  dead/.style={draw,->,>=Latex,gray!40,densely dashed},
+  cl/.style={font=\scriptsize,fill=white,inner sep=1.3pt},
+  lv/.style={font=\scriptsize,text=gray!55},
+  hd/.style={font=\small\bfseries,anchor=west}]
+
+  % ================= PHASE 1 =================
+  \node[hd] at (-0.75,2.35) {Phase 1};
+  \node[lv,anchor=west] at (0.85,2.35) {levels $0,1,1,2$};
+  \node[src] (a1) at (0,0)     {$1$};
+  \node[nd]  (a2) at (2.2,1.1) {$2$};
+  \node[nd]  (a3) at (2.2,-1.1){$3$};
+  \node[snk] (a4) at (4.4,0)   {$4$};
+  \node[lv] at (0,0.72)    {$0$};
+  \node[lv] at (2.2,1.82)  {$1$};
+  \node[lv] at (2.2,-1.82) {$1$};
+  \node[lv] at (4.4,0.72)  {$2$};
+  \draw[hi,orange!80!black] (a1) -- node[cl] {$2/3$} (a2);
+  \draw[hi,blue!65]         (a1) -- node[cl] {$2/2$} (a3);
+  \draw[dead]               (a2) -- node[cl,text=gray!55] {$0/1$} (a3);
+  \draw[hi,orange!80!black] (a2) -- node[cl] {$2/2$} (a4);
+  \draw[hi,blue!65]         (a3) -- node[cl] {$2/4$} (a4);
+  \node[font=\scriptsize,anchor=north,align=center,text=gray!60] at (2.2,-2.15)
+    {$2\to3$ joins two vertices of the \emph{same} level,\\
+     so it is not in the level graph at all};
+  \node[font=\scriptsize,anchor=north,align=center] at (2.2,-3.05)
+    {blocking flow $=\mathbf{4}$};
+
+  % ================= PHASE 2 =================
+  \node[hd] at (6.75,2.35) {Phase 2};
+  \node[lv,anchor=west] at (8.35,2.35) {levels $0,1,2,3$};
+  \node[src] (b1) at (7.5,0)    {$1$};
+  \node[nd]  (b2) at (9.7,1.1)  {$2$};
+  \node[nd]  (b3) at (9.7,-1.1) {$3$};
+  \node[snk] (b4) at (11.9,0)   {$4$};
+  \node[lv] at (7.5,0.72)   {$0$};
+  \node[lv] at (9.7,1.82)   {$1$};
+  \node[lv] at (9.7,-1.82)  {$2$};
+  \node[lv] at (11.9,0.72)  {$3$};
+  \draw[hi,green!45!black] (b1) -- node[cl] {$1$} (b2);
+  \draw[dead]              (b1) -- node[cl,text=gray!55] {$0$} (b3);
+  \draw[hi,green!45!black] (b2) -- node[cl] {$1$} (b3);
+  \draw[dead]              (b2) -- node[cl,text=gray!55] {$0$} (b4);
+  \draw[hi,green!45!black] (b3) -- node[cl] {$2$} (b4);
+  \node[font=\scriptsize,anchor=north,align=center,text=gray!60] at (9.7,-2.15)
+    {relevelling put $3$ below $2$, so $2\to3$ is now\\
+     usable; the two saturated edges drop out};
+  \node[font=\scriptsize,anchor=north,align=center] at (9.7,-3.05)
+    {blocking flow $=\mathbf{1}$, \ total $=\mathbf{5}$};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=12.9cm] at (-0.8,-3.65)
+    {Phase 1 labels show \emph{flow\,/\,capacity}; phase 2 labels show the
+     \emph{residual} left on each edge.\\[4pt]
+     \textbf{Four is not the answer.} The first phase saturates both obvious
+     routes and stops at $4$, because the only edge that could carry more,
+     $2\to3$, runs between two vertices of the same level. A fresh BFS then
+     puts $3$ one level below $2$, the edge becomes legal, and
+     $1\to2\to3\to4$ carries the fifth unit. A third BFS cannot reach $4$ at
+     all, and that is the proof that $5$ is maximum.\\[3pt]
+     This is the whole reason Dinic relevels instead of running one DFS: each
+     phase strictly lengthens the shortest $s\to t$ path, so there are at most
+     $O(V)$ phases.};
+\end{tikzpicture}
+\end{center}
+```
+
+The pointer array `it[v]`, reset once per phase, remembers how many of `v`'s
+outgoing edges have already been exhausted, so no edge is examined twice within
+a phase.
+
+Two habits matter more than the rest. Rebuild `level` every phase, and reset
+`it` at the same time; a stale pointer array silently skips usable edges.
+
+# Minimum cut
+
+A cut is a split of the vertices into `S` containing `s` and `V - S` containing
+`t`. Its capacity is the total capacity of the original edges pointing from `S`
+into `V - S`. Edges pointing back into `S` contribute nothing.
+
+Any flow is bounded by any cut, since everything reaching `t` must cross. The
+max-flow min-cut theorem says the two optima coincide, and the proof is
+constructive: after a maximum flow, take `S` to be the set of vertices still
+reachable from `s` in the residual graph.
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=8mm,inner sep=0pt,font=\small},
+  src/.style={nd,fill=orange!30,very thick},
+  snk/.style={nd,fill=green!30},
+  ar/.style={draw,->,>=Latex,gray!70},
+  cut/.style={draw,->,>=Latex,very thick,red!70!black},
+  cl/.style={font=\scriptsize,fill=white,inner sep=1.3pt},
+  tg/.style={font=\scriptsize,text=gray!60}]
+
+  \node[src] (n1) at (0,0)     {$1$};
+  \node[nd]  (n2) at (2.7,1.2) {$2$};
+  \node[nd]  (n3) at (2.7,-1.2){$3$};
+  \node[snk] (n4) at (5.4,0)   {$4$};
+
+  \draw[cut] (n1) -- node[cl,text=red!60!black] {$3/3$} (n2);
+  \draw[cut] (n1) -- node[cl,text=red!60!black] {$2/2$} (n3);
+  \draw[ar]  (n2) -- node[cl] {$1/1$} (n3);
+  \draw[ar]  (n2) -- node[cl] {$2/2$} (n4);
+  \draw[ar]  (n3) -- node[cl] {$3/4$} (n4);
+
+  \draw[red!55,dashed,very thick] (1.15,2.3) .. controls (1.5,0.6) and (1.5,-0.6) .. (1.15,-2.3);
+  \node[font=\scriptsize,text=red!60!black,anchor=south] at (1.15,2.32) {the cut};
+  \node[tg,anchor=east] at (-0.55,0) {$S=\{1\}$};
+  \node[tg,anchor=west] at (1.95,-2.35) {$V\setminus S=\{2,3,4\}$};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=7.1cm] at (6.4,1.95)
+    {\textbf{Reading the cut off the residual graph.}\\[3pt]
+     After the maximum flow, walk from $s$ using only edges with residual
+     capacity left. Here both edges out of $1$ are saturated, so the walk stops
+     immediately and $S=\{1\}$.\\[4pt]
+     The cut is the set of \emph{original} edges from $S$ to $V\setminus S$:\\
+     \hspace*{1em}$1\to2$ of capacity $3$\\
+     \hspace*{1em}$1\to3$ of capacity $2$\\
+     \hspace*{1em}total $\mathbf{5}$ $=$ the maximum flow.\\[4pt]
+     Every such edge must be saturated --- otherwise it would still have
+     residual capacity and its far end would have been reached, putting it
+     inside $S$. That is the whole proof.\\[4pt]
+     Note $3\to4$ carries $3$ of $4$ and is \emph{not} saturated. It does not
+     matter: both ends lie outside $S$, so it never crosses the cut. Only
+     edges leaving $S$ are counted, and edges re-entering $S$ are ignored.};
+\end{tikzpicture}
+\end{center}
+```
+
+That set is exactly what problem C asks you to print, and it costs one extra
+BFS after the flow is already computed.
+
+# Bipartite matching
+
+A matching is a set of edges sharing no endpoint. For a bipartite graph the
+maximum matching is a maximum flow on a graph built in three lines:
 
 ```text
-source -> every left vertex      capacity 1
-left u -> right v if edge exists capacity 1
-every right vertex -> sink       capacity 1
+s -> every left vertex            capacity 1
+left u -> right v for each edge   capacity 1
+every right vertex -> t           capacity 1
 ```
 
-Every unit of flow corresponds to one matched pair. Capacity `1` ensures each
-vertex is used at most once.
 
-For the local matching exercise we use the classic augmenting-path DFS because
-it is shorter and exposes the same idea: try to give a left vertex a right
-partner, recursively moving an already matched left vertex if possible.
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=7.2mm,inner sep=0pt,font=\small},
+  src/.style={nd,fill=orange!30},
+  snk/.style={nd,fill=green!30},
+  ar/.style={draw,->,>=Latex,gray!55},
+  mt/.style={draw,->,>=Latex,very thick,green!45!black},
+  tg/.style={font=\scriptsize,text=gray!60}]
 
-## Minimum cut after max flow
+  \node[src] (s)  at (0,0)     {$s$};
+  \node[nd]  (l1) at (1.9,1.35){$1$};
+  \node[nd]  (l2) at (1.9,0)   {$2$};
+  \node[nd]  (l3) at (1.9,-1.35){$3$};
+  \node[nd]  (r1) at (4.1,1.35){$1$};
+  \node[nd]  (r2) at (4.1,0)   {$2$};
+  \node[nd]  (r3) at (4.1,-1.35){$3$};
+  \node[snk] (t)  at (6.0,0)   {$t$};
 
-After max flow, run BFS/DFS from `s` in the residual graph. Let `S` be the set
-of reachable vertices. There is no residual edge from `S` to outside `S`;
-otherwise the outside vertex would be reachable. The saturated original edges
-crossing from `S` to `V-S` form a minimum cut, and its capacity equals the max
-flow value.
+  \draw[mt] (s) -- (l1);  \draw[mt] (s) -- (l2);  \draw[mt] (s) -- (l3);
+  \draw[mt] (l1) -- (r1); \draw[ar] (l1) -- (r2);
+  \draw[mt] (l2) -- (r2); \draw[mt] (l3) -- (r3);
+  \draw[mt] (r1) -- (t);  \draw[mt] (r2) -- (t);  \draw[mt] (r3) -- (t);
 
-This is the max-flow min-cut theorem in the form most useful in contests.
+  \node[tg] at (1.9,2.0)  {left};
+  \node[tg] at (4.1,2.0)  {right};
+  \node[tg,anchor=north,align=center] at (3.0,-2.0)
+    {every capacity is $1$};
 
-## Implementation checklist
-
-- Store reverse-edge indices, not just reverse endpoints.
-- When sending `x` through an edge, subtract `x` from the forward residual and
-  add `x` to the reverse residual.
-- Use `long long` for capacities and total flow in C++.
-- Rebuild `level` every phase.
-- Reset `it` after each BFS.
-
-## Tiny max-flow trace
-
-Network:
-
-```text
-s -> a capacity 3
-s -> b capacity 2
-a -> t capacity 2
-b -> t capacity 4
-a -> b capacity 1
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=7.6cm] at (6.9,2.15)
+    {\textbf{Problem B's sample, as a flow network.} Add $s$ with an edge to
+     every left vertex, $t$ with an edge from every right vertex, and give
+     \emph{every} edge capacity $1$.\\[4pt]
+     One unit of flow is one matched pair. Capacity $1$ out of $s$ stops a
+     left vertex being used twice; capacity $1$ into $t$ does the same on the
+     right. So a maximum integral flow \emph{is} a maximum matching, here of
+     size $\mathbf{3}$.\\[4pt]
+     \textbf{Why the residual edge matters here too.} Suppose vertex $1$ takes
+     right-$2$ first. Then vertex $2$ has nowhere to go --- right-$2$ is its
+     only option. The augmenting search does not give up: it walks
+     \emph{backwards} along the edge $1\to$ right-$2$, sends $1$ to right-$1$
+     instead, and frees right-$2$ for vertex $2$. That backward step is
+     exactly the residual edge of the previous figure.\\[4pt]
+     The classic augmenting-path DFS used for problem B is this same
+     algorithm with the gadget left implicit.};
+\end{tikzpicture}
+\end{center}
 ```
 
-One maximum flow has value `4`:
+Because capacities are integral, some maximum flow is integral too, so each
+edge carries `0` or `1` and the saturated middle edges are a matching. The
+capacity-`1` edges at `s` and `t` are what forbid reusing a vertex.
 
-```text
-s->a->t sends 2
-s->b->t sends 2
-```
+For problem B the usual augmenting-path DFS is shorter to write than a full
+Dinic, and it is the same algorithm: "try to give this left vertex a partner,
+and if that partner is taken, ask its current owner to move". That request to
+move is a backward residual edge, spelled out in plain recursion.
 
-The remaining capacity from `a` to `b` does not help because `s->a` has only
-one extra unit left and `b->t` has room, so another unit can go:
+# Implementation and tests
 
-```text
-s->a->b->t sends 1
-```
+**Edge storage.** Keep one array of edges and, for each vertex, a list of
+indices into it. Adding `u -> v` with capacity `c` appends two entries: the
+forward edge with residual `c`, and its reverse with residual `0`. Edge `i`
+and edge `i ^ 1` are then reverses of each other, which makes the update after
+pushing `x` a two-line operation.
 
-Total becomes `5`, which is also the total capacity leaving `s` (`3+2`), so it
-is maximum. This small example shows why residual paths may combine edges that
-were not part of the first obvious augmenting paths.
+**Types.** Capacities and the accumulated flow go in `long long` in C++. Total
+capacity out of the source can exceed `2^31` long before `n` does.
 
-## Residual edge meaning
+**Python.** Write the DFS iteratively or raise the recursion limit; a long
+chain of unit capacities reaches recursion depth `O(V)`. Read all input at once
+with `sys.stdin.buffer.read().split()`.
 
-If an original edge has capacity `7` and currently carries flow `5`, the
-residual graph contains:
+| Test | What it catches |
+|---|---|
+| a single edge `s -> t` | the base case, and off-by-one in vertex numbering |
+| two disjoint paths | flow accumulating rather than overwriting |
+| a bottleneck edge in the middle | using the wrong minimum along a path |
+| sink unreachable from the source | an output of `0` rather than a crash |
+| the sample of problem A | an augmenting path that needs a residual edge |
+| parallel edges between one pair | merging edges that must stay separate |
+| for matching, many left vertices on one right vertex | a DFS that never reassigns |
+| for matching, `e = 0` | an empty-input path |
 
-```text
-forward capacity 2
-backward capacity 5
-```
-
-The backward capacity does not mean the original graph had a reverse road. It
-means the algorithm may cancel up to `5` units of previous flow if that enables
-a better global routing.
-
-## Flow debugging tests
-
-Use tiny graphs:
-
-```text
-single edge s->t
-two parallel paths
-bottleneck in the middle
-disconnected sink
-edge that requires rerouting through a residual edge
-```
-
-For matching, test one left vertex connected to many right vertices and many
-left vertices competing for one right vertex. These cases reveal whether the
-augmenting DFS actually reassigns matches.
-
-# Exercises
-
-## Residual graphs before code
-
-A flow assigns a value to each directed edge, never exceeding capacity and
-conserving flow at every non-source, non-sink vertex. The residual graph stores
-what can still change: a forward edge has residual capacity `capacity-flow`; a
-reverse edge has residual capacity `flow` and can undo an earlier choice.
-
-Consider edges `s->a` capacity 2, `a->t` capacity 2, and `s->t` capacity 1.
-Send two units through `s-a-t`, then one through `s-t`: flow is 3. A forward
-edge with residual zero is saturated; its reverse edge has residual equal to
-the sent amount. Omitting reverse edges makes later rerouting impossible.
-
-### Dinic's two invariants
-
-BFS assigns `level[v]`, the shortest residual distance from source. DFS may use
-only edges with positive residual capacity and `level[to]=level[v]+1`. A DFS
-phase ends when it has made the level graph blocking: every source-to-sink path
-in it contains a saturated edge. Then BFS again. When sink is unreachable, no
-augmenting path remains, so max-flow/min-cut proves optimality.
-
-```text
-while BFS reaches sink:
-    reset every current-edge pointer
-    repeatedly DFS along level-increasing residual edges
-    add each pushed amount to answer
-```
-
-Current-edge pointers remember edges that have already failed in the current
-level graph. Without them, repeated DFS calls revisit dead work.
-
-### Matching is augmenting paths without capacities
-
-For a bipartite graph, `match_right[v]` is the left owner of right vertex `v`,
-or none. A DFS from a left vertex tries an unused right vertex. If it is owned,
-recursively move that owner first; a successful chain is an augmenting path and
-increases matching size by one.
-
-Trace with edges `L1-R1,R2`, `L2-R1`: match L1 to R1. For L2, R1 is occupied,
-so retry L1 through R2, then assign L2-R1. The matching grows from one to two.
-Reset `visited[right]` for each new left root; otherwise one failed search can
-incorrectly block a later one.
-
-### Min-cut reachable side
-
-After maximum flow, BFS from source through positive-residual edges. Call the
-reachable vertices S. No residual forward edge leaves S, otherwise its endpoint
-would be reachable. Thus every original edge from S to its complement is
-saturated; this cut has capacity equal to the flow and is minimum.
-
-### Language notes, checks, and workflow
-
-Capacities and total flow use `long long` in C++. Python recursion in a deep
-Dinic DFS may need a higher recursion limit in larger variants. Keep reverse
-edge indices rather than searching for a reverse edge.
-
-1. Why does a reverse residual edge have capacity equal to current flow? It
-   represents exactly how much of that earlier decision can be cancelled.
-2. In matching, what must be reset per DFS root? The visited-right array.
-3. Why must min-cut reachability use the final residual graph? The original
-   graph contains saturated edges that can no longer cross the cut.
-
-Run:
+Run the local reference suite with:
 
 ```bash
 CP_TARGET=solution python3 sections/45_flows_and_matchings/check.py
 ```
 
-Test no source-sink path, parallel edges, a bottleneck, rerouting-required
-matching, and a graph where source alone is the residual reachable side.
+# Exercises
 
-- A. Max Flow: Given a directed capacitated graph from node 1 to node n, print the maximum flow.
-- B. Bipartite Matching: Given edges between left and right parts, print the maximum matching size.
-- C. Min Cut Reachable Side: After max flow from 1 to n, print the flow value and the source-side reachable vertices in the residual graph.
+Use A to get the edge-and-reverse storage right, because everything else in the
+section is built on it. Use B to see that the augmenting-path DFS is the same
+algorithm with the gadget left implicit, and test it on a case where a left
+vertex must give up its partner. Use C to notice that the cut costs one BFS
+after the flow and nothing more, and that `S` is defined by residual capacity,
+not by which edges look saturated. Use D as the blind synthesis problem: the
+rules are implications, profits may be negative, and the whole task is deciding
+what a cut should mean before any code is written. Test a single edge, an
+unreachable sink, parallel edges, and a matching instance with no edges at all.
+
+- A. Max Flow: Print the maximum flow from vertex `1` to vertex `n`.
+- B. Bipartite Matching: Print the size of a maximum matching between the two sides.
+- C. Min Cut Reachable Side: Print the flow value and the source side of a minimum cut.
+- D. Project Selection: Choose projects under "if a then b" rules to maximize total profit.

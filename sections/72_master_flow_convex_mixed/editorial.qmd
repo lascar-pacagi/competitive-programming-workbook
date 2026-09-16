@@ -57,168 +57,155 @@ and feasible totals whose allowed-pair structure is nevertheless impossible.
 {{< include problems/a_exam_room_bounds/solution.py >}}
 ```
 
-# B. Night Delivery
+# B. Bounded Exact Shipment
 
-A residual reverse edge permits replacing earlier choices. Initial Bellman--Ford potentials make every reachable reduced cost nonnegative; Dijkstra then finds each cheapest augmentation. Updating reached potentials by their Dijkstra distances preserves feasibility. Stop after exactly F units or report impossibility.
+Add a fixed return edge `t -> s` carrying exactly `F`. The requested shipment
+is now a circulation. For every bounded edge, pre-send its lower bound, record
+the resulting vertex imbalances and its mandatory cost, and retain capacity
+`high-low`.
+
+Connect a super-source to positive-imbalance vertices and negative-imbalance
+vertices to a super-sink. A minimum-cost flow saturating all super-source edges
+repairs conservation at minimum additional cost. If it cannot send the total
+imbalance, the shipment is impossible.
+
+The lower-bound transformation is bijective: subtracting lower flows maps every
+feasible exact shipment to one repairing flow, and adding them back reverses
+the map. Costs differ only by the recorded mandatory constant, so minimum cost
+is preserved. With at most the total imbalance augmentations, the SPFA-based
+reference runs in `O(FVE)` for these small flow bounds.
+
+```cpp
+{{< include problems/b_bounded_exact_shipment/solution.cpp >}}
+```
+
+```python
+{{< include problems/b_bounded_exact_shipment/solution.py >}}
+```
+
+# C. Selective Quota Profit
+
+Send only `K` units from the source through worker vertices. Worker capacity one
+means a worker is selected at most once; eligibility edges choose a project.
+Project-to-sink capacity enforces upper quotas. Give the first `low[j]` slots a
+reward `-BIG`, then verify that every rewarded slot was used.
 
 ## How to find it
 
-A greedy cheapest original path fails because a later unit may need to undo an
-earlier route. That observation asks for a residual graph: every used edge
-creates a reverse edge of opposite cost. We still want shortest augmenting
-paths, so potentials are introduced solely to make Dijkstra legal.
+The flow value performs the selection: unused workers simply carry no flow.
+Eligibility costs are negative profits. `BIG` exceeds the complete possible
+profit difference, making lower-quota satisfaction lexicographically prior to
+profit maximization.
 
 ## Correctness
 
-Feasible potentials make all reduced residual costs nonnegative, and path
-reweighting changes every `s-t` path cost by the same constant. Dijkstra
-therefore chooses a truly cheapest residual augmenting path. Updating reached
-potentials with shortest reduced distances preserves nonnegative reduced
-costs by the triangle inequality. The standard residual optimality criterion
-then shows inductively that after each augmentation the current flow has
-minimum cost among flows of its value. Hence the state after `F` units is the
-required optimum.
+Every integral value-`K` flow selects exactly `K` distinct workers and one
+eligible project for each. Conversely every valid selective assignment gives
+such a flow. Upper capacities and verified mandatory slots enforce both quota
+bounds. After removing the constant reward, minimizing cost is exactly
+maximizing assignment profit.
 
 ## Complexity and tests
 
-With integral capacities, at most `F` augmentations are needed here, for
-`O(F E log V)` after the initial shortest-distance computation. Test negative
-input edges, a case where a reverse residual edge changes the first choice,
-parallel routes, zero requested flow, and insufficient capacity.
+There are `O(n+p)` vertices and `O(n+m+p)` edges and `K` augmentations. Test
+`K=0`, workers left unused, tight quotas, and infeasible lower quotas.
 
 ## C++
 
 ```cpp
-{{< include problems/b_night_delivery/solution.cpp >}}
+{{< include problems/c_selective_quota_profit/solution.cpp >}}
 ```
 
 ## Python
 
 ```python
-{{< include problems/b_night_delivery/solution.py >}}
+{{< include problems/c_selective_quota_profit/solution.py >}}
 ```
 
-# C. Team Quota Profit
+# D. Bounded Convex Allocation
 
-Send one unit through each worker. Project-to-sink capacity enforces upper quotas. Give the first low[j] parallel slots a reward -BIG, where BIG exceeds every possible difference in real profit, and verify all rewarded slots are saturated. The remaining min-cost objective is precisely negative total profit.
+First assign every machine its lower bound. For machine `i`, the cost of its
+`j`-th additional unit is
+
+```text
+a[i] * (2 * (low[i] + j) - 1) + b[i].
+```
+
+These marginal costs form an increasing arithmetic sequence. The remaining
+task is to select the globally smallest `K-sum(low)` marginals, respecting the
+finite length of each sequence.
 
 ## How to find it
 
-“Every worker exactly once” naturally means one unit leaving every worker;
-eligibility edges encode the choices and their costs are negative profits.
-Upper quotas are capacities. To use a plain min-cost-flow implementation for
-lower quotas, turn the first `low[j]` project slots into lexicographically
-mandatory slots with reward `-BIG`.
+For a threshold `T`, count in constant time how many terms of one arithmetic
+sequence are at most `T`. Summing this over machines gives a monotone predicate.
+Binary-search the first threshold covering the required count, sum every term
+strictly below it with the arithmetic-series formula, then take the remaining
+tied terms at the threshold.
 
 ## Correctness
 
-Every integral flow of value `n` decomposes into one eligible project choice
-per worker, and every assignment yields such a flow. Project capacities enforce
-the upper bounds. If a quota-feasible assignment exists, it fills all mandatory
-slots. Because `BIG` exceeds the maximum possible difference between two total
-profits, every minimum-cost flow first maximizes the number of mandatory slots
-filled and only then maximizes real profit. Verifying their saturation rejects
-exactly the infeasible instances; removing their constant reward recovers the
-true optimum.
+Discrete convexity makes each machine's marginals nondecreasing, so any optimal
+allocation using `x` extra units from it uses its first `x` marginals. Thus
+allocations correspond exactly to prefix selections from these sequences.
+Selecting all values below the smallest covering threshold and any required
+tied values is precisely the globally cheapest such selection.
 
 ## Complexity and tests
 
-There are `O(n+p)` vertices and `O(n+m+p)` edges. Successive shortest paths
-take `O(n E log V)`. Test a worker with no choices, tight quotas, infeasible
-lower quotas despite sufficient total capacity, and an optimum using a
-lower-profit edge to satisfy a project minimum.
+Threshold counting costs `O(n)` and needs `O(log C)` iterations, where `C` is
+the marginal-value range. Memory is `O(n)`. Test infeasible totals, negative
+marginals, nonzero lower bounds, huge capacities, and many equal marginals.
 
 ## C++
 
 ```cpp
-{{< include problems/c_team_quota_profit/solution.cpp >}}
+{{< include problems/d_bounded_convex_allocation/solution.cpp >}}
 ```
 
 ## Python
 
 ```python
-{{< include problems/c_team_quota_profit/solution.py >}}
+{{< include problems/d_bounded_convex_allocation/solution.py >}}
 ```
 
-# D. Monotone Signal
+# E. Exact Red Forest
 
-The prefix optimum as a function of its final value is convex. Its derivative changes only at stored breakpoints. Adding |x-a| inserts x twice; truncating choices that violate monotonicity removes the largest left breakpoint and charges its displacement. Thus the heap maintains the exact compressed derivative.
+Price every red edge by `lambda`. Kruskal, stopped after
+`n-components` accepted edges, solves the penalized fixed-size forest problem.
+The red count is nonincreasing in `lambda`; opposite tie rules give the extreme
+red counts among equally optimal forests.
 
 ## How to find it
 
-Start from the quadratic DP “best prefix cost when the final repaired value is
-`x`.” Its value as a function of `x` is convex and piecewise linear. Storing
-all values is unnecessary: a convex piecewise-linear function is determined by
-the ordered positions where its derivative changes.
+The difficult condition is the exact red count. A forest with the requested
+component count has fixed size, so truncated Kruskal is still the optimizer
+after adding a charge per red edge.
 
 ## Correctness
 
-The max-heap stores the left breakpoints of the prefix value function. Adding
-`|x-a[i]|` introduces two unit slope changes at `a[i]`. The monotonicity
-transition takes a prefix minimum over legal previous final values; in the
-derivative representation this removes the largest left breakpoint. If that
-breakpoint is `y`, moving it to `a[i]` increases the minimum by `y-a[i]`.
-These are exactly the two pushes, one pop, and cost update in the code.
-Induction over prefixes therefore proves that the accumulated minimum equals
-the isotonic L1 optimum.
+Fixed-size forests are bases of a truncated graphic matroid. Its exchange
+property gives the same tie interval as for spanning trees: all red counts
+between the two optimal tie extremes are attainable. Binary search finds the
+boundary price whose interval contains `k`; subtracting `lambda*k` recovers
+the minimum original weight.
 
 ## Complexity and tests
 
-Each item performs three heap operations, so time is `O(n log n)` and memory
-is `O(n)`. Test already sorted, strictly decreasing, repeated values, negative
-values, and prefixes whose optimal medians are not unique.
+Each price evaluation sorts `m` edges, giving `O(m log m log W)`. Test zero
+selected edges, disconnected graphs with enough forest rank, impossible color
+counts, negative weights, and many modified-cost ties.
 
 ## C++
 
 ```cpp
-{{< include problems/d_monotone_signal/solution.cpp >}}
+{{< include problems/e_exact_red_forest/solution.cpp >}}
 ```
 
 ## Python
 
 ```python
-{{< include problems/d_monotone_signal/solution.py >}}
-```
-
-# E. Exact Discount Tree
-
-Price every red edge by lambda. Kruskal solves the penalized problem, and the red count is nonincreasing in lambda. Opposite tie rules give the extreme red counts among equally optimal trees. Matroid basis exchange fills the interval between them, so subtracting lambda*k recovers the exact-k objective.
-
-## How to find it
-
-The difficult condition is the exact red count; everything else is an MST.
-Move that condition into the objective by charging `lambda` for each red edge.
-For a fixed charge the solver remains Kruskal, while increasing the charge can
-only decrease the red count of an optimum.
-
-## Correctness
-
-Kruskal minimizes `weight + lambda*red`. Among equal modified weights, the two
-tie orders return the largest and smallest red counts of modified-optimal
-trees. The basis-exchange property of the graphic matroid connects optimal
-spanning trees by equal-cost exchanges, changing the red count one step at a
-time; consequently every count between those extremes is attainable at the
-same modified value. Binary search finds the last integer price whose
-red-preferring optimum still uses at least `k` reds. At that boundary `k` is
-in the optimal count interval, so subtracting `lambda*k` gives exactly the
-minimum original weight with `k` reds.
-
-## Complexity and tests
-
-Each price evaluation sorts `m` edges, and `O(log W)` prices are tested, giving
-`O(m log m log W)` here. Test impossible extreme counts, many equal modified
-weights, negative weights, all-one-color graphs, and cases with several MSTs.
-
-## C++
-
-```cpp
-{{< include problems/e_exact_discount_tree/solution.cpp >}}
-```
-
-## Python
-
-```python
-{{< include problems/e_exact_discount_tree/solution.py >}}
+{{< include problems/e_exact_red_forest/solution.py >}}
 ```
 
 # F. Congested Team Assignment

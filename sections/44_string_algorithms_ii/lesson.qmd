@@ -19,239 +19,412 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{tikz}
+        \usetikzlibrary{decorations.pathreplacing,arrows.meta}
 execute:
   enabled: false
 ---
 
-# Tries, palindrome checks, and suffix automata
+# Three structures, three questions
 
-A trie stores strings by shared prefixes and makes prefix counting a graph
-walk. Palindrome queries can be checked with hashes in large settings; the
-local exercise first uses direct mirrored comparisons so the equality condition
-is completely visible before introducing hashes. A suffix automaton compactly represents all substrings: each state contributes
-`len[state] - len[link[state]]` new substrings.
+Section 43 had one object, the prefix function, and everything came out of it.
+This section is the opposite: three unrelated structures, and the skill being
+taught is choosing between them. Picking the wrong one is not a slow solution,
+it is usually an impossible one.
 
-## Trie prefix counting
+The question to ask first is never "which structure do I know?" but **what
+object is the query about?**
 
-A trie is a rooted tree where each edge is labeled by a character. A word is a
-root-to-node path. To answer "how many dictionary words have prefix `p`", store
-`cnt[v]`: how many inserted words pass through node `v`.
 
-Insertion:
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  hdr/.style={font=\small\bfseries,anchor=north},
+  q/.style={font=\scriptsize,anchor=north,align=center},
+  nd/.style={circle,draw,minimum size=3.6mm,inner sep=0pt,fill=white},
+  ed/.style={draw,gray!60},
+  bar/.style={draw,minimum height=.42cm,inner sep=0pt},
+  sep/.style={draw,gray!35}]
 
-```text
-node = root
-for c in word:
-    create edge c if missing
-    node = child[node][c]
-    cnt[node] += 1
+  % ---- column 1 : trie ----
+  \node[hdr] at (1.5,2.5) {Trie};
+  \node[q]   at (1.5,2.15) {\emph{many} strings,\\shared prefixes};
+  \node[nd] (t0) at (1.5,1.0)  {};
+  \node[nd] (t1) at (0.9,0.35) {};
+  \node[nd] (t2) at (2.1,0.35) {};
+  \node[nd] (t3) at (0.5,-0.3) {};
+  \node[nd] (t4) at (1.3,-0.3) {};
+  \node[nd] (t5) at (2.1,-0.3) {};
+  \foreach \a/\b in {t0/t1,t0/t2,t1/t3,t1/t4,t2/t5} \draw[ed] (\a) -- (\b);
+  \node[q] at (1.5,-0.65) {\textbf{how many words}\\\textbf{start with \texttt{ap}?}\\[2pt]
+                           walk $|p|$ edges};
+
+  \draw[sep] (3.3,2.6) -- (3.3,-1.9);
+
+  % ---- column 2 : hashing ----
+  \node[hdr] at (5.8,2.5) {Rolling hash};
+  \node[q]   at (5.8,2.15) {\emph{one} string,\\compare two windows};
+  \draw[fill=gray!12] (4.3,0.55) rectangle (7.3,0.97);
+  \draw[fill=orange!30] (4.6,0.55) rectangle (5.5,0.97);
+  \draw[fill=blue!20]  (6.1,0.55) rectangle (7.0,0.97);
+  \node[font=\scriptsize] at (5.05,0.76) {$[a,b]$};
+  \node[font=\scriptsize] at (6.55,0.76) {$[c,d]$};
+  \node[font=\scriptsize] at (5.8,0.15) {$\stackrel{?}{=}$};
+  \node[q] at (5.8,-0.25) {\textbf{are these two}\\\textbf{windows equal?}\\[2pt]
+                           $O(1)$ after $O(n)$ prep,\\probabilistic};
+
+  \draw[sep] (8.3,2.6) -- (8.3,-1.9);
+
+  % ---- column 3 : suffix automaton ----
+  \node[hdr] at (10.6,2.5) {Suffix automaton};
+  \node[q]   at (10.6,2.15) {\emph{one} string,\\every substring at once};
+  \node[nd,fill=gray!18] (a0) at (9.4,0.76) {};
+  \node[nd] (a1) at (10.4,1.16) {};
+  \node[nd] (a2) at (10.4,0.36) {};
+  \node[nd] (a3) at (11.4,0.76) {};
+  \foreach \a/\b in {a0/a1,a0/a2,a1/a2,a2/a3} \draw[ed,->,>=Latex] (\a) -- (\b);
+  \node[q] at (10.6,-0.25) {\textbf{how many distinct}\\\textbf{substrings?}\\[2pt]
+                            $O(n)$ states, sum\\$\mathtt{len}-\mathtt{len[link]}$};
+
+  \node[draw=red!45,rounded corners,fill=red!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=12.1cm] at (-0.35,-2.1)
+    {\textbf{They are not interchangeable, and that is the whole skill here.} A
+     suffix automaton answers nothing useful about a \emph{dictionary} of
+     separate words --- it is built from one string. A trie cannot compare two
+     arbitrary substrings of one long text --- it indexes prefixes, not
+     positions. Before writing code, say out loud which object the query names:
+     a prefix of a dictionary word, a window inside one text, or the set of all
+     substrings. The answer picks the structure.};
+\end{tikzpicture}
+\end{center}
 ```
 
-Query:
+| The query names | Reach for | Section problem |
+|---|---|---|
+| a prefix of a dictionary word | trie | A, D |
+| a window inside one text | rolling hash, or direct comparison | B |
+| the set of all substrings of one text | suffix automaton or suffix array | C |
+
+Each of the three chapters below takes one row of that table.
+
+# Tries: prefixes of many words
+
+A trie is a rooted tree whose edges carry single characters, so a node *is* the
+prefix spelled along the path from the root to it. Shared prefixes are stored
+once, which is the entire point.
+
+To answer "how many dictionary words begin with `p`", store on each node the
+number of inserted words whose path passes through it:
 
 ```text
-walk the prefix
-if an edge is missing: answer 0
-else answer cnt[last_node]
+insert(word):
+    node = root
+    for c in word:
+        create edge c if missing
+        node = child[node][c]
+        cnt[node] += 1
+
+query(p):
+    node = root
+    for c in p:
+        if edge c missing: return 0
+        node = child[node][c]
+    return cnt[node]
 ```
 
-The invariant is simple: after all insertions, `cnt[v]` equals the number of
-words whose path includes `v`.
 
-## Palindrome substring queries
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  nd/.style={circle,draw,fill=white,minimum size=6.6mm,inner sep=0pt,font=\small},
+  walk/.style={nd,fill=orange!30,very thick},
+  ew/.style={nd,double,double distance=1pt},
+  ed/.style={draw,gray!60},
+  edH/.style={draw,very thick,orange!80!black},
+  ct/.style={font=\scriptsize,text=blue!55!black},
+  dep/.style={font=\scriptsize,text=gray!55,anchor=east}]
 
-For a substring `s[l..r]`, the direct check compares mirrored characters:
+  \node[nd]   (r)   at (2.05, 0)    {};
+  \node[walk] (a1)  at (0.7,-1.1)   {\texttt{a}};
+  \node[nd]   (b1)  at (3.4,-1.1)   {\texttt{b}};
+  \node[walk] (p1)  at (0.7,-2.2)   {\texttt{p}};
+  \node[nd]   (a2)  at (3.4,-2.2)   {\texttt{a}};
+  \node[ew]   (p2)  at (0,  -3.3)   {\texttt{p}};
+  \node[ew]   (e1)  at (1.4,-3.3)   {\texttt{e}};
+  \node[ew]   (t1)  at (3.4,-3.3)   {\texttt{t}};
+  \node[nd]   (l1)  at (0,  -4.4)   {\texttt{l}};
+  \node[ew]   (e2)  at (0,  -5.5)   {\texttt{e}};
+
+  \draw[edH] (r) -- (a1);  \draw[edH] (a1) -- (p1);
+  \foreach \x/\y in {r/b1,p1/p2,p1/e1,b1/a2,a2/t1,p2/l1,l1/e2} \draw[ed] (\x) -- (\y);
+
+  \node[ct] at (0.28,-0.95) {$3$};
+  \node[ct] at (3.82,-1.1)  {$1$};
+  \node[ct] at (0.28,-2.2)  {$3$};
+  \node[ct] at (3.82,-2.2)  {$1$};
+  \node[ct] at (-.42,-3.3)  {$2$};
+  \node[ct] at (1.82,-3.3)  {$1$};
+  \node[ct] at (3.82,-3.3)  {$1$};
+  \node[ct] at (-.42,-4.4)  {$1$};
+  \node[ct] at (-.42,-5.5)  {$1$};
+  \node[font=\scriptsize,text=gray!60,anchor=west] at (2.45,0) {root (empty prefix)};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=7.4cm] at (4.6,-0.55)
+    {\textbf{Dictionary:} \texttt{app}, \texttt{apple}, \texttt{ape},
+     \texttt{bat}.\\[3pt]
+     Each edge carries one character, so a node \emph{is} the prefix spelled on
+     the path down to it. The \textcolor{blue!55!black}{blue number} is
+     \texttt{cnt[v]}: how many inserted words pass through \texttt{v}.\\[4pt]
+     \textbf{Query = walk.} \texttt{"ap"} follows the
+     \textcolor{orange!65!black}{thick path} and reports
+     $\texttt{cnt}=3$ (\texttt{app}, \texttt{apple}, \texttt{ape}).
+     \texttt{"app"} reports $2$; \texttt{"b"} reports $1$.
+     \texttt{"z"} has no edge out of the root, so the answer is $0$ without
+     any further work.\\[4pt]
+     \textbf{Not an end-of-word counter.} Double circles mark where a word
+     ends. \texttt{cnt} at \texttt{app} is $2$, not $1$, because
+     \texttt{apple} passes through on its way down.\\[4pt]
+     The root is left at $0$: an empty-prefix query is $n$ by definition and
+     never needs the trie.};
+\end{tikzpicture}
+\end{center}
+```
+
+Two details decide whether this is correct.
+
+**`cnt` is not an end-of-word counter.** It counts words *passing through*, so a
+node can hold a count larger than the number of words ending there. In the
+figure, `app` has `cnt = 2` because `apple` continues below it. If you need to
+know how many words *end* at a node, that is a second, separate counter.
+
+**The root is never incremented.** The loop moves to a child before
+incrementing, so `cnt[root]` stays `0`. The empty prefix is shared by all `n`
+words and no query needs the trie to discover it. A missing edge ends a query
+immediately with `0`, with no need to walk the rest of the pattern.
+
+# Palindrome queries
+
+For a substring `s[l..r]`, the direct test walks two pointers inward and stops
+at the first disagreement:
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,x=1cm,y=1cm,
+  c/.style={draw,minimum width=.8cm,minimum height=.6cm,inner sep=0pt,font=\small},
+  sel/.style={c,fill=green!28},
+  bad/.style={c,fill=red!22},
+  pl/.style={c,fill=white},
+  gh/.style={c,draw=gray!30,text=gray!40},
+  hd/.style={draw=none,minimum width=.8cm,inner sep=0pt,font=\scriptsize,text=gray!60},
+  rl/.style={font=\scriptsize,text=gray!65,anchor=east},
+  arc/.style={draw,thick,gray!70},
+  ok/.style={font=\scriptsize,text=green!30!black},
+  no/.style={font=\scriptsize,text=red!60!black}]
+
+  \foreach \i in {1,...,7} \node[hd] at (.8*\i-.8,.62) {$\i$};
+  \foreach \i in {0,...,6} \node[hd,text=gray!40] at (.8*\i,-.52) {$\i$};
+  \foreach \ch/\i in {a/0,b/1,a/2,c/3,a/4,b/5,a/6} \node[pl] at (.8*\i,0) {\texttt{\ch}};
+  \node[rl] at (-.5,.62) {1-based};
+  \node[rl] at (-.5,0)   {$s$};
+  \node[rl] at (-.5,-.52){0-based};
+
+  % query [3,5]
+  \foreach \ch/\i/\st in {a/0/gh,b/1/gh,a/2/sel,c/3/sel,a/4/sel,b/5/gh,a/6/gh}
+    \node[\st] at (.8*\i,-1.65) {\texttt{\ch}};
+  \node[rl] at (-.5,-1.65) {query $[3,5]$};
+  \draw[arc] (1.6,-1.99) to[bend right=42] node[below=1pt,ok] {$\texttt{a}=\texttt{a}$} (3.2,-1.99);
+  \node[ok,anchor=west] at (5.05,-1.65) {pointers meet $\Rightarrow$ \textbf{YES}};
+
+  % query [2,4]
+  \foreach \ch/\i/\st in {a/0/gh,b/1/bad,a/2/bad,c/3/bad,a/4/gh,b/5/gh,a/6/gh}
+    \node[\st] at (.8*\i,-3.15) {\texttt{\ch}};
+  \node[rl] at (-.5,-3.15) {query $[2,4]$};
+  \draw[arc] (0.8,-3.49) to[bend right=42] node[below=1pt,no] {$\texttt{b}\neq\texttt{c}$} (2.4,-3.49);
+  \node[no,anchor=west] at (5.05,-3.15) {first pair fails $\Rightarrow$ \textbf{NO}};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=12.4cm] at (-1.55,-4.2)
+    {\textbf{Convert the indices first.} Statements here give $[l,r]$ 1-based and
+     inclusive; arrays are 0-based. Subtract one from each end \emph{before}
+     comparing, and compare $s[l]$ with $s[r]$, then move inward while
+     $l<r$. A single off-by-one turns every odd-length answer wrong while
+     leaving even-length ones correct, which is why both parities must be
+     tested.\\[3pt]
+     \textbf{Direct or hashed.} The direct scan is $O(r-l+1)$ per query and
+     exact, which is why the local bounds allow it. For large query loads
+     compare a forward hash of $[l,r]$ against a reverse hash of the mirrored
+     range $[n-1-r,\,n-1-l]$ --- fast, but probabilistic; Manacher or a
+     palindromic tree is the deterministic alternative.};
+\end{tikzpicture}
+\end{center}
+```
 
 ```text
-s[l] with s[r]
-s[l+1] with s[r-1]
-...
+while l < r:
+    if s[l] != s[r]: return NO
+    l += 1
+    r -= 1
+return YES
 ```
 
-This is `O(length)` and is useful for teaching correctness. In larger
-contests, use rolling hashes:
+This is `O(r-l+1)` per query and exactly right, which is why the local bounds
+allow it. It is also completely transparent: the equality condition is visible
+rather than hidden behind a hash.
+
+When the query load is too large for that, compare a forward hash of `[l,r]`
+against a reverse hash of the mirrored range:
 
 ```text
-hash_forward(l,r) == hash_reverse(n-1-r, n-1-l)
+hash_forward(l, r) == hash_reverse(n-1-r, n-1-l)
 ```
 
-Hashing is fast but probabilistic unless you use deterministic structures such
-as suffix arrays or palindromic trees. When constraints permit direct checking,
-the exact method is safer.
+Hashing is `O(1)` per query after `O(n)` preprocessing, but it is
+probabilistic. Manacher's algorithm and palindromic trees are the deterministic
+alternatives. When the constraints permit the direct check, prefer it.
 
-## Distinct substrings and suffix automaton idea
+# Suffix automata: all substrings of one string
 
-A suffix automaton is a compressed DFA containing all substrings of a string.
-For each state `v`:
+A suffix automaton is a compressed automaton that accepts exactly the
+substrings of one string, in `O(n)` states. Two arrays describe it:
 
-- `len[v]` is the maximum length of a substring represented by `v`;
-- `link[v]` points to the state representing the longest proper suffix class.
+- `len[v]`, the length of the longest substring represented by state `v`;
+- `link[v]`, the state representing the longest proper suffix that lives in a
+  different state.
 
-The number of new substrings contributed by `v` is:
+The states partition every substring, and the count of distinct non-empty
+substrings falls straight out:
 
 ```text
-len[v] - len[link[v]]
+answer = sum over v != root of ( len[v] - len[link[v]] )
 ```
 
-Summing this over all states except the initial state gives the number of
-distinct non-empty substrings.
 
-For a pedagogical local problem, suffix-array or direct-set solutions may be
-used at small limits, but the formula above is the red-level invariant you
-should know.
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  st/.style={circle,draw,fill=white,minimum size=8mm,inner sep=0pt,font=\small},
+  root/.style={st,fill=gray!18},
+  tr/.style={draw,->,>=Latex,thick},
+  sl/.style={draw,->,>=Latex,densely dashed,blue!60},
+  tl/.style={font=\scriptsize,fill=white,inner sep=1.2pt},
+  ll/.style={font=\scriptsize,text=gray!60}]
 
-## Recognition table
+  \node[root] (s0) at (0,0)      {$0$};
+  \node[st]   (s1) at (2.3,1.15) {$1$};
+  \node[st]   (s2) at (2.3,-1.15){$2$};
+  \node[st]   (s3) at (4.6,0)    {$3$};
 
-| Problem form | Tool |
+  \draw[tr] (s0) -- node[tl] {\texttt{a}} (s1);
+  \draw[tr] (s0) -- node[tl] {\texttt{b}} (s2);
+  \draw[tr] (s1) -- node[tl] {\texttt{b}} (s2);
+  \draw[tr] (s2) -- node[tl] {\texttt{a}} (s3);
+
+  \draw[sl] (s1) to[bend right=38] (s0);
+  \draw[sl] (s2) to[bend left=38]  (s0);
+  \draw[sl] (s3) to[bend right=38] (s1);
+
+  \node[ll] at (2.3,1.72) {$\mathtt{len}=1$};
+  \node[ll] at (2.3,-1.72){$\mathtt{len}=2$};
+  \node[ll] at (4.6,-0.62) {$\mathtt{len}=3$};
+  \node[ll] at (0,0.62)   {$\mathtt{len}=0$};
+
+  \node[font=\scriptsize,anchor=north west,align=left] at (-0.9,-2.15)
+    {\tikz\draw[tr] (0,0) -- (.5,0);\ transition (read a character)\qquad
+     \tikz\draw[sl] (0,0) -- (.5,0);\ suffix link};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt] at (6.1,1.65)
+    {\textbf{Suffix automaton of \texttt{aba}}\\[3pt]
+     \begin{tabular}{@{}ccccl@{}}
+       $v$ & $\mathtt{len}$ & $\mathtt{link}$ & $\mathtt{len}[v]-\mathtt{len}[\mathtt{link}]$ & represents\\[1pt]
+       $1$ & $1$ & $0$ & $1$ & \texttt{a}\\
+       $2$ & $2$ & $0$ & $2$ & \texttt{b},\ \texttt{ab}\\
+       $3$ & $3$ & $1$ & $2$ & \texttt{ba},\ \texttt{aba}\\[2pt]
+       \multicolumn{3}{@{}r}{total} & $\mathbf{5}$ & \\
+     \end{tabular}\\[4pt]
+     Enumerating by hand gives the same five:\\
+     \texttt{a},\ \texttt{b},\ \texttt{ab},\ \texttt{ba},\ \texttt{aba}.\\[4pt]
+     One state holds a whole run of lengths that\\
+     end at the same set of positions, and
+     $\mathtt{link}$\\
+     points at the next shorter run. So the state\\
+     adds exactly the lengths its link does not\\
+     already cover --- no substring is counted twice.\\[3pt]
+     State $0$ is excluded: it is the empty string.};
+\end{tikzpicture}
+\end{center}
+```
+
+The reason this does not double count is worth stating plainly: a single state
+holds a whole *run* of lengths whose occurrences end at the same set of
+positions, and `link[v]` points at the state holding the next shorter run. So
+state `v` contributes exactly the lengths its link does not already cover. The
+root is excluded because it represents the empty string.
+
+Check the formula against a string small enough to enumerate. `ababa` has
+distinct substrings `a, b, ab, ba, aba, bab, abab, baba, ababa`, nine of them,
+and the automaton's contributions sum to nine. `aaa` gives `a, aa, aaa`, three.
+
+**Cloning.** When an existing transition would break the invariant
+`len[p] + 1 == len[q]`, construction splits `q` into a clone carrying the same
+transitions but a shorter `len`, then redirects the affected suffix links. This
+is not an implementation trick; it is what keeps one state from representing two
+different sets of end positions. `abb` is the shortest string that forces one.
+
+At the bounds used locally, problem C can also be solved by a set of substrings
+or a suffix array. The formula above is still the thing to know, because it is
+what scales.
+
+# Implementation notes and tests
+
+**Tries in C++.** For lowercase input, `vector<array<int,26>>` with node `0` as
+the root and `0` meaning "absent" is compact and fast. Reserve capacity for the
+total input length; that is the exact upper bound on node count.
+
+**Tries in Python.** A `dict` per node is clearer and usually faster than a
+26-slot list for sparse alphabets. Build children with `setdefault`.
+
+**Everything else.** Read input with `sys.stdin.buffer.read()`. For hashing, use
+two independent moduli or a random base — a single fixed 32-bit modulus is
+attackable. Palindrome endpoints arrive 1-based and inclusive; convert once, at
+the point of reading, not repeatedly inside the loop.
+
+| Case | What it catches |
 |---|---|
-| dictionary prefixes | trie |
-| repeated substring equality | rolling hash or suffix array |
-| palindrome range query | forward/reverse hash, Manacher, eertree |
-| count distinct substrings | suffix automaton or suffix array |
+| a word that is a prefix of another word (`app`, `apple`) | treating `cnt` as an end-of-word counter |
+| duplicate words in the dictionary | a unique-prefix answer that must be `-1` |
+| query prefix absent from the trie | a missing-edge path that walks past the end |
+| single-character palindrome query | the `l < r` loop bound |
+| even-length palindrome (`abba`) | an off-by-one that only breaks one parity |
+| odd-length palindrome (`aba`) | the same off-by-one, the other parity |
+| all-equal string (`aaaa`) | the maximal-state-sharing case |
+| one-character string | an empty contribution sum |
 
-## Distinct substrings by hand
+Useful values to check by hand: the trie over `app, apple, ape, bat` gives
+`cnt["ap"] = 3` and `cnt["app"] = 2`; `abacaba` answers NO for `[2,4]` and YES
+for `[3,5]`; and `aba` has exactly `5` distinct non-empty substrings.
 
-For `s = aba`, the distinct non-empty substrings are:
-
-```text
-a, b, ab, ba, aba
-```
-
-There are `5`. A suffix automaton reaches the same count by summing:
-
-```text
-len[state] - len[link[state]]
-```
-
-over states. The formula counts how many new substring lengths become possible
-when that state is created. The direct enumeration is fine for tiny strings;
-the automaton is what makes the same idea linear for large strings.
-
-## Trie example
-
-Insert:
-
-```text
-app, apple, ape
-```
-
-The node for prefix `ap` has counter `3`. The node for `app` has counter `2`.
-The node for `apple` has counter `1`. A missing edge answers `0` immediately.
-
-## Hash versus automaton versus trie
-
-These tools solve different string questions:
-
-```text
-trie: many dictionary prefixes
-hash: fast equality checks between substrings
-suffix automaton: all substrings of one string
-```
-
-Do not use a suffix automaton for prefix dictionary queries; it is the wrong
-shape. Do not use a trie to compare arbitrary substrings inside one long text.
-Choosing the representation is the main skill in this section.
-
-## Practice drill
-
-For any string problem, write which object is being queried:
-
-```text
-prefix of dictionary word
-substring of one text
-suffix of one text
-palindrome centered somewhere
-set of all substrings
-```
-
-Then choose the representation. A trie is a prefix tree. A hash is a comparison
-tool. A suffix automaton is a compressed representation of all substrings. This
-one sentence prevents many overcomplicated solutions.
-
-# Exercises
-
-## Implementing the three representations
-
-### Trie invariant and trace
-
-A trie node represents the string written on the root-to-node path. Store
-`count[node] = number of inserted words whose path visits node`. Increment the
-root and every visited child during insertion; a prefix query then walks to its
-node and returns its count, or zero if an edge is missing.
-
-Insert `apple`, `ape`, and `bat`:
-
-```text
-root count 3
-root-a count 2       root-b count 1
-root-a-p count 2     root-b-a count 1
-root-a-p-p count 1
-```
-
-Thus `ap` returns 2, `app` returns 1, `b` returns 1, and `z` returns 0. The
-counter is not an end-of-word counter: a word may continue below it.
-
-For lowercase English letters, C++ can use `array<int,26>` child indices. A
-zero child index can mean absent when the root is node zero and new nodes begin
-at one. Python dictionaries are compact and clearer for a sparse alphabet.
-
-### Exact palindrome queries under local bounds
-
-The local task accepts direct comparison. Convert its 1-based inclusive query
-`[l,r]` to zero-based endpoints, then compare `s[l]` with `s[r]`, move inward,
-and stop at the first mismatch. This is exact, unlike a single rolling hash.
-
-For `abacaba`, query `[2,4]` is `bac`: compare `b` and `c`, so answer NO.
-Query `[3,5]` is `aca`: the outside `a` values agree, then the pointers meet,
-so answer YES. Time is O(r-l+1) per query; this is only appropriate because the
-local bounds are deliberately small. Larger query workloads need a taught hash
-or palindrome structure.
-
-### Suffix automaton contribution
-
-A suffix automaton state summarizes end positions of substrings. Its `len[v]`
-is the largest represented length; its suffix link points to the state for the
-largest proper suffix class. Therefore state `v` contributes exactly
-
-```text
-len[v] - len[link[v]]
-```
-
-new distinct non-empty substring lengths. Summing this value over non-root
-states counts every distinct substring once.
-
-For `ababa`, the answer is 9: `a,b,ab,ba,aba,bab,abab,baba,ababa`. The
-automaton has at most `2*n-1` states. A clone copies transitions but shortens
-`len`; it splits a state when two contexts need different suffix links.
-
-### Extension invariant
-
-After extending by character `c`, `last` represents the whole string processed
-so far. Add missing `c` transitions while walking suffix links. If an existing
-transition would violate `len[p]+1 == len[q]`, create a clone whose transitions
-match `q` but whose length is `len[p]+1`, then redirect the affected links.
-This invariant is why cloning is necessary, not an implementation trick.
-
-### Formative checks and workflow
-
-1. After inserting `ape`, `app`, and `apple`, what does the node for `ap`
-   count? Answer: 3.
-2. Why is substring `[l,r]` a palindrome if every mirrored pair agrees?
-   Because reversing swaps exactly those pairs.
-3. What is the distinct-substring count of `aaa`? Answer: 3 (`a,aa,aaa`).
-4. In a suffix automaton, why is the root excluded from the contribution sum?
-   It represents the empty substring.
-
-Run:
+Run the local reference suite with:
 
 ```bash
 CP_TARGET=solution python3 sections/44_string_algorithms_ii/check.py
 ```
 
-Before coding, decide whether your task needs a prefix tree, an exact local
-substring comparison, or a global substring-state structure. They answer
-different questions and are not interchangeable.
+# Exercises
+
+Use A to fix the trie invariant before writing anything: `cnt[v]` counts words
+passing through `v`, not words ending at `v`. Use B to convert the 1-based
+inclusive endpoints exactly once and to test both parities. Use C to state the
+`len[v] - len[link[v]]` invariant even if you solve it with a set at these
+bounds, because that sentence is what transfers to large inputs. Use D as the
+blind synthesis problem: the shortest unique prefix of a word is the first node
+on its path whose count has fallen to one, so decide what the trie must store
+and what it means when the count never falls. Test a word that is a prefix of
+another, duplicate words, a prefix that is absent, and single-character inputs.
 
 - A. Trie Prefix Count: Given dictionary words and prefix queries, count words having each prefix.
 - B. Palindrome Queries: For each substring query, print whether the substring is a palindrome.
 - C. Distinct Substrings: Print the number of distinct non-empty substrings of a string.
+- D. Unique Prefix Lengths: For each word, print the length of its shortest prefix shared by exactly one input word, or `-1`.

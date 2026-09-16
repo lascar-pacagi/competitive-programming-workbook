@@ -5,7 +5,7 @@ def main():
     if not data:
         return
     n, q = data[0], data[1]
-    LOG = max(1, (n + 5).bit_length())
+    LOG = max(1, n.bit_length())
     up = [[0] * (n + 1) for _ in range(LOG)]
     idx = 2
     for v in range(2, n + 1):
@@ -18,12 +18,14 @@ def main():
     for _ in range(q):
         v, dist = data[idx], data[idx + 1]
         idx += 2
-        bit = 0
-        while dist and v:
+        for bit in range(LOG):
+            if not v:
+                break
             if dist & 1:
-                v = up[bit][v] if bit < LOG else 0
+                v = up[bit][v]
             dist >>= 1
-            bit += 1
+        if dist:
+            v = 0
         out.append(str(v if v else -1))
     print("\n".join(out))
 

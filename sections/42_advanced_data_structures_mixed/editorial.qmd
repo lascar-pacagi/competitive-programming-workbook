@@ -28,7 +28,7 @@ execute:
 | Category | Problem |
 |---|---|
 | order statistics with Fenwick binary lifting | A. Dynamic Order Statistics |
-| range-add/range-sum with two Fenwick trees | B. Range Add Range Sum |
+| composing assignment and addition lazy tags | B. Range Assign and Add |
 | offline rectangle counting | C. Static Rectangle Count |
 
 All required categories are present locally. D. Nested Ranges Count is an
@@ -42,10 +42,10 @@ additional sorting-and-Fenwick synthesis problem.
 stored values at most that index. Fenwick binary lifting finds the first prefix
 whose count reaches `k`, hence the k-th value, in `O(log m)` per operation.
 
-**B. Range Add Range Sum.** The two-tree formula is the prefix sum of the
-difference array after distributing each range update over its affected
-positions. Subtracting two such prefixes therefore gives exactly the requested
-range sum, with `O(log n)` updates and queries.
+**B. Range Assign and Add.** A node carries at most one pending tag because an
+assignment absorbs any addition waiting under it, and an addition folds into a
+pending assignment instead of queueing beside it. That invariant makes the two
+tag kinds composable in `O(1)`, so both updates and queries stay `O(log n)`.
 
 **C. Static Rectangle Count.** Inclusion-exclusion turns a rectangle into four
 dominance counts. During the x-sweep, the Fenwick tree contains precisely points
@@ -161,67 +161,219 @@ if __name__=="__main__": main()
 Test duplicate insert/erase and invalid ranks, negative/full-range updates, and
 points on rectangle boundaries with duplicate coordinates.
 
-# B. Range Add Range Sum
+# B. Range Assign and Add
 
 ## Restatement
 
-Support range addition and range-sum queries.
+Maintain an array under range assignment, range addition, and range-sum
+queries.
 
 ## Observations, trace, and algorithm
 
-An add x on [l,r] writes +x at l and -x at r+1 in a difference tree. A second
-weighted tree gives `prefix(i)=i*sum(B1,i)-sum(B2,i)`. Adding ten on [2,4]
-makes the added contribution through i=3 equal `3*10-10=20`.
+Two lazy tag kinds meet in the same node, so the only question is what happens
+when they overlap. Keep the invariant that a node never holds both: applying an
+assignment overwrites the node's sum and discards any pending addition, while
+applying an addition either folds into a pending assignment, by raising its
+value, or accumulates in the addition tag when no assignment is pending.
+
+On `1 2 4 7` followed by `2 1 3 -2`, positions `2` and `3` receive the
+assignment first and the addition second, so they end at `7-2=5`, while
+position `1` never saw the assignment and ends at `1-2=-1`.
 
 ## Correctness proof and complexity
 
-Summing B1 reconstructs each pending add; summing those reconstructed values
-gives the weighted formula. Prefix subtraction isolates a range. Updates and
-queries are `O(log n)`, memory `O(n)`. QED.
-
+Order matters, and the invariant preserves it: a pending addition below a new
+assignment can be dropped because the assignment overwrites whatever it would
+have produced, and a new addition applied to a pending assignment is the same
+as assigning the raised value. Each node therefore describes its subtree
+exactly, with one tag in `O(1)` space. Every update and query visits
+`O(log n)` nodes, memory `O(n)`. QED.
 
 ## Full C++ solution
 
 ```cpp
 #include <bits/stdc++.h>
-using namespace std; struct BIT{int n; vector<long long>b; BIT(int n):n(n),b(n+2){} void add(int i,long long x){for(;i<=n;i+=i&-i)b[i]+=x;} long long sum(int i){long long s=0;for(;i;i-=i&-i)s+=b[i];return s;}};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,q;if(!(cin>>n>>q)) return 0; BIT b1(n+1),b2(n+1); auto add=[&](int l,int r,long long x){b1.add(l,x);b1.add(r+1,-x);b2.add(l,x*(l-1));b2.add(r+1,-x*r);}; auto pref=[&](int i){return b1.sum(i)*i-b2.sum(i);}; for(int i=1;i<=n;i++){long long x;cin>>x;add(i,i,x);} while(q--){int t;cin>>t; if(t==1){int l,r;long long x;cin>>l>>r>>x;add(l,r,x);} else {int l,r;cin>>l>>r; cout<<pref(r)-pref(l-1)<<'\n';}}}
+using namespace std;
+using ll = long long;
+
+int n, q;
+vector<ll> sm, addv, asgv;
+vector<char> hasa;
+
+static void put_assign(int x, int len, ll v) {
+    sm[x] = v * len; asgv[x] = v; hasa[x] = 1; addv[x] = 0;
+}
+static void put_add(int x, int len, ll v) {
+    sm[x] += v * len;
+    if (hasa[x]) asgv[x] += v; else addv[x] += v;
+}
+static void push(int x, int l, int r) {
+    int m = (l + r) / 2, lc = 2 * x, rc = 2 * x + 1;
+    if (hasa[x]) {
+        put_assign(lc, m - l + 1, asgv[x]);
+        put_assign(rc, r - m, asgv[x]);
+        hasa[x] = 0; asgv[x] = 0;
+    }
+    if (addv[x]) {
+        put_add(lc, m - l + 1, addv[x]);
+        put_add(rc, r - m, addv[x]);
+        addv[x] = 0;
+    }
+}
+static void build(int x, int l, int r, vector<ll> &a) {
+    if (l == r) { sm[x] = a[l]; return; }
+    int m = (l + r) / 2;
+    build(2 * x, l, m, a); build(2 * x + 1, m + 1, r, a);
+    sm[x] = sm[2 * x] + sm[2 * x + 1];
+}
+static void upd(int x, int l, int r, int ql, int qr,
+                ll v, bool assign_) {
+    if (qr < l || r < ql) return;
+    if (ql <= l && r <= qr) {
+        if (assign_) put_assign(x, r - l + 1, v);
+        else put_add(x, r - l + 1, v);
+        return;
+    }
+    push(x, l, r);
+    int m = (l + r) / 2;
+    upd(2 * x, l, m, ql, qr, v, assign_);
+    upd(2 * x + 1, m + 1, r, ql, qr, v, assign_);
+    sm[x] = sm[2 * x] + sm[2 * x + 1];
+}
+static ll qry(int x, int l, int r, int ql, int qr) {
+    if (qr < l || r < ql) return 0;
+    if (ql <= l && r <= qr) return sm[x];
+    push(x, l, r);
+    int m = (l + r) / 2;
+    return qry(2 * x, l, m, ql, qr) + qry(2 * x + 1, m + 1, r, ql, qr);
+}
+
+int main() {
+    ios::sync_with_stdio(false); cin.tie(nullptr);
+    if (!(cin >> n >> q)) return 0;
+    vector<ll> a(n + 1);
+    for (int i = 1; i <= n; i++) cin >> a[i];
+    sm.assign(4 * n + 4, 0); addv.assign(4 * n + 4, 0);
+    asgv.assign(4 * n + 4, 0); hasa.assign(4 * n + 4, 0);
+    build(1, 1, n, a);
+    string out;
+    while (q--) {
+        int t, l, r; ll x;
+        cin >> t;
+        if (t == 3) {
+            cin >> l >> r;
+            out += to_string(qry(1, 1, n, l, r));
+            out += '
+';
+        } else {
+            cin >> l >> r >> x;
+            upd(1, 1, n, l, r, x, t == 1);
+        }
+    }
+    cout << out;
+}
 ```
 
 ## Full Python solution
 
 ```python
 import sys
-class BIT:
-    def __init__(self,n): self.n=n; self.bit=[0]*(n+2)
-    def add(self,i,x):
-        while i<=self.n: self.bit[i]+=x; i+=i&-i
-    def sum(self,i):
-        s=0
-        while i>0: s+=self.bit[i]; i-=i&-i
-        return s
+
 def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,q=data[0],data[1]; a=data[2:2+n]; b1=BIT(n+1); b2=BIT(n+1)
-    def add_range(l,r,x): b1.add(l,x); b1.add(r+1,-x); b2.add(l,x*(l-1)); b2.add(r+1,-x*r)
-    def pref(i): return b1.sum(i)*i-b2.sum(i)
-    for i,x in enumerate(a,1): add_range(i,i,x)
-    idx=2+n; out=[]
-    for _ in range(q):
-        t=data[idx]; idx+=1
-        if t==1:
-            l,r,x=data[idx],data[idx+1],data[idx+2]; idx+=3; add_range(l,r,x)
+    data = sys.stdin.buffer.read().split()
+    if not data:
+        return
+    pos = 0
+    n = int(data[pos]); q = int(data[pos + 1]); pos += 2
+    a = [0] * (n + 1)
+    for i in range(1, n + 1):
+        a[i] = int(data[pos]); pos += 1
+
+    size = 4 * n + 4
+    sm = [0] * size
+    addv = [0] * size
+    asgv = [0] * size
+    hasa = [False] * size
+
+    def put_assign(x, ln, v):
+        sm[x] = v * ln; asgv[x] = v; hasa[x] = True; addv[x] = 0
+
+    def put_add(x, ln, v):
+        sm[x] += v * ln
+        if hasa[x]:
+            asgv[x] += v
         else:
-            l,r=data[idx],data[idx+1]; idx+=2; out.append(str(pref(r)-pref(l-1)))
-    print("\n".join(out))
-if __name__=="__main__": main()
+            addv[x] += v
+
+    def push(x, l, r):
+        m = (l + r) // 2; lc = 2 * x; rc = 2 * x + 1
+        if hasa[x]:
+            put_assign(lc, m - l + 1, asgv[x])
+            put_assign(rc, r - m, asgv[x])
+            hasa[x] = False; asgv[x] = 0
+        if addv[x]:
+            put_add(lc, m - l + 1, addv[x])
+            put_add(rc, r - m, addv[x])
+            addv[x] = 0
+
+    def build(x, l, r):
+        if l == r:
+            sm[x] = a[l]; return
+        m = (l + r) // 2
+        build(2 * x, l, m); build(2 * x + 1, m + 1, r)
+        sm[x] = sm[2 * x] + sm[2 * x + 1]
+
+    def upd(x, l, r, ql, qr, v, is_assign):
+        if qr < l or r < ql:
+            return
+        if ql <= l and r <= qr:
+            if is_assign:
+                put_assign(x, r - l + 1, v)
+            else:
+                put_add(x, r - l + 1, v)
+            return
+        push(x, l, r)
+        m = (l + r) // 2
+        upd(2 * x, l, m, ql, qr, v, is_assign)
+        upd(2 * x + 1, m + 1, r, ql, qr, v, is_assign)
+        sm[x] = sm[2 * x] + sm[2 * x + 1]
+
+    def qry(x, l, r, ql, qr):
+        if qr < l or r < ql:
+            return 0
+        if ql <= l and r <= qr:
+            return sm[x]
+        push(x, l, r)
+        m = (l + r) // 2
+        return (qry(2 * x, l, m, ql, qr)
+                + qry(2 * x + 1, m + 1, r, ql, qr))
+
+    sys.setrecursionlimit(300000)
+    build(1, 1, n)
+    out = []
+    for _ in range(q):
+        t = int(data[pos]); pos += 1
+        if t == 3:
+            l = int(data[pos]); r = int(data[pos + 1]); pos += 2
+            out.append(qry(1, 1, n, l, r))
+        else:
+            l = int(data[pos]); r = int(data[pos + 1])
+            x = int(data[pos + 2]); pos += 3
+            upd(1, 1, n, l, r, x, t == 1)
+    sys.stdout.write("
+".join(map(str, out)) + ("
+" if out else ""))
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## Tests that matter
 
-Test duplicate insert/erase, invalid ranks, negative/full-range updates, and
-points on inclusive rectangle boundaries with duplicate coordinates.
+Assign then add over the same range, add then assign over the same range, a
+single position, the full range, and an assignment of a negative value over a
+region that already carries a pending addition.
+
 
 # C. Static Rectangle Count
 
@@ -571,28 +723,31 @@ returns the k-th multiset value. Every operation is `O(log m)`, memory `O(m)`.
 Use one-based tree indices, reject invalid k, and test duplicates, erasing an
 absent value, and x outside useful count boundaries.
 
-## B. Range Add Range Sum
+## B. Range Assign and Add
 
-**Constraints and diagnosis.** With `n,q` near `2e5`, touching every position
-of an updated interval is quadratic. A difference-array update becomes a
-prefix query with two Fenwick trees.
+**Constraints and diagnosis.** With `n,q` near `2e5`, touching every position of
+an updated interval is quadratic. Both update kinds must therefore become lazy
+tags on a segment tree, and the real work is deciding how the two tags compose.
 
-**Trace and pseudocode.** Add ten to `[2,4]`: write `+10` at 2 and `-10` at 5
-in the difference tree. The weighted tree stores corrections `+10*(2-1)` and
-`-10*4`; then `prefix(3)=3*10-10=20` is the added contribution through index
-three.
+**Trace and pseudocode.** Keep at most one pending tag per node.
 
 ```text
-add(l,r,x): B1[l]+=x; B1[r+1]-=x; B2[l]+=x*(l-1); B2[r+1]-=x*r
-prefix(i) = i*sum(B1,i) - sum(B2,i)
-range(l,r) = prefix(r)-prefix(l-1)
+put_assign(x, len, v): sum = v*len; asg = v; has_asg = true; add = 0
+put_add(x, len, v):    sum += v*len
+                       if has_asg: asg += v
+                       else:       add += v
+push(x): if has_asg: put_assign on both children, clear has_asg
+         if add:     put_add    on both children, clear add
 ```
 
-**Proof and complexity.** Summing B1 reconstructs the pending value added at
-each index; algebraically summing those values through i gives the displayed
-two-tree formula. Subtracting prefixes isolates `[l,r]`. Both updates and
-queries are `O(log n)`, memory `O(n)`. Use `long long`; test negative additions,
-singletons, full range, and `l=1`.
+**Proof and complexity.** An assignment overwrites whatever a pending addition
+would have produced, so discarding that addition is safe; an addition on top of
+a pending assignment is the same as assigning the raised value, so folding it in
+is safe. A node therefore never needs to remember an ordering. Updates and
+queries are `O(log n)`, memory `O(n)`. Use `long long`; test assign-then-add and
+add-then-assign over the same interval, since a solution that queues the two
+tags independently passes one order and fails the other.
+
 
 ## C. Static Rectangle Count
 

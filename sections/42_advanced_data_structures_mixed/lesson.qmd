@@ -21,13 +21,141 @@ execute:
 
 These tasks are about choosing what information must remain available after
 many operations. The right structure follows from the query contract.
+At this level, one structure is often not enough: coordinates may be
+compressed before a Fenwick tree is built; a tree may be flattened before
+range updates are applied; heavy-light decomposition may turn a path into
+several segment-tree ranges; persistence may add a version dimension.
+
+Describe the solution as a pipeline from original objects, through a
+representation change and maintained invariant, to a query decomposition.
+
+# Representation changes
+
+## Coordinate compression
+
+Compression replaces each relevant value by its rank among all relevant
+values. It preserves equality and order, not numerical distance. It is safe
+for questions such as `value <= x`, but not for formulas needing actual gaps
+unless those gaps are stored separately. Include future update values while
+collecting coordinates.
+
+## Flattening a rooted tree
+
+An Euler entry order gives every subtree one contiguous interval:
+
+```text
+subtree(v) <-> [tin[v], tout[v]]
+```
+
+DFS completely finishes one child subtree before entering the next sibling.
+That fact proves contiguity. Subtree operations become array-range operations.
+A general path is not contiguous in Euler order.
+
+## Heavy-light decomposition
+
+Choose the child with largest subtree as heavy. Heavy edges form contiguous
+chains. A root path crosses only `O(log n)` light edges: crossing a light edge
+upward at least doubles the subtree size. A path therefore becomes
+`O(log n)` array ranges, producing `O(log^2 n)` operations with an ordinary
+segment tree.
+
+# Time as another dimension
+
+## Reverse processing
+
+Deletions are often hard while insertions are easy. If operations are known
+offline, start from the final state and add deleted objects back in reverse.
+Connectivity deletions can then become ordinary DSU unions. Track the
+timeline carefully: the reverse state before undoing an operation matches the
+forward state after that operation.
+
+## Persistence
+
+A persistent structure retains old versions. A point update copies only one
+root-to-leaf path while untouched subtrees are shared:
+
+```text
+old root ---- unchanged subtree
+       \
+        copied path ---- changed leaf
+       /
+new root ---- same unchanged subtree
+```
+
+A persistent segment-tree point update creates `O(log n)` nodes instead of
+copying the array. Every root represents one immutable snapshot; shared nodes
+must never be mutated.
+
+# Structures inside structures
+
+Value-filtered and two-dimensional queries often use an outer decomposition
+by position and an inner sorted list or Fenwick structure by value. A
+merge-sort tree stores every element in `O(log n)` sorted node lists. A range
+count visits `O(log n)` nodes and binary-searches each list, giving
+`O(log^2 n)` query time and `O(n log n)` memory.
+
+For sparse points, compress only coordinates that occur. A full coordinate
+grid is impossible when coordinates are large even if the number of points is
+small. Always calculate both the number of outer nodes visited and the cost
+of each inner operation.
+
+# Deriving a sufficient invariant
+
+Suppose paths support addition and maximum queries. A lazy segment-tree node
+needs:
+
+```text
+maximum = maximum actual value in this segment
+lazy    = uniform addition still owed to its descendants
+```
+
+Applying `delta` to a fully covered node adds it to both fields. Pushing sends
+the pending addition to the children before a partial descent. Heavy-light
+decomposition identifies the ranges; the lazy tree maintains them. These are
+separate correctness obligations.
+
+Order statistics instead need counts. During a k-th-element descent, the
+left count decides whether to enter the left child or subtract that count and
+enter the right. The same logic works on the difference between two
+persistent frequency roots when that difference represents a requested
+subarray.
+
+# Proof template for composed solutions
+
+Verify a multi-layer solution through small claims:
+
+1. The representation maps every original query to the claimed ranges or
+   versions.
+2. Every stored node or prefix has a precise invariant.
+3. Every update preserves that invariant.
+4. Query combination counts each required object exactly once.
+5. The number of pieces and cost per piece imply the stated complexity.
+
+Do not replace these claims by “the data structure is standard.” Most bugs
+occur between two individually standard techniques.
+
+# Invariant-oriented testing
+
+| Feature | Adversarial shape |
+|---|---|
+| tree decomposition | chain, star, and balanced branches |
+| compression | duplicates and future update values |
+| persistence | update an old version after newer ones exist |
+| reverse time | delete and restore a critical bridge |
+| lazy paths | overlapping full paths and single vertices |
+| sparse coordinates | points near both numerical extremes |
+
+Large tests must also exert the intended complexity. A chain exposes linear
+parent climbing and recursion depth; alternating path endpoints exercise
+heavy-light chain changes; many versions verify that updates copy only
+logarithmically many nodes.
 
 # Complete local contest set
 
 | Problem | Title |
 |---|---|
 | A | Dynamic Order Statistics |
-| B | Range Add Range Sum |
+| B | Range Assign and Add |
 | C | Static Rectangle Count |
 | D | Nested Ranges Count |
 | E | Subtree Add, Point Query |

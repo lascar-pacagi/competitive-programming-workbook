@@ -15,17 +15,25 @@ int main() {
     for (int node = 1; node <= n; ++node) cin >> label[node];
 
     vector<vector<int>> up(log, vector<int>(n + 1, 0));
-    vector<vector<long long>> minimum(log, vector<long long>(n + 1, INF));
+    vector<vector<long long>> minimum(
+        log,
+        vector<long long>(n + 1, INF)
+    );
     for (int node = 2; node <= n; ++node) cin >> up[0][node];
     for (int node = 1; node <= n; ++node) {
-        minimum[0][node] = min(label[node], up[0][node] ? label[up[0][node]] : INF);
+        int parent = up[0][node];
+        long long parent_label = parent ? label[parent] : INF;
+        minimum[0][node] = min(label[node], parent_label);
     }
 
     for (int bit = 1; bit < log; ++bit) {
         for (int node = 1; node <= n; ++node) {
             int middle = up[bit - 1][node];
             up[bit][node] = up[bit - 1][middle];
-            minimum[bit][node] = min(minimum[bit - 1][node], minimum[bit - 1][middle]);
+            minimum[bit][node] = min(
+                minimum[bit - 1][node],
+                minimum[bit - 1][middle]
+            );
         }
     }
 

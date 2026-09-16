@@ -19,6 +19,7 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{tikz}
 execute:
   enabled: false
 ---
@@ -36,6 +37,60 @@ bit[i] stores the sum of:
 i-lowbit(i)+1, ..., i
 ```
 
+## Why choose exactly these blocks?
+
+Start from the operation we want: `prefix(r)` must add all values from `1` to
+`r`, while a point update must avoid rewriting every later prefix. Storing all
+prefix sums makes queries instant but updates linear. Storing only individual
+values makes updates instant but queries linear. A Fenwick tree keeps a small
+set of reusable, power-of-two blocks between those two extremes.
+
+Imagine building those blocks in layers:
+
+```text
+Every index owns its final 1 element.
+Every multiple of 2 can summarize its final 2 elements.
+Every multiple of 4 can summarize its final 4 elements.
+Every multiple of 8 can summarize its final 8 elements.
+...
+```
+
+At index `i`, keep the largest block from this list that ends at `i`. Thus:
+
+```text
+odd i                       owns 1 element
+i divisible by 2, not 4     owns 2 elements
+i divisible by 4, not 8     owns 4 elements
+i divisible by 8, not 16    owns 8 elements
+```
+
+The largest power of two dividing `i` is exactly `lowbit(i)`. In binary, it is
+the value represented by the rightmost `1` bit:
+
+```text
+i       binary      lowbit     block ending at i
+3       0011        1          [3,3]
+4       0100        4          [1,4]
+6       0110        2          [5,6]
+8       1000        8          [1,8]
+```
+
+This alignment is what makes the blocks fit together. To answer `prefix(r)`,
+take the largest stored block ending at `r`. The still-missing part ends just
+before that block, at `r - lowbit(r)`, so repeat there. Each subtraction clears
+the rightmost `1` bit of `r`. For `r = 13`, whose binary form is `1101`, the
+block sizes are `1`, then `4`, then `8`; they cover the prefix without gaps or
+overlap.
+
+A point update walks the same hierarchy in reverse. If position `i` changes,
+update the block ending at `i`, then the next larger aligned block containing
+that position. The move `i += lowbit(i)` performs the necessary binary carry
+to reach its next owner. For position `3`, that gives `3 -> 4 -> 8`.
+
+So the Fenwick layout is not an arbitrary trick: it is a compact hierarchy of
+aligned power-of-two suffixes. Binary representation tells us both how to
+decompose a prefix and how to find every stored block affected by an update.
+
 Example for `n = 8`:
 
 ```text
@@ -49,6 +104,49 @@ i       lowbit(i)    covered segment
 7       1            [7,7]
 8       8            [1,8]
 ```
+
+## The picture to keep in mind
+
+For `n = 8`, this is the whole structure. Each horizontal bar is one entry
+of `bit`; it owns the highlighted interval, not just the value at its index.
+The bars overlap on purpose.
+
+\begin{center}
+\begin{tikzpicture}[x=0.72cm,y=0.43cm,font=\small]
+  \foreach \x in {0,...,8} \draw[gray!45] (\x,0) -- (\x,8.6);
+  \foreach \x in {1,...,8} \node[below] at (\x-.5,0) {\x};
+  \node[below left] at (0,0) {position};
+
+  \node[anchor=east] at (-.15,8.0) {\texttt{bit[8]}: $[1,8]$};
+  \draw[fill=blue!22,draw=blue!65!black] (0,7.65) rectangle (8,8.35);
+
+  \node[anchor=east] at (-.15,7.0) {\texttt{bit[4]}: $[1,4]$};
+  \draw[fill=green!22,draw=green!55!black] (0,6.65) rectangle (4,7.35);
+
+  \node[anchor=east] at (-.15,6.0) {\texttt{bit[6]}: $[5,6]$};
+  \draw[fill=orange!28,draw=orange!70!black] (4,5.65) rectangle (6,6.35);
+
+  \node[anchor=east] at (-.15,5.0) {\texttt{bit[2]}: $[1,2]$};
+  \draw[fill=purple!20,draw=purple!65!black] (0,4.65) rectangle (2,5.35);
+
+  \node[anchor=east] at (-.15,4.0) {\texttt{bit[1]}: $[1,1]$};
+  \draw[fill=red!22,draw=red!65!black] (0,3.65) rectangle (1,4.35);
+
+  \node[anchor=east] at (-.15,3.0) {\texttt{bit[3]}: $[3,3]$};
+  \draw[fill=red!22,draw=red!65!black] (2,2.65) rectangle (3,3.35);
+
+  \node[anchor=east] at (-.15,2.0) {\texttt{bit[5]}: $[5,5]$};
+  \draw[fill=red!22,draw=red!65!black] (4,1.65) rectangle (5,2.35);
+
+  \node[anchor=east] at (-.15,1.0) {\texttt{bit[7]}: $[7,7]$};
+  \draw[fill=red!22,draw=red!65!black] (6,.65) rectangle (7,1.35);
+\end{tikzpicture}
+\end{center}
+
+For example, position `3` belongs to exactly the three block owners that an
+update visits: `bit[3]`, `bit[4]`, and `bit[8]`. Conversely, `prefix(6)`
+reads the two disjoint bars `bit[6]` (`[5,6]`) and `bit[4]` (`[1,4]`), which
+together cover `[1,6]` exactly once.
 
 To compute a prefix sum `sum(i)`, repeatedly take the block ending
 at `i`, then jump to the index just before that block:
@@ -116,26 +214,127 @@ Together these blocks form `[1,6]` without overlap.
 
 # Coordinate compression with Fenwick
 
-Fenwick indices must be dense integers. If values are as large as
-`10^9`, sort the distinct values and replace each value by its
-1-based rank. Equal values receive the same rank. This keeps order:
+## The problem: values are not usable indices
+
+A Fenwick tree is an array, so its indices must be small positive integers.
+But values in a problem may be negative, sparse, or as large as `10^9`:
+
+```text
+a = [50, -10, 50, 900]
+```
+
+We cannot access `bit[-10]`, and allocating `bit[1..900]` for only three
+different values wastes space. For order-based problems, however, the exact
+distances between values do not matter. We only need to know which value is
+smaller, equal, or larger.
+
+Coordinate compression creates one dense Fenwick index for each distinct
+value.
+
+## Step 1: build the value-to-rank map
+
+Copy the values, sort them, and remove duplicates:
+
+```text
+sorted distinct values = [-10, 50, 900]
+```
+
+Number that sorted list starting from 1:
+
+```text
+value   -10    50    900
+rank      1     2      3
+```
+
+The rank of a value is therefore one plus the number of distinct values smaller
+than it. Equal values look up the same rank.
+
+## Step 2: translate the array
+
+Use the map on each original value:
+
+```text
+original value          50   -10   50   900
+compressed rank          2     1    2     3
+```
+
+Compression preserves order and equality:
 
 ```text
 x < y  iff  rank(x) < rank(y)
+x = y  iff  rank(x) = rank(y)
 ```
 
-In inversion counting, when reading `a[i]`, the number of previous
-elements greater than it is:
+It does not preserve distances: ranks `2` and `3` differ by one even though
+`900 - 50 = 850`. That is fine for counting smaller or larger values, but not
+for calculations that need the original numeric differences.
+
+## Step 3: decide what the Fenwick tree stores
+
+In inversion counting, scan the array from left to right. The scan still uses
+the original array positions. The Fenwick index is different: it is the
+value's compressed rank.
+
+Store a frequency at each rank:
 
 ```text
-previous_count - count(previous values <= a[i])
+add(rank(x), 1) means: one more value x has been seen
+prefix(k)       means: how many seen values have rank at most k
 ```
 
-A Fenwick tree over ranks gives that count.
+For `x = 50`, whose rank is `2`:
+
+```text
+prefix(1) = number of previous values < 50
+prefix(2) = number of previous values <= 50
+```
+
+Including rank `2` counts earlier values equal to `50`. Therefore the number of
+earlier values strictly greater than the current value is:
+
+```text
+number_seen - prefix(rank(current_value))
+```
+
+## A short inversion trace
+
+Process `[50, -10, 50, 900]`, whose ranks are `[2,1,2,3]`:
+
+```text
+current   seen before    count <= current    count > current
+50        []             0                   0
+-10       [50]           0                   1
+50        [50,-10]       2                   0
+900       [50,-10,50]    3                   0
+```
+
+The total is one inversion: `(50,-10)`.
+
+## Implementation recipe
+
+C++:
+
+```cpp
+vector<long long> values = a;
+sort(values.begin(), values.end());
+values.erase(unique(values.begin(), values.end()), values.end());
+
+int rank = int(lower_bound(values.begin(), values.end(), x) - values.begin()) + 1;
+```
+
+Python:
+
+```python
+values = sorted(set(a))
+rank = {value: index + 1 for index, value in enumerate(values)}
+```
+
+The `+1` is essential because Fenwick trees use 1-based indices.
 
 # Difference arrays and Fenwick
 
-A normal difference array has:
+A difference array stores the change when moving one position right. Define
+`a[0] = 0`, then:
 
 ```text
 diff[1] = a[1]
@@ -143,15 +342,46 @@ diff[i] = a[i] - a[i-1]
 a[i] = diff[1] + ... + diff[i]
 ```
 
-Adding `x` to a range `[l,r]` changes only two difference entries:
+For example:
 
 ```text
-diff[l] += x
-diff[r+1] -= x
+index       1   2   3   4   5
+a          10  20  30  40  50
+diff       10  10  10  10  10
 ```
 
-If a Fenwick tree stores `diff`, range-add and point-query both
-become logarithmic.
+The prefix sums of `diff` reconstruct `a`:
+
+```text
+10, 10+10, 10+10+10, ...  =  10, 20, 30, 40, 50
+```
+
+Now add `+7` to the range `[2,4]`. The desired new array is:
+
+```text
+index       1   2   3   4   5
+new a      10  27  37  47  50
+new diff   10  17  10  10   3
+```
+
+Only two differences changed:
+
+```text
+diff[2] += 7     # begin carrying +7 from position 2 onward
+diff[5] -= 7     # stop carrying +7 after position 4
+```
+
+Why does this work? Every prefix sum before the left endpoint sees neither
+change. A prefix sum from the left endpoint through the right endpoint sees
+`+x` but not `-x`, so the value increases by `x`. A prefix sum after the right
+endpoint sees both changes, whose total is zero. Thus a range update becomes
+two point updates.
+
+If a Fenwick tree stores `diff`, it can apply those two point updates in
+`O(log n)`. The current value at position `i` is `prefix(i)`, also in
+`O(log n)`. This is the range-add / point-query variant; it is different from
+the earlier point-add / range-sum variant, where the Fenwick tree stores `a`
+itself.
 
 # Checklist
 
@@ -212,6 +442,7 @@ class Fenwick:
 - A. Point Add Range Sum: Maintain an array. Operation `1 i x` adds `x` to `a[i]`. Operation `2 l r` asks for the sum of `a[l..r]`.
 - B. Inversion Count: Given an array, count pairs `i < j` with `a[i] > a[j]`. Values may repeat and may be large.
 - C. Range Add Point Query: Maintain an array. Operation `1 l r x` adds `x` to every element in `[l,r]`. Operation `2 i` asks for the current value of `a[i]`.
+- D. Offline Distinct Range Queries: For each static range `[l,r]`, count its distinct values. The queries may be reordered; attempt this blind before reading the editorial.
 
 # How to use the checker
 
@@ -226,7 +457,11 @@ Replace `CP_TARGET=solution` by your own `solve.cpp` or `solve.py` attempts
 when practicing.
 # Exercises
 
-Use A for point-add/range-sum indexing, B to count inversions after coordinate compression, and C to turn range additions into a difference Fenwick tree. Test index 1, the final index, and duplicate values.
+Use A for point-add/range-sum indexing, B to count inversions after coordinate
+compression, and C to turn range additions into a difference Fenwick tree.
+Use D as the blind synthesis problem: decide what each active Fenwick position
+must mean while sweeping offline queries. Test index 1, the final index,
+duplicate values, and queries supplied in an inconvenient order.
 
 # Contest decisions, invariants, and traces
 

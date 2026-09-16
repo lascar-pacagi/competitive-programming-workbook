@@ -53,9 +53,9 @@ the larger load exactly.
 component-merging edges. Its cut-property proof gives the minimum network and
 therefore the requested savings decision.
 
-**D. Deadline Schedule.** Process tasks by deadline, tentatively keep each,
-and discard the kept task with the largest duration whenever the current
-deadline is exceeded. The max-heap preserves the best possible task count.
+**D. Circular Contest Run.** Duplicate the circular order conceptually and
+maintain the longest affordable window, never allowing more than `n` items.
+Positive times make the two-pointer left boundary monotone.
 
 ## Detailed solution guide
 
@@ -227,96 +227,65 @@ def main():
 if __name__=="__main__": main()
 ```
 
-# D. Deadline Schedule
+# D. Circular Contest Run
 
-## Restatement and contest interpretation
+## Restatement and modeling
 
-Each task needs an uninterrupted positive duration and must be completed no
-later than its deadline. Tasks run one at a time. Find the maximum number of
-tasks that can be completed on time. There are up to 200,000 tasks, so trying
-subsets is impossible.
+Choose a start in a circular list and take a consecutive clockwise block whose
+total time fits the budget. No problem may be taken twice. Trying every start
+and extending separately is quadratic.
 
-Sorting by deadline is the natural schedule order: for any chosen task set,
-earliest-deadline-first is feasible whenever any order is. We will scan in that
-order and retain the most valuable resource for maximizing count: short total
-time, not a particular task identity.
+Conceptually concatenate the list with itself. Every circular block of at most
+`n` problems is now an ordinary interval in that doubled sequence. Because all
+times are positive, removing items from the left can only decrease its sum.
 
-## Greedy state and trace
+## Sliding-window algorithm
 
-Maintain a max-heap of durations of kept tasks and their total duration. For
-every task in nondecreasing deadline order, add it. If total duration exceeds
-this task's deadline, remove the longest kept task.
-
-For tasks `(duration,deadline)`:
+Maintain an inclusive window `[left,right]` and its total time while `right`
+moves through `0..2n-1`:
 
 ```text
-(2,3), (1,3), (3,4), (2,5)
+add time[right mod n]
+while total > budget or window length > n:
+    remove time[left mod n]
+    left += 1
+answer = max(answer, window length)
 ```
 
-the first two fit with total 3. Adding duration 3 gives total 6 beyond deadline
-4, so remove duration 3 and retain total 3. Adding the final duration 2 gives
-total 5 by deadline 5. Three tasks remain, which is optimal.
-
-Removing the longest duration is crucial. If we removed a shorter task, we
-would keep the same number of tasks but leave more occupied time, making all
-future deadlines harder to meet.
-
-## Algorithm
-
-```text
-sort tasks by deadline
-total = 0
-kept_durations = empty max-heap
-for (duration, deadline) in sorted tasks:
-    push duration; total += duration
-    if total > deadline:
-        total -= largest duration in heap
-        pop that duration
-print heap size
-```
-
-Only one removal is needed per task: before adding, the kept set fits the
-previous deadline, which is no larger than the current one. Removing a duration
-at least as large as the newly added duration returns total to a feasible value.
+The length condition prevents walking around the circle more than once. For
+`[4,2,1,5,2]` with budget 8, windows of length three include `[4,2,1]` and the
+wrap-free `[1,5,2]`; no length-four window fits.
 
 ## Correctness proof
 
-After processing any deadline prefix, maintain that the heap is a feasible
-maximum-cardinality selection from that prefix and, among selections of that
-cardinality, has minimum total duration. Initially this is true.
+For each fixed right endpoint, after the while-loop the window is affordable,
+has length at most `n`, and has the smallest possible left endpoint with those
+properties. Any earlier left endpoint violates the sum or length constraint.
+Therefore this is the longest valid interval ending at `right`.
 
-When a task is added without exceeding its deadline, the heap gains one task
-and is feasible. A larger cardinality was impossible in the previous prefix,
-so this is maximum. When adding causes an overflow, no feasible selection with
-one extra task can exist: such a selection must include the new task (the old
-prefix could not contain that many), and the induction hypothesis gives the
-smallest possible total duration among the required old task count. Removing
-the largest duration leaves the smallest total duration among choices of the
-old cardinality, restoring the invariant.
+Every legal circular block appears as an interval of length at most `n` in the
+doubled sequence, with an endpoint before `2n`. When that endpoint is
+processed, the maintained window is at least as long as the block ending
+there. Taking the maximum thus finds an optimum, and every considered window
+maps back to a legal circular block. $\square$
 
-For a selected set, deadline order makes every completion prefix no later than
-the corresponding processed deadline; the invariant's feasibility therefore
-means all kept tasks can be scheduled on time. At the end its cardinality is
-maximum, so the printed heap size is the answer. QED.
+## Complexity and tests
 
-## Complexity, implementation notes, and tests
-
-Sorting and heap updates take `O(n log n)` time and `O(n)` memory. Use `long
-long` for accumulated duration and deadlines in C++; Python integers are safe.
-Test all tasks individually impossible, equal deadlines, a long early task that
-must be replaced by several short ones, and one task. A common error is using a
-min-heap, which discards the wrong task.
+Each doubled position enters once and leaves at most once, so time is `O(n)`
+and memory is `O(n)` for the input. Use 64-bit sums. Test budget zero, one item,
+an answer wrapping across the last/first boundary, budget covering all items,
+and the `n`-item length cap.
 
 ## Full C++ solution
 
 ```cpp
-{{< include problems/d_deadline_schedule/solution.cpp >}}
+{{< include problems/d_circular_contest_run/solution.cpp >}}
 ```
 
 ## Full Python solution
 
 ```python
-{{< include problems/d_deadline_schedule/solution.py >}}
+{{< include problems/d_circular_contest_run/solution.py >}}
 ```
 
 # What to carry forward

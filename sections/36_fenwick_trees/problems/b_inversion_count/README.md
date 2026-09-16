@@ -1,20 +1,28 @@
 # B. Inversion Count
 
-        Given an array, count pairs `i < j` with `a[i] > a[j]`. Values may repeat and may be large.
+Given an array, count the pairs of indices `(i, j)` such that `i < j` and
+`a[i] > a[j]`. Equal values do not form an inversion.
 
-        ## Input
+## Input
 
-        See the operation format described above. All indices are 1-based.
+The first line contains `n`. The second line contains the `n` array values.
 
-        ## Output
+Constraints:
 
-        Print each requested answer in order.
+- `1 <= n <= 200,000`
+- `-10^18 <= a[i] <= 10^18`
 
-        ## Sample
+## Output
 
-        Input:
+Print the number of inversions.
 
-        ```text
-        5
+## Sample
+
+```text
+5
 3 1 2 5 4
-        ```
+```
+
+```text
+3
+```

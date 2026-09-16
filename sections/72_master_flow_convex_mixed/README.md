@@ -1,8 +1,8 @@
 # Section 72: Master+ Flow And Convex Optimization Mixed Contest
 
 - [A. Exam Room Bounds](problems/a_exam_room_bounds/README.md)
-- [B. Night Delivery](problems/b_night_delivery/README.md)
-- [C. Team Quota Profit](problems/c_team_quota_profit/README.md)
-- [D. Monotone Signal](problems/d_monotone_signal/README.md)
-- [E. Exact Discount Tree](problems/e_exact_discount_tree/README.md)
+- [B. Bounded Exact Shipment](problems/b_bounded_exact_shipment/README.md)
+- [C. Selective Quota Profit](problems/c_selective_quota_profit/README.md)
+- [D. Bounded Convex Allocation](problems/d_bounded_convex_allocation/README.md)
+- [E. Exact Red Forest](problems/e_exact_red_forest/README.md)
 - [F. Congested Team Assignment](problems/f_congested_team_assignment/README.md)

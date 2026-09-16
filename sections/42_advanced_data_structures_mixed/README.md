@@ -8,7 +8,7 @@ harder second half before opening the editorial.
 | Advanced data-structure category | Problem |
 |---|---|
 | Order statistics with Fenwick binary lifting | A. Dynamic Order Statistics |
-| Range-add/range-sum with two Fenwick trees | B. Range Add Range Sum |
+| Composing assignment and addition lazy tags | B. Range Assign and Add |
 | Offline rectangle counting | C. Static Rectangle Count |
 | Euler tour and tree paths | E. Subtree Add, Point Query; F. Dynamic Path Maximum |
 | Progressive advanced structures | G. Subtree Value Count through L. Path Add, Path Maximum |

@@ -16,7 +16,9 @@ def main() -> None:
         up[0][node] = data[index]
         index += 1
     for node in range(1, n + 1):
-        minimum[0][node] = min(labels[node], labels[up[0][node]] if up[0][node] else infinity)
+        parent = up[0][node]
+        parent_label = labels[parent] if parent else infinity
+        minimum[0][node] = min(labels[node], parent_label)
 
     for bit in range(1, log):
         previous_up = up[bit - 1]
@@ -24,7 +26,10 @@ def main() -> None:
         for node in range(1, n + 1):
             middle = previous_up[node]
             up[bit][node] = previous_up[middle]
-            minimum[bit][node] = min(previous_minimum[node], previous_minimum[middle])
+            minimum[bit][node] = min(
+                previous_minimum[node],
+                previous_minimum[middle],
+            )
 
     output: list[str] = []
     for _ in range(q):

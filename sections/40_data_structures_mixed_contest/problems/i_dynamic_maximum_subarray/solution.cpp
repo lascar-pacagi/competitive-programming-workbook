@@ -6,8 +6,12 @@ struct N {
 };
 N one(ll x) { return {x, x, x, x}; }
 N join(N a, N b) {
-  return {a.sum + b.sum, max(a.pref, a.sum + b.pref),
-          max(b.suff, b.sum + a.suff), max({a.best, b.best, a.suff + b.pref})};
+  return {
+      a.sum + b.sum,
+      max(a.pref, a.sum + b.pref),
+      max(b.suff, b.sum + a.suff),
+      max({a.best, b.best, a.suff + b.pref})
+  };
 }
 int main() {
   ios::sync_with_stdio(false);

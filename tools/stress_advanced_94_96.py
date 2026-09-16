@@ -96,11 +96,9 @@ CASES = [
 ]
 
 INHERITED = {
-    "a_safe_operating_region": (94, "a_half_plane_region"),
     "b_round_table_clearance": (94, "d_largest_inscribed_circle"),
     "c_sensor_overlap": (94, "b_circle_overlap"),
     "d_emergency_broadcast_disk": (95, "a_minimum_enclosing_circle"),
-    "e_empty_observation_zone": (95, "d_largest_empty_delaunay_circle"),
     "f_low_cost_fiber": (95, "c_euclidean_network"),
 }
 

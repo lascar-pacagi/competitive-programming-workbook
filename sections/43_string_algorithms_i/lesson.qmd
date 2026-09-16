@@ -19,31 +19,81 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{tikz}
+        \usetikzlibrary{decorations.pathreplacing,arrows.meta}
 execute:
   enabled: false
 ---
 
 # Prefix-function thinking
 
-The prefix function `pi[i]` is the length of the longest proper prefix of
-`s` that is also a suffix of `s[0..i]`. KMP uses it to avoid rechecking
-characters after a mismatch. Borders and periods come from repeatedly
-following `pi` links.
-
-## What the prefix function stores
-
-For `s = ababa`, the prefix function is:
+One array does all the work in this section. For a string `s`, the prefix
+function is
 
 ```text
-i      0 1 2 3 4
-s[i]   a b a b a
-pi     0 0 1 2 3
+pi[i] = length of the longest proper prefix of s[0..i]
+        that is also a suffix of s[0..i]
 ```
 
-At `i = 4`, the longest proper prefix equal to a suffix of `ababa` is `aba`,
-so `pi[4] = 3`.
+*Proper* means it cannot be the whole of `s[0..i]`, so `pi[i] < i+1` always.
+Storing a length is enough; the two copies are equal by definition, so there is
+never a reason to copy the substring itself.
 
-The update rule is:
+The running example throughout this section is `abacaba`, and the four
+questions the section answers are: what is the longest border of each prefix
+(problem D's ingredient), where does a pattern occur in a text (problem A),
+what are *all* the borders (problem B), and what is the shortest period
+(problem C).
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,x=1cm,y=1cm,
+  c/.style={draw,minimum width=.9cm,minimum height=.62cm,inner sep=0pt,font=\small},
+  hd/.style={draw=none,minimum width=.9cm,minimum height=.5cm,inner sep=0pt,
+             font=\scriptsize,text=gray!65},
+  pre/.style={c,fill=orange!30},
+  suf/.style={c,fill=blue!18},
+  fade/.style={c,draw=gray!30,text=gray!35},
+  rl/.style={font=\scriptsize,text=gray!65,anchor=east},
+  note/.style={font=\scriptsize,anchor=west}]
+
+  \foreach \i in {0,...,6} \node[hd] at (.9*\i,.62) {$\i$};
+  \foreach \ch/\i in {a/0,b/1,a/2,c/3,a/4,b/5,a/6} \node[c] at (.9*\i,0) {\texttt{\ch}};
+  \foreach \p/\i in {0/0,0/1,1/2,0/3,1/4,2/5,3/6} \node[c,fill=gray!10] at (.9*\i,-.62) {$\p$};
+  \node[rl] at (-.52,.62) {$i$};
+  \node[rl] at (-.52,0)   {$s$};
+  \node[rl] at (-.52,-.62){$\pi$};
+
+  % i = 2
+  \foreach \ch/\i/\st in {a/0/pre,b/1/c,a/2/suf,c/3/fade,a/4/fade,b/5/fade,a/6/fade}
+    \node[\st] at (.9*\i,-1.72) {\texttt{\ch}};
+  \node[note] at (6.1,-1.72) {$\pi[2]=1$\ \ border \texttt{a}};
+  % i = 5
+  \foreach \ch/\i/\st in {a/0/pre,b/1/pre,a/2/c,c/3/c,a/4/suf,b/5/suf,a/6/fade}
+    \node[\st] at (.9*\i,-2.50) {\texttt{\ch}};
+  \node[note] at (6.1,-2.50) {$\pi[5]=2$\ \ border \texttt{ab}};
+  % i = 6
+  \foreach \ch/\i/\st in {a/0/pre,b/1/pre,a/2/pre,c/3/c,a/4/suf,b/5/suf,a/6/suf}
+    \node[\st] at (.9*\i,-3.28) {\texttt{\ch}};
+  \node[note] at (6.1,-3.28) {$\pi[6]=3$\ \ border \texttt{aba}};
+
+  \node[font=\scriptsize,anchor=north west,align=left,text width=10.4cm] at (-1.0,-3.95)
+    {\textcolor{orange!65!black}{\textbf{prefix copy}} and
+     \textcolor{blue!60!black}{\textbf{suffix copy}} must not overlap the
+     whole string: the border is \emph{proper}, so it is always shorter than
+     $s[0..i]$.\\
+     Faded cells lie beyond position $i$ and are not part of the prefix being
+     measured. $\pi$ stores only the \emph{length}; the two copies are equal by
+     definition.};
+\end{tikzpicture}
+\end{center}
+```
+
+## The update rule
+
+Positions are filled left to right. To extend to `s[i]`, take the best border
+of the previous prefix, `j = pi[i-1]`, and try to grow it by one character:
 
 ```text
 j = pi[i-1]
@@ -54,35 +104,145 @@ if s[i] == s[j]:
 pi[i] = j
 ```
 
-The while loop follows shorter and shorter borders. It never jumps randomly:
-if a border of length `j` fails, the next possible border length is the border
-of that border, namely `pi[j-1]`.
+The `while` loop is the only subtle line, and it is not a search. If a border of
+length `j` is contradicted, every longer border was already ruled out, so the
+longest candidate still alive is the longest border *of that border* — which is
+`pi[j-1]`, a value already computed.
 
-## KMP matching
 
-To find occurrences of pattern `p` in text `t`, build:
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,x=1cm,y=1cm,
+  c/.style={draw,minimum width=.9cm,minimum height=.62cm,inner sep=0pt,font=\small},
+  b1/.style={c,fill=orange!30},
+  b2/.style={c,fill=blue!18},
+  pl/.style={c,draw=gray!35,text=gray!45},
+  rl/.style={font=\scriptsize,text=gray!65,anchor=east},
+  note/.style={font=\scriptsize,anchor=west},
+  kb/.style={draw,rounded corners=2pt,minimum width=1.5cm,minimum height=.6cm,
+             font=\scriptsize,inner sep=2pt}]
+
+  \foreach \ch/\i/\st in {a/0/b1,b/1/b1,a/2/b1,c/3/pl,a/4/b1,b/5/b1,a/6/b1}
+    \node[\st] at (.9*\i,0) {\texttt{\ch}};
+  \node[note] at (6.15,0) {longest border of \texttt{abacaba} has length $3$};
+
+  \foreach \ch/\i/\st in {a/0/b2,b/1/pl,a/2/pl,c/3/pl,a/4/pl,b/5/pl,a/6/b2}
+    \node[\st] at (.9*\i,-.80) {\texttt{\ch}};
+  \node[note] at (6.15,-.80) {the next border has length $1$};
+
+  \node[font=\scriptsize,anchor=north west,align=left,text width=12.6cm] at (-.5,-1.42)
+    {A border of a border is again a border, so the border lengths form a chain
+     that $\pi$ already stores. Following it enumerates \emph{every} proper
+     border, largest first --- that is exactly problem B.};
+
+  \node[kb,fill=orange!25] (k3) at (0.8,-2.72) {$k=3$};
+  \node[kb,fill=blue!18]   (k1) at (4.3,-2.72) {$k=1$};
+  \node[kb,fill=gray!12]   (k0) at (7.9,-2.72) {$k=0$: stop};
+  \draw[->,>=Latex,thick,gray!70] (k3) -- node[above=2pt,font=\scriptsize,inner sep=1pt]
+        {$\pi[2]=1$} (k1);
+  \draw[->,>=Latex,thick,gray!70] (k1) -- node[above=2pt,font=\scriptsize,inner sep=1pt]
+        {$\pi[0]=0$} (k0);
+  \node[font=\scriptsize,text=gray!60,anchor=east] at (-.05,-2.72)
+        {$k=\pi[n-1]$:};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=12.2cm] at (-.5,-3.75)
+    {\textbf{The same chain is the failure link.} While building $\pi$, suppose the
+     candidate border has length $j$ and the new character contradicts it. Every
+     border longer than $\pi[j-1]$ has already been ruled out, so the longest
+     still-possible candidate is $\pi[j-1]$ --- never $0$, and never a fresh
+     restart. In \texttt{abacaba} at $i=3$ the candidate is $j=\pi[2]=1$; since
+     $s[3]=\texttt{c}\neq s[1]=\texttt{b}$ it falls to $\pi[0]=0$, and
+     $\texttt{c}\neq\texttt{a}$ leaves $\pi[3]=0$.};
+\end{tikzpicture}
+\end{center}
+```
+
+# KMP matching
+
+To find every occurrence of a pattern `p` of length `m` in a text `t`, run the
+prefix function once over
 
 ```text
 p + separator + t
 ```
 
-The separator must be a character not appearing in either string. Whenever
-`pi[i] == len(p)`, an occurrence ends at `i` in the combined string.
+The separator must be a character that cannot appear in either string. Its only
+job is to stop a prefix from stretching across the join, which would report
+matches that do not exist. If the alphabet is not under your control, do not
+concatenate at all; run the matching loop directly against `p` and `t` with the
+same fallback rule.
 
-The starting position in the text is:
+Wherever `pi[i] == m`, the pattern has just finished. Counting back over the
+pattern, the separator, and the matched copy gives the 1-based start in the
+text:
 
 ```text
-i - 2*len(p) + 1
+start = i - 2*m + 1
 ```
 
-The formula comes from subtracting the pattern, separator, and the pattern
-length ending at `i`. In this course the output positions are 1-based.
 
-## Borders
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,x=1cm,y=1cm,
+  c/.style={draw,minimum width=.9cm,minimum height=.62cm,inner sep=0pt,font=\small},
+  pat/.style={c,fill=orange!28},
+  sep/.style={c,fill=gray!30},
+  txt/.style={c,fill=blue!12},
+  hit/.style={c,fill=green!35,very thick},
+  hd/.style={draw=none,minimum width=.9cm,minimum height=.5cm,inner sep=0pt,
+             font=\scriptsize,text=gray!65},
+  rl/.style={font=\scriptsize,text=gray!65,anchor=east},
+  br/.style={decorate,decoration={brace,amplitude=4pt},gray!65}]
 
-A border is a string that is both a proper prefix and a suffix. If `k` is a
-border length of the whole string, then `pi[k-1]` is the next shorter border.
-Therefore all borders are found by:
+  \foreach \i in {0,...,8} \node[hd] at (.9*\i,.66) {$\i$};
+  \foreach \ch/\i/\st in {a/0/pat,b/1/pat,a/2/pat,{\#}/3/sep,
+                          a/4/txt,b/5/txt,a/6/txt,b/7/txt,a/8/txt}
+    \node[\st] at (.9*\i,0) {\texttt{\ch}};
+  \foreach \p/\i/\st in {0/0/c,0/1/c,1/2/c,0/3/c,1/4/c,2/5/c,3/6/hit,2/7/c,3/8/hit}
+    \node[\st] at (.9*\i,-.66) {$\p$};
+  \node[rl] at (-.52,.66) {$i$};
+  \node[rl] at (-.52,0)   {char};
+  \node[rl] at (-.52,-.66){$\pi$};
+
+  \draw[br] (-.45,.98) -- (2.25,.98)
+     node[midway,above=4pt,font=\scriptsize] {pattern, $m=3$};
+  \draw[br] (2.55,.98) -- (7.65,.98)
+     node[midway,above=4pt,font=\scriptsize] {text};
+
+  \node[font=\scriptsize,text=green!30!black,anchor=north,align=center] at (5.4,-1.02)
+    {$\pi=3=m$\\start $=6-6+1=1$};
+  \node[font=\scriptsize,text=green!30!black,anchor=north,align=center] at (7.2,-2.05)
+    {$\pi=3=m$\\start $=8-6+1=3$};
+  \draw[green!45!black,->,>=Latex] (7.2,-1.02) -- (7.2,-1.95);
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=12.2cm] at (-.6,-3.05)
+    {\textbf{Why overlapping matches are not lost.} At $i=7$, just after a full
+     match, the candidate is $j=3$. The next character \texttt{b} contradicts it,
+     so the loop falls to $\pi[2]=1$ --- the longest border of the pattern ---
+     and \texttt{b} matches there, giving $\pi[7]=2$. One more character reaches
+     $3$ again at $i=8$. A naive scanner that restarted at $0$ after a match
+     would skip the occurrence at position $3$.\\[3pt]
+     \textbf{Why the text index never retreats.} Only $j$ moves backwards, and
+     it never falls below $0$ while $i$ only advances. Each character raises $j$
+     by at most one, so total fallback is bounded by total increase: $O(n)$.};
+\end{tikzpicture}
+\end{center}
+```
+
+Overlapping occurrences come out for free, and that is the whole advantage over
+naive scanning: after a match the algorithm falls back to the longest border of
+the pattern, never to zero, so characters already known to match are never
+compared again.
+
+# Borders and periods
+
+## Every border, largest first
+
+The chain in the figure above is also the answer to problem B. The longest
+border is `pi[n-1]`; the next is the longest border of *that* prefix, and so on
+until the chain reaches zero:
 
 ```text
 k = pi[n-1]
@@ -91,177 +251,122 @@ while k > 0:
     k = pi[k-1]
 ```
 
-Reverse the list if the statement asks for increasing order.
+This produces borders in decreasing order. Reverse the list if the statement
+asks for increasing order. For `abacaba` it yields `3, 1`; for `abcabca` it
+yields `4, 1`; for `abc` it yields nothing at all.
 
-## Minimal period
+## The shortest period
 
-Let `n` be the string length and `b = pi[n-1]`. The longest border has length
-`b`, so the candidate period is:
+A border of length `b` says the string agrees with itself after a shift of
+`p = n - b`. That shift is always a valid *overlap* statement, but a period that
+tiles the string needs one extra condition:
+
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[font=\small,x=1cm,y=1cm,
+  c/.style={draw,minimum width=.8cm,minimum height=.58cm,inner sep=0pt,font=\small},
+  ov/.style={c,fill=green!30},
+  pl/.style={c,fill=white},
+  rl/.style={font=\scriptsize,text=gray!65,anchor=east},
+  br/.style={decorate,decoration={brace,amplitude=3.5pt,mirror},gray!65},
+  bu/.style={decorate,decoration={brace,amplitude=3.5pt},gray!65},
+  vd/.style={font=\scriptsize,anchor=west,align=left}]
+
+  % ---------- panel A : ababab ----------
+  \node[font=\scriptsize,anchor=west] at (-1.35,1.04)
+    {\textbf{\texttt{ababab}}\ \ $n=6$,\ $b=\pi[5]=4$,\ candidate $p=n-b=2$};
+  \foreach \ch/\i/\st in {a/0/pl,b/1/pl,a/2/ov,b/3/ov,a/4/ov,b/5/ov}
+    \node[\st] at (.8*\i,0) {\texttt{\ch}};
+  \foreach \ch/\i/\st in {a/0/ov,b/1/ov,a/2/ov,b/3/ov,a/4/pl,b/5/pl}
+    \node[\st] at (.8*\i+1.6,-.62) {\texttt{\ch}};
+  \node[rl] at (-.45,0)    {$s$};
+  \node[rl] at (-.45,-.62) {$s$ shifted by $p=2$};
+  \draw[bu] (-.4,.32) -- (1.2,.32) node[midway,above=3.5pt,font=\scriptsize] {$p=2$};
+  \draw[br] (1.2,-.94) -- (4.4,-.94)
+     node[midway,below=3.5pt,font=\scriptsize,text=green!30!black]
+     {overlap $=$ border \texttt{abab}, length $4$};
+  \node[vd,text=green!30!black] at (6.35,-.31)
+    {$6 \bmod 2 = 0$\\\textbf{period is $2$}};
+
+  % ---------- panel B : abacaba ----------
+  \node[font=\scriptsize,anchor=west] at (-1.35,-1.98)
+    {\textbf{\texttt{abacaba}}\ \ $n=7$,\ $b=\pi[6]=3$,\ candidate $p=n-b=4$};
+  \foreach \ch/\i/\st in {a/0/pl,b/1/pl,a/2/pl,c/3/pl,a/4/ov,b/5/ov,a/6/ov}
+    \node[\st] at (.8*\i,-3.0) {\texttt{\ch}};
+  \foreach \ch/\i/\st in {a/0/ov,b/1/ov,a/2/ov,c/3/pl,a/4/pl,b/5/pl,a/6/pl}
+    \node[\st] at (.8*\i+3.2,-3.62) {\texttt{\ch}};
+  \node[rl] at (-.45,-3.0)  {$s$};
+  \node[rl] at (-.45,-3.62) {$s$ shifted by $p=4$};
+  \draw[bu] (-.4,-2.68) -- (2.8,-2.68) node[midway,above=3.5pt,font=\scriptsize] {$p=4$};
+  \draw[br] (2.8,-3.94) -- (5.2,-3.94)
+     node[midway,below=3.5pt,font=\scriptsize,text=green!30!black]
+     {overlap $=$ border \texttt{aba}, length $3$};
+  \node[vd,text=red!55!black] at (8.75,-3.31)
+    {$7 \bmod 4 = 3$\\\textbf{period is $7$}};
+
+  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
+        anchor=north west,inner sep=5pt,text width=12.4cm] at (-1.4,-4.75)
+    {A border of length $b$ says the string matches itself after a shift of
+     $p=n-b$, so $s[i]=s[i+p]$ wherever both exist. That makes $p$ the shortest
+     \emph{candidate} period, and it is always correct as an overlap statement.\\[3pt]
+     \textbf{The trap.} It is a \emph{tiling} period only when $p$ divides $n$.
+     For \texttt{abacaba} the shift is consistent, but $4$ does not divide $7$:
+     the string is not whole copies of \texttt{abac}, so the answer is $n=7$.
+     Always test $n \bmod p$ before printing $p$.};
+\end{tikzpicture}
+\end{center}
+```
 
 ```text
+b = pi[n-1]
 p = n - b
+answer = p if n % p == 0 else n
 ```
 
-If `n` is divisible by `p`, the string is repetitions of the first `p`
-characters. Otherwise no shorter period covers the whole string, and the
-answer is `n`.
+`ababa` is the smallest trap worth memorizing: `pi[4] = 3`, so the candidate is
+`5 - 3 = 2`, but `2` does not divide `5` and the answer is `5`.
 
-Example:
+# Implementation, linearity, and debugging
 
-```text
-s = ababab
-pi[n-1] = 4
-p = 6 - 4 = 2
-answer = 2
-```
+## Why it is linear
 
-## Why KMP is linear
+The index `i` never moves backwards. The pointer `j` rises by at most one per
+position, so across the whole run it rises at most `n` times. Every iteration of
+the `while` loop strictly lowers `j`, and `j` never drops below zero, so the
+total number of fallback steps is bounded by the total number of increases.
+Both are `O(n)`, which is why a loop that looks quadratic is not.
 
-The index `i` only moves forward. The border pointer `j` can increase by at
-most one per `i`, and every decrease follows a prefix link. Across the whole
-run there are only `O(n)` increases and `O(n)` decreases, so the algorithm is
-linear.
+The loop invariant behind that argument: before position `i` is processed, `j`
+is the longest border of `s[0..i-1]` not yet contradicted by the new character.
+Each fallback preserves the longest surviving candidate; each success extends it
+by exactly one.
 
-## Matching example
+## Language notes
 
-Pattern:
+**C++.** A `vector<int>` for `pi` is enough. Reserve the combined string once
+rather than appending in a loop. Occurrence counts can exceed `int` on
+adversarial inputs such as `aaaa...a`, so accumulate in `long long`.
 
-```text
-aba
-```
+**Python.** Read with `sys.stdin.buffer.read()` and work on `bytes`; indexing a
+`bytes` object yields integers and compares faster than slicing strings. Never
+build the combined string by repeated `+=` in a loop.
 
-Text:
+## Tests before trusting a solution
 
-```text
-ababa
-```
+| Case | What it catches |
+|---|---|
+| pattern longer than text | negative or out-of-range start positions |
+| pattern equals text | off-by-one in `i - 2*m + 1` |
+| `aba` in `ababa` | a scanner that restarts at zero and loses overlaps |
+| `aaaa` in `aaaaa` | the maximal-overlap stress case |
+| no occurrence at all | an empty-output path |
+| `ababa` for the period | the missing `n % p == 0` divisibility test |
+| `abc` for borders | an empty border chain |
+| separator present in input | a bogus match across the join |
 
-Combined string:
-
-```text
-aba#ababa
-```
-
-Whenever the prefix function reaches `3`, the pattern has just ended. That
-happens for the text endings at positions corresponding to starts `1` and `3`.
-The overlapping occurrence is found naturally because after a full match KMP
-falls back to the longest border of the pattern, not to zero.
-
-This is the main advantage over naive matching: characters that are known to
-match are not rechecked.
-
-## Debugging KMP
-
-Test these cases before trusting a prefix-function solution:
-
-```text
-pattern longer than text
-pattern equals text
-overlapping matches: pattern=aba, text=ababa
-all same character: pattern=aaa, text=aaaaa
-no matches at all
-```
-
-For borders, test strings with a border chain:
-
-```text
-aaaa -> borders 1,2,3
-ababab -> borders 2,4
-abc -> no borders
-```
-
-If a position formula is wrong, overlapping matches usually expose it.
-
-# Exercises
-
-## Upsolve foundations
-
-### Prefix function vocabulary
-
-For a string `s`, `pi[i]` is the length of the longest **proper** prefix of
-`s[0..i]` that is also a suffix of that same prefix. Proper means it cannot be
-the entire substring. A length, rather than a copied substring, is enough:
-the candidate border ending at `i-1` has length `pi[i-1]`.
-
-To extend it with `s[i]`, compare `s[i]` with `s[j]`, where `j=pi[i-1]`. On a
-mismatch, the next possible border is the border of that border, of length
-`pi[j-1]`. This is the failure link. Do not restart comparison at zero unless
-all failure links have been exhausted.
-
-```text
-pi(s):
-    pi[0] = 0
-    for i = 1..n-1:
-        j = pi[i-1]
-        while j > 0 and s[i] != s[j]:
-            j = pi[j-1]
-        if s[i] == s[j]:
-            j += 1
-        pi[i] = j
-```
-
-### Trace: prefix function of `ababa`
-
-```text
-i     character     candidate j before/after fallback     pi[i]
-0        a                         -                        0
-1        b                         0                        0
-2        a                         0 -> 1                   1
-3        b                         1 -> 2                   2
-4        a                         2 -> 3                   3
-```
-
-The final `pi[4]=3` says `aba` is the longest proper border. Following its
-link gives `pi[2]=1`, so `a` is the other proper border.
-
-### KMP is an indexing problem
-
-For pattern `p` of length `m` and text `t`, build `p + separator + t`, where
-the separator is outside the input alphabet. When `pi[i] == m`, a match ends at
-combined index `i`. The first text character is at combined index `m+1`, so the
-1-based match start is `i - 2*m + 1`.
-
-For `p=aba`, `t=abacaba`, matches end at combined indices 6 and 10, producing
-starts 1 and 5. This formula also retains overlapping matches: `ana` in
-`anana` occurs at positions 1 and 3.
-
-### Borders and periods are the same link structure
-
-Every proper border length of `s` is found by:
-
-```text
-k = pi[n-1]
-while k > 0:
-    output k
-    k = pi[k-1]
-```
-
-The first candidate period is `p=n-pi[n-1]`. It is a true tiling period only
-when `n % p == 0`. For `ababab`, `p=2` divides 6. For `ababa`, the same
-candidate is 2 but does not divide 5, so the minimal repeating block length is
-5, not 2.
-
-### Proof and implementation habits
-
-The loop invariant is: before processing position `i`, `j` is the longest
-border of `s[0..i-1]` that has not been disproved by the new character. Every
-fallback preserves the possibility of matching a shorter border; every success
-extends it by one. Since `j` only rises after a successful character comparison
-and every fallback lowers it, total fallback work is linear.
-
-In C++, use `vector<int>` for `pi`; in Python use a list of integers. Never
-make the separator a character that can occur in input. If the alphabet is not
-controlled, run KMP directly on pattern and text rather than concatenating a
-string.
-
-### Tests and formative checks
-
-1. Compute `pi` for `aaaaa`. Answer: `0 1 2 3 4`; this checks chained borders.
-2. List all proper borders of `abcabca`. Answer: 1 and 4.
-3. Explain why `ababa` has candidate period 2 but answer 5. The divisibility
-   check is the missing condition.
-4. Test a pattern longer than text, a pattern equal to text, and overlapping
-   matches before trusting an occurrence implementation.
+Useful values to check by hand: `pi("aaaaa") = 0 1 2 3 4`, the proper borders of
+`abcabca` are `1` and `4`, and `abacaba` has candidate period `4` but answer `7`.
 
 Run the local reference suite with:
 
@@ -269,10 +374,18 @@ Run the local reference suite with:
 CP_TARGET=solution python3 sections/43_string_algorithms_i/check.py
 ```
 
-Before submission, state which of these three interpretations you use: a full
-prefix-function value is a matched pattern, a prefix link is a shorter border,
-or the final border determines a candidate period.
+# Exercises
+
+Use A to get the combined-string indexing and the 1-based start formula right,
+B to walk the border chain to exhaustion rather than stopping at the first link,
+and C to apply the divisibility test that turns a candidate period into a real
+one. Use D as the blind synthesis problem: every prefix needs a count, not just
+the whole string, so decide what a failure link contributes to its target before
+writing any code. Test a pattern longer than the text, a pattern equal to the
+text, overlapping matches, an all-same-character input, and a string with no
+border at all.
 
 - A. KMP Occurrences: Print the number and 1-based positions of all occurrences of pattern in text.
 - B. All Borders: Print all proper border lengths of a string in increasing order.
 - C. Minimal Period: Print the shortest period length if the string is repetitions of a block, otherwise `n`.
+- D. Prefix Frequency: For every prefix length, print how many times that prefix occurs as a substring.

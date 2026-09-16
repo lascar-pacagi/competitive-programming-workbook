@@ -19,6 +19,9 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{tikz}
+        \usepackage{float}
+        \usetikzlibrary{arrows.meta,positioning}
 execute:
   enabled: false
 ---
@@ -40,6 +43,278 @@ You should be able to say what one heap entry means. Examples:
 
 The heap does not prove the algorithm by itself. The proof comes from showing
 that the smallest or largest key is safe to process next.
+
+# What a binary heap actually stores
+
+A priority queue is an interface: insert an item and extract the smallest or
+largest item. A **binary heap** is the usual implementation of that interface.
+It is a nearly complete binary tree with an ordering rule.
+
+For a min-heap, every parent is at most its children:
+
+```text
+                 2
+              /     \
+             5       4
+           /  \     / \
+          9    7   8   6
+```
+
+This does **not** mean that every level or the underlying array is sorted.
+It guarantees only that the root is globally smallest. After removing it,
+the heap repairs the rule and exposes the next smallest item.
+
+## Why heaps are stored in arrays
+
+A complete tree has no gaps, so it can be stored level by level:
+
+```text
+tree:       2   5   4   9   7   8   6
+0-based i:  0   1   2   3   4   5   6
+```
+
+For a node at index `i`:
+
+```text
+left child  = 2*i + 1
+right child = 2*i + 2
+parent      = (i-1)//2
+```
+
+No pointers are needed. Because the tree is complete, its height is
+`O(log n)`.
+
+The diagram shows that the visual tree and the array are two views of the
+same data. The labels below the cells are array indices.
+
+~~~{=latex}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  every node/.style={draw, circle, minimum size=8mm},
+  level distance=12mm,
+  level 1/.style={sibling distance=38mm},
+  level 2/.style={sibling distance=19mm}
+]
+\node {2}
+  child {node {5}
+    child {node {9}}
+    child {node {7}}}
+  child {node {4}
+    child {node {8}}
+    child {node {6}}};
+\end{tikzpicture}
+
+\vspace{2mm}
+\begin{tikzpicture}[
+  cell/.style={draw, minimum width=12mm, minimum height=8mm}
+]
+\foreach \x/\v in {0/2,1/5,2/4,3/9,4/7,5/8,6/6} {
+  \node[cell] at (1.2*\x,0) {\v};
+  \node[draw=none] at (1.2*\x,-0.65) {\scriptsize \x};
+}
+\end{tikzpicture}
+\caption{The min-heap tree and its level-order array representation.}
+\end{figure}
+~~~
+
+## Push and pop
+
+To push a value, append it as the last leaf, then swap it upward while it
+violates the parent rule. To pop the root, move the last leaf to the root,
+remove the last array entry, and swap the new root downward with its better
+child.
+
+```text
+push: append -> move upward at most one tree height
+pop:  replace root -> move downward at most one tree height
+top:  read the root without changing anything
+```
+
+Therefore `push` and `pop` cost `O(log n)`, while `top` costs `O(1)`. Building
+a heap from all values can be done in `O(n)`, although inserting them one by
+one gives the simpler `O(n log n)` bound.
+
+## Repairing the heap after a push
+
+Suppose 3 is appended to the previous min-heap. It first occupies the next
+free leaf. Since 3 is smaller than 9, it swaps with 9. It then swaps with 5
+and stops below 2.
+
+~~~{=latex}
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.31\textwidth}
+\centering
+\textbf{1. Append 3}\par\smallskip
+\begin{tikzpicture}[
+  scale=0.72, transform shape,
+  every node/.style={draw,circle,minimum size=7mm},
+  level distance=10mm,
+  level 1/.style={sibling distance=28mm},
+  level 2/.style={sibling distance=14mm},
+  level 3/.style={sibling distance=8mm}
+]
+\node {2}
+ child {node {5}
+   child {node {9}
+     child {node[fill=yellow!35] {3}}}
+   child {node {7}}}
+ child {node {4}
+   child {node {8}}
+   child {node {6}}};
+\end{tikzpicture}
+\end{minipage}
+\hfill
+\begin{minipage}{0.31\textwidth}
+\centering
+\textbf{2. Swap with 9}\par\smallskip
+\begin{tikzpicture}[
+  scale=0.72, transform shape,
+  every node/.style={draw,circle,minimum size=7mm},
+  level distance=10mm,
+  level 1/.style={sibling distance=28mm},
+  level 2/.style={sibling distance=14mm},
+  level 3/.style={sibling distance=8mm}
+]
+\node {2}
+ child {node {5}
+   child {node[fill=yellow!35] {3}
+     child {node {9}}}
+   child {node {7}}}
+ child {node {4}
+   child {node {8}}
+   child {node {6}}};
+\end{tikzpicture}
+\end{minipage}
+\hfill
+\begin{minipage}{0.31\textwidth}
+\centering
+\textbf{3. Swap with 5}\par\smallskip
+\begin{tikzpicture}[
+  scale=0.72, transform shape,
+  every node/.style={draw,circle,minimum size=7mm},
+  level distance=10mm,
+  level 1/.style={sibling distance=28mm},
+  level 2/.style={sibling distance=14mm},
+  level 3/.style={sibling distance=8mm}
+]
+\node {2}
+ child {node[fill=yellow!35] {3}
+   child {node {5}
+     child {node {9}}}
+   child {node {7}}}
+ child {node {4}
+   child {node {8}}
+   child {node {6}}};
+\end{tikzpicture}
+\end{minipage}
+\caption{Sift-up repairs only the ancestor path of the new leaf.}
+\end{figure}
+~~~
+
+Only nodes on the new leaf's ancestor path can violate the heap rule. This is
+why checking and swapping along one path is sufficient.
+
+## Repairing the heap after a pop
+
+After removing the root, move the last leaf into the empty root position.
+Compare it with both children and swap with the smaller child. Repeat until
+it is no larger than either child.
+
+Choosing the smaller child matters: swapping with the larger child could leave
+the new parent larger than its other child. Once again only one root-to-leaf
+path is touched, which explains the logarithmic cost.
+
+The next diagram removes 2 from the repaired heap. The last leaf, 9, moves to
+the root. It swaps first with 3, the smaller child, and then with 5.
+
+~~~{=latex}
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.31\textwidth}
+\centering
+\textbf{1. Move 9 to root}\par\smallskip
+\begin{tikzpicture}[
+  scale=0.78, transform shape,
+  every node/.style={draw,circle,minimum size=7mm},
+  level distance=11mm,
+  level 1/.style={sibling distance=28mm},
+  level 2/.style={sibling distance=14mm}
+]
+\node[fill=yellow!35] {9}
+ child {node {3}
+   child {node {5}}
+   child {node {7}}}
+ child {node {4}
+   child {node {8}}
+   child {node {6}}};
+\end{tikzpicture}
+\end{minipage}
+\hfill
+\begin{minipage}{0.31\textwidth}
+\centering
+\textbf{2. Swap with 3}\par\smallskip
+\begin{tikzpicture}[
+  scale=0.78, transform shape,
+  every node/.style={draw,circle,minimum size=7mm},
+  level distance=11mm,
+  level 1/.style={sibling distance=28mm},
+  level 2/.style={sibling distance=14mm}
+]
+\node {3}
+ child {node[fill=yellow!35] {9}
+   child {node {5}}
+   child {node {7}}}
+ child {node {4}
+   child {node {8}}
+   child {node {6}}};
+\end{tikzpicture}
+\end{minipage}
+\hfill
+\begin{minipage}{0.31\textwidth}
+\centering
+\textbf{3. Swap with 5}\par\smallskip
+\begin{tikzpicture}[
+  scale=0.78, transform shape,
+  every node/.style={draw,circle,minimum size=7mm},
+  level distance=11mm,
+  level 1/.style={sibling distance=28mm},
+  level 2/.style={sibling distance=14mm}
+]
+\node {3}
+ child {node {5}
+   child {node[fill=yellow!35] {9}}
+   child {node {7}}}
+ child {node {4}
+   child {node {8}}
+   child {node {6}}};
+\end{tikzpicture}
+\end{minipage}
+\caption{Sift-down follows the smaller child until the heap rule holds.}
+\end{figure}
+~~~
+
+# Heap versus sorted container
+
+A heap is useful when only the current extreme matters. It cannot efficiently
+find an arbitrary element, the second-smallest element without removals, or
+all values in an interval. If the algorithm needs ordered iteration,
+predecessors, or deletion of arbitrary known values, a balanced ordered
+container or frequency structure may be more appropriate.
+
+The general recognition question is:
+
+> Do I repeatedly need the smallest or largest item among a collection that
+> changes over time?
+
+If yes, a heap may be appropriate. Then state what one heap entry represents
+and which operations can insert or remove entries.
+
+Some problems maintain a **frontier** of candidates. In that narrower pattern,
+such as merging sorted streams, ask an additional question: after removing one
+candidate, can I generate only the candidate that replaces it? This avoids
+putting every possible future object into the heap at once.
 
 # Two heaps for medians
 
@@ -67,6 +342,24 @@ After every insertion:
 2. Swap tops if order is violated.
 3. Rebalance sizes.
 
+A simpler implementation combines the first two steps: compare the new value
+with the largest value in `low`. Insert it into `low` if it belongs to the
+smaller half, otherwise into `high`. Then rebalance:
+
+```text
+if low has two more elements than high:
+    move max(low) to high
+if high has more elements than low:
+    move min(high) to low
+```
+
+Why does moving only the top work? If `low` is too large, its maximum is the
+only element that should cross into the upper half. Every other value in
+`low` is no larger. The symmetric argument holds for `high`.
+
+Each insertion needs only a constant number of heap operations. Therefore the
+total cost over `n` inserted values is `O(n log n)`, with `O(n)` stored values.
+
 # Sweep with ending times
 
 To count rooms for intervals, process intervals by start time. A
@@ -82,6 +375,17 @@ end_time <= next_start
 ```
 
 For closed intervals `[l,r]`, the condition would be different.
+
+## Why the maximum heap size is the answer
+
+Immediately before inserting `[start, end)`, remove every ending time at most
+`start`. What remains is exactly the set of earlier courses overlapping the
+new course. After pushing `end`, the heap size is the number of courses active
+at that moment.
+
+Any schedule needs at least that many rooms because simultaneous courses
+cannot share. Conversely, expired rooms are always reusable, so the sweep
+never needs more rooms than this maximum. The lower and upper bounds match.
 
 # K-way merging
 
@@ -110,14 +414,94 @@ i=0: 3, 4, 11
 i=1: 6, 7, 14
 ```
 
-Start heap:
+Each heap entry stores three pieces of information:
 
 ```text
-(3,0,0), (6,1,0)
+(pair sum, index in A, index in B)
 ```
 
-Pop `(3,0,0)`, then push `(4,0,1)`. This produces sorted pair sums without
-generating every pair in advance.
+Therefore `(3,0,0)` represents `A[0] + B[0] = 1 + 2 = 3`, while `(6,1,0)`
+represents `A[1] + B[0] = 4 + 2 = 6`.
+
+Initially, put only the first sum of each row in the heap:
+
+```text
+heap: (3,0,0), (6,1,0)
+```
+
+The smallest entry is `(3,0,0)`, so output `3`. This removes the current
+representative of row 0. The next unseen sum in that same row uses the next
+element of `B`:
+
+```text
+A[0] + B[1] = 1 + 3 = 4
+```
+
+Push `(4,0,1)`. The heap now contains:
+
+```text
+(4,0,1), (6,1,0)
+```
+
+The next output is consequently `4`. After removing it, replace it with the
+next item of row 0, `(11,0,2)`. The trace begins:
+
+| Output | Removed entry | Replacement | Heap afterward |
+|---:|---|---|---|
+| 3 | `(3,0,0)` | `(4,0,1)` | 4, 6 |
+| 4 | `(4,0,1)` | `(11,0,2)` | 6, 11 |
+| 6 | `(6,1,0)` | `(7,1,1)` | 7, 11 |
+
+At every moment, the heap stores the first unseen sum from each row, rather
+than storing all `n*m` pair sums.
+
+## Why the popped sum is globally next
+
+For each row, the heap contains its first not-yet-reported sum. Every later
+sum in that row is at least this representative because `B` is sorted. The
+smallest heap representative is therefore no larger than any unseen sum in
+any row. It is safe to output.
+
+After popping row `i`, only that row loses its representative, so push its
+next column. This restores the invariant.
+
+The heap has at most `n` entries. Initialization costs `O(n log n)` with
+individual pushes, and producing `k` answers costs `O(k log n)`. The total is
+`O((n + k) log n)` time and `O(n)` extra memory; it avoids the impossible
+`O(nm)` list of all pair sums.
+
+# Optimal merging: repeatedly combine the two smallest
+
+Suppose merging files of sizes `x` and `y` costs `x + y`, and the merged file
+may be merged again. An early merge contributes its size to later costs, so
+large files should not be created too early.
+
+The greedy rule is:
+
+```text
+remove the two smallest current sizes
+pay their sum
+insert their sum back into the heap
+```
+
+For `[2, 3, 4, 6]`:
+
+```text
+merge 2 + 3 = 5    total = 5      heap: 4, 5, 6
+merge 4 + 5 = 9    total = 14     heap: 6, 9
+merge 6 + 9 = 15   total = 29     heap: 15
+```
+
+Why are the two smallest safe to merge first? In the final merge tree, every
+original size is charged once for each level above its leaf. Two deepest
+sibling leaves can be chosen to hold the two smallest weights: exchanging a
+larger deep weight with a smaller shallow weight cannot increase the total.
+Contracting those two siblings into one combined weight leaves the same
+problem on one fewer item. This is the Huffman-coding exchange argument.
+
+There are `n - 1` merges, each using a constant number of heap operations.
+The total time is `O(n log n)` and the heap uses `O(n)` memory. Use 64-bit
+integers: intermediate sizes and the accumulated cost may exceed 32 bits.
 
 # Python and C++ heap details
 
@@ -157,6 +541,7 @@ For interval problems, decide whether touching endpoints overlap.
 - A. Running Median: After every inserted number, print the lower median of the prefix.
 - B. Course Rooms: Given half-open intervals `[l,r)`, print the minimum number of rooms needed.
 - C. K Smallest Pair Sums: Two arrays are sorted. Print the `k` smallest values of `a[i]+b[j]`.
+- D. Merge Costs: Repeatedly merge two files while minimizing the total cost.
 
 # How to use the checker
 
@@ -169,9 +554,7 @@ CP_TARGET=solution python3 sections/39_heaps_priority_queues/check.py
 
 Replace `CP_TARGET=solution` by your own `solve.cpp` or `solve.py` attempts
 when practicing.
-# Exercises
-
-# Worked decision traces
+# Additional worked decision traces
 
 ## Running median: preserve two halves
 
@@ -260,4 +643,6 @@ Run `CP_TARGET=solution python3 sections/39_heaps_priority_queues/check.py`.
 For A compare with a sorted prefix, for B brute-force overlap counts on small
 interval sets, and for C enumerate and sort every pair sum when `n,m <= 8`.
 
-Use A to maintain the two heap size invariant, B to free rooms before allocating a new one, and C to make each heap item represent the next unseen pair. Test duplicate values and equal endpoints.
+Use A to maintain the two-heap size invariant. In B, free rooms before
+allocating a new one. In C, make each heap item represent the next unseen pair.
+Test duplicate values and equal endpoints.
