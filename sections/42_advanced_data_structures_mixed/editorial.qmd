@@ -23,770 +23,741 @@ execute:
   enabled: false
 ---
 
-# Category coverage
+# Scope and prerequisites
 
-| Category | Problem |
-|---|---|
-| order statistics with Fenwick binary lifting | A. Dynamic Order Statistics |
-| composing assignment and addition lazy tags | B. Range Assign and Add |
-| offline rectangle counting | C. Static Rectangle Count |
+This contest uses only techniques taught through section 41. See the lesson's
+prerequisite table for their first teaching locations. The solutions combine
+ordinary Fenwick trees, segment trees, lazy tags, offline sweeps, Euler
+intervals, LCA, and insertion-only DSU. HLD, persistence, rollback, merge-sort
+trees, and multidimensional Fenwick trees are not required.
 
-All required categories are present locally. D. Nested Ranges Count is an
-additional sorting-and-Fenwick synthesis problem.
-
-# Editorial overview
-
-## Problem-specific proof map
-
-**A. Dynamic Order Statistics.** A Fenwick prefix is exactly the number of
-stored values at most that index. Fenwick binary lifting finds the first prefix
-whose count reaches `k`, hence the k-th value, in `O(log m)` per operation.
-
-**B. Range Assign and Add.** A node carries at most one pending tag because an
-assignment absorbs any addition waiting under it, and an addition folds into a
-pending assignment instead of queueing beside it. That invariant makes the two
-tag kinds composable in `O(1)`, so both updates and queries stay `O(log n)`.
-
-**C. Static Rectangle Count.** Inclusion-exclusion turns a rectangle into four
-dominance counts. During the x-sweep, the Fenwick tree contains precisely points
-with `x <= X`, so its y-prefix produces each dominance count in `O(log n)`.
-
-**D. Nested Ranges Count.** Sort intervals by left endpoint ascending and
-right endpoint descending. A Fenwick tree over right endpoints counts the
-intervals already seen in the relevant sweep direction; process equal interval
-pairs together so identical intervals count one another.
-
-## Detailed solution guide
-
-**A. Dynamic Order Statistics.** A Fenwick tree over value coordinates stores
-frequencies. `sum(x)` is the number of elements `<= x`. Insert and erase update
-one coordinate by `+1` or `-1`. The k-th element is the smallest coordinate
-whose prefix sum is at least `k`; binary lifting inside the Fenwick tree finds
-that coordinate in logarithmic time.
-
-**B. Range Add, Range Sum.** Difference arrays turn a range add into two point
-events, but range-sum queries need one more accumulated moment. Maintain two
-Fenwick trees `B1` and `B2` so that after adding `delta` to `[l,r]`,
-`prefix(p) = p*sum(B1,p) - sum(B2,p)`. Then `sum(l,r)` is
-`prefix(r) - prefix(l-1)`.
-
-**C. Offline Rectangle Counting.** Count points in rectangle
-`[x1,x2] x [y1,y2]` by inclusion-exclusion of four dominance queries
-`count(x <= X, y <= Y)`. Sort points and queries by `X`, sweep from left to
-right, and insert active point y-coordinates into a Fenwick tree. The y-prefix
-sum then answers the dominance query.
-
-**Common pitfalls.** Coordinate-compress values before using a Fenwick tree
-when coordinates are large. For range sums, update both trees with matching
-signs. For rectangles, inclusion-exclusion signs are `+ - - +`.
-
-All three problems reduce a seemingly richer query to prefix queries.
-
-- A stores frequencies in a Fenwick tree. Counts are prefix sums; k-th order
-  statistic is the first index whose prefix sum reaches `k`.
-- B stores a range-added array through two Fenwick trees. The formula
-  `prefix(p) = p*sum(B1,p)-sum(B2,p)` converts range additions into prefix
-  sums of the final array.
-- C expands each rectangle into four dominance queries `x <= X, y <= Y`, then
-  sweeps points by x-coordinate and answers y-prefix counts with a Fenwick tree.
-
-The recurring invariant is that the Fenwick tree contains exactly the active
-objects for the current prefix threshold.
+A uses count-guided segment-tree descent from section 40. G uses an offline
+value sweep. Every subtree update maps to one Euler interval; J has static
+vertex values and uses root sums with LCA. Keep these contracts explicit when
+assessing whether an earlier structure is sufficient.
 
 # A. Dynamic Order Statistics
 
-## Restatement
-
-Maintain a multiset over values `1..m`: insert, erase one copy, k-th, and count `<=x`.
-
-## Observations, trace, and algorithm
-
-Keep multiplicities in a Fenwick tree. After inserts 3,5,3, rank two is 3 and
-count<=4 is two; after erasing one 3, rank two is 5. Insert/erase update one
-index, count is a prefix sum, and kth is the first prefix reaching k by Fenwick
-binary lifting; reject an invalid k.
-
-## Correctness proof and complexity
-
-Fenwick prefixes equal cumulative multiplicities, so the first prefix reaching
-k is exactly the kth multiset value. Every operation is `O(log m)` and memory
-is `O(m)`. QED.
-
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std; struct BIT{int n; vector<int> b; BIT(int n):n(n),b(n+1){} void add(int i,int x){for(;i<=n;i+=i&-i)b[i]+=x;} int sum(int i){int s=0;for(;i;i-=i&-i)s+=b[i];return s;} int kth(int k){if(k<1||k>sum(n)) return -1; int pos=0,step=1; while((step<<1)<=n) step<<=1; for(;step;step>>=1){int nx=pos+step; if(nx<=n&&b[nx]<k){pos=nx;k-=b[nx];}} return pos+1;}};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int m,q;if(!(cin>>m>>q)) return 0; BIT bit(m); vector<int> cnt(m+1); while(q--){int t,x;cin>>t>>x; if(t==1){cnt[x]++;bit.add(x,1);} else if(t==2){if(cnt[x]){cnt[x]--;bit.add(x,-1);}} else if(t==3) cout<<bit.kth(x)<<'\n'; else cout<<bit.sum(x)<<'\n';}}
-```
-
-## Full Python solution
-
-```python
-import sys
-class BIT:
-    def __init__(self,n): self.n=n; self.bit=[0]*(n+1)
-    def add(self,i,x):
-        while i<=self.n: self.bit[i]+=x; i+=i&-i
-    def sum(self,i):
-        s=0
-        while i>0: s+=self.bit[i]; i-=i&-i
-        return s
-    def kth(self,k):
-        if k<1 or k>self.sum(self.n): return -1
-        pos=0; step=1<<self.n.bit_length()
-        while step:
-            nxt=pos+step
-            if nxt<=self.n and self.bit[nxt]<k: pos=nxt; k-=self.bit[nxt]
-            step//=2
-        return pos+1
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split())); 
-    if not data: return
-    m,q=data[0],data[1]; bit=BIT(m); cnt=[0]*(m+1); idx=2; out=[]
-    for _ in range(q):
-        t,x=data[idx],data[idx+1]; idx+=2
-        if t==1: cnt[x]+=1; bit.add(x,1)
-        elif t==2:
-            if cnt[x]: cnt[x]-=1; bit.add(x,-1)
-        elif t==3: out.append(str(bit.kth(x)))
-        else: out.append(str(bit.sum(x)))
-    print("\n".join(out))
-if __name__=="__main__": main()
-```
-
-## Tests that matter
-
-Test duplicate insert/erase and invalid ranks, negative/full-range updates, and
-points on rectangle boundaries with duplicate coordinates.
-
-# B. Range Assign and Add
-
-## Restatement
-
-Maintain an array under range assignment, range addition, and range-sum
-queries.
-
-## Observations, trace, and algorithm
-
-Two lazy tag kinds meet in the same node, so the only question is what happens
-when they overlap. Keep the invariant that a node never holds both: applying an
-assignment overwrites the node's sum and discards any pending addition, while
-applying an addition either folds into a pending assignment, by raising its
-value, or accumulates in the addition tag when no assignment is pending.
-
-On `1 2 4 7` followed by `2 1 3 -2`, positions `2` and `3` receive the
-assignment first and the addition second, so they end at `7-2=5`, while
-position `1` never saw the assignment and ends at `1-2=-1`.
-
-## Correctness proof and complexity
-
-Order matters, and the invariant preserves it: a pending addition below a new
-assignment can be dropped because the assignment overwrites whatever it would
-have produced, and a new addition applied to a pending assignment is the same
-as assigning the raised value. Each node therefore describes its subtree
-exactly, with one tag in `O(1)` space. Every update and query visits
-`O(log n)` nodes, memory `O(n)`. QED.
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std;
-using ll = long long;
-
-int n, q;
-vector<ll> sm, addv, asgv;
-vector<char> hasa;
-
-static void put_assign(int x, int len, ll v) {
-    sm[x] = v * len; asgv[x] = v; hasa[x] = 1; addv[x] = 0;
-}
-static void put_add(int x, int len, ll v) {
-    sm[x] += v * len;
-    if (hasa[x]) asgv[x] += v; else addv[x] += v;
-}
-static void push(int x, int l, int r) {
-    int m = (l + r) / 2, lc = 2 * x, rc = 2 * x + 1;
-    if (hasa[x]) {
-        put_assign(lc, m - l + 1, asgv[x]);
-        put_assign(rc, r - m, asgv[x]);
-        hasa[x] = 0; asgv[x] = 0;
-    }
-    if (addv[x]) {
-        put_add(lc, m - l + 1, addv[x]);
-        put_add(rc, r - m, addv[x]);
-        addv[x] = 0;
-    }
-}
-static void build(int x, int l, int r, vector<ll> &a) {
-    if (l == r) { sm[x] = a[l]; return; }
-    int m = (l + r) / 2;
-    build(2 * x, l, m, a); build(2 * x + 1, m + 1, r, a);
-    sm[x] = sm[2 * x] + sm[2 * x + 1];
-}
-static void upd(int x, int l, int r, int ql, int qr,
-                ll v, bool assign_) {
-    if (qr < l || r < ql) return;
-    if (ql <= l && r <= qr) {
-        if (assign_) put_assign(x, r - l + 1, v);
-        else put_add(x, r - l + 1, v);
-        return;
-    }
-    push(x, l, r);
-    int m = (l + r) / 2;
-    upd(2 * x, l, m, ql, qr, v, assign_);
-    upd(2 * x + 1, m + 1, r, ql, qr, v, assign_);
-    sm[x] = sm[2 * x] + sm[2 * x + 1];
-}
-static ll qry(int x, int l, int r, int ql, int qr) {
-    if (qr < l || r < ql) return 0;
-    if (ql <= l && r <= qr) return sm[x];
-    push(x, l, r);
-    int m = (l + r) / 2;
-    return qry(2 * x, l, m, ql, qr) + qry(2 * x + 1, m + 1, r, ql, qr);
-}
-
-int main() {
-    ios::sync_with_stdio(false); cin.tie(nullptr);
-    if (!(cin >> n >> q)) return 0;
-    vector<ll> a(n + 1);
-    for (int i = 1; i <= n; i++) cin >> a[i];
-    sm.assign(4 * n + 4, 0); addv.assign(4 * n + 4, 0);
-    asgv.assign(4 * n + 4, 0); hasa.assign(4 * n + 4, 0);
-    build(1, 1, n, a);
-    string out;
-    while (q--) {
-        int t, l, r; ll x;
-        cin >> t;
-        if (t == 3) {
-            cin >> l >> r;
-            out += to_string(qry(1, 1, n, l, r));
-            out += '
-';
-        } else {
-            cin >> l >> r >> x;
-            upd(1, 1, n, l, r, x, t == 1);
-        }
-    }
-    cout << out;
-}
-```
-
-## Full Python solution
-
-```python
-import sys
-
-def main():
-    data = sys.stdin.buffer.read().split()
-    if not data:
-        return
-    pos = 0
-    n = int(data[pos]); q = int(data[pos + 1]); pos += 2
-    a = [0] * (n + 1)
-    for i in range(1, n + 1):
-        a[i] = int(data[pos]); pos += 1
-
-    size = 4 * n + 4
-    sm = [0] * size
-    addv = [0] * size
-    asgv = [0] * size
-    hasa = [False] * size
-
-    def put_assign(x, ln, v):
-        sm[x] = v * ln; asgv[x] = v; hasa[x] = True; addv[x] = 0
-
-    def put_add(x, ln, v):
-        sm[x] += v * ln
-        if hasa[x]:
-            asgv[x] += v
-        else:
-            addv[x] += v
-
-    def push(x, l, r):
-        m = (l + r) // 2; lc = 2 * x; rc = 2 * x + 1
-        if hasa[x]:
-            put_assign(lc, m - l + 1, asgv[x])
-            put_assign(rc, r - m, asgv[x])
-            hasa[x] = False; asgv[x] = 0
-        if addv[x]:
-            put_add(lc, m - l + 1, addv[x])
-            put_add(rc, r - m, addv[x])
-            addv[x] = 0
-
-    def build(x, l, r):
-        if l == r:
-            sm[x] = a[l]; return
-        m = (l + r) // 2
-        build(2 * x, l, m); build(2 * x + 1, m + 1, r)
-        sm[x] = sm[2 * x] + sm[2 * x + 1]
-
-    def upd(x, l, r, ql, qr, v, is_assign):
-        if qr < l or r < ql:
-            return
-        if ql <= l and r <= qr:
-            if is_assign:
-                put_assign(x, r - l + 1, v)
-            else:
-                put_add(x, r - l + 1, v)
-            return
-        push(x, l, r)
-        m = (l + r) // 2
-        upd(2 * x, l, m, ql, qr, v, is_assign)
-        upd(2 * x + 1, m + 1, r, ql, qr, v, is_assign)
-        sm[x] = sm[2 * x] + sm[2 * x + 1]
-
-    def qry(x, l, r, ql, qr):
-        if qr < l or r < ql:
-            return 0
-        if ql <= l and r <= qr:
-            return sm[x]
-        push(x, l, r)
-        m = (l + r) // 2
-        return (qry(2 * x, l, m, ql, qr)
-                + qry(2 * x + 1, m + 1, r, ql, qr))
-
-    sys.setrecursionlimit(300000)
-    build(1, 1, n)
-    out = []
-    for _ in range(q):
-        t = int(data[pos]); pos += 1
-        if t == 3:
-            l = int(data[pos]); r = int(data[pos + 1]); pos += 2
-            out.append(qry(1, 1, n, l, r))
-        else:
-            l = int(data[pos]); r = int(data[pos + 1])
-            x = int(data[pos + 2]); pos += 3
-            upd(1, 1, n, l, r, x, t == 1)
-    sys.stdout.write("
-".join(map(str, out)) + ("
-" if out else ""))
-
-if __name__ == "__main__":
-    main()
-```
-
-## Tests that matter
-
-Assign then add over the same range, add then assign over the same range, a
-single position, the full range, and an assignment of a negative value over a
-region that already carries a pending addition.
-
-
-# C. Static Rectangle Count
-
-## Restatement
-
-Given points and rectangle queries, count points inside each rectangle.
-
-## Observations, trace, and algorithm
-
-Turn a rectangle into x-prefix events at x2 (+) and x1-1 (-). Sort events and
-points by x; a compressed-y Fenwick tree contains points already passed. For
-points (1,1),(2,3),(4,2), rectangle [1,3]x[1,3] sees two points at x=3 and zero
-at x=0.
-
-## Correctness proof and complexity
-
-At an event, the tree contains exactly points with x at most its threshold; its
-y-prefix difference counts the requested y interval. Subtracting events is
-rectangle inclusion-exclusion. Cost is `O((n+q)log(n+q))`, memory `O(n+q)`.
-QED.
-
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std; struct BIT{int n; vector<int>b; BIT(int n):n(n),b(n+1){} void add(int i,int x){for(;i<=n;i+=i&-i)b[i]+=x;} int sum(int i){int s=0;for(;i;i-=i&-i)s+=b[i];return s;}};
-struct E{int x,y1,y2,id,sgn; bool operator<(const E&o)const{return x<o.x;}};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,q;if(!(cin>>n>>q)) return 0; vector<pair<int,int>> pts(n); vector<int> ys; for(auto &p:pts){cin>>p.first>>p.second;ys.push_back(p.second);} vector<E> ev; for(int i=0;i<q;i++){int x1,y1,x2,y2;cin>>x1>>y1>>x2>>y2;ys.push_back(y1);ys.push_back(y2);ev.push_back({x2,y1,y2,i,1});ev.push_back({x1-1,y1,y2,i,-1});} sort(ys.begin(),ys.end());ys.erase(unique(ys.begin(),ys.end()),ys.end()); sort(pts.begin(),pts.end()); sort(ev.begin(),ev.end()); BIT bit(ys.size()); vector<int> ans(q); int p=0; for(auto e:ev){while(p<n&&pts[p].first<=e.x){int y=lower_bound(ys.begin(),ys.end(),pts[p].second)-ys.begin()+1; bit.add(y,1); p++;} int l=lower_bound(ys.begin(),ys.end(),e.y1)-ys.begin()+1; int r=upper_bound(ys.begin(),ys.end(),e.y2)-ys.begin(); ans[e.id]+=e.sgn*(bit.sum(r)-bit.sum(l-1));} for(int x:ans) cout<<x<<'\n';}
-```
-
-## Full Python solution
-
-```python
-import sys,bisect
-class BIT:
-    def __init__(self,n): self.n=n; self.bit=[0]*(n+1)
-    def add(self,i,x):
-        while i<=self.n: self.bit[i]+=x; i+=i&-i
-    def sum(self,i):
-        s=0
-        while i>0: s+=self.bit[i]; i-=i&-i
-        return s
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,q=data[0],data[1]; idx=2; pts=[]; ys=[]
-    for _ in range(n): x,y=data[idx],data[idx+1]; idx+=2; pts.append((x,y)); ys.append(y)
-    events=[]; ans=[0]*q
-    for qi in range(q):
-        x1,y1,x2,y2=data[idx],data[idx+1],data[idx+2],data[idx+3]; idx+=4; ys+= [y1,y2]
-        events.append((x2,y1,y2,qi,1)); events.append((x1-1,y1,y2,qi,-1))
-    ys=sorted(set(ys)); pts.sort(); events.sort(); bit=BIT(len(ys)); p=0
-    for x,y1,y2,qi,sgn in events:
-        while p<n and pts[p][0]<=x:
-            bit.add(bisect.bisect_left(ys,pts[p][1])+1,1); p+=1
-        l=bisect.bisect_left(ys,y1)+1; r=bisect.bisect_right(ys,y2)
-        ans[qi]+=sgn*(bit.sum(r)-bit.sum(l-1))
-    print("\n".join(map(str,ans)))
-if __name__=="__main__": main()
-```
-
-## Tests that matter
-
-Test duplicate insert/erase, invalid ranks, negative/full-range updates, and
-points on inclusive rectangle boundaries with duplicate coordinates.
-
-# D. Nested Ranges Count
-
-## Restatement and constraints
-
-For every one of `n` closed intervals `[l_i,r_i]`, count two quantities:
-
-1. how many *other* intervals it contains; and
-2. how many *other* intervals contain it.
-
-Interval `i` contains interval `j` exactly when `l_i <= l_j` and
-`r_j <= r_i`. Identical intervals therefore contain each other. With up to
-`200,000` intervals, comparing all ordered pairs is quadratic.
-
-## Ordering and worked trace
-
-Sort interval records by `(left ascending, right descending)`. The descending
-tie-break is essential: among intervals that begin together, a larger right
-endpoint can contain a smaller one.
-
-For intervals
-
-```text
-0: [1,6]
-1: [2,5]
-2: [2,5]
-3: [3,4]
-```
-
-the contains counts are `[3,2,2,0]`: interval 0 contains all other intervals;
-each copy of `[2,5]` contains the other copy and `[3,4]`. The contained-by
-counts are `[0,2,2,3]`.
-
-Compress right endpoints. To count **contained-by**, sweep the sorted list
-left to right. Earlier records have a left endpoint no larger than the current
-one. Among them, the number with right endpoint at least `r` is
-`processed - BIT.prefix(rank(r)-1)`.
-
-To count **contains**, sweep the same ordering right to left. Already processed
-records have a left endpoint no smaller than the current one. The number with
-right endpoint at most `r` is `BIT.prefix(rank(r))`.
-
-Equal pairs such as the two `[2,5]` records must be processed as a group in
-both sweeps. Compute the common answer against previously processed intervals,
-then add `group_size-1` because every duplicate contains, and is contained by,
-every other duplicate. Only then insert the whole group into the Fenwick tree.
+## Contract and reduction
+
+Maintain frequencies on the score axis. Repeated scores occupy repeated ranks,
+so a set cannot represent the answers. Section 40 already taught descending
+a count segment tree to select the k-th active item; here a leaf can hold
+more than one item. No Fenwick binary-lifting search is needed.
 
 ## Algorithm
 
 ```text
-sort records by (left increasing, right decreasing)
-compress all right endpoints
-
-for each equal-pair group from left to right:
-    base = processed - BIT.prefix(rank(right) - 1)
-    contained_by[index] = base + group_size - 1 for every index in group
-    insert group_size copies of rank(right) into BIT
-
-clear BIT
-for each equal-pair group from right to left:
-    base = BIT.prefix(rank(right))
-    contains[index] = base + group_size - 1 for every index in group
-    insert group_size copies of rank(right) into BIT
+build an all-zero count tree over scores 1..m
+insert x: increment leaf x and repair ancestor counts
+erase x: decrement only if leaf x is positive
+count <= x: sum the score interval [1,x]
+k-th: reject if k exceeds the root count
+       descend left if left.count >= k
+       otherwise subtract left.count and descend right
 ```
 
-## Correctness proof
+## Sample walkthrough
 
-Consider the forward sweep. Before a group is processed, the ordering ensures
-every inserted interval has left endpoint at most the group's left endpoint.
-The Fenwick tree counts their right endpoints. Subtracting the count strictly
-below the group's right endpoint from the number processed leaves exactly those
-with right endpoint at least it, which are exactly the previously inserted
-intervals containing this group. Equal-pair additions count every other
-identical interval, and delaying their insertion prevents double counting.
-Thus `contained_by` is correct.
+The sample builds `{3,3,5}`. Rank two belongs to score `3`. Erasing one
+copy leaves `{3,5}`, whose rank two is `5`. Counting scores at most `4`
+before that removal gives `2`.
 
-For the reverse sweep, every inserted interval has left endpoint at least the
-current group's left endpoint. The Fenwick prefix through its right endpoint
-counts exactly those whose right endpoint is at most it, which are exactly the
-inserted intervals contained by this group. The same equal-pair argument adds
-the identical intervals exactly once. Thus `contains` is correct. QED.
+## Correctness
 
-## Complexity, implementation notes, and tests
+Each leaf is the multiplicity of its score; each internal node is the sum
+of its children's counts. Insertions and valid removals preserve this by
+repairing the leaf-to-root path. At a selection node, the first `left.count`
+items belong to its left interval. Staying left or subtracting that count
+therefore preserves the desired rank. At a leaf, its score is the answer.
 
-Sorting/compression cost `O(n log n)`, and each Fenwick operation costs
-`O(log n)`, so total time is `O(n log n)` with `O(n)` memory. Keep original
-indices in the sorted records so answers can be printed in input order.
+## Complexity
 
-Test identical intervals, intervals sharing only one endpoint, disjoint
-intervals, and a fully nested chain. The common error is to update a duplicate
-immediately; that makes the first duplicate see none of its peers while later
-duplicates see too many.
+Build `O(m)`; each operation `O(log m)`; memory `O(m)`.
 
-## Full C++ solution
+## Implementation notes and targeted tests
+
+Do not remove an absent copy, and do not deduplicate repeated scores.
+Reject ranks above the total before descending. Test an empty multiset,
+multiple copies at one score, scores `1` and `m`, and invalid ranks.
+
+
+## C++ reference solution
+
+```cpp
+{{< include problems/a_dynamic_order_statistics/solution.cpp >}}
+```
+
+## Python reference solution
+
+```python
+{{< include problems/a_dynamic_order_statistics/solution.py >}}
+```
+
+# B. Range Assign and Add
+
+## Contract and reduction
+
+The operation contract combines the lazy propagation of section 37 with two
+update types. Addition and assignment do not commute. Keep a node sum, an
+optional assignment, and an addition when no assignment is pending. A boolean
+presence flag distinguishes assignment to zero from no assignment.
+
+## Algorithm
+
+```text
+assign(node,x): sum = x*length; assignment = x; has_assignment = true; add = 0
+add(node,x): sum += x*length
+             if has_assignment: assignment += x
+             else: add += x
+partial operation: push pending tags to children, recurse, pull sums
+full-cover query: return node.sum
+```
+
+## Sample walkthrough
+
+The sample starts with sum `15`. Assigning positions `2..4` to `7` gives
+`1,7,7,7,5`, sum `27`. Adding `-2` to positions `1..3` gives
+`-1,5,5,7,5`, sum `21`; positions `2..3` sum to `10`.
+
+## Correctness
+
+The node sum describes its current interval, including its pending update.
+An assignment replaces every prior value and pending update. An addition
+shifts each value, so the sum increases by `x*length`; folding it into a
+pending assignment describes the same transformation. Pushing applies that
+transformation to both children, and pulling sums their disjoint intervals.
+Induction on tree recursion proves every range update and sum query.
+
+## Complexity
+
+Build `O(n)`; every operation `O(log n)`; memory `O(n)`.
+
+## Implementation notes and targeted tests
+
+Applying assignment without clearing earlier additions changes update order.
+Do not treat zero as an absent assignment. Test add-then-assign,
+assign-then-add, overlapping intervals, singleton ranges, and negative values.
+Use 64-bit sums, including the multiplication by segment length.
+
+
+## C++ reference solution
+
+```cpp
+{{< include problems/b_range_assign_add/solution.cpp >}}
+```
+
+## Python reference solution
+
+```python
+{{< include problems/b_range_assign_add/solution.py >}}
+```
+
+# C. Static Rectangle Count
+
+## Contract and reduction
+
+All sensors and queries are fixed, allowing the offline sweep of section 13.
+For rectangle `[a,c] x [b,d]`, subtract the sensors in its y-range with
+`x <= a-1` from those with `x <= c`. Compress y-coordinates and use a
+Fenwick tree to count the active sensors in `[b,d]`.
+
+## Algorithm
+
+```text
+create events (c,b,d,id,+1) and (a-1,b,d,id,-1)
+sort sensors by x; sort events by their x bound
+for each event X:
+    insert every not-yet-inserted sensor with x <= X into the y Fenwick
+    answer[id] += sign * (prefix(upper_bound(d)) - prefix(lower_bound(b)))
+print answers by original query id
+```
+
+## Sample walkthrough
+
+The first sample rectangle contains `(1,1)` and `(2,3)`, giving `2`.
+The second contains `(4,2)` and `(5,5)`, also giving `2`. There is no
+sensor on the third rectangle's row `y=4`, so its answer is `0`.
+
+## Correctness
+
+Before an event at `X`, the active set is exactly the sensors with `x <= X`.
+This holds initially and is preserved by inserting all eligible sensors in
+sorted order. The Fenwick prefix difference includes exactly y-values in
+`[b,d]`. Subtracting the event at `a-1` removes exactly sensors left of the
+rectangle. Each remaining sensor is counted once, including boundary points
+and coincident sensors.
+
+## Complexity
+
+Sorting and processing cost `O((n+q) log(n+q))`; memory `O(n+q)`.
+
+## Implementation notes and targeted tests
+
+Insert sensors with equal x before answering an event at that x. Do not
+require query boundaries to occur in the compressed coordinates. Use separate
+lower and upper bounds for inclusive y-ranges. Test repeated points, a point
+on each border, zero-width rectangles, and empty results.
+
+
+## C++ reference solution
+
+```cpp
+{{< include problems/c_static_rectangle_count/solution.cpp >}}
+```
+
+## Python reference solution
+
+```python
+{{< include problems/c_static_rectangle_count/solution.py >}}
+```
+
+# D. Nested Ranges Count
+
+## Contract and reduction
+
+Sort intervals by increasing left endpoint, breaking ties by decreasing right
+endpoint. Use a Fenwick tree over compressed right endpoints. In a forward
+sweep, earlier intervals with right endpoint at least the current endpoint
+contain it. In a reverse sweep, later intervals with right endpoint at most
+the current endpoint are contained by it. Identical intervals must be handled
+as a group, because they count as containing each other.
+
+## Algorithm
+
+```text
+sort (left ascending, right descending); group identical pairs
+forward group of size s and right rank r:
+    contained_by = seen - prefix(r-1) + s-1
+    then insert all s copies
+clear Fenwick
+reverse group of size s and right rank r:
+    contains = prefix(r) + s-1
+    then insert all s copies
+restore original interval order
+```
+
+## Sample walkthrough
+
+For `[1,6]`, two copies of `[2,5]`, and `[3,4]`, the outer interval
+contains three others. Each `[2,5]` contains its duplicate and `[3,4]`,
+giving two; it is contained by the outer interval and its duplicate, also two.
+The inner interval is contained by all three others.
+
+## Correctness
+
+In the forward sweep, every inserted interval has left endpoint no larger
+than the current one. Its right endpoint is at least the current right
+endpoint exactly when it contains the current interval. The reverse sweep
+has the opposite left-endpoint condition, and its prefix selects exactly
+contained intervals. Processing a whole identical group before insertion
+avoids arbitrary within-group order; each member receives `s-1` contributions
+from its other identical members and none from itself.
+
+## Complexity
+
+Sorting and both sweeps cost `O(n log n)`; memory `O(n)`.
+
+## Implementation notes and targeted tests
+
+Sorting equal-left intervals by increasing right endpoint breaks the sweep
+condition. Inserting identical copies one at a time gives asymmetric answers.
+Test all intervals identical, shared left or right endpoints, disjoint
+intervals, and a deeply nested family.
+
+
+## C++ reference solution
 
 ```cpp
 {{< include problems/d_nested_ranges_count/solution.cpp >}}
 ```
 
-## Full Python solution
+## Python reference solution
 
 ```python
 {{< include problems/d_nested_ranges_count/solution.py >}}
 ```
 
-# Progressive challenge solutions
-
 # E. Subtree Add, Point Query
 
-An Euler tour assigns every subtree one contiguous interval
-`[tin[u], tout[u]]`. Represent a subtree addition as two changes in a Fenwick
-difference array: `+x` at `tin[u]` and `-x` after `tout[u]`. Its prefix sum at
-`tin[v]` is exactly the total of updates whose subtree intervals contain `v`;
-add that to the original value. The interval property proves correctness.
-Preprocessing is `O(n)` and each operation is `O(log n)`.
+## Contract and reduction
+
+Section 41 maps subtree `u` to one Euler interval. Adding to that interval
+and querying a single position is the difference-array/Fenwick combination
+from sections 4 and 36. Keep original values separately from accumulated
+update differences.
+
+## Algorithm
+
+```text
+record tin,tout with DFS
+A u x: add +x at tin[u], and -x at tout[u] if within the array
+Q u: original[u] + prefix(tin[u]) of the update difference array
+```
+
+## Sample walkthrough
+
+Adding `10` to subtree `3` changes vertices `3,4,5`. Vertex `4` becomes
+`14`, while vertex `2` stays `2`. Subtracting one from the root's subtree
+then leaves vertex `3` at `12`.
+
+## Correctness
+
+Subtree contiguity makes each update an interval addition. Its two
+boundary events contribute `x` to a prefix exactly at positions inside
+that interval and zero outside it. Adding all preceding update events is
+linear, so the prefix at `tin[u]` is the accumulated change to vertex `u`.
+Adding its initial value therefore yields its current value.
+
+## Complexity
+
+Preprocessing `O(n)`; each operation `O(log n)`; memory `O(n)`.
+
+## Implementation notes and targeted tests
+
+A preorder subtree interval differs from an entry-and-exit tour of length
+`2n`. Handle the endpoint beyond the array explicitly. Test root updates,
+leaf updates, negative additions, and overlapping ancestor subtrees.
+
+
+Use iterative DFS for the input tree in C++ and Python so a long chain does
+not exhaust the call stack. Segment-tree recursion has logarithmic depth.
+
+## C++ reference solution
 
 ```cpp
 {{< include problems/e_subtree_add_point_query/solution.cpp >}}
 ```
 
+## Python reference solution
+
 ```python
 {{< include problems/e_subtree_add_point_query/solution.py >}}
 ```
 
-# F. Dynamic Path Maximum
+# F. Dynamic Subtree Maximum
 
-Heavy-light decomposition partitions any tree path into `O(log n)` contiguous
-segments of one base array. A segment tree stores the maximum in that array;
-assignments are point updates. While the chain heads differ, consume the
-deeper head-to-vertex segment, then finish the final common-chain segment.
-These pieces are disjoint and concatenate to the original path, so their
-maximum is the path maximum. Updates cost `O(log n)`, queries
-`O(log^2 n)`, and memory `O(n)`.
+## Contract and reduction
 
-```cpp
-{{< include problems/f_dynamic_path_maximum/solution.cpp >}}
+The query is a subtree maximum, while updates assign a single vertex.
+Flatten the rooted tree using section 41, then apply the ordinary point-update,
+range-query segment tree of section 37 to the Euler array. No tree-path
+decomposition is required.
+
+## Algorithm
+
+```text
+flatten the tree; base[tin[u]] = initial[u]
+build a maximum segment tree
+U u x: assign base[tin[u]] = x
+Q u: query maximum on [tin[u],tout[u])
 ```
 
+## Sample walkthrough
+
+Subtree `3` has values `3,4,5`, maximum `5`. Assigning vertex `4` to
+`-10` leaves maximum `5`. Assigning vertex `5` to `-2` leaves values
+`3,-10,-2`, maximum `3`.
+
+## Correctness
+
+The Euler interval contains exactly the subtree vertices. Each segment-tree
+node stores the maximum of its interval. A point assignment changes one leaf;
+recomputing ancestors preserves the invariant. Query nodes partition the
+subtree interval, so taking their maximum gives the largest current subtree
+value. A leaf query includes the vertex itself.
+
+## Complexity
+
+Build and flatten `O(n)`; updates and queries `O(log n)`; memory `O(n)`.
+
+## Implementation notes and targeted tests
+
+Zero is not a neutral maximum when values are negative. Assignment must
+replace, not add. Test an all-negative tree, decreasing the unique maximum,
+root and leaf queries, a single vertex, chains, and stars. DFS must be iterative
+for the largest chains; segment recursion remains logarithmic.
+
+
+Use iterative DFS for the input tree in C++ and Python so a long chain does
+not exhaust the call stack. Segment-tree recursion has logarithmic depth.
+
+## C++ reference solution
+
+```cpp
+{{< include problems/f_dynamic_subtree_maximum/solution.cpp >}}
+```
+
+## Python reference solution
+
 ```python
-{{< include problems/f_dynamic_path_maximum/solution.py >}}
+{{< include problems/f_dynamic_subtree_maximum/solution.py >}}
 ```
 
 # G. Subtree Value Count
 
-Flatten the tree in preorder, making a subtree a contiguous interval. Build a
-merge-sort tree: every node stores the sorted values in its positional
-segment. Decompose a query interval into `O(log n)` nodes and use two binary
-searches in each to count values in `[lo,hi]`. The selected nodes partition
-the subtree interval, so their counts neither omit nor duplicate a vertex.
-Time is `O(log^2 n)` per query and memory `O(n log n)`.
+## Contract and reduction
+
+The values and all queries are static. Combine Euler intervals from section
+41 with the offline threshold sweep from sections 13 and 36. Count values
+at most `hi` and subtract
+values at most `lo-1` inside the same subtree interval.
+
+## Algorithm
+
+```text
+flatten the tree and sort vertices by value
+query (u,lo,hi) creates (hi,u,id,+1) and (lo-1,u,id,-1)
+sort events by threshold
+before event T, activate all vertices with value <= T
+activation adds 1 at that vertex's Euler position in one Fenwick tree
+answer[id] += sign * count in [tin[u],tout[u])
+```
+
+## Sample walkthrough
+
+Subtree `3` has values `4,2,3`; the interval `[2,3]` selects two.
+The entire tree has two values in `[4,5]`. Vertex `2` alone has value `1`,
+which is inside `[0,10]`.
+
+## Correctness
+
+At threshold `T`, the active positions are exactly the vertices with value
+at most `T`. The Fenwick interval count restricts that set to exactly the
+requested subtree. Subtracting the count at `lo-1` removes all values below
+`lo`, while retaining values equal to either endpoint. Each vertex is
+activated once and contributes separately even if values repeat.
+
+## Complexity
+
+DFS `O(n)`; sorting and sweep `O((n+q) log(n+q))`; memory `O(n+q)`.
+
+## Implementation notes and targeted tests
+
+Index the Fenwick by position, not value: values determine activation order,
+positions determine membership in the subtree. Activate all equal values
+before answering their threshold. Test duplicate values, `lo=hi`, no matches,
+all matches, and negative bounds. Queries must be restored to input order.
+
+
+Use iterative DFS for the input tree in C++ and Python so a long chain does
+not exhaust the call stack. Segment-tree recursion has logarithmic depth.
+
+## C++ reference solution
 
 ```cpp
 {{< include problems/g_subtree_value_count/solution.cpp >}}
 ```
 
+## Python reference solution
+
 ```python
 {{< include problems/g_subtree_value_count/solution.py >}}
 ```
 
-# H. Connectivity Countdown
+# H. Incremental Connectivity
 
-DSU cannot delete edges, but reversing time turns every deletion into an
-addition. First mark all edges ever deleted and build a DSU from the edges
-that survive to the end. Scan operations backward: answer a query in the
-current DSU, and undo a forward deletion by joining that edge.
+## Contract and reduction
 
-Before each reversed operation, the DSU contains exactly the edges present
-immediately after that operation in forward time. This is true at the end by
-construction; reversing a deletion adds exactly its one missing edge, while a
-query changes nothing. Induction proves every recorded answer correct. The
-total time is `O((n+m+q) alpha(n))` and memory is `O(n+m+q)`.
+Only edges are added, so this is precisely the DSU contract from section 18.
+Maintain the connected components as disjoint sets. Use union by size and
+path compression; neither reverse time nor rollback is necessary.
 
-```cpp
-{{< include problems/h_connectivity_countdown/solution.cpp >}}
-```
-
-```python
-{{< include problems/h_connectivity_countdown/solution.py >}}
-```
-
-# I. Persistent Version Sums
-
-A point assignment changes only one root-to-leaf path of a segment tree.
-Create new nodes on that path and share every untouched subtree with the old
-root. Each root therefore describes one immutable version. Induction on a
-node's interval shows its sum uses the updated child exactly when the position
-lies there and otherwise uses the old child, so the new root represents the
-requested copied-and-edited array. Build time is `O(n)`; every update and
-query is `O(log n)`; memory is `O(n+q log n)`.
-
-```cpp
-{{< include problems/i_persistent_version_sums/solution.cpp >}}
-```
-
-```python
-{{< include problems/i_persistent_version_sums/solution.py >}}
-```
-
-# J. Subtree K-th Smallest
-
-Flatten the tree and build persistent frequency roots for successive prefixes
-of the Euler array. The multiset of subtree `[l,r)` is the frequency difference
-between roots `r` and `l`. At each value-tree node, subtract the left-child
-counts: if at least `k` elements lie left, descend left; otherwise subtract
-that count and descend right. This preserves the rank of the target until its
-compressed value leaf is reached. Preprocessing and memory are
-`O(n log n)`; each query is `O(log n)`.
-
-```cpp
-{{< include problems/j_subtree_kth_smallest/solution.cpp >}}
-```
-
-```python
-{{< include problems/j_subtree_kth_smallest/solution.py >}}
-```
-
-# K. Sparse Rectangle Sums
-
-Collect all update points before processing. Compress their x-coordinates.
-For each outer Fenwick index, store only the y-coordinates of updates that can
-reach that index, with an inner Fenwick tree over those coordinates. A point
-update follows both Fenwick directions; `prefix(x,y)` sums precisely points
-with both coordinates bounded. Inclusion--exclusion of four prefixes gives an
-inclusive rectangle. Each operation costs `O(log^2 q)` and the nested trees
-use `O(q log q)` memory. Query boundaries need not occur among update
-coordinates: `upper_bound` handles them.
-
-```cpp
-{{< include problems/k_sparse_rectangle_sums/solution.cpp >}}
-```
-
-```python
-{{< include problems/k_sparse_rectangle_sums/solution.py >}}
-```
-
-# L. Path Add, Path Maximum
-
-Use heavy-light decomposition as in F, but place a lazy range-add/range-max
-segment tree on the base array. Split each requested path into chain segments;
-apply the range addition to every piece or take the maximum of their range
-maxima. The HLD pieces partition exactly the path, and the lazy tree invariant
-says a node maximum already includes every addition covering that node.
-Together these facts prove both operations correct.
-
-There are `O(log n)` pieces, each costing `O(log n)`, so every operation is
-`O(log^2 n)` and memory is `O(n)`. Negative values require a genuine negative
-infinity neutral element, not zero.
-
-```cpp
-{{< include problems/l_path_add_path_maximum/solution.cpp >}}
-```
-
-```python
-{{< include problems/l_path_add_path_maximum/solution.py >}}
-```
-
-<!-- Duplicate workshop hidden from the rendered editorial.
-# Detailed upsolve workshop
-
-## A. Dynamic Order Statistics
-
-**Constraints and diagnosis.** Values lie in `1..m` and up to about `2e5`
-operations mix insertion, erase-one-copy, k-th selection, and prefix counts.
-A sorted vector has linear insertion/removal; a Fenwick tree over value space
-has all required operations in `O(log m)`.
-
-**Trace and pseudocode.** Insert `3,5,3`: multiplicity prefixes make rank two
-resolve to value three and `count <= 4` equal two. Erase one three; rank two
-then resolves to five.
+## Algorithm
 
 ```text
-insert x: count[x]++, BIT.add(x,+1)
-erase x: if count[x]>0, count[x]--, BIT.add(x,-1)
-kth k: first index with BIT.prefix(index) >= k, else -1
-count <= x: BIT.prefix(x)
+start each vertex in its own component
+A u v: find both representatives; union them if different
+Q u v: print YES exactly when representatives are equal
 ```
 
-**Proof and complexity.** BIT prefix values are exactly cumulative
-multiplicities. Its binary lifting finds the smallest prefix reaching k, so it
-returns the k-th multiset value. Every operation is `O(log m)`, memory `O(m)`.
-Use one-based tree indices, reject invalid k, and test duplicates, erasing an
-absent value, and x outside useful count boundaries.
+## Sample walkthrough
 
-## B. Range Assign and Add
+Initially `1` and `3` are separate. After edges `1-2` and `2-3`, they
+share a component. Vertex `4` remains separate until edge `3-4` is added.
 
-**Constraints and diagnosis.** With `n,q` near `2e5`, touching every position of
-an updated interval is quadratic. Both update kinds must therefore become lazy
-tags on a segment tree, and the real work is deciding how the two tags compose.
+## Correctness
 
-**Trace and pseudocode.** Keep at most one pending tag per node.
+Initially the components are isolated vertices, matching the empty graph.
+Adding an edge connects the two endpoint components and no others, exactly
+the effect of a DSU union. If they are already equal, a repeated edge or
+self-loop changes no component. Induction over insertions proves that the
+DSU sets are exactly the graph's connected components at every query.
+
+## Complexity
+
+Initialization `O(n)`; all operations `O(q alpha(n))` amortized;
+memory `O(n)`. Here `alpha` is the inverse Ackermann function.
+
+## Implementation notes and targeted tests
+
+Do not count a repeated edge as a new component merge. A vertex is connected
+to itself even without edges. Test repeated edges, self-loops, a growing
+chain, isolated vertices, and queries before the first insertion.
+
+
+## C++ reference solution
+
+```cpp
+{{< include problems/h_incremental_connectivity/solution.cpp >}}
+```
+
+## Python reference solution
+
+```python
+{{< include problems/h_incremental_connectivity/solution.py >}}
+```
+
+# I. Subtree Assign, Add, and Sum
+
+## Contract and reduction
+
+Compose the Euler mapping from section 41 with the lazy sum tree used in B.
+The new task adds a tree-shaped query set; its assignment/addition semantics
+are unchanged. Convert each subtree to one interval, then reuse B's invariant.
+
+## Algorithm
 
 ```text
-put_assign(x, len, v): sum = v*len; asg = v; has_asg = true; add = 0
-put_add(x, len, v):    sum += v*len
-                       if has_asg: asg += v
-                       else:       add += v
-push(x): if has_asg: put_assign on both children, clear has_asg
-         if add:     put_add    on both children, clear add
+flatten the tree and build the Euler array
+1 u x: lazy-assign interval [tin[u],tout[u]) to x
+2 u x: lazy-add x to that interval
+3 u: query its sum
+compose and push assignment/addition tags as in B
 ```
 
-**Proof and complexity.** An assignment overwrites whatever a pending addition
-would have produced, so discarding that addition is safe; an addition on top of
-a pending assignment is the same as assigning the raised value, so folding it in
-is safe. A node therefore never needs to remember an ordering. Updates and
-queries are `O(log n)`, memory `O(n)`. Use `long long`; test assign-then-add and
-add-then-assign over the same interval, since a solution that queues the two
-tags independently passes one order and fails the other.
+## Sample walkthrough
+
+Subtree `3` initially sums to `12`. Assigning `7` to it gives
+`7,7,7`; adding `-2` to the leaf subtree of `4` leaves `7,5,7`, sum `19`.
+Vertices `1,2` add `3`, so the entire tree sums to `22`.
+
+## Correctness
+
+Euler contiguity gives exactly the affected vertex set for each operation.
+B's tag rules assign or add the specified amount to every entry in that
+interval, maintaining every node sum. Since the Euler mapping is one-to-one,
+the interval sum equals the sum of the subtree's current vertex values.
+The mapping and the lazy-tree proof establish separate parts of correctness.
+
+## Complexity
+
+Flatten and build `O(n)`; each operation `O(log n)`; memory `O(n)`.
+
+## Implementation notes and targeted tests
+
+Keep interval conventions consistent: these implementations adapt B's
+inclusive 1-based segment-tree interval to `[tin[u]+1,tout[u]]`.
+Test assignments to zero, an ancestor assignment after a descendant addition,
+the opposite order, leaves, and whole-tree operations. Use 64-bit products.
 
 
-## C. Static Rectangle Count
+Use iterative DFS for the input tree in C++ and Python so a long chain does
+not exhaust the call stack. Segment-tree recursion has logarithmic depth.
 
-**Constraints and diagnosis.** Many static points and rectangle queries make a
-scan per rectangle too slow. Turn each rectangle into two x-prefix events:
-`count(x<=x2,y1<=y<=y2) - count(x<=x1-1,y1<=y<=y2)`.
+## C++ reference solution
 
-**Trace and pseudocode.** With points `(1,1),(2,3),(4,2)`, rectangle
-`[1,3]x[1,3]` has a + event at x=3 seeing two points and a - event at x=0
-seeing none, hence two. Compress all point and query y coordinates.
+```cpp
+{{< include problems/i_subtree_assign_add_sum/solution.cpp >}}
+```
+
+## Python reference solution
+
+```python
+{{< include problems/i_subtree_assign_add_sum/solution.py >}}
+```
+
+# J. Static Vertex Path Sums
+
+## Contract and reduction
+
+The vertex values never change, so root-prefix sums suffice alongside LCA
+from section 41. Let `S[u]` include every vertex from root `1` through `u`.
+For `w=lca(u,v)`, the required sum is
+`S[u]+S[v]-2*S[w]+a[w]`.
+
+## Algorithm
 
 ```text
-sort points and events by x
-before an event x: add every point with point.x <= x into y-BIT
-event contribution = BIT.sum(y2)-BIT.sum(y1-1), multiplied by sign
+DFS: compute parent, depth, and S[child] = S[parent] + a[child]
+build the usual binary-lifting ancestor table
+for query u,v:
+    w = lca(u,v)
+    print S[u] + S[v] - 2*S[w] + a[w]
 ```
 
-**Proof and complexity.** At every event the BIT contains exactly points with
-x no larger than its threshold. Its y-prefix difference counts precisely the
-needed y interval; subtracting the two threshold counts is rectangle
-inclusion-exclusion. Sorting and all BIT operations cost `O((n+q)log(n+q))`,
-memory `O(n+q)`. Keep query boundaries inclusive via `x1-1` and `upper_bound`
-for y2. Test boundary points, duplicate coordinates, and empty rectangles.
+## Sample walkthrough
 
--->
-# Testing discussion
+For query `2,4`, the LCA is `1`: root sums are `3` and `8`, so
+`3+8-2*1+1=10`. For `4,5`, the LCA is `3`; the answer is `4+3+5=12`.
+For `3,3`, the formula returns `a[3]=3`.
 
-Run `CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py`.
-For small random cases, compare every new structure with its direct model:
-explicit subtree/path updates, BFS connectivity, copied version arrays, sorted
-subtree values, and a point dictionary for rectangle sums. These oracles expose
-incorrect Euler orders, rollback boundaries, persistence sharing errors, and
-two-dimensional compression mistakes.
+## Correctness
 
-# What to carry forward
+The two root prefixes both contain the root-to-`w` prefix. Subtracting it
+twice leaves the two branches strictly below `w`; neither branch contains
+`w`. Adding `a[w]` restores that shared endpoint once. The two branches and
+`w` partition the simple path, proving the formula, including `u=v`.
 
-Fenwick trees are prefix-summary engines. Pair them when a range update needs
-an extra weighted correction, binary-lift them when a prefix count becomes an
-order statistic, and combine one with a sweep when one coordinate can be made
-monotone.
+## Complexity
 
-Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.
+Preprocessing `O(n log n)`; each query `O(log n)`; memory `O(n log n)`.
+
+## Implementation notes and targeted tests
+
+Do not apply an edge-distance formula directly to inclusive vertex values:
+the shared ancestor must be restored. This formula relies on static values;
+assignments would invalidate precomputed root sums. Test equal endpoints,
+ancestor endpoints, negative sums, an LCA at the root, and a long chain.
+
+
+Use iterative DFS for the input tree in C++ and Python so a long chain does
+not exhaust the call stack. Segment-tree recursion has logarithmic depth.
+
+## C++ reference solution
+
+```cpp
+{{< include problems/j_static_vertex_path_sums/solution.cpp >}}
+```
+
+## Python reference solution
+
+```python
+{{< include problems/j_static_vertex_path_sums/solution.py >}}
+```
+
+# K. Static Weighted Rectangles
+
+## Contract and reduction
+
+Reuse C's offline rectangle reduction, but insert the weight of each point
+rather than the count `1`. The point set is fixed; this task needs only one
+ordinary Fenwick tree. Negative weights do not affect the sweep order.
+
+## Algorithm
+
+```text
+sort fixed points by x; compress their y coordinates
+create +1 event at c and -1 event at a-1 for each rectangle [a,c] x [b,d]
+insert each eligible point's weight at its y rank
+for each event, accumulate its sign times the Fenwick sum in [b,d]
+restore query order
+```
+
+## Sample walkthrough
+
+Weights `5` and `-2` at `(1,1)` contribute `3` together. Including the
+point of weight `4` at `(2,3)` gives the first answer `7`. The second
+rectangle includes only that point, giving `4`; the third gives `3`.
+
+## Correctness
+
+The active Fenwick prefix is the sum of weights with bounded x and y,
+because each eligible point is inserted exactly once. Prefix subtraction
+selects the inclusive y-range. Subtracting the event at `a-1` removes the
+contribution from points left of the rectangle. This is a linear identity
+for weights of either sign, and coincident points remain separate contributions.
+
+## Complexity
+
+Sorting and processing `O((n+q) log(n+q))`; memory `O(n+q)`.
+
+## Implementation notes and targeted tests
+
+Use 64-bit Fenwick sums and answers. Do not discard negative weights or
+combine coincident points by keeping just one weight. Query bounds can be
+absent from compression. Test cancellations, all-negative weights, coincident
+points, degenerate rectangles, and coordinates near both extremes.
+
+
+## C++ reference solution
+
+```cpp
+{{< include problems/k_static_weighted_rectangles/solution.cpp >}}
+```
+
+## Python reference solution
+
+```python
+{{< include problems/k_static_weighted_rectangles/solution.py >}}
+```
+
+# L. Subtree Add, Subtree Maximum
+
+## Contract and reduction
+
+Map subtrees to Euler intervals and use section 37's lazy range-add tree
+with a maximum summary. Uniform addition preserves which value is largest:
+`max(a_i+x)=max(a_i)+x`. Thus adding to a fully covered node changes its
+maximum by `x`, rather than by `x*length` as a sum tree would.
+
+## Algorithm
+
+```text
+flatten the tree; build maximum summaries
+apply(node,x): maximum += x; pending_add += x
+partial operation: push pending_add to both children; clear it; recurse
+A u x: range-add on [tin[u],tout[u])
+Q u: range-maximum on that interval
+```
+
+## Sample walkthrough
+
+Subtree `3` starts with maximum `5`. Adding `5` gives values `8,9,10`,
+so the whole-tree maximum is `10`. Subtracting `20` from the whole tree
+leaves subtree `3` at `-12,-11,-10`, maximum `-10`.
+
+## Correctness
+
+Each node maximum includes all updates covering its full interval. Applying
+a uniform addition shifts that maximum by exactly the added amount.
+Pushing shifts both child summaries, preserving their actual values; merging
+with maximum restores the parent summary after partial updates. Euler
+contiguity selects exactly the subtree vertices, so the range operation has
+the required effect and returns exactly the subtree maximum.
+
+## Complexity
+
+Flatten and build `O(n)`; each operation `O(log n)`; memory `O(n)`.
+
+## Implementation notes and targeted tests
+
+Adding `x*length` to a maximum confuses it with a sum. Push before a
+partial query as well as before a partial update. Zero is not a neutral
+maximum. Test all-negative answers, root additions followed by leaf queries,
+nested subtree updates, cancellation, chains, and stars.
+
+
+Use iterative DFS for the input tree in C++ and Python so a long chain does
+not exhaust the call stack. Segment-tree recursion has logarithmic depth.
+
+## C++ reference solution
+
+```cpp
+{{< include problems/l_subtree_add_maximum/solution.cpp >}}
+```
+
+## Python reference solution
+
+```python
+{{< include problems/l_subtree_add_maximum/solution.py >}}
+```
+
+# Stress testing and what to carry forward
+
+The package generators compare against direct multiset/array scans, explicit
+subtree enumeration, path reconstruction, rectangle scans, and graph searches.
+These oracles avoid reproducing the optimized decomposition. Fixed samples
+check the stated examples; random tests emphasize boundaries and update order.
+Use large chains and large operation counts to check stack safety and cost.
+
+Run both reference languages with:
+
+```bash
+CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py --keep-going
+```
+
+Carry forward the habit of proving the mapping separately from the stored
+invariant. The same established structure answers different questions after
+a valid reduction, but a convenient-looking interval or prefix formula is
+not sufficient without that proof.

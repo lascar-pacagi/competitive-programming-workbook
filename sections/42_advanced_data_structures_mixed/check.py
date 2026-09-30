@@ -18,13 +18,13 @@ PROBLEMS = [
     SECTION / "problems" / "c_static_rectangle_count",
     SECTION / "problems" / "d_nested_ranges_count",
     SECTION / "problems" / "e_subtree_add_point_query",
-    SECTION / "problems" / "f_dynamic_path_maximum",
+    SECTION / "problems" / "f_dynamic_subtree_maximum",
     SECTION / "problems" / "g_subtree_value_count",
-    SECTION / "problems" / "h_connectivity_countdown",
-    SECTION / "problems" / "i_persistent_version_sums",
-    SECTION / "problems" / "j_subtree_kth_smallest",
-    SECTION / "problems" / "k_sparse_rectangle_sums",
-    SECTION / "problems" / "l_path_add_path_maximum",
+    SECTION / "problems" / "h_incremental_connectivity",
+    SECTION / "problems" / "i_subtree_assign_add_sum",
+    SECTION / "problems" / "j_static_vertex_path_sums",
+    SECTION / "problems" / "k_static_weighted_rectangles",
+    SECTION / "problems" / "l_subtree_add_maximum",
 ]
 
 def main() -> int:

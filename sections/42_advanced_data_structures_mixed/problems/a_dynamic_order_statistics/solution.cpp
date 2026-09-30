@@ -1,3 +1,11 @@
 #include <bits/stdc++.h>
-using namespace std; struct BIT{int n; vector<int> b; BIT(int n):n(n),b(n+1){} void add(int i,int x){for(;i<=n;i+=i&-i)b[i]+=x;} int sum(int i){int s=0;for(;i;i-=i&-i)s+=b[i];return s;} int kth(int k){if(k<1||k>sum(n)) return -1; int pos=0,step=1; while((step<<1)<=n) step<<=1; for(;step;step>>=1){int nx=pos+step; if(nx<=n&&b[nx]<k){pos=nx;k-=b[nx];}} return pos+1;}};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int m,q;if(!(cin>>m>>q)) return 0; BIT bit(m); vector<int> cnt(m+1); while(q--){int t,x;cin>>t>>x; if(t==1){cnt[x]++;bit.add(x,1);} else if(t==2){if(cnt[x]){cnt[x]--;bit.add(x,-1);}} else if(t==3) cout<<bit.kth(x)<<'\n'; else cout<<bit.sum(x)<<'\n';}}
+using namespace std;
+int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int m,q;if(!(cin>>m>>q))return 0;
+int size=1;while(size<m)size*=2;vector<int> count(2*size);
+auto change=[&](int x,int delta){int z=size+x-1;count[z]+=delta;for(z/=2;z;z/=2)count[z]=count[2*z]+count[2*z+1];};
+auto prefix=[&](int x){int l=size,r=size+x,total=0;while(l<r){if(l&1)total+=count[l++];if(r&1)total+=count[--r];l/=2;r/=2;}return total;};
+while(q--){int op,x;cin>>op>>x;
+if(op==1)change(x,1);else if(op==2){if(count[size+x-1])change(x,-1);}
+else if(op==4)cout<<prefix(x)<<'\n';else if(x>count[1])cout<<-1<<'\n';
+else{int z=1;while(z<size){if(count[2*z]>=x)z*=2;else{x-=count[2*z];z=2*z+1;}}cout<<z-size+1<<'\n';}}
+}

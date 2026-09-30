@@ -16,16 +16,17 @@ int main() {
         for (auto it=g[u].rbegin();it!=g[u].rend();++it)
             if (*it!=p) stack.emplace_back(*it,u,false);
     }
-    vector<int> vertices(n);iota(vertices.begin(),vertices.end(),0);
-    sort(vertices.begin(),vertices.end(),[&](int u,int v){return original[u]<original[v];});
-    vector<tuple<ll,int,int,int>> events;vector<int> ans(q),bit(n+1);
-    for(int i=0;i<q;++i){int u;ll lo,hi;cin>>u>>lo>>hi;--u;events.emplace_back(hi,u,i,1);events.emplace_back(lo-1,u,i,-1);}
-    sort(events.begin(),events.end());
-    auto prefix=[&](int i){int total=0;for(;i;i-=i&-i)total+=bit[i];return total;};
-    int current=0;
-    for(auto [bound,u,id,sign]:events){
-        while(current<n&&original[vertices[current]]<=bound){for(int j=tin[vertices[current]]+1;j<=n;j+=j&-j)++bit[j];++current;}
-        ans[id]+=sign*(prefix(tout[u])-prefix(tin[u]));
-    }
-    for(int x:ans)cout<<x<<'\n';
+    vector<int> parent(n),depth(n);vector<ll> sums(n);sums[0]=original[0];
+    for(int u:order)for(int v:g[u])if(v!=parent[u]){parent[v]=u;depth[v]=depth[u]+1;sums[v]=sums[u]+original[v];}
+    int levels=1;while((1<<levels)<=n)++levels;
+    vector<vector<int>> up(levels,parent);
+    for(int k=1;k<levels;++k)for(int u=0;u<n;++u)up[k][u]=up[k-1][up[k-1][u]];
+    auto lca=[&](int u,int v){
+        if(depth[u]<depth[v])swap(u,v);int diff=depth[u]-depth[v];
+        for(int k=0;k<levels;++k)if(diff>>k&1)u=up[k][u];
+        if(u==v)return u;
+        for(int k=levels-1;k>=0;--k)if(up[k][u]!=up[k][v]){u=up[k][u];v=up[k][v];}
+        return parent[u];
+    };
+    while(q--){int u,v;cin>>u>>v;--u;--v;int w=lca(u,v);cout<<sums[u]+sums[v]-2*sums[w]+original[w]<<'\n';}
 }

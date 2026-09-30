@@ -1,20 +1,24 @@
 # Section 42: Advanced Data Structures Mixed Contest
 
-Attempt A--F as the core set. Then solve G--L in order as a progressively
-harder second half before opening the editorial.
+A mixed contest using only techniques taught through section 41. Attempt
+A--F as the core set, then G--L for further combinations of established tools.
+HLD and persistence are taught later, in sections 68 and 67 respectively.
 
-## Category Coverage
+## Prerequisites and coverage
 
-| Advanced data-structure category | Problem |
+| Earlier technique | Local exercises |
 |---|---|
-| Order statistics with Fenwick binary lifting | A. Dynamic Order Statistics |
-| Composing assignment and addition lazy tags | B. Range Assign and Add |
-| Offline rectangle counting | C. Static Rectangle Count |
-| Euler tour and tree paths | E. Subtree Add, Point Query; F. Dynamic Path Maximum |
-| Progressive advanced structures | G. Subtree Value Count through L. Path Add, Path Maximum |
+| Count-guided segment-tree descent (40) | A. Dynamic Order Statistics |
+| Lazy propagation (37) | B. Range Assign and Add |
+| Sorting, compression, offline sweeps, Fenwick (13, 36) | C. Static Rectangle Count; D. Nested Ranges Count |
+| Euler intervals with Fenwick or segment trees (36, 37, 41) | E. Subtree Add, Point Query; F. Dynamic Subtree Maximum |
+| Euler intervals with offline counting (13, 36, 41) | G. Subtree Value Count |
+| Ordinary insertion-only DSU (18) | H. Incremental Connectivity |
+| Euler intervals with lazy propagation (37, 41) | I. Subtree Assign, Add, and Sum; L. Subtree Add, Subtree Maximum |
+| Static prefix sums with LCA (4, 41) | J. Static Vertex Path Sums |
+| Static sweeps with weighted Fenwick sums (13, 36) | K. Static Weighted Rectangles |
 
-D. Nested Ranges Count is an additional sorting-and-Fenwick synthesis. The
-complete local contest now has twelve exercises; its last six become
-progressively harder.
+All twelve problems have statements, C++ and Python reference solutions,
+fixed examples, and random generators with small independent oracles.
 
-Run `CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py`.
+Run `CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py --keep-going`.

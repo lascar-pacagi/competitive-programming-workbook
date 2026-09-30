@@ -85,54 +85,19 @@ def case(name: str, rng: random.Random):
                 x=rng.randint(-12,12);ops.append(f"Q {l+1} {r+1} {x}");out.append(next((i+1 for i in range(l,r+1) if a[i]>=x),-1))
         return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
 
-    if name in {"e_subtree_add_point_query","f_dynamic_path_maximum","g_subtree_value_count","j_subtree_kth_smallest","l_path_add_path_maximum"}:
-        n=rng.randint(1,11);q=rng.randint(1,22);edges,g,parent,desc=tree(rng,n);a=[rng.randint(-9,9) for _ in range(n)];initial=a[:];edge_text="".join(f"{u+1} {v+1}\n" for u,v in edges);ops=[];out=[]
-        if name == "e_subtree_add_point_query":
-            for _ in range(q):
-                u=rng.randrange(n)
-                if rng.random()<.55:x=rng.randint(-7,7);ops.append(f"A {u+1} {x}");[a.__setitem__(v,a[v]+x) for v in desc[u]]
-                else:ops.append(f"Q {u+1}");out.append(a[u])
-        elif name == "f_dynamic_path_maximum":
-            for _ in range(q):
-                u=rng.randrange(n)
-                if rng.random()<.45:x=rng.randint(-9,9);a[u]=x;ops.append(f"U {u+1} {x}")
-                else:v=rng.randrange(n);ops.append(f"Q {u+1} {v+1}");out.append(max(a[x] for x in path(g,u,v)))
-        elif name == "g_subtree_value_count":
-            for _ in range(q):u=rng.randrange(n);lo=rng.randint(-10,5);hi=rng.randint(lo,10);ops.append(f"{u+1} {lo} {hi}");out.append(sum(lo<=a[v]<=hi for v in desc[u]))
-        elif name == "j_subtree_kth_smallest":
-            for _ in range(q):u=rng.randrange(n);k=rng.randint(1,len(desc[u]));ops.append(f"{u+1} {k}");out.append(sorted(a[v] for v in desc[u])[k-1])
-        else:
-            for _ in range(q):
-                u=rng.randrange(n);v=rng.randrange(n);vertices=path(g,u,v)
-                if rng.random()<.55:x=rng.randint(-7,7);ops.append(f"A {u+1} {v+1} {x}");[a.__setitem__(w,a[w]+x) for w in vertices]
-                else:ops.append(f"M {u+1} {v+1}");out.append(max(a[w] for w in vertices))
-        return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+edge_text+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
-    if name == "h_connectivity_countdown":
-        n=rng.randint(2,9);all_edges=[(u,v) for u in range(n) for v in range(u+1,n)];rng.shuffle(all_edges);edges=all_edges[:rng.randint(1,len(all_edges))];m=len(edges);q=rng.randint(1,25);active=set(range(m));ops=[];out=[]
+    if name == "e_subtree_add_point_query":
+        n=rng.randint(1,11);q=rng.randint(1,22);edges,g,parent,desc=tree(rng,n)
+        a=[rng.randint(-9,9) for _ in range(n)];initial=a[:];ops=[];out=[]
         for _ in range(q):
-            if rng.random()<.4 and active:e=rng.choice(tuple(active));active.remove(e);ops.append(f"D {e+1}")
-            else:
-                u=rng.randrange(n);v=rng.randrange(n);adj=[[]for _ in range(n)]
-                for e in active:x,y=edges[e];adj[x].append(y);adj[y].append(x)
-                seen={u};todo=[u]
-                for x in todo:
-                    for y in adj[x]:
-                        if y not in seen:seen.add(y);todo.append(y)
-                ops.append(f"Q {u+1} {v+1}");out.append("YES" if v in seen else "NO")
-        return f"{n} {m} {q}\n"+"".join(f"{u+1} {v+1}\n" for u,v in edges)+"\n".join(ops)+"\n","\n".join(out)+("\n" if out else "")
-    if name == "i_persistent_version_sums":
-        n=rng.randint(1,10);q=rng.randint(1,25);initial=[rng.randint(-9,9) for _ in range(n)];versions=[initial[:]];ops=[];out=[]
-        for _ in range(q):
-            v=rng.randrange(len(versions))
-            if rng.random()<.55:i=rng.randrange(n);x=rng.randint(-9,9);new=versions[v][:];new[i]=x;versions.append(new);ops.append(f"U {v} {i+1} {x}")
-            else:l=rng.randrange(n);r=rng.randrange(l,n);ops.append(f"Q {v} {l+1} {r+1}");out.append(sum(versions[v][l:r+1]))
-        return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
-    if name == "k_sparse_rectangle_sums":
-        q=rng.randint(1,25);points={};ops=[];out=[]
-        for _ in range(q):
-            if rng.random()<.6:x=rng.randint(-4,4);y=rng.randint(-4,4);v=rng.randint(-7,7);points[x,y]=points.get((x,y),0)+v;ops.append(f"U {x} {y} {v}")
-            else:x1=rng.randint(-5,3);x2=rng.randint(x1,5);y1=rng.randint(-5,3);y2=rng.randint(y1,5);ops.append(f"Q {x1} {y1} {x2} {y2}");out.append(sum(v for (x,y),v in points.items() if x1<=x<=x2 and y1<=y<=y2))
-        return f"{q}\n"+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
+            u=rng.randrange(n)
+            if rng.random()<.55:
+                x=rng.randint(-7,7);ops.append(f"A {u+1} {x}")
+                for v in desc[u]:a[v]+=x
+            else:ops.append(f"Q {u+1}");out.append(a[u])
+        return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+"".join(f"{u+1} {v+1}\n" for u,v in edges)+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
+    if name in {"f_dynamic_subtree_maximum", "g_subtree_value_count", "h_incremental_connectivity", "i_subtree_assign_add_sum", "j_static_vertex_path_sums", "k_static_weighted_rectangles", "l_subtree_add_maximum"}:
+        from tools.section42_random import case as section42_case
+        return section42_case(name, rng)
     if name == "l_profitable_disjoint_routes":
         n=rng.randint(2,8);possible=[(u,v) for u in range(n) for v in range(u+1,n)];rng.shuffle(possible);edges=[(u,v,rng.randint(-5,12)) for u,v in possible[:rng.randint(1,min(14,len(possible)))]];k=rng.randint(1,3);adj=[[]for _ in range(n)]
         for idx,(u,v,w) in enumerate(edges):adj[u].append((v,idx,w))

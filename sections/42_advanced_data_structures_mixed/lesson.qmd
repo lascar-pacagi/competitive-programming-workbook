@@ -17,140 +17,165 @@ execute:
   enabled: false
 ---
 
-# Advanced structure diagnosis
+# A mixed contest, using established tools
 
-These tasks are about choosing what information must remain available after
-many operations. The right structure follows from the query contract.
-At this level, one structure is often not enough: coordinates may be
-compressed before a Fenwick tree is built; a tree may be flattened before
-range updates are applied; heavy-light decomposition may turn a path into
-several segment-tree ranges; persistence may add a version dimension.
+This section is a contest checkpoint. It combines techniques already taught
+through section 41; it does not introduce a new data structure. Difficulty
+comes from choosing a representation, composing known operations, handling
+boundaries, and proving that the combination answers the original question.
 
-Describe the solution as a pipeline from original objects, through a
-representation change and maintained invariant, to a query decomposition.
+Heavy-light decomposition belongs to section 68, and persistent structures
+belong to section 67. Neither is a prerequisite here. In particular, a static
+binary-lifting aggregate does not support arbitrary value changes efficiently.
+A segment tree handles intervals in its base array; it needs a valid mapping
+before it can answer a question about a tree.
 
-# Representation changes
+# Prerequisites and contest contract
 
-## Coordinate compression
-
-Compression replaces each relevant value by its rank among all relevant
-values. It preserves equality and order, not numerical distance. It is safe
-for questions such as `value <= x`, but not for formulas needing actual gaps
-unless those gaps are stored separately. Include future update values while
-collecting coordinates.
-
-## Flattening a rooted tree
-
-An Euler entry order gives every subtree one contiguous interval:
-
-```text
-subtree(v) <-> [tin[v], tout[v]]
-```
-
-DFS completely finishes one child subtree before entering the next sibling.
-That fact proves contiguity. Subtree operations become array-range operations.
-A general path is not contiguous in Euler order.
-
-## Heavy-light decomposition
-
-Choose the child with largest subtree as heavy. Heavy edges form contiguous
-chains. A root path crosses only `O(log n)` light edges: crossing a light edge
-upward at least doubles the subtree size. A path therefore becomes
-`O(log n)` array ranges, producing `O(log^2 n)` operations with an ordinary
-segment tree.
-
-# Time as another dimension
-
-## Reverse processing
-
-Deletions are often hard while insertions are easy. If operations are known
-offline, start from the final state and add deleted objects back in reverse.
-Connectivity deletions can then become ordinary DSU unions. Track the
-timeline carefully: the reverse state before undoing an operation matches the
-forward state after that operation.
-
-## Persistence
-
-A persistent structure retains old versions. A point update copies only one
-root-to-leaf path while untouched subtrees are shared:
-
-```text
-old root ---- unchanged subtree
-       \
-        copied path ---- changed leaf
-       /
-new root ---- same unchanged subtree
-```
-
-A persistent segment-tree point update creates `O(log n)` nodes instead of
-copying the array. Every root represents one immutable snapshot; shared nodes
-must never be mutated.
-
-# Structures inside structures
-
-Value-filtered and two-dimensional queries often use an outer decomposition
-by position and an inner sorted list or Fenwick structure by value. A
-merge-sort tree stores every element in `O(log n)` sorted node lists. A range
-count visits `O(log n)` nodes and binary-searches each list, giving
-`O(log^2 n)` query time and `O(n log n)` memory.
-
-For sparse points, compress only coordinates that occur. A full coordinate
-grid is impossible when coordinates are large even if the number of points is
-small. Always calculate both the number of outer nodes visited and the cost
-of each inner operation.
-
-# Deriving a sufficient invariant
-
-Suppose paths support addition and maximum queries. A lazy segment-tree node
-needs:
-
-```text
-maximum = maximum actual value in this segment
-lazy    = uniform addition still owed to its descendants
-```
-
-Applying `delta` to a fully covered node adds it to both fields. Pushing sends
-the pending addition to the children before a partial descent. Heavy-light
-decomposition identifies the ranges; the lazy tree maintains them. These are
-separate correctness obligations.
-
-Order statistics instead need counts. During a k-th-element descent, the
-left count decides whether to enter the left child or subtract that count and
-enter the right. The same logic works on the difference between two
-persistent frequency roots when that difference represents a requested
-subarray.
-
-# Proof template for composed solutions
-
-Verify a multi-layer solution through small claims:
-
-1. The representation maps every original query to the claimed ranges or
-   versions.
-2. Every stored node or prefix has a precise invariant.
-3. Every update preserves that invariant.
-4. Query combination counts each required object exactly once.
-5. The number of pieces and cost per piece imply the stated complexity.
-
-Do not replace these claims by “the data structure is standard.” Most bugs
-occur between two individually standard techniques.
-
-# Invariant-oriented testing
-
-| Feature | Adversarial shape |
+| Established material | Earlier section |
 |---|---|
-| tree decomposition | chain, star, and balanced branches |
-| compression | duplicates and future update values |
-| persistence | update an old version after newer ones exist |
-| reverse time | delete and restore a critical bridge |
-| lazy paths | overlapping full paths and single vertices |
-| sparse coordinates | points near both numerical extremes |
+| Prefix sums, difference arrays | 4 |
+| Sorting, interval sweeps, coordinate compression, offline ordering | 5, 11, 13 |
+| DFS and rooted trees | 16, 26 |
+| DSU for edge insertions | 18 |
+| Fenwick prefix sums and point updates | 36 |
+| Segment-tree aggregates and lazy propagation | 37 |
+| Static aggregates and binary lifting | 38 |
+| Count-guided segment-tree descent | 40 |
+| Euler entry intervals and LCA | 41 |
 
-Large tests must also exert the intended complexity. A chain exposes linear
-parent climbing and recursion depth; alternating path endpoints exercise
-heavy-light chain changes; many versions verify that updates copy only
-logarithmically many nodes.
+Use these operations as building blocks. You may derive a new reduction from
+them, but no exercise requires HLD, persistence, rollback DSU, merge-sort trees,
+or multidimensional Fenwick trees. All offline exercises expose the complete
+input before processing.
 
-# Complete local contest set
+Attempt A--F first, then G--L. The second half asks for more combinations of
+familiar tools rather than new structures. Do not open the editorial until
+you have written an operation contract and tried a slow correct solution.
+
+# Model the operations before choosing a structure
+
+Write down what changes and what stays fixed. An assignment is different from
+an addition. A static set of weighted points permits a sweep; interleaved point
+insertions and rectangle queries would require a different argument. An
+edge-insertion graph fits ordinary DSU; deletion does not.
+
+Separate the object being queried from the stored summary:
+
+| Question | Possible stored information |
+|---|---|
+| sum over an interval | segment sum or two prefix sums |
+| maximum over an interval | segment maximum |
+| number of values up to a threshold | frequency prefix |
+| k-th present value | counts in left and right segments |
+| whether two vertices are connected | component representatives |
+
+A summary is sufficient only if it can answer every operation. In particular,
+subtracting two prefix maxima does not recover an interval maximum. Addition
+has an inverse; maximum does not.
+
+# Worked diagnosis: a tree-shaped input
+
+Root a small tree with edges `1-2`, `1-3`, `3-4`, and `3-5`. A preorder can be:
+
+```text
+vertex order:    1  2  3  4  5
+entry position:  0  1  2  3  4
+subtree(3):           [2, 5)
+```
+
+As established in section 41, DFS enters all descendants of a vertex before
+leaving its subtree. Record `tin[u]` on entry and `tout[u]` after the last
+subtree vertex. Its vertices occupy exactly `[tin[u], tout[u])`.
+
+The important distinction is the query's set of vertices. The path `2-1-3-4`
+has positions `1,0,2,3` in traversal order. General paths do not have a guaranteed
+single contiguous preorder interval. Never replace a path by the interval
+between its endpoints.
+
+For a subtree operation, the established mapping suffices. A point assignment
+changes one Euler position; a subtree addition changes one interval. Decide
+which summary to store only after establishing the mapping. A one-vertex tree
+has interval `[0,1)`, and the root's subtree is the whole array.
+
+# Worked diagnosis: order matters in lazy updates
+
+Recall the range-update invariant from section 37: a node's summary already
+includes every update covering the entire node, while a lazy tag records work
+still owed to its children. Push before inspecting those children.
+
+For a length-three segment initially containing `2,4,6`, compare:
+
+| Operation order | Result | Sum |
+|---|---|---|
+| assign 7, then add -2 | `5,5,5` | 15 |
+| add -2, then assign 7 | `7,7,7` | 21 |
+
+A pending assignment needs a separate presence flag, because assigning zero
+is a valid update. A later assignment replaces earlier pending work. A later
+addition changes an existing pending assignment, or accumulates into an
+addition tag when there is no assignment. These are consequences of the
+operation contract, rather than a new structure.
+
+For maximum with uniform addition, every value shifts by the same amount:
+`max(a_i + d) = max(a_i) + d`. Thus the familiar lazy range-add mechanism can
+maintain a maximum summary instead of a sum. For sum, add `d * length`; for
+maximum, add `d`. State which one your node stores.
+
+# Worked diagnosis: static questions may be reordered
+
+Suppose fixed objects have values `2,5,5` and queries ask how many are at most
+`4` and at most `5`. Sort objects by value and queries by threshold. Before
+answering threshold `T`, insert precisely the objects with value at most `T`.
+The counts are `1` and `3`; both equal-valued objects must be inserted before
+the second answer.
+
+The active objects can carry positions, coordinates, or weights. A one-
+dimensional Fenwick tree summarizes the relevant coordinate of the active set.
+Recover original query order with query identifiers. An inclusive interval
+`[lo,hi]` is the difference between thresholds `hi` and `lo-1` for integers.
+
+This is the sorting-and-sweep pattern from sections 13 and 36. Static input
+allows the reordering. If updates alter the objects between queries, sorting
+queries alone would discard their time-dependent meaning.
+
+# Proof and cost accounting
+
+For every proposed combination, prove these claims separately:
+
+1. The representation describes exactly the requested objects.
+2. Each stored number has a precise meaning.
+3. Each update preserves that meaning.
+4. Combining summaries counts each requested object exactly once.
+5. Preprocessing, all operations, and memory fit the constraints.
+
+For a sweep, state which objects have been inserted before each query. For a
+rooted-tree mapping, prove subtree contiguity. For a static path formula, check
+how many times its shared ancestor is counted. For lazy updates, distinguish
+what the parent summary includes from what its children still need.
+
+Sorting can dominate an otherwise logarithmic query structure. Coordinate
+compression preserves order and equality, not distances. Use lower and upper
+bounds correctly even when a query boundary is absent from the coordinates.
+
+# C++ and Python implementation habits
+
+Use signed 64-bit sums in C++. At most `200000` values of magnitude `10^9`
+already require more than 32 bits; repeated additions can increase the total.
+Python integers handle these sums, but parsing and repeated function calls
+still affect running time.
+
+Traverse large input trees iteratively in both languages: a chain may have
+`200000` vertices. Entry/exit stack events reproduce recursive DFS without a
+call stack proportional to the tree height. Segment-tree recursion is only
+logarithmic in the array length. Keep one interval convention throughout;
+convert explicitly if a template uses inclusive 1-based intervals.
+
+For maximum, use a neutral value below every possible actual value, not zero.
+For counts, prevent removal of absent elements so counts remain nonnegative.
+For DSU, use union by size and path compression as in section 18.
+
+# Exercises
 
 | Problem | Title |
 |---|---|
@@ -159,50 +184,40 @@ logarithmically many nodes.
 | C | Static Rectangle Count |
 | D | Nested Ranges Count |
 | E | Subtree Add, Point Query |
-| F | Dynamic Path Maximum |
+| F | Dynamic Subtree Maximum |
 | G | Subtree Value Count |
-| H | Connectivity Countdown |
-| I | Persistent Version Sums |
-| J | Subtree K-th Smallest |
-| K | Sparse Rectangle Sums |
-| L | Path Add, Path Maximum |
+| H | Incremental Connectivity |
+| I | Subtree Assign, Add, and Sum |
+| J | Static Vertex Path Sums |
+| K | Static Weighted Rectangles |
+| L | Subtree Add, Subtree Maximum |
 
-Problems A--F establish the core coverage. Problems G--L deliberately increase
-in difficulty, moving from static range indexing to reversed time, persistence,
-sparse two-dimensional indexing, and lazy heavy-light decomposition.
+For each problem, write a slow oracle and name the invariant before coding.
+The editorial gives problem-specific reductions after your attempt.
 
-# Model the operations first
+# Testing and submission checklist
 
-For each local problem, list every update and query, then answer:
+| Feature | Targeted checks |
+|---|---|
+| frequency selection | duplicates, empty multiset, invalid rank |
+| lazy composition | assignment to zero, add then assign, nested intervals |
+| offline sweep | equal coordinates, boundaries absent from compression |
+| interval containment | identical intervals and equal endpoints |
+| tree intervals | single vertex, root, leaf, chain, star |
+| static paths | same endpoint, ancestor endpoint, LCA at root |
+| weighted sums | negative weights and coincident points |
+| connectivity | repeated edges, self-loops, separate components |
 
-```text
-Is the input static or dynamic?
-Does a query ask for an aggregate, a position, or a count of objects?
-Can coordinates be compressed without changing comparisons?
-Can queries be processed offline?
-What information must an internal node or prefix preserve?
+Compare small random cases with direct array scans or graph searches. Large
+chain tests expose accidental recursive DFS and subtree scans; large sweeps
+expose per-query scans. Avoid relying on samples to establish complexity.
+
+Run your private submissions with the section checker. To verify the public
+reference solutions instead:
+
+```bash
+CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py --keep-going
 ```
 
-Do not turn this into a lookup table from wording to structure. Derive an
-invariant that would let a proposed representation answer every operation.
-The editorial contains the local construction after you have tested yours.
-
-# Prove and test the invariant
-
-State the meaning of each stored number in one sentence. Show how an update
-preserves it, and why the query combines stored values into exactly the desired
-answer. Test against a slow vector or nested-loop oracle on tiny random cases,
-especially repeated values, empty ranges, and coordinates near boundaries.
-
-# Cost accounting
-
-Give both per-operation and total complexity. Include preprocessing,
-compression, sorting, and memory. A logarithmic query can still be unsuitable
-if a hidden rebuild happens for every operation.
-
-# Exercises
-
-For A through L, write an operation contract and an invariant before coding.
-Also name one boundary case your brute-force oracle must include. Consult the
-editorial only after this attempt. Solve G--L in order: the progression is part
-of the exercise design.
+Before submitting, verify the operation contract, inclusive boundaries,
+neutral element, update order, total complexity, and maximum numeric size.

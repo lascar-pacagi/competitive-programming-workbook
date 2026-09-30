@@ -18,22 +18,26 @@ def main():
         stack.append((u, parent, True))
         for v in reversed(g[u]):
             if v != parent: stack.append((v, u, False))
-    vertices = sorted(range(n),key=lambda u:original[u]); events=[]; out=[0]*q
-    for i in range(q):
-        u,lo,hi=map(int,data[pos:pos+3]);pos+=3;u-=1
-        events.append((hi,u,i,1));events.append((lo-1,u,i,-1))
-    bit=[0]*(n+1)
-    def prefix(i):
-        total=0
-        while i: total+=bit[i];i-=i&-i
-        return total
-    current=0
-    for bound,u,i,sign in sorted(events):
-        while current<n and original[vertices[current]]<=bound:
-            j=tin[vertices[current]]+1
-            while j<=n:bit[j]+=1;j+=j&-j
-            current+=1
-        out[i]+=sign*(prefix(tout[u])-prefix(tin[u]))
+    parent=[0]*n;depth=[0]*n;sums=[0]*n;sums[0]=original[0]
+    for u in order:
+        for v in g[u]:
+            if v!=parent[u]:parent[v]=u;depth[v]=depth[u]+1;sums[v]=sums[u]+original[v]
+    up=[parent]
+    for _ in range(1,n.bit_length()):
+        previous=up[-1];up.append([previous[previous[u]] for u in range(n)])
+    def lca(u,v):
+        if depth[u]<depth[v]:u,v=v,u
+        diff=depth[u]-depth[v]
+        for k in range(len(up)):
+            if diff>>k&1:u=up[k][u]
+        if u==v:return u
+        for k in range(len(up)-1,-1,-1):
+            if up[k][u]!=up[k][v]:u,v=up[k][u],up[k][v]
+        return parent[u]
+    out=[]
+    for _ in range(q):
+        u,v=int(data[pos])-1,int(data[pos+1])-1;pos+=2;w=lca(u,v)
+        out.append(sums[u]+sums[v]-2*sums[w]+original[w])
     print('\n'.join(map(str,out)))
 
 if __name__ == "__main__": main()
