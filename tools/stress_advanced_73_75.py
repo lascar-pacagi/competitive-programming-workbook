@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from stress_finale_round6 import run
-from stress_finale_41_50 import primitive_polygon
+from stress_finale_round6 import primitive_polygon
 
 ROOT = Path(__file__).resolve().parents[1]
 

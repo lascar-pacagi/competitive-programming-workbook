@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import subprocess
 import tempfile
@@ -216,6 +217,42 @@ def c65(size: int) -> str:
 
 def k65(out: str, size: int) -> None:
     vals = list(map(int, out.split())); assert vals == list(range(1, size + 1))
+
+
+def primitive_polygon(n: int) -> list[tuple[int, int]]:
+    """Return an n-vertex strictly convex integer polygon with sum-zero edges."""
+    assert n >= 4 and n % 2 == 0
+    need = n // 2
+    bound = max(2, math.ceil(math.sqrt(need * math.pi / 3)))
+    upper: list[tuple[int, int]] = []
+    while len(upper) < need:
+        upper.clear()
+        for x in range(-bound, bound + 1):
+            for y in range(0, bound + 1):
+                if (y > 0 or x > 0) and math.gcd(abs(x), y) == 1:
+                    upper.append((x, y))
+        bound += 1
+    # Taking the shortest primitive vectors keeps the coordinate span small.
+    upper.sort(key=lambda z: (z[0] * z[0] + z[1] * z[1], math.atan2(z[1], z[0])))
+    edges = upper[:need]
+    edges += [(-x, -y) for x, y in edges]
+    edges.sort(key=lambda z: math.atan2(z[1], z[0]))
+    points = []
+    x = y = 0
+    for dx, dy in edges:
+        points.append((x, y))
+        x += dx
+        y += dy
+    assert (x, y) == (0, 0)
+    minx = min(x for x, _ in points)
+    maxx = max(x for x, _ in points)
+    miny = min(y for _, y in points)
+    maxy = max(y for _, y in points)
+    sx = -(minx + maxx) // 2
+    sy = -(miny + maxy) // 2
+    points = [(x + sx, y + sy) for x, y in points]
+    assert max(max(abs(x), abs(y)) for x, y in points) < 40_000_000
+    return points
 
 
 def run(command: list[str], data: str, timeout: int) -> tuple[str, float, int | None]:

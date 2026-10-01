@@ -55,35 +55,36 @@ all been validated.
 | 29 | Editable Palindrome Rope | implicit treap | forward/reverse hashes, lazy reversal | 2500 |
 | 30 | Forbidden Superstring Count | automaton product | matrix exponentiation, inclusion--exclusion | 2400 |
 
-## Round IV — Algebra and computational number theory
+## Round IV — Algebra and number theory
 
-| No. | Problem | Primary technique | Secondary techniques | Target |
+These problems (and Round V) replaced copies of earlier sections' problems.
+
+| No. | Problem | Key idea | Supporting techniques | Target |
 |---:|---|---|---|---|
-| 31 | Connected Structure Series | formal logarithm/exponential | NTT, combinatorial decomposition | 2400 |
-| 32 | Rational Recurrence Samples | linear recurrences | Bostan--Mori, multipoint evaluation | 2500 |
-| 33 | Subset Partition Spectrum | ranked subset convolution | zeta/Moebius transforms, generating functions | 2500 |
-| 34 | XOR Walk Spectrum | Walsh--Hadamard transform | exponentiation in transform space | 2300 |
-| 35 | Polynomial Constraint Recovery | interpolation | product trees, derivative evaluation | 2400 |
-| 36 | Universal Exponent Clock | Pollard--rho | Carmichael recursion, non-coprime exponent handling | 2500 |
-| 37 | Modular Root Catalogue | primitive-root coordinates | linear congruences, root enumeration | 2400 |
-| 38 | Composite Discrete Log | generalized BSGS | CRT, gcd reduction, minimality | 2500 |
-| 39 | Summatory Multiplicative Blocks | floor-quotient decomposition | Moebius inversion, harmonic intervals | 2500 |
-| 40 | GCD Convolution Queries | divisor transforms | Moebius inversion, offline frequency updates | 2400 |
+| 31 | Two-Faction Networks | log of the 2-coloured-graph EGF, halved | sqrt(2) chirp: 2^{k(n-k)} as one convolution | 2900 |
+| 32 | Exponential Polynomial Ledger | S(k) = r^k G(k) + c with deg G <= d | finite differences fix c, Lagrange at n mod p | 2800 |
+| 33 | Branching Family Census | Newton iteration on T = x phi(T) | power-series inverse, Horner composition | 2800 |
+| 34 | Coin Bag Census | log of prod 1/(1-x^w) is a harmonic sum | power-series exponential | 2700 |
+| 35 | Staircase Moments | Euclid-like floor-sum recursion for three moments | swapping rows and columns of lattice points | 2800 |
+| 36 | Binomial Ledger | factorials with p removed (generalized Lucas) | Legendre valuations, CRT over prime powers | 2700 |
+| 37 | Rabbit Cycle | Pisano period as a matrix order | Pollard rho, Frobenius bound p-1 / 2(p+1) / 20 | 2800 |
+| 38 | Exclusive Range Ledger | prefix XOR basis keeping the newest vectors | 2^(len - rank), offline sweep | 2600 |
+| 39 | Divisor Echo Power | Omega is a derivation of Dirichlet convolution | O(N log N) recurrence, k only mod p | 3000 |
+| 40 | Root Census Modulo p | deg gcd(f, x^p - x) | polynomial powering with Barrett reduction | 2800 |
 
-## Round V — Geometry, frontiers, and grand synthesis
+## Round V — Geometry, grids, and subsets
 
-| No. | Problem | Primary technique | Secondary techniques | Target |
+| No. | Problem | Key idea | Supporting techniques | Target |
 |---:|---|---|---|---|
-| 41 | Moving Convex Robots | Minkowski sums | rotating calipers, exact segment distance | 2400 |
-| 42 | Safe Radius Region | half-plane intersection | inward offsets, monotone search | 2300 |
-| 43 | Fibre Network Length | Delaunay triangulation | Kruskal reconstruction tree, LCA | 2600 |
-| 44 | Double-Covered Area | sweep-line segment tree | multi-coverage lengths, modular integration | 2400 |
-| 45 | Hull Membership Queries | hull rollback | segment tree over time, tangent queries | 2600 |
-| 46 | Digit Language Arithmetic | digit DP | Aho--Corasick, remainders, range subtraction | 2300 |
-| 47 | Periodic Domino Tower | plug DP | canonical labels, transfer exponentiation | 2700 |
-| 48 | Terminal Backbone Frontier | Steiner subset DP | Lagrangian quota, multi-source Dijkstra | 2600 |
-| 49 | Decomposition Vertex Cover | nice tree-decomposition DP | connectivity partitions, join correction | 2800 |
-| 50 | Chronicle Path Dictionary | Aho--Corasick run down a tree | fail-tree Euler ranges, offline root-path Fenwick counts, KMP across the LCA | 2800 |
+| 41 | Sprinkler Coverage Area | Green's theorem over uncovered arcs | containment removal, angular intervals | 2700 |
+| 42 | Crystal Hull Surface | incremental 3D convex hull | horizon edges, exact 128-bit orientation | 2800 |
+| 43 | Triangle Census Queries | "points below segment" table | slope sweep with dominance counting | 2600 |
+| 44 | Polygon Triangulation Count | interval DP over internal diagonals | cone test, proper-intersection test | 2600 |
+| 45 | Obstacle Shortcut | visibility graph of corners | exact segment clipping, Dijkstra | 2600 |
+| 46 | Lantern Grid | light chasing reduces nm unknowns to m | GF(2) elimination with bitsets | 2600 |
+| 47 | Quorum Circle | binary search with an angular sweep | boundary-point normalization | 2700 |
+| 48 | Quiet Committee Census | meet in the middle on independent sets | subset DP with optimal-set counting | 2600 |
+| 49 | Glacier Cut | binary searches over sorted edge angles | prefix shoelace sums, exact rational crossings | 2700 |
 
 ## Round VI — Grandmaster gauntlet
 
@@ -115,21 +116,21 @@ The sixty-five problems cover every major technique family from Sections 1--99:
 
 | Earlier material | Finale problems |
 |---|---|
-| complexity, compression, prefix reasoning, sorting, binary search | all rounds; especially 01, 04, 12, 15, 42 |
-| greedy, stacks, heaps, exchange arguments | 07, 13, 17, 19, 35 |
+| complexity, compression, prefix reasoning, sorting, binary search | all rounds; especially 01, 04, 12, 15, 47, 64 |
+| greedy, stacks, heaps, exchange arguments | 07, 13, 17, 19 |
 | BFS/DFS, DSU, shortest paths, MST | 02, 07, 10, 16, 43, 48 |
-| classical, interval, tree, mask, and game-style DP habits | 03, 17, 19, 30, 33, 46--49 |
-| modular arithmetic, CRT, combinatorics, probability/randomization | 31--40, randomized 43 |
+| classical, interval, tree, mask, and game-style DP habits | 03, 17, 19, 30, 44, 48, 61 |
+| modular arithmetic, CRT, combinatorics, probability/randomization | 31--40, 53, 57, 59 |
 | Fenwick/segment trees, sparse tables, lifting, HLD | 01, 04, 08--10, 21, 25, 44 |
 | flows, matching, cuts, matroids, arborescences | 11--20 |
 | convex optimization and discrete convexity | 03, 11, 12, 17, 19 |
 | suffix structures, automata, hashing, editable sequences | 21--30, 50 |
-| persistence, rollback, dynamic forests | 01--05, 08, 10, 29, 45 |
+| persistence, rollback, dynamic forests | 01--05, 08, 10, 29, 56, 62 |
 | SCC/low-link/dominator/decomposition proof habits | 07, 14, 16, 18, 49 |
-| polynomial algorithms and subset transforms | 06, 26, 30--35, 40, 47 |
-| large-integer and multiplicative number theory | 36--40 |
-| convex, sweep, circle, and proximity geometry | 41--45 |
-| digit, profile, plug, Steiner, and treewidth frontiers | 46--49 |
+| polynomial algorithms and subset transforms | 06, 26, 30, 31--34, 40, 59, 63 |
+| large-integer and multiplicative number theory | 35--40, 57 |
+| convex, sweep, circle, and proximity geometry | 41--45, 47, 49, 55, 60 |
+| profile, plug, bitset, and subset frontiers | 46, 48, 63 |
 | decisive-idea gauntlet across strings, graphs, trees, algebra, and number theory | 50--65 |
 
 No row is satisfied merely by mentioning a technique. The final editorial must

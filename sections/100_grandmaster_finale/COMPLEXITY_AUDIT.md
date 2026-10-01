@@ -9,10 +9,10 @@ independent brute-force oracle (`tests/random_cases.py`), C++ and Python
 references, and the adversarial maximum-size suite
 `tools/stress_finale_50_65.py`.
 
-Problems 31--49 are still adapted from earlier course sections (see
-`tools/generate_finale_31_40.py` and `tools/generate_finale_41_50.py`). Their
-statements have been rewritten to drop technique hints and to be
-self-contained.
+Problems 31--49 were replaced on 2026-10-01 for the same reason: they were
+copies of problems from Sections 35, 75, 89--90, 92--95, 97, and 99. The new
+packages follow the same standard; their limit suite is
+`tools/stress_finale_31_49.py`.
 
 ## Required evidence per problem
 
@@ -139,69 +139,43 @@ Combining the concrete-pair spectrum and subtracting the three equal-character
 products before one inverse NTT reduced twelve transforms to nine and the full
 case to 12.89 seconds. It passed 300 new random-oracle cases afterward.
 
-## Measured Problems 31--40
+## Measured Problems 31--49 (full profile)
 
-`tools/stress_finale_31_40.py` forces full FPS lengths, complete subset/XOR
-spectra, 50,000-point interpolation, repeated hard semiprime factorization,
-maximum discrete-log/modular-root query counts, and 200,000 maximum-argument
-multiplicative queries.
+`tools/stress_finale_31_49.py` builds maximum cases with invariants. Examples:
+the OEIS prefix for connected bipartite graphs, Motzkin numbers, binomials of
+identical coins, closed-form floor sums at `n = 10^18`, Lucas' theorem,
+Pisano closed forms, Möbius as `1^{-1}`, planted polynomial roots, a nested
+disc, a tetrahedron, direct triangle counts, Catalan numbers for convex
+polygons, a straight unobstructed route, a planted Lights-Out solution, a
+stacked point, `2^n` independent sets, and edge lines that keep the whole
+polygon.
 
-| Problem | C++ time / RSS | Python time / RSS | Result |
-|---:|---:|---:|---|
-| 31 | 0.30 s / 13.5 MiB | 7.54 s / 31.6 MiB | pass |
-| 32 | 0.31 s / 14.3 MiB | 11.05 s / 63.6 MiB | pass |
-| 33 | 0.07 s / 16.8 MiB | 1.88 s / 59.5 MiB | pass |
-| 34 | 0.12 s / 16.0 MiB | 3.14 s / 98.5 MiB | pass |
-| 35 | 0.56 s / 25.9 MiB | 27.79 s / 109.0 MiB | pass after correcting limit to 40 s |
-| 36 | 0.79 s / 11.7 MiB | 1.88 s / 11.6 MiB | pass |
-| 37 | 0.13 s / 11.7 MiB | 0.22 s / 14.6 MiB | pass |
-| 38 | 0.24 s / 11.7 MiB | 0.42 s / 14.6 MiB | pass |
-| 39 | 0.04 s / 15.5 MiB | 0.45 s / 110.9 MiB | pass |
-| 40 | 0.32 s / 13.4 MiB | 4.44 s / 74.1 MiB | pass |
+| Problem | Worst case | C++ | Python | Limit |
+|---:|---|---:|---:|---:|
+| 31 | `N = 2*10^5` | 0.26 s / 34 MiB | 3.84 s / 106 MiB | 10 s |
+| 32 | `d = 5*10^5`, `n = 10^18` | 0.05 s / 35 MiB | 0.53 s / 166 MiB | 10 s |
+| 33 | `N = 10^5`, `D = 8` | 0.54 s / 20 MiB | 9.68 s / 60 MiB | 20 s |
+| 34 | `n = S = 2*10^5` | 0.41 s / 34 MiB | 6.59 s / 112 MiB | 15 s |
+| 35 | `10^5` Fibonacci-ratio queries | 0.18 s / 19 MiB | 4.76 s / 52 MiB | 15 s |
+| 36 | `m = 2^19`, carry-free `n` | 0.26 s / 16 MiB | 2.45 s / 46 MiB | 10 s |
+| 37 | 1000 semiprimes of two ~1e9 primes | 0.54 s / 13 MiB | 4.60 s / 12 MiB | 15 s |
+| 38 | `n = q = 3*10^5` | 0.15 s / 21 MiB | 1.37 s / 165 MiB | 10 s |
+| 39 | `N = 5*10^5` | 0.09 s / 25 MiB | 1.00 s / 166 MiB | 10 s |
+| 40 | `d = 3000`, `p ~ 10^18` | 0.51 s / 13 MiB | 3.24 s / 13 MiB | 10 s |
+| 41 | 2000 mutually overlapping discs | 0.38 s / 13 MiB | 2.48 s / 12 MiB | 15 s |
+| 42 | 2000 moment-curve points, sorted | 0.89 s / 38 MiB | 2.81 s / 14 MiB | 10 s |
+| 43 | `n = 2000`, `q = 5*10^5` | 0.25 s / 21 MiB | 3.03 s / 150 MiB | 10 s |
+| 44 | convex 300-gon | 0.09 s / 13 MiB | 3.73 s / 13 MiB | 10 s |
+| 45 | 100 obstacles, 400 corners | 0.12 s / 13 MiB | 2.88 s / 13 MiB | 10 s |
+| 46 | `1000 x 1000` | 0.06 s / 14 MiB | 0.27 s / 21 MiB | 10 s |
+| 47 | `n = 600`, `k = n - 1` | 1.42 s / 13 MiB | 6.83 s / 58 MiB | 10 s |
+| 48 | `n = 40`, all ties | 0.04 s / 29 MiB | 0.42 s / 68 MiB | 10 s |
+| 49 | 12000-gon, `2*10^5` queries | 0.20 s / 18 MiB | 1.72 s / 86 MiB | 10 s |
 
-Problem 35 originally rebuilt the same product tree while evaluating the
-derivative. Reusing it reduced Python from 30.61 to 27.79 seconds and 112.9 to
-109.0 MiB. The algorithm has the intended `O(n log^2 n)` complexity, but the
-shared 15-second manifest was not compatible with its promised CPython
-reference. Problems 35, Section 89-B, and Section 90-D now use a measured
-40-second limit; this is a support-limit correction, not an algorithmic speedup.
-
-## Measured Problems 41--49
-
-`tools/stress_finale_41_50.py` uses 200,000-vertex strict integer convex
-polygons, a 200,000-edge regular polygon, a 2,500-point parabola Delaunay
-instance, 100,000 distinct sweep coordinates, all 1,024 Steiner masks, the
-maximum transfer exponent, a width-15 decomposition state, and (for the
-former Problem 50) 100,000 balanced-tree path comparisons.
-
-| Problem | C++ time / RSS | Python time / RSS | Result |
-|---:|---:|---:|---|
-| 41 | 0.08 s / 17.1 MiB | 0.80 s / 76.5 MiB | pass |
-| 42 | 0.89 s / 61.3 MiB | 5.47 s / 141.4 MiB | pass after complexity fix |
-| 43 | 0.04 s / 11.8 MiB | 1.75 s / 12.3 MiB | pass |
-| 44 | 0.09 s / 15.6 MiB | 1.16 s / 40.9 MiB | pass |
-| 45 | 0.09 s / 18.2 MiB | 0.88 s / 81.3 MiB | pass |
-| 46 | 0.06 s / 11.7 MiB | 0.28 s / 11.6 MiB | pass |
-| 47 | 0.03 s / 11.7 MiB | 0.07 s / 11.5 MiB | pass |
-| 48 | 0.02 s / 11.8 MiB | 0.14 s / 11.7 MiB | pass |
-| 49 | 0.05 s / 32.2 MiB | 0.16 s / 74.0 MiB | axis test passes; joint bound fixed below |
-
-Problem 42 had two independent complexity defects. C++ chose its binary-search
-upper bound with an `O(n^2)` all-pairs scan and took 114.81 seconds. Both
-references also sorted an already cyclically ordered convex edge set on every
-feasibility check. A bounding-box upper bound plus one initial angular rotation
-makes C++ linear per check; a specialized allocation-light cyclic HPI gives the
-same bound in Python. The repaired references passed the 25-case independent
-geometry oracle as well as the maximum regular-polygon invariant.
-
-Problem 49's measured case independently reaches `t=199,999` and the full
-`2^15` state space. It deliberately does not claim that this certifies their
-Cartesian product. The implementation is `Theta(t * 2^w)` and stores every
-node's map. A valid decomposition can contain about 11,700 branches that each
-introduce the same 15-vertex join bag and then join at that bag, requiring
-hundreds of millions of map entries. Thus the simultaneous published maxima
-are not computationally viable; the constraints need an aggregate state bound
-or the implementation must discard child tables and adopt a stronger design.
+The first full run put Python 32, 38, and 39 at 267--321 MiB. Their limits
+were lowered (`d`, `N <= 5*10^5`; `n, q <= 3*10^5`) to stay well under
+256 MiB. Problem 47 in Python (68% of its limit) and Problem 33 (48%) are on
+the performance-watch list.
 
 ## Fixes on 2026-09-30
 
@@ -210,23 +184,14 @@ or the implementation must discard child tables and adopt a stronger design.
   output at the limits (the old stress case only queried `k = 1`). The output
   is now `start length` of the leftmost occurrence, answered in `O(log n)` per
   query from the suffix array. Full profile: 0.19 s C++, 2.1 s Python.
-- **Problems 37 and 38** were measured on primes near `10^12` whose group
-  order has a huge prime factor. There, every query needs about `2*10^6` hash
-  operations. With 50 and 100 queries they took 14.4 s / 25.9 s in C++ and
-  17.9 s / 34.6 s in Python, against a 15 s limit. BSGS now stops at its first
-  giant-step hit (still minimal), and both statements allow at most 20
-  queries. The worst 20-query inputs take 2.5 s / 2.6 s in C++ and
-  5.1 s / 5.7 s in Python; outputs are unchanged.
-- **Problem 49** regained the aggregate bound `sum(2^|bag|) <= 2*10^6` from
-  its source problem, which resolves the incompatible joint maxima described
-  above. A width-15 budget case with `t = 199999` nodes and no edges (every
-  subset is a state) takes 0.25 s C++ and 0.50 s Python / 205 MiB.
+The same day's fixes to the former Problems 37, 38, and 49 (discrete-log
+query caps, the treewidth state budget) became moot when those packages were
+replaced on 2026-10-01.
 
 ## Next audit stage
 
 1. Keep Python 06, 51, 56, and 63 on the performance-watch list across slower
    machines.
-2. Decide whether Problems 31--49, which repeat earlier sections' problems,
-   should be replaced like 50--65.
+2. Keep Python 33 and 47 on the watch list as well.
 3. Apply this same inventory + oracle + adversary + timing/RSS process to
    Sections 64--99.

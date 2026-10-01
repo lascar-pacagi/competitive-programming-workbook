@@ -23,8 +23,8 @@ For every attempt, write five items:
 Difficulty is progressive inside each round and across rounds. Problems
 01--10 emphasize histories and tree separators. Problems 11--20 cover
 optimization, flow, matching, and cuts. Problems 21--30 cover strings and
-sequences. Problems 31--40 cover algebra and computational number theory.
-Problems 41--49 cover geometry and frontier DP. Problems 50--65 are the
+sequences. Problems 31--40 cover algebra and number theory.
+Problems 41--49 cover geometry, grids, and subset search. Problems 50--65 are the
 grandmaster gauntlet: each hides one decisive idea behind an ordinary-looking
 statement.
 
@@ -72,19 +72,20 @@ distinct strings explicit.
 
 # Round IV contract
 
-Problems 31--40 alternate between two coordinate systems: coefficients versus
-values or transforms, and integers versus their prime-power coordinates. State
-the isomorphism before using it. In particular, document truncation degree,
-transform normalization, non-coprime reductions, and whether a returned
-exponent is a witness or a residue.
+Problems 31--40 are algebra and number theory without labels. Before computing,
+name the structure: an exponential formula, a hidden polynomial, a
+functional equation, a vector space over GF(2), a group order, a derivation.
+Then state the field or ring you work in, and every reduction (`n mod p`,
+`k mod p`, `n mod (p-1)`) together with the reason it is valid.
 
 # Round V contract
 
-Geometry and frontier DP both succeed by replacing a large interior with a
-small boundary. For geometry, identify the exact predicate preserved by a
-Minkowski sum, half-plane deque, Delaunay edge set, or sweep status. For
-frontier DP, define precisely what the mask or bag remembers and prove that
-forgotten cells or vertices can no longer affect the future.
+Problems 41--49 mix exact geometry with grid and subset search. Use integer
+predicates wherever the input is integral, and floating point only for
+the final lengths and areas. For each problem, identify the boundary
+object that carries the answer (uncovered arcs, the horizon of a hull, the
+first row of presses, a half of the vertex set) and prove that nothing else
+matters.
 
 # Round VI contract
 

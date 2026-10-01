@@ -2626,295 +2626,642 @@ identity matrix.
 {{< include problems/30_forbidden_superstring_count/solution.py >}}
 ```
 
-# 31. Connected Structure Series
+# 31. Two-Faction Networks
 
-Arbitrary labeled assemblies are sets of connected components, so their formal
-series satisfies `A=exp(C)` and therefore `C=log(A)`. With `A[0]=1`, formal
-logarithm is uniquely defined. The reference computes `integral(A'/A)` using
-NTT-based derivative, inverse, product, and integral primitives. Each identity
-holds coefficientwise below the requested truncation, proving the result.
-Complexity is `O(n log n)` time and `O(n)` memory.
+## Count coloured graphs, take the logarithm, halve
+
+A **2-coloured graph** assigns each vertex one of two colours and uses only
+edges between colours: `b_n = sum_k C(n,k) 2^{k(n-k)}`. Every 2-coloured graph
+splits uniquely into connected 2-coloured graphs, so with exponential
+generating functions `B = exp(C)`, where `C` counts the connected ones. A
+connected bipartite graph has exactly two proper 2-colourings, so the answer
+is `n! [x^n] log B / 2`.
+
+All `b_n` at once: `k(n-k) = (n^2 - k^2 - (n-k)^2)/2`. Since
+`998244353 = 1 (mod 8)`, `s = sqrt(2)` exists (`s = z + z^{-1}` for a primitive
+8th root of unity `z`), and
+
+```text
+b_n / n! = s^{n^2} * sum_k ( s^{-k^2} / k! ) ( s^{-(n-k)^2} / (n-k)! ),
+```
+
+one self-convolution.
+
+**Correctness.** The exponential formula applies because labelled 2-coloured
+graphs are sets of connected 2-coloured components. A connected bipartite
+graph's colouring is fixed once one vertex's colour is chosen.
+
+**Complexity and traps.** One convolution plus one logarithm,
+`O(N log N)`. Reduce exponents `n^2` modulo `p - 1`. The `n = 1` term is `1`
+(two colourings of a single vertex, divided by two).
+
+## C++
 
 ```cpp
-{{< include problems/31_connected_structure_series/solution.cpp >}}
+{{< include problems/31_two_faction_networks/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/31_connected_structure_series/solution.py >}}
+{{< include problems/31_two_faction_networks/solution.py >}}
 ```
 
-# 32. Rational Recurrence Samples
+# 32. Exponential Polynomial Ledger
 
-The coefficient sequence of `P/Q` is the unique sequence satisfying
-`Q*A=P`. Since `Q[0]` is invertible, `A=P*Q^{-1}` modulo `x^n`. Formal Newton
-inversion doubles the correct prefix each round, and the final truncated
-product supplies exactly the requested recurrence samples. Complexity is
-`O(n log n)`.
+## A polynomial hides behind the geometric factor
+
+Let `S(k) = sum_{i<k} r^i i^d`. For `r = 1`, `S` is a polynomial of degree
+`d+1` in `k`. For `r != 1`, summation by parts shows
+`S(k) = r^k G(k) + c` with `deg G <= d` and a constant `c`. Compute
+`S(0), ..., S(d+1)` directly; the powers `i^d` come from a linear sieve with
+`pow` only at primes. Then `G(i) = (S(i) - c) r^{-i}`, and since the
+`(d+1)`-th finite difference of `G` vanishes,
+
+```text
+sum_i (-1)^{d+1-i} C(d+1,i) S(i) r^{-i}  =  c (r^{-1} - 1)^{d+1},
+```
+
+which determines `c` because `r != 1`. Finally evaluate `G` at `n mod p` by
+Lagrange interpolation over the points `0..d`, and multiply by
+`r^{n mod (p-1)}`.
+
+**Correctness.** Polynomial identities hold over the field, so evaluating at
+`n mod p` is valid. `r^n` depends only on `n mod (p-1)` for `r != 0`. `r = 0`
+leaves only the term `i = 0`, with `0^0 = 1`.
+
+**Complexity and traps.** `O(d)` field operations plus `O(d / log d)` modular
+powers. The Lagrange formula must allow `n mod p <= d`. Use prefix and suffix
+products rather than divisions by `x - i`.
+
+## C++
 
 ```cpp
-{{< include problems/32_rational_recurrence_samples/solution.cpp >}}
+{{< include problems/32_exponential_polynomial_ledger/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/32_rational_recurrence_samples/solution.py >}}
+{{< include problems/32_exponential_polynomial_ledger/solution.py >}}
 ```
 
-# 33. Subset Partition Spectrum
+# 33. Branching Family Census
 
-Rank each mask by popcount, apply subset zeta transforms independently per
-rank, convolve the rank polynomials pointwise, then apply subset Moebius
-inversion. A term of total rank `|S|` can only arise from disjoint subsets whose
-union is `S`; overlapping pairs have smaller union rank and vanish at the final
-rank extraction. This proves the subset-convolution formula in
-`O(k^2 2^k)` time.
+## Newton's method on a functional equation
+
+A record is a root with `s` ordered sub-records and `c_s` styles, so its
+generating function satisfies `T = x phi(T)` with `phi(z) = sum c_s z^s`. The
+equation `F(T) = T - x phi(T) = 0` has `F'(T) = 1 - x phi'(T)`, which is
+invertible as a power series. Newton's iteration
+`T <- T - F(T)/F'(T)` doubles the number of correct coefficients. Each round
+evaluates `phi(T)` and `phi'(T)` by Horner's rule at the current precision.
+
+**Correctness.** If `T` is correct modulo `x^m`, then
+`F(T + e) = F(T) + F'(T) e + O(e^2)` with `e = O(x^m)`, so the update is
+correct modulo `x^{2m}`. The start `T = c_0 x` is correct modulo `x^2`.
+
+**Complexity and traps.** `O(D M(N))` over all rounds, where `M` is the cost
+of a multiplication. With `c_0 = 0` every count is zero. The sample
+`(1, 2, 1)` gives the Catalan numbers, and `(1, 1, 1)` gives Motzkin numbers
+shifted by one.
+
+## C++
 
 ```cpp
-{{< include problems/33_subset_partition_spectrum/solution.cpp >}}
+{{< include problems/33_branching_family_census/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/33_subset_partition_spectrum/solution.py >}}
+{{< include problems/33_branching_family_census/solution.py >}}
 ```
 
-# 34. XOR Walk Spectrum
+# 34. Coin Bag Census
 
-Walsh--Hadamard characters diagonalize XOR convolution. Transform both step
-spectra, multiply coordinates, and apply the inverse transform. Character
-orthogonality proves the inverse recovers exactly the sum over pairs with the
-requested XOR. Normalize once by `2^{-k}`. Time is `O(k2^k)`.
+## The logarithm is a harmonic sum
+
+The bag generating function is `prod_i 1/(1 - x^{w_i})`. Its logarithm is
+
+```text
+sum over values w of cnt[w] * sum_{k>=1} x^{w k} / k,
+```
+
+which costs `sum_w S/w = O(S log S)` to write down. One power-series
+exponential then returns every count up to `S`.
+
+**Correctness.** `log(1/(1 - y)) = sum y^k / k`, and the logarithm turns the
+product into a sum. Values above `S` contribute nothing below `x^{S+1}`.
+
+**Complexity and traps.** `O(S log S)` for the harmonic sum plus
+`O(S log S)` for the exponential. Coin types are distinct even with equal
+values, so count multiplicities and do not deduplicate. With one coin of each
+value the counts are the partition numbers.
+
+## C++
 
 ```cpp
-{{< include problems/34_xor_walk_spectrum/solution.cpp >}}
+{{< include problems/34_coin_bag_census/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/34_xor_walk_spectrum/solution.py >}}
+{{< include problems/34_coin_bag_census/solution.py >}}
 ```
 
-# 35. Polynomial Constraint Recovery
+# 35. Staircase Moments
 
-Let `M(x)=product(x-x_i)`. The Lagrange basis denominator is `M'(x_i)`, so the
-answer is the sum of `y_i/M'(x_i)` times `M(x)/(x-x_i)`. Product trees build
-`M`; multipoint evaluation obtains all derivative values; the interpolation
-tree merges weighted quotient products. Distinct points make every denominator
-invertible, proving uniqueness and correctness.
+## Euclid on lattice points
+
+Let `F, G, H` be the sums of `q`, `x q`, and `q^2` with
+`q = floor((a x + b) / c)`. If `a >= c` or `b >= c`, write
+`a = A c + a'` and `b = B c + b'`. Then `q = A x + B + q'`, and the moments of
+`q'` together with closed forms for `sum x^j` give the new values. Otherwise,
+count the lattice points under the line by rows instead of columns: with
+`m = floor((a n + b) / c)`,
+
+```text
+F = n m - F',   G = (m n (n+1) - H' - F') / 2,   H = n m (m+1) - 2G' - 2F' - F,
+```
+
+where `(F', G', H')` are the moments for `(c, c - b - 1, a, m - 1)`. The pair
+`(a, c)` becomes `(c mod a, a)` exactly as in Euclid's algorithm.
+
+**Correctness.** `sum_x q(x)` counts the pairs `(x, y)` with
+`1 <= y <= q(x)`, and `y <= q(x)` iff `x > floor((c y - b - 1) / a)`.
+Summing the same set over `y` gives the swapped recursion, and weighting by
+`x` or by `2y - 1` gives `G` and `H`.
+
+**Complexity and traps.** `O(log max(a, c))` per query. Reduce `n` modulo
+`p` only inside polynomial closed forms. The product `a n + b` needs 128 bits
+in C++.
+
+## C++
 
 ```cpp
-{{< include problems/35_polynomial_constraint_recovery/solution.cpp >}}
+{{< include problems/35_staircase_moments/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/35_polynomial_constraint_recovery/solution.py >}}
+{{< include problems/35_staircase_moments/solution.py >}}
 ```
 
-# 36. Universal Exponent Clock
+# 36. Binomial Ledger
 
-Factor `n` with deterministic Miller--Rabin and Pollard--Rho. Carmichael is
-`p^(e-1)(p-1)` for odd prime powers, `1,2,2^(e-2)` for powers of two, and the
-LCM across coprime prime powers. CRT proves exponent periods combine by LCM;
-the prime-power unit groups give the component formulas.
+## Prime powers, then CRT
+
+Factor `m = prod p^e`. Modulo `p^e`, write `n! = p^{v(n)} u(n)`, where `v` is
+Legendre's valuation and `u(n)` is coprime to `p`. Grouping the factors of
+`n!` by blocks of length `p^e` gives
+
+```text
+u(n) = pre[p^e]^{floor(n/p^e)} * pre[n mod p^e] * u(floor(n/p)),
+```
+
+with `pre[j]` the product of the integers `<= j` coprime to `p` (modulo `p^e`).
+Then `C(n,k) = p^{v(n)-v(k)-v(n-k)} u(n) / (u(k) u(n-k))`, which is `0` once
+the valuation reaches `e`. Combine the prime powers by CRT.
+
+**Correctness.** The integers in each full block of length `p^e`, with the
+multiples of `p` removed, are a reduced residue system. The removed multiples
+of `p` contribute `p^{floor(n/p)} floor(n/p)!`, which is where the recursion
+comes from.
+
+**Complexity and traps.** Tables of total size at most `m`, and
+`O(sum_p log_p n)` per query. `pre[p^e]` is `+-1` (Wilson's theorem), so its
+power costs nothing. When `k > n` the answer is `0`. When `m = 1` every answer
+is `0`.
+
+## C++
 
 ```cpp
-{{< include problems/36_factorized_exponent_tower/solution.cpp >}}
+{{< include problems/36_binomial_ledger/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/36_factorized_exponent_tower/solution.py >}}
+{{< include problems/36_binomial_ledger/solution.py >}}
 ```
 
-# 37. Modular Root Catalogue
+# 37. Rabbit Cycle
 
-For primitive root `g`, write `a=g^z` and candidate root `x=g^y`. The equation
-`x^k=a` becomes `k*y=z (mod p-1)`. BSGS finds `z`; gcd reduction solves the
-linear congruence and its smallest nonnegative witness. Primitive-root
-coordinates are bijective on nonzero residues, proving equivalence.
+## A matrix order with a provable multiple
+
+`F(i + L) = F(i)` for all `i` iff `M^L = I` for `M = [[1,1],[1,0]]` modulo `m`.
+By CRT the period is the lcm over the prime powers of `m`. Modulo a prime
+`p`, the roots of `x^2 - x - 1` lie in `F_p` when `p = +-1 (mod 5)` (so
+`M^{p-1} = I`), are swapped by Frobenius when `p = +-2 (mod 5)` (so
+`M^{2(p+1)} = I`), and coincide for `p = 5` (period `20`). Lifting to `p^e`
+multiplies the order by at most `p^{e-1}`. Factor this multiple `L` with
+Pollard's rho, then divide out each prime while `M^{L/r}` is still the
+identity.
+
+**Correctness.** The candidate is a multiple of the true order. Removing
+primes while the power stays the identity yields the exact order, since the
+order divides every exponent `E` with `M^E = I`. The method needs no
+unproved conjecture (such as Wall's).
+
+**Complexity and traps.** Factoring numbers up to `10^18` with Pollard's rho,
+plus `O(log^2)` matrix powers per prime. The answer can exceed `m` (up to
+`6m`). Matrix products need 128-bit multiplications in C++.
+
+## C++
 
 ```cpp
-{{< include problems/37_modular_root_catalogue/solution.cpp >}}
+{{< include problems/37_rabbit_cycle/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/37_modular_root_catalogue/solution.py >}}
+{{< include problems/37_rabbit_cycle/solution.py >}}
 ```
 
-# 38. Composite Discrete Log
+# 38. Exclusive Range Ledger
 
-Repeatedly remove `gcd(a,m)` while it divides the target, recording the forced
-exponent prefix and accumulated multiplier. Once the reduced base is coprime
-to the reduced modulus, baby-step--giant-step solves the remaining equation.
-Each removal is necessary for solvability and preserves a one-to-one mapping
-between later solutions, while BSGS checks exponents in increasing-block form:
-giant step `i` covers exponents `[i*z, i*z+z)`, so the first hit (with the
-smallest baby index stored per value) is minimal and the search stops there.
-An unsolvable query still costs about `2*sqrt(m) = 2*10^6` hash operations,
-which is why the statement allows at most `20` queries.
+## Subset XORs form a vector space
+
+The XORs of subsets of `a[l..r]` form a GF(2)-space `V`, and each element of
+`V` is produced by exactly `2^{len - dim V}` subsets (a coset of the kernel).
+So the answer is `2^{len - rank}` when `x` is in `V`, and `0` otherwise.
+
+Process queries offline by `r`, keeping a basis indexed by leading bit in
+which each slot stores the **newest** possible vector. An incoming element
+swaps itself into a slot whenever it is newer than the stored vector, and the
+older vector continues down. Then the stored vectors with position `>= l`
+form an echelon basis of the span of `a[l..r]`.
+
+**Correctness.** By induction on `r`, the vectors with position `>= l` span
+exactly the elements of `a[l..r]` and are independent. The swap keeps every
+slot as recent as possible, which is the standard exchange argument.
+
+**Complexity and traps.** `O((n + q) B)` with `B = 30`. The empty subset
+counts, so `x = 0` always has an answer of at least `1`.
+
+## C++
 
 ```cpp
-{{< include problems/38_composite_discrete_log/solution.cpp >}}
+{{< include problems/38_exclusive_range_ledger/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/38_composite_discrete_log/solution.py >}}
+{{< include problems/38_exclusive_range_ledger/solution.py >}}
 ```
 
-# 39. Summatory Multiplicative Blocks
+# 39. Divisor Echo Power
 
-A linear sieve computes every totient once using its multiplicative prime
-transition, then one prefix sum answers each block endpoint. The invariant is
-that when `i*p` is formed, `phi(i*p)=phi(i)*p` if `p|i`, otherwise
-`phi(i)*(p-1)`. Thus every stored value and consequently every prefix is exact.
+## A derivation for Dirichlet convolution
+
+Let `Omega(n)` count prime factors with multiplicity, and set
+`D(h)(n) = Omega(n) h(n)`. Because `Omega(xy) = Omega(x) + Omega(y)`,
+`D(a # b) = D(a) # b + a # D(b)`. For `g = f^k` this gives
+`f # D(g) = k g # D(f)`. Comparing the values at `n`, and using `f(1) = 1`
+and `Omega(1) = 0`,
+
+```text
+Omega(n) g(n) = sum over d | n, d < n of g(d) f(n/d) (k Omega(n/d) - Omega(d)).
+```
+
+Push each finished `g(d)` to its multiples.
+
+**Correctness.** The recurrence determines `g(n)` from smaller divisors
+because `Omega(n) >= 1` is invertible modulo the prime. The coefficients of
+`f^k` are polynomials in `k`, so `k` may be reduced modulo the prime. For
+`k = -1` the result is the Dirichlet inverse.
+
+**Complexity and traps.** Harmonic `O(N log N)`. With `f = 1`, `k = 2` gives
+the divisor count and `k = -1` gives the Möbius function.
+
+## C++
 
 ```cpp
-{{< include problems/39_summatory_multiplicative_blocks/solution.cpp >}}
+{{< include problems/39_divisor_echo_power/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/39_summatory_multiplicative_blocks/solution.py >}}
+{{< include problems/39_divisor_echo_power/solution.py >}}
 ```
 
-# 40. GCD Convolution Queries
+# 40. Root Census Modulo p
 
-Group integers `x` by `d=gcd(x,n)`. Writing `x=d*y`, the remaining choices are
-exactly residues coprime to `n/d`, giving
-`sum_{d|n} d*phi(n/d)`. Precompute `phi`, add each divisor contribution to all
-multiples, and answer queries directly. The divisor partition is disjoint and
-exhaustive, proving the transform identity.
+## The distinct roots are a gcd
+
+Over `F_p`, `x^p - x = prod over a of (x - a)`. So `gcd(f, x^p - x)` is the
+product of `(x - a)` over the distinct roots of `f`, and its degree is the
+answer. Compute `x^p mod f` by square-and-multiply. Each reduction modulo `f`
+uses the precomputed series inverse of `f` reversed (Barrett for
+polynomials), so a step costs a few polynomial products. Finish with
+Euclid's algorithm.
+
+**Correctness.** The roots of `x^p - x` are exactly all elements of `F_p`, each
+simple, so the gcd keeps each root of `f` once. The zero polynomial is the
+special case in which every residue is a root.
+
+**Complexity and traps.** `O(d^2 log p)` with schoolbook products (C++
+accumulates 128-bit sums lazily), or Kronecker substitution in Python.
+Normalize the coefficients modulo `p` first; the leading coefficient may
+vanish.
+
+## C++
 
 ```cpp
-{{< include problems/40_gcd_convolution_queries/solution.cpp >}}
+{{< include problems/40_root_census_modulo_p/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/40_gcd_convolution_queries/solution.py >}}
+{{< include problems/40_root_census_modulo_p/solution.py >}}
 ```
 
-# 41. Moving Convex Robots
+# 41. Sprinkler Coverage Area
 
-Translated `B` intersects fixed `A` iff the translation vector belongs to the
-Minkowski difference `A+(-B)`. Merge the cyclic edge-angle sequences of the two
-convex polygons to construct that polygon in linear time, then answer each
-closed point-in-convex-polygon query by fan binary search. The defining
-Minkowski identity proves equivalence, including boundary contact.
+## Green's theorem on the uncovered arcs
+
+The area of the union equals half the boundary integral of `x dy - y dx`. The
+boundary consists of the arcs of each circle not covered by the other discs.
+Remove duplicates and discs contained in others. For circle `i`, every
+overlapping circle `j` covers one angular interval centred at the direction
+of `j`, with half-width `acos((r_i^2 + d^2 - r_j^2) / (2 r_i d))`. Sweep the
+sorted intervals and integrate each uncovered arc in closed form.
+
+**Correctness.** After the removals, every boundary point of the union lies
+on exactly one circle's uncovered arcs (tangencies have measure zero), and
+the arcs are oriented counterclockwise.
+
+**Complexity and traps.** `O(n^2 log n)`. Identical circles must be merged,
+or both would be considered covered. Externally tangent circles must not
+produce intervals.
+
+## C++
 
 ```cpp
-{{< include problems/41_moving_convex_robots/solution.cpp >}}
+{{< include problems/41_sprinkler_coverage_area/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/41_moving_convex_robots/solution.py >}}
+{{< include problems/41_sprinkler_coverage_area/solution.py >}}
 ```
 
-# 42. Safe Radius Region
+# 42. Crystal Hull Surface
 
-A radius `r` circle fits in a convex polygon iff its center lies left of every
-boundary line shifted inward by distance `r`. Feasibility is monotone in `r`;
-binary search it, testing shifted half-plane intersection with a deque. Every
-contained circle supplies such a center and conversely every feasible center
-defines a contained circle, proving the reduction.
+## Incremental hull with a horizon
+
+Start from a non-degenerate tetrahedron, with faces stored counterclockwise
+from outside. For each further point, find the faces it sees (strictly
+positive orientation). Delete them, and connect every horizon edge (a visible
+face adjacent to an invisible one) to the point, keeping the edge's
+orientation. Points that see no face are inside and are skipped. The answer
+is the sum of the triangle areas.
+
+**Correctness.** The visible faces form a connected cap. Replacing it by the
+cone from the new point over its boundary yields the hull of the old hull
+plus the point. The statement's guarantee (no supporting plane contains four
+points) makes every face a triangle and every orientation test decisive.
+
+**Complexity and traps.** `O(n F) = O(n^2)` face tests. Orientations of
+coordinates up to `10^9` need 128 bits. The initial tetrahedron needs four
+affinely independent points.
+
+## C++
 
 ```cpp
-{{< include problems/42_safe_radius_region/solution.cpp >}}
+{{< include problems/42_crystal_hull_surface/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/42_safe_radius_region/solution.py >}}
+{{< include problems/42_crystal_hull_surface/solution.py >}}
 ```
 
-# 43. Fibre Network Length
+# 43. Triangle Census Queries
 
-The Euclidean MST is a subgraph of the Delaunay triangulation. Construct the
-triangulation, sort its edges, and apply Kruskal. The empty-circle property
-supplies the standard exchange proof: a non-Delaunay complete-graph edge can
-be replaced across an intersected Delaunay boundary without increasing the
-bottleneck. Thus the sparse graph preserves the MST optimum. (With
-`n <= 2500`, dense `O(n^2)` Prim also fits; Delaunay gives `O(n log n)`.)
+## Points below segments
+
+For `x_i < x_j`, let `below(i, j)` be the number of points strictly between
+them in `x` and strictly below segment `ij`. Around each `i`, sort the points
+to its right by slope. Point `k` is below `ij` iff its slope from `i` is
+smaller and `x_k < x_j`, a dominance count kept with a Fenwick tree or sorted
+insertion. For a triangle with vertices sorted by `x` as `a, b, c`, the
+answer is `below(a,b) + below(b,c) - below(a,c)` when `b` is above `ac`, and
+`below(a,c) - below(a,b) - below(b,c) - 1` otherwise.
+
+**Correctness.** The region under the path `a, b, c` minus the region under
+`ac` is the triangle when `b` is above. In the other case the roles swap and
+`b` itself is counted once under `ac`. Distinct `x` coordinates and no three
+collinear points leave no boundary cases.
+
+**Complexity and traps.** `O(n^2 log n)` preprocessing, `O(1)` per query, and
+`O(n^2)` memory. Compare slopes with exact cross products.
+
+## C++
 
 ```cpp
-{{< include problems/43_circle_network_bottleneck/solution.cpp >}}
+{{< include problems/43_triangle_census_queries/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/43_circle_network_bottleneck/solution.py >}}
+{{< include problems/43_triangle_census_queries/solution.py >}}
 ```
 
-# 44. Double-Covered Area
+# 44. Polygon Triangulation Count
 
-Sweep vertical rectangle sides. A segment tree over compressed `y` maintains
-both length covered at least once and at least twice under range cover-count
-updates. Between adjacent event coordinates, the second length is constant;
-multiply it by the horizontal distance. The slabs partition the plane up to
-zero-area boundaries, proving the accumulated double-covered area.
+## Interval DP over internal diagonals
+
+Exactly one triangle of every triangulation sits on the edge `(0, n-1)`. Its
+apex `k` splits the polygon into the chains `0..k` and `k..n-1`, each closed
+by an internal diagonal. So
+`T[i][j] = sum_k T[i][k] T[k][j]` over valid chords `(i,k)` and `(k,j)`.
+A chord is an internal diagonal iff it lies in the interior angle at both
+endpoints (cone test) and properly crosses no edge.
+
+**Correctness.** In a triangulation the triangles adjacent to a chord split
+the chord's region into two independent sub-polygons, and the decomposition
+by the apex is unique.
+
+**Complexity and traps.** `O(n^3)` for both validity and the DP. Normalize
+to counterclockwise order. Reflex vertices need the complemented cone test.
+
+## C++
 
 ```cpp
-{{< include problems/44_rectangle_coverage_moments/solution.cpp >}}
+{{< include problems/44_polygon_triangulation_count/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/44_rectangle_coverage_moments/solution.py >}}
+{{< include problems/44_polygon_triangulation_count/solution.py >}}
 ```
 
-# 45. Hull Membership Queries
+# 45. Obstacle Shortcut
 
-Sort and deduplicate points, build lower and upper monotone chains with exact
-cross products, then locate each query in the appropriate fan wedge by binary
-search. Orientation against the selected hull edge distinguishes inside,
-boundary, and outside. Convexity makes angular order monotone, so the selected
-triangle is unique.
+## Shortest paths bend only at corners
+
+A shortest path avoiding open convex obstacles is a polyline whose interior
+vertices are obstacle corners: anywhere else it could be shortened locally.
+Build the visibility graph on `S`, `T`, and all corners, then run Dijkstra.
+Segment `PQ` is blocked iff some point of it is strictly inside an obstacle.
+Intersect `t in [0,1]` with the open half-planes of the obstacle's edges, and
+compare the resulting bounds as exact fractions.
+
+**Correctness.** Touching walls and corners is allowed, so only strict
+interior points block. The clipping interval is exactly the set of
+parameters whose points are strictly inside.
+
+**Complexity and traps.** `O(V^2 E)` for visibility and `O(V^2 log V)` for
+Dijkstra. Segments between two corners of the same building are edges
+(allowed) or diagonals (blocked). Use 128-bit integers for the fractions.
+
+## C++
 
 ```cpp
-{{< include problems/45_offline_dynamic_hull_queries/solution.cpp >}}
+{{< include problems/45_obstacle_shortcut/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/45_offline_dynamic_hull_queries/solution.py >}}
+{{< include problems/45_obstacle_shortcut/solution.py >}}
 ```
 
-# 46. Digit Language Arithmetic
+# 46. Lantern Grid
 
-Build the prefix automaton for the forbidden decimal pattern and run digit DP
-over `(position, automaton_state, tight, started)`. Leading zeroes do not enter
-the automaton; the number zero is handled by its actual representation `0`.
-Every integer has one digit-DP path, and a path is retained exactly when its
-automaton never reaches the full pattern, proving the count.
+## Light chasing
+
+Presses commute and are linear over GF(2). Treat the first row's presses as
+unknowns. Lamp `(r, c)` can then only be turned off by the press below it,
+which determines row `r+1` as an affine function of the unknowns (a bitset of
+`m` coefficients plus a constant). The last row of lamps gives `m` equations.
+If they are consistent, the answer is `2^{m - rank}`, and otherwise `0`.
+Transpose so that `m <= n`.
+
+**Correctness.** Every press set satisfying the first `n-1` lamp rows is
+determined by its first row, and the remaining equations are exactly the
+last-row lamps.
+
+**Complexity and traps.** `O(n m^2 / w)` with word size `w`. Known values:
+the empty 4×4 board has 16 solutions, and the 19×19 board has nullity 16.
+
+## C++
 
 ```cpp
-{{< include problems/46_digit_language_arithmetic/solution.cpp >}}
+{{< include problems/46_lantern_grid/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/46_digit_language_arithmetic/solution.py >}}
+{{< include problems/46_lantern_grid/solution.py >}}
 ```
 
-# 47. Periodic Domino Tower
+# 47. Quorum Circle
 
-Enumerate all legal transitions between width-`W` occupancy masks for one
-obstacle row, compose the `P` row matrices into one period transfer, and raise
-it to `H`. Profile induction proves a transition covers exactly the current
-row while recording precisely the cells protruding into the next. Matrix
-composition and exponentiation therefore count exactly all repeated-board
-tilings in `O(2^{3W}P + 2^{3W}log H)` time.
+## Binary search, pin a point to the boundary
+
+Feasibility is monotone in `R`. An optimal disc can be translated until one
+of its points, `p`, lies on the boundary. The centre then lies on the circle
+of radius `R` around `p`, and every other point `q` with `|pq| <= 2R`
+restricts the centre to an arc of half-width `acos(|pq| / 2R)` around the
+direction of `q`. The deepest overlap of these arcs, plus coincident points,
+decides feasibility.
+
+**Correctness.** Translating a disc while it keeps its points never loses
+any, until a point reaches the boundary. Each arc is exactly the set of
+centres at distance at most `R` from `q`.
+
+**Complexity and traps.** `O(n^2 log n)` per probe, and about 60 probes.
+Coincident points belong to every candidate disc. `k = 1` gives `0`.
+
+## C++
 
 ```cpp
-{{< include problems/47_periodic_connected_tiling/solution.cpp >}}
+{{< include problems/47_quorum_circle/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/47_periodic_connected_tiling/solution.py >}}
+{{< include problems/47_quorum_circle/solution.py >}}
 ```
 
-# 48. Terminal Backbone Frontier
+# 48. Quiet Committee Census
 
-Let `dp[mask][v]` be the cheapest connected subgraph containing the selected
-terminals and ending at `v`. Merge two proper submasks at the same vertex, then
-run multi-source Dijkstra to move the endpoint. Any Steiner tree splits at a
-branch vertex into smaller terminal sets, establishing completeness; every
-transition unions valid connected subgraphs, establishing soundness.
+## Meet in the middle
+
+Split the members into halves `A` and `B`. For every subset `M` of `B`,
+compute `best[M]` and `ways[M]` (the optimum and the number of optimal
+committees inside `M`) by branching on the lowest member `v`: either `v` is
+out (`M - v`), or `v` is in (`M - N[v]`, plus `w[v]`). Then enumerate the
+committees `S` inside `A`. Each leaves exactly `B - N(S)` available, so
+combine with `best` and `ways` of that set.
+
+**Correctness.** Every committee splits uniquely into its `A` part and its
+`B` part. The `B` part ranges over exactly the committees inside `B - N(S)`.
+The branching on `v` is a partition, so counts add.
+
+**Complexity and traps.** `O(2^{n/2})` time and memory. With zero weights
+every committee ties, so the count is the number of independent sets (for
+example `2^40` on the empty graph). Repeated rivalries are harmless.
+
+## C++
 
 ```cpp
-{{< include problems/48_prize_steiner_frontier/solution.cpp >}}
+{{< include problems/48_quiet_committee_census/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/48_prize_steiner_frontier/solution.py >}}
+{{< include problems/48_quiet_committee_census/solution.py >}}
 ```
 
-# 49. Decomposition Vertex Cover
+# 49. Glacier Cut
 
-For every nice-decomposition bag, store the minimum partial vertex-cover cost
-for each selected-vertex mask. Introduce validates newly visible edges, forget
-minimizes over the forgotten choice, and join adds child costs while subtracting
-the common bag once. The separator property proves forgotten vertices have no
-future neighbor, so the invariant is sufficient. Work and memory are
-proportional to `sum(2^|bag|)`, which the statement bounds by `2*10^6`; without
-that aggregate bound, `t = 200000` nodes of width 15 would be infeasible.
+## Binary searches on a convex polygon
+
+Let `f(p) = cross(B - A, p - A)` (positive means left of the line). Edge
+directions of a counterclockwise convex polygon increase in angle, so the
+vertex maximizing `f` is the start of the first edge whose angle is at least
+the direction of the line. The minimizing vertex is found symmetrically.
+Between them `f` is monotone along both chains, and binary searches find the
+two edges where it changes sign. The left piece is a range of vertices plus
+the two crossing points, so its area is a prefix shoelace sum plus three
+correction terms. Computing the crossing points as exact rationals keeps
+even tiny slivers accurate.
+
+**Correctness.** Unimodality of a linear function on a convex polygon makes
+all searches valid. The piece left of the line is exactly the convex polygon
+formed by the crossing points and the vertices with `f > 0`.
+
+**Complexity and traps.** `O(log n)` per query. Lines that miss the polygon
+or only touch it give `0` or the full area. The numerators reach about
+`10^33`, so C++ uses 128-bit integers.
+
+## C++
 
 ```cpp
-{{< include problems/49_treewidth_connected_cover/solution.cpp >}}
+{{< include problems/49_glacier_cut/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/49_treewidth_connected_cover/solution.py >}}
+{{< include problems/49_glacier_cut/solution.py >}}
 ```
 
 # 50. Chronicle Path Dictionary

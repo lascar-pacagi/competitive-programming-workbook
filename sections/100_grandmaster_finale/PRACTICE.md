@@ -39,34 +39,34 @@
 - [ ] [Editable Palindrome Rope](problems/29_editable_palindrome_rope/README.md)
 - [ ] [Forbidden Superstring Count](problems/30_forbidden_superstring_count/README.md)
 
-## Round IV — Algebra and computational number theory
+## Round IV — Algebra and number theory
 
-- [ ] [Connected Structure Series](problems/31_connected_structure_series/README.md)
-- [ ] [Rational Recurrence Samples](problems/32_rational_recurrence_samples/README.md)
-- [ ] [Subset Partition Spectrum](problems/33_subset_partition_spectrum/README.md)
-- [ ] [XOR Walk Spectrum](problems/34_xor_walk_spectrum/README.md)
-- [ ] [Polynomial Constraint Recovery](problems/35_polynomial_constraint_recovery/README.md)
-- [ ] [Universal Exponent Clock](problems/36_factorized_exponent_tower/README.md)
-- [ ] [Modular Root Catalogue](problems/37_modular_root_catalogue/README.md)
-- [ ] [Composite Discrete Log](problems/38_composite_discrete_log/README.md)
-- [ ] [Summatory Multiplicative Blocks](problems/39_summatory_multiplicative_blocks/README.md)
-- [ ] [GCD Convolution Queries](problems/40_gcd_convolution_queries/README.md)
+- [ ] [Two-Faction Networks](problems/31_two_faction_networks/README.md)
+- [ ] [Exponential Polynomial Ledger](problems/32_exponential_polynomial_ledger/README.md)
+- [ ] [Branching Family Census](problems/33_branching_family_census/README.md)
+- [ ] [Coin Bag Census](problems/34_coin_bag_census/README.md)
+- [ ] [Staircase Moments](problems/35_staircase_moments/README.md)
+- [ ] [Binomial Ledger](problems/36_binomial_ledger/README.md)
+- [ ] [Rabbit Cycle](problems/37_rabbit_cycle/README.md)
+- [ ] [Exclusive Range Ledger](problems/38_exclusive_range_ledger/README.md)
+- [ ] [Divisor Echo Power](problems/39_divisor_echo_power/README.md)
+- [ ] [Root Census Modulo p](problems/40_root_census_modulo_p/README.md)
 
-## Round V — Geometry, frontiers, and grand synthesis
+## Round V — Geometry, grids, and subsets
 
-- [ ] [Moving Convex Robots](problems/41_moving_convex_robots/README.md)
-- [ ] [Safe Radius Region](problems/42_safe_radius_region/README.md)
-- [ ] [Fibre Network Length](problems/43_circle_network_bottleneck/README.md)
-- [ ] [Double-Covered Area](problems/44_rectangle_coverage_moments/README.md)
-- [ ] [Hull Membership Queries](problems/45_offline_dynamic_hull_queries/README.md)
-- [ ] [Digit Language Arithmetic](problems/46_digit_language_arithmetic/README.md)
-- [ ] [Periodic Domino Tower](problems/47_periodic_connected_tiling/README.md)
-- [ ] [Terminal Backbone Frontier](problems/48_prize_steiner_frontier/README.md)
-- [ ] [Decomposition Vertex Cover](problems/49_treewidth_connected_cover/README.md)
-- [ ] [Chronicle Path Dictionary](problems/50_chronicle_path_dictionary/README.md)
+- [ ] [Sprinkler Coverage Area](problems/41_sprinkler_coverage_area/README.md)
+- [ ] [Crystal Hull Surface](problems/42_crystal_hull_surface/README.md)
+- [ ] [Triangle Census Queries](problems/43_triangle_census_queries/README.md)
+- [ ] [Polygon Triangulation Count](problems/44_polygon_triangulation_count/README.md)
+- [ ] [Obstacle Shortcut](problems/45_obstacle_shortcut/README.md)
+- [ ] [Lantern Grid](problems/46_lantern_grid/README.md)
+- [ ] [Quorum Circle](problems/47_quorum_circle/README.md)
+- [ ] [Quiet Committee Census](problems/48_quiet_committee_census/README.md)
+- [ ] [Glacier Cut](problems/49_glacier_cut/README.md)
 
 ## Round VI — Grandmaster gauntlet
 
+- [ ] [Chronicle Path Dictionary](problems/50_chronicle_path_dictionary/README.md)
 - [ ] [Echo Census](problems/51_echo_census/README.md)
 - [ ] [Tariff Revision Network](problems/52_tariff_revision_network/README.md)
 - [ ] [Spanning Weight Spectrum](problems/53_spanning_weight_spectrum/README.md)
