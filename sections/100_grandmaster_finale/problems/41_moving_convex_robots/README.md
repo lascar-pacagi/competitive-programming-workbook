@@ -1,12 +1,29 @@
 # Moving Convex Robots
 
-Minkowski difference converts collision translations into point-in-convex-polygon queries.
+Robot `A` and robot `B` are convex polygons, each given by its vertices in
+counterclockwise order; both are closed sets. Robot `A` stays fixed. For each
+query vector `t = (tx, ty)`, translate robot `B` by `t` and print `YES` if the
+translated `B` intersects `A` (touching counts), otherwise `NO`.
 
-Convex robots A and B are closed polygons given counterclockwise. Robot A stays fixed; B is translated by vector `t`. For every query, print whether the translated B intersects A, including boundary contact.
+## Input
 
-Input: `n m q`, polygons A and B, then q translation vectors. `n+m,q <= 200000`, `|coordinate| <= 10^8`.
+```text
+n m q
+n lines: x y      (vertices of A)
+m lines: x y      (vertices of B)
+q lines: tx ty
+```
 
-Sample:
+- `3 <= n, m`, `n + m <= 200000`, `1 <= q <= 200000`;
+- every coordinate and every `tx, ty` has absolute value at most `10^8`;
+- both polygons are strictly convex.
+
+## Output
+
+Print one line per query.
+
+## Sample input
+
 ```text
 4 4 3
 0 0
@@ -21,6 +38,9 @@ Sample:
 2 0
 4 0
 ```
+
+## Sample output
+
 ```text
 YES
 YES

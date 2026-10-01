@@ -10,8 +10,8 @@ Sending `x` units through an edge costs
 c*x + d*x*(x-1)/2.
 ```
 
-All marginal costs are nonnegative because `c,d >= 0`. Find the minimum total
-cost of a feasible circulation, or report `IMPOSSIBLE`.
+Find the minimum total cost of a feasible circulation, or report
+`IMPOSSIBLE`.
 
 ## Input
 

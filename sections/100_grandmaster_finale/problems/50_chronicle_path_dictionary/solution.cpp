@@ -1,177 +1,204 @@
 #include <bits/stdc++.h>
 using namespace std;
-using int64 = long long;
 
-constexpr int MOD1 = 1'000'000'007;
-constexpr int MOD2 = 1'000'000'009;
-constexpr int BASE = 911382323;
-
-struct Segment {
-    int left, right;
-    bool reversed;
-};
+// Split the path u -> v at w = lca(u, v) into the upward part u..w and the
+// downward part below w.  An occurrence inside the upward part, read upward
+// from its lowest vertex x, means that the root-to-x string ends with the
+// reversed pattern; one inside the downward part, ending at vertex y, means
+// that the root-to-y string ends with the pattern.  Run one Aho--Corasick
+// automaton (all patterns and their reversals) down the tree: "ends with" is
+// membership of the vertex's state in a fail-tree subtree, so each part is a
+// difference of two root-path counts, answered offline by a DFS with a Fenwick
+// tree over fail-tree Euler positions.  Occurrences crossing the junction lie
+// within |p| - 1 vertices of w on each side and are found by KMP.
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-
     int n, q;
-    string labels;
-    cin >> n >> q >> labels;
-    vector<vector<int>> graph(n);
-    for (int i = 1; i < n; ++i) {
+    cin >> n >> q;
+    string label;
+    cin >> label;
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < n - 1; i++) {
         int u, v;
         cin >> u >> v;
-        --u;
-        --v;
-        graph[u].push_back(v);
-        graph[v].push_back(u);
+        adj[u].push_back(v);
+        adj[v].push_back(u);
     }
+    vector<int> qu(q), qv(q);
+    vector<string> pats(q);
+    for (int i = 0; i < q; i++) cin >> qu[i] >> qv[i] >> pats[i];
 
-    vector<int> parent(n, -1), depth(n), order{0};
-    for (size_t at = 0; at < order.size(); ++at) {
-        int u = order[at];
-        for (int v : graph[u]) {
-            if (v == parent[u]) continue;
-            parent[v] = u;
-            depth[v] = depth[u] + 1;
-            order.push_back(v);
-        }
-    }
-    vector<int> size(n, 1), heavy(n, -1);
-    for (int at = n - 1; at > 0; --at) {
-        int u = order[at], p = parent[u];
-        size[p] += size[u];
-        if (heavy[p] == -1 || size[u] > size[heavy[p]]) heavy[p] = u;
-    }
-    vector<int> head(n), position(n), vertex_at(n);
-    vector<pair<int, int>> tasks{{0, 0}};
-    int timer = 0;
-    while (!tasks.empty()) {
-        auto [start, chain_head] = tasks.back();
-        tasks.pop_back();
-        for (int u = start; u != -1; u = heavy[u]) {
-            head[u] = chain_head;
-            position[u] = timer;
-            vertex_at[timer++] = u;
-            for (int v : graph[u])
-                if (parent[v] == u && v != heavy[u]) tasks.push_back({v, v});
-        }
-    }
-
-    auto lca = [&](int u, int v) {
-        while (head[u] != head[v]) {
-            if (depth[head[u]] > depth[head[v]]) u = parent[head[u]];
-            else v = parent[head[v]];
-        }
-        return depth[u] < depth[v] ? u : v;
-    };
-    auto path_segments = [&](int u, int v) {
-        int ancestor = lca(u, v);
-        vector<Segment> result, down;
-        while (head[u] != head[ancestor]) {
-            result.push_back({position[head[u]], position[u] + 1, true});
-            u = parent[head[u]];
-        }
-        result.push_back({position[ancestor], position[u] + 1, true});
-        while (head[v] != head[ancestor]) {
-            down.push_back({position[head[v]], position[v] + 1, false});
-            v = parent[head[v]];
-        }
-        if (position[ancestor] + 1 <= position[v])
-            down.push_back({position[ancestor] + 1, position[v] + 1, false});
-        reverse(down.begin(), down.end());
-        result.insert(result.end(), down.begin(), down.end());
-        return result;
-    };
-
-    vector<int> base(n), reversed_base(n);
-    for (int i = 0; i < n; ++i) base[i] = labels[vertex_at[i]] - 'a' + 1;
-    for (int i = 0; i < n; ++i) reversed_base[i] = base[n - 1 - i];
-    array<vector<int>, 2> powers, prefix, reverse_prefix;
-    int moduli[2] = {MOD1, MOD2};
-    for (int h = 0; h < 2; ++h) {
-        int mod = moduli[h];
-        powers[h].resize(n + 1, 1);
-        prefix[h].resize(n + 1);
-        reverse_prefix[h].resize(n + 1);
-        for (int i = 0; i < n; ++i) {
-            powers[h][i + 1] = static_cast<int64>(powers[h][i]) * BASE % mod;
-            prefix[h][i + 1] = (static_cast<int64>(prefix[h][i]) * BASE + base[i]) % mod;
-            reverse_prefix[h][i + 1] =
-                (static_cast<int64>(reverse_prefix[h][i]) * BASE + reversed_base[i]) % mod;
-        }
-    }
-    auto range_hash = [&](const array<vector<int>, 2> &source, int left, int right) {
-        int parts[2];
-        for (int h = 0; h < 2; ++h) {
-            int mod = moduli[h];
-            parts[h] = (source[h][right]
-                - static_cast<int64>(source[h][left]) * powers[h][right - left] % mod
-                + mod) % mod;
-        }
-        return pair{parts[0], parts[1]};
-    };
-    auto segment_hash = [&](const Segment &segment, int offset, int length) {
-        if (!segment.reversed)
-            return range_hash(prefix, segment.left + offset,
-                              segment.left + offset + length);
-        int original_left = segment.right - offset - length;
-        int original_right = segment.right - offset;
-        return range_hash(reverse_prefix, n - original_right, n - original_left);
-    };
-    auto segment_character = [&](const Segment &segment, int offset) {
-        int base_position = segment.reversed ? segment.right - 1 - offset
-                                             : segment.left + offset;
-        return base[base_position];
-    };
-
-    while (q--) {
-        int u, v, x, y;
-        cin >> u >> v >> x >> y;
-        --u; --v; --x; --y;
-        vector<Segment> first = path_segments(u, v);
-        vector<Segment> second = path_segments(x, y);
-        int i = 0, j = 0, offset_first = 0, offset_second = 0, common = 0;
-        int comparison = 0;
-        while (i < static_cast<int>(first.size()) &&
-               j < static_cast<int>(second.size())) {
-            int remaining_first = first[i].right - first[i].left - offset_first;
-            int remaining_second = second[j].right - second[j].left - offset_second;
-            int take = min(remaining_first, remaining_second);
-            if (segment_hash(first[i], offset_first, take) ==
-                segment_hash(second[j], offset_second, take)) {
-                common += take;
-                offset_first += take;
-                offset_second += take;
-                if (offset_first == first[i].right - first[i].left) {
-                    ++i;
-                    offset_first = 0;
+    vector<int> parent(n + 1, 0), depth(n + 1, 0), order = {1};
+    {
+        vector<char> seen(n + 1, 0);
+        seen[1] = 1;
+        for (size_t i = 0; i < order.size(); i++) {
+            int v = order[i];
+            for (int w : adj[v])
+                if (!seen[w]) {
+                    seen[w] = 1;
+                    parent[w] = v;
+                    depth[w] = depth[v] + 1;
+                    order.push_back(w);
                 }
-                if (offset_second == second[j].right - second[j].left) {
-                    ++j;
-                    offset_second = 0;
-                }
-                continue;
-            }
-            int low = 0, high = take;
-            while (low < high) {
-                int middle = (low + high + 1) / 2;
-                if (segment_hash(first[i], offset_first, middle) ==
-                    segment_hash(second[j], offset_second, middle)) low = middle;
-                else high = middle - 1;
-            }
-            common += low;
-            int a = segment_character(first[i], offset_first + low);
-            int b = segment_character(second[j], offset_second + low);
-            comparison = a < b ? -1 : 1;
-            break;
         }
-        if (comparison == 0) {
-            bool first_finished = i == static_cast<int>(first.size());
-            bool second_finished = j == static_cast<int>(second.size());
-            if (first_finished != second_finished) comparison = first_finished ? -1 : 1;
-        }
-        cout << common << ' ' << comparison << '\n';
     }
+    int LOG = 1;
+    while ((1 << LOG) <= n) LOG++;
+    vector<vector<int>> up(LOG, vector<int>(n + 1));
+    up[0] = parent;
+    for (int k = 1; k < LOG; k++)
+        for (int v = 0; v <= n; v++) up[k][v] = up[k - 1][up[k - 1][v]];
+    auto ancestorAtDepth = [&](int v, int d) {
+        int diff = depth[v] - d;
+        for (int k = 0; diff; k++, diff >>= 1)
+            if (diff & 1) v = up[k][v];
+        return v;
+    };
+    auto lca = [&](int a, int b) {
+        if (depth[a] < depth[b]) swap(a, b);
+        a = ancestorAtDepth(a, depth[b]);
+        if (a == b) return a;
+        for (int k = LOG - 1; k >= 0; k--)
+            if (up[k][a] != up[k][b]) a = up[k][a], b = up[k][b];
+        return parent[a];
+    };
+
+    // Aho--Corasick with full transition table.
+    vector<array<int, 26>> go(1);
+    go[0].fill(-1);
+    auto insert = [&](const string& w) {
+        int s = 0;
+        for (char ch : w) {
+            int c = ch - 'a';
+            if (go[s][c] < 0) {
+                go[s][c] = go.size();
+                go.emplace_back();
+                go.back().fill(-1);
+            }
+            s = go[s][c];
+        }
+        return s;
+    };
+    vector<int> nodeFwd(q), nodeRev(q);
+    for (int i = 0; i < q; i++) {
+        nodeFwd[i] = insert(pats[i]);
+        nodeRev[i] = insert(string(pats[i].rbegin(), pats[i].rend()));
+    }
+    int T = go.size();
+    vector<int> fail(T, 0), bfs = {0};
+    for (size_t h = 0; h < bfs.size(); h++) {
+        int s = bfs[h];
+        for (int c = 0; c < 26; c++) {
+            int t = go[s][c];
+            if (t >= 0) {
+                fail[t] = s ? go[fail[s]][c] : 0;
+                bfs.push_back(t);
+            } else {
+                go[s][c] = s ? go[fail[s]][c] : 0;
+            }
+        }
+    }
+    vector<vector<int>> fchildren(T);
+    for (int t = 1; t < T; t++) fchildren[fail[t]].push_back(t);
+    vector<int> tin(T), tout(T);
+    {
+        int timer = 0;
+        vector<pair<int, int>> stack = {{0, 0}};
+        while (!stack.empty()) {
+            auto& [s, i] = stack.back();
+            if (i == 0) tin[s] = ++timer;
+            if (i < (int)fchildren[s].size()) {
+                int t = fchildren[s][i++];
+                stack.push_back({t, 0});
+            } else {
+                tout[s] = timer;
+                stack.pop_back();
+            }
+        }
+    }
+
+    struct Event {
+        int node, sign, id;
+    };
+    vector<vector<Event>> events(n + 1);
+    vector<long long> answer(q, 0);
+    for (int i = 0; i < q; i++) {
+        int u = qu[i], v = qv[i];
+        const string& p = pats[i];
+        int L = p.size(), l = lca(u, v), dl = depth[l];
+        if (depth[u] >= dl + L - 1) {
+            int w = ancestorAtDepth(u, dl + L - 1);
+            events[u].push_back({nodeRev[i], 1, i});
+            if (parent[w]) events[parent[w]].push_back({nodeRev[i], -1, i});
+        }
+        if (v != l && depth[v] >= dl + L) {
+            int w = ancestorAtDepth(v, dl + L);
+            events[v].push_back({nodeFwd[i], 1, i});
+            events[parent[w]].push_back({nodeFwd[i], -1, i});
+        }
+        if (L >= 2 && v != l) {
+            int a = min(L - 1, depth[u] - dl + 1), b = min(L - 1, depth[v] - dl);
+            if (a + b >= L) {
+                string text;
+                for (int x = ancestorAtDepth(u, dl + a - 1);; x = parent[x]) {
+                    text += label[x - 1];
+                    if (x == l) break;
+                }
+                string right;
+                for (int y = ancestorAtDepth(v, dl + b); y != l; y = parent[y]) right += label[y - 1];
+                text.append(right.rbegin(), right.rend());
+                vector<int> pf(L, 0);
+                for (int idx = 1, k = 0; idx < L; idx++) {
+                    while (k && p[idx] != p[k]) k = pf[k - 1];
+                    if (p[idx] == p[k]) k++;
+                    pf[idx] = k;
+                }
+                int k = 0;
+                for (int idx = 0; idx < (int)text.size(); idx++) {
+                    while (k && text[idx] != p[k]) k = pf[k - 1];
+                    if (text[idx] == p[k]) k++;
+                    if (k == L) {
+                        int start = idx - L + 1;
+                        if (start < a && a <= idx) answer[i]++;
+                        k = pf[k - 1];
+                    }
+                }
+            }
+        }
+    }
+
+    vector<int> bit(T + 1, 0);
+    auto bitAdd = [&](int i, int x) {
+        for (; i <= T; i += i & -i) bit[i] += x;
+    };
+    auto bitSum = [&](int i) {
+        int s = 0;
+        for (; i > 0; i -= i & -i) s += bit[i];
+        return s;
+    };
+    vector<int> state(n + 1, 0);
+    vector<pair<int, int>> stack = {{1, 0}};
+    while (!stack.empty()) {
+        auto& [v, i] = stack.back();
+        if (i == 0) {
+            int from = v == 1 ? 0 : state[parent[v]];
+            state[v] = go[from][label[v - 1] - 'a'];
+            bitAdd(tin[state[v]], 1);
+            for (const Event& e : events[v])
+                answer[e.id] += (long long)e.sign * (bitSum(tout[e.node]) - bitSum(tin[e.node] - 1));
+        }
+        if (i < (int)adj[v].size()) {
+            int w = adj[v][i++];
+            if (w != parent[v]) stack.push_back({w, 0});
+        } else {
+            bitAdd(tin[state[v]], -1);
+            stack.pop_back();
+        }
+    }
+    string out;
+    for (long long x : answer) out += to_string(x) + '\n';
+    cout << out;
 }

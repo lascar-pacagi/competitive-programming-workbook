@@ -3,63 +3,57 @@ import random
 from pathlib import Path
 
 
-def make_case(rng: random.Random) -> tuple[str, str]:
-    n = rng.randint(1, 55)
-    q = rng.randint(1, 100)
-    labels = "".join(rng.choice("abcde") for _ in range(n))
-    graph = [[] for _ in range(n)]
+def path_string(n, adj, labels, u, v):
+    parent = {u: None}
+    stack = [u]
+    while stack:
+        x = stack.pop()
+        for y in adj[x]:
+            if y not in parent:
+                parent[y] = x
+                stack.append(y)
+    out = []
+    x = v
+    while x is not None:
+        out.append(labels[x])
+        x = parent[x]
+    return "".join(reversed(out))
+
+
+def count(text, p):
+    return sum(text.startswith(p, i) for i in range(len(text)))
+
+
+def make_case(rng):
+    n = rng.randint(1, 12)
+    alphabet = rng.choice(["a", "ab", "abc"])
+    labels = [""] + [rng.choice(alphabet) for _ in range(n)]
+    adj = [[] for _ in range(n + 1)]
     edges = []
-    for v in range(1, n):
-        parent = rng.randrange(v)
-        edges.append((parent, v))
-        graph[parent].append(v)
-        graph[v].append(parent)
-    parent = [-1] * n
-    depth = [0] * n
-    order = [0]
-    for u in order:
-        for v in graph[u]:
-            if v != parent[u]:
-                parent[v] = u
-                depth[v] = depth[u] + 1
-                order.append(v)
-
-    def path_string(u, v):
-        left = []
-        right = []
-        while depth[u] > depth[v]:
-            left.append(labels[u])
-            u = parent[u]
-        while depth[v] > depth[u]:
-            right.append(labels[v])
-            v = parent[v]
-        while u != v:
-            left.append(labels[u])
-            right.append(labels[v])
-            u = parent[u]
-            v = parent[v]
-        return "".join(left) + labels[u] + "".join(reversed(right))
-
+    for v in range(2, n + 1):
+        p = v - 1 if rng.random() < 0.4 else rng.randint(1, v - 1)
+        adj[p].append(v)
+        adj[v].append(p)
+        edges.append((p, v) if rng.random() < 0.5 else (v, p))
+    rng.shuffle(edges)
+    q = rng.randint(1, 15)
     queries = []
-    answers = []
     for _ in range(q):
-        u, v, x, y = [rng.randrange(n) for _ in range(4)]
-        first = path_string(u, v)
-        second = path_string(x, y)
-        lcp = 0
-        while lcp < min(len(first), len(second)) and first[lcp] == second[lcp]:
-            lcp += 1
-        comparison = (first > second) - (first < second)
-        queries.append((u, v, x, y))
-        answers.append((lcp, comparison))
-    text = f"{n} {q}\n{labels}\n"
-    text += "".join(f"{u + 1} {v + 1}\n" for u, v in edges)
-    text += "".join(f"{u + 1} {v + 1} {x + 1} {y + 1}\n"
-                    for u, v, x, y in queries)
-    return text, "".join(f"{lcp} {comparison}\n" for lcp, comparison in answers)
+        u, v = rng.randint(1, n), rng.randint(1, n)
+        text = path_string(n, adj, labels, u, v)
+        if rng.random() < 0.6 and text:
+            i = rng.randrange(len(text))
+            p = text[i:i + rng.randint(1, 5)]
+        else:
+            p = "".join(rng.choice(alphabet) for _ in range(rng.randint(1, 4)))
+        queries.append((u, v, p, count(text, p)))
+    lines = [f"{n} {q}", "".join(labels[1:])]
+    lines += [f"{a} {b}" for a, b in edges]
+    lines += [f"{u} {v} {p}" for u, v, p, _ in queries]
+    return "\n".join(lines) + "\n", "".join(f"{c}\n" for *_, c in queries)
 
 
-def main() -> None:
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--count", type=int, default=25)
     parser.add_argument("--seed", type=int, default=1)

@@ -126,6 +126,7 @@ optional<u64>bsgs(u64 a,u64 b,u64 m) {
     u64 z=sqrtl((long double)m)+1;
     while((u128)z*z<m)z++;
     unordered_map<u64,u64>baby;
+    baby.reserve(2*z);
     u64 value=1;
     for(u64 j=0;j<z;j++) {
         if(!baby.count(value))baby[value]=j;
@@ -137,8 +138,9 @@ optional<u64>bsgs(u64 a,u64 b,u64 m) {
     for(u64 i=0;i<=z;i++) {
         auto it=baby.find(value);
         if(it!=baby.end()) {
-            u64 candidate=i*z+it->second;
-            if(!best||candidate<*best)best=candidate;
+            // Giant step i covers exponents [i*z, i*z+z): the first hit is minimal.
+            best=i*z+it->second;
+            break;
         }
         value=mul(value,step,m);
     }

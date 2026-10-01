@@ -1,4 +1,4 @@
-# Parametric Quota Cut
+# Quota Project Portfolio
 
 There are `n` projects. Selecting project `u` earns signed profit `p[u]`. A
 dependency `u v` means that selecting `u` requires selecting `v`.
@@ -6,14 +6,9 @@ dependency `u v` means that selecting `u` requires selecting `v`.
 Find the maximum total profit of a dependency-closed set containing exactly
 `K` projects.
 
-The instance satisfies the following essential promise:
-
-> There exists an integer penalty `lambda` such that **every** set maximizing
-> `sum(p[u]-lambda)` over all dependency-closed sets contains exactly `K`
-> projects.
-
-Without this promise, the exact-cardinality closure problem is not what the
-intended parametric-cut method solves.
+It is guaranteed that some integer `lambda` exists such that **every**
+dependency-closed set maximizing `sum over its projects of (p[u] - lambda)`
+contains exactly `K` projects.
 
 ## Input
 

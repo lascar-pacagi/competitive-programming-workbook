@@ -1304,7 +1304,7 @@ an impossible imbalance, and several marginals that must be rerouted.
 {{< include problems/11_bounded_convex_shipping/solution.py >}}
 ```
 
-# 12. Parametric Quota Cut
+# 12. Quota Project Portfolio
 
 ## Why the promise appears
 
@@ -2510,19 +2510,32 @@ give `O(n log n)` time and `O(n)` memory. Read coefficient `n-1+d`, duplicate
 
 # 27. Distinct Substring Rank
 
-Every nonempty path from the suffix-automaton root spells one distinct
-substring. Let `dp[v]=1+sum(dp[to])`, capped above all query ranks; the one
-counts the option to stop at `v`. Process states by decreasing maximum length.
-To unrank, inspect outgoing characters in order. A transition owns a block of
-`dp[to]` strings: its one-character extension first, then its descendants.
+## Rank blocks in suffix-array order
 
-Automaton path uniqueness proves that these blocks partition the distinct
-substrings, and ordered transitions put the blocks in lexicographic order.
-Subtracting whole blocks and then consuming the stop option therefore returns
-exactly rank `k`. Construction and DP are linear apart from ordered outgoing
-edges; output time is proportional to skipped transitions plus answer length.
-Cap counts before addition and remember that root's empty-string option is not
-a query answer.
+Sort the suffixes. Suffix `sa[i]` shares its first `lcp[i]` letters with the
+previous suffix, so it contributes exactly the new distinct substrings of
+lengths `lcp[i]+1, ..., n-sa[i]`, and they come after every substring from
+earlier suffixes in lexicographic order. Prefix sums of these block sizes
+locate the `k`-th substring by binary search: its block `i` and its length
+`len = lcp[i] + (k - before)`.
+
+Its occurrences are the suffixes `sa[i..hi]`, where `hi` is the last index
+whose `lcp` values after `i` stay `>= len`. (The block of `i` starts the
+interval because `lcp[i] < len`.) Sparse tables on `lcp` and on `sa` give `hi`
+by binary search and the leftmost start as a range minimum.
+
+**Correctness.** Distinct substrings are exactly the prefixes of suffixes,
+and each is attributed to the first suffix in sorted order that has it as a
+prefix. That suffix is `sa[i]` iff the length exceeds `lcp[i]`, so the blocks
+partition the substrings in lexicographic order. The occurrence interval
+follows from the fact that the LCP of two suffixes is the minimum `lcp` value
+between their positions.
+
+**Complexity and traps.** The suffix array costs `O(n log^2 n)` with
+comparison doubling, and each query costs `O(log n)`. Printing the substring
+itself would be up to `|s|` characters per query, so the statement asks for
+`start length` of the leftmost occurrence instead. Ranks reach
+`n(n+1)/2 ~ 2 * 10^10`, and `k` up to `10^18` must print `-1`.
 
 ## C++
 ```cpp
@@ -2533,7 +2546,7 @@ a query answer.
 {{< include problems/27_distinct_substring_rank/solution.py >}}
 ```
 
-# 28. Interval LCP Aggregates
+# 28. Suffix Pair Affinity
 
 Adjacent suffix-array ranks form edges weighted by their LCP. For any two
 ranks, their suffix LCP is the minimum edge weight on the interval between
@@ -2689,13 +2702,12 @@ invertible, proving uniqueness and correctness.
 {{< include problems/35_polynomial_constraint_recovery/solution.py >}}
 ```
 
-# 36. Factorized Exponent Tower: Carmichael Kernel
+# 36. Universal Exponent Clock
 
 Factor `n` with deterministic Miller--Rabin and Pollard--Rho. Carmichael is
 `p^(e-1)(p-1)` for odd prime powers, `1,2,2^(e-2)` for powers of two, and the
 LCM across coprime prime powers. CRT proves exponent periods combine by LCM;
-the prime-power unit groups give the component formulas. This is the modulus
-reduction kernel used recursively in exponent towers.
+the prime-power unit groups give the component formulas.
 
 ```cpp
 {{< include problems/36_factorized_exponent_tower/solution.cpp >}}
@@ -2724,8 +2736,11 @@ Repeatedly remove `gcd(a,m)` while it divides the target, recording the forced
 exponent prefix and accumulated multiplier. Once the reduced base is coprime
 to the reduced modulus, baby-step--giant-step solves the remaining equation.
 Each removal is necessary for solvability and preserves a one-to-one mapping
-between later solutions, while BSGS checks exponents in increasing-block form;
-hence the returned exponent is minimal.
+between later solutions, while BSGS checks exponents in increasing-block form:
+giant step `i` covers exponents `[i*z, i*z+z)`, so the first hit (with the
+smallest baby index stored per value) is minimal and the search stops there.
+An unsolvable query still costs about `2*sqrt(m) = 2*10^6` hash operations,
+which is why the statement allows at most `20` queries.
 
 ```cpp
 {{< include problems/38_composite_discrete_log/solution.cpp >}}
@@ -2793,13 +2808,14 @@ defines a contained circle, proving the reduction.
 {{< include problems/42_safe_radius_region/solution.py >}}
 ```
 
-# 43. Circle Network Bottleneck
+# 43. Fibre Network Length
 
 The Euclidean MST is a subgraph of the Delaunay triangulation. Construct the
 triangulation, sort its edges, and apply Kruskal. The empty-circle property
 supplies the standard exchange proof: a non-Delaunay complete-graph edge can
 be replaced across an intersected Delaunay boundary without increasing the
-bottleneck. Thus the sparse graph preserves the MST optimum.
+bottleneck. Thus the sparse graph preserves the MST optimum. (With
+`n <= 2500`, dense `O(n^2)` Prim also fits; Delaunay gives `O(n log n)`.)
 
 ```cpp
 {{< include problems/43_circle_network_bottleneck/solution.cpp >}}
@@ -2808,7 +2824,7 @@ bottleneck. Thus the sparse graph preserves the MST optimum.
 {{< include problems/43_circle_network_bottleneck/solution.py >}}
 ```
 
-# 44. Rectangle Coverage Moments
+# 44. Double-Covered Area
 
 Sweep vertical rectangle sides. A segment tree over compressed `y` maintains
 both length covered at least once and at least twice under range cover-count
@@ -2823,14 +2839,13 @@ zero-area boundaries, proving the accumulated double-covered area.
 {{< include problems/44_rectangle_coverage_moments/solution.py >}}
 ```
 
-# 45. Offline Dynamic Hull Queries: Hull Kernel
+# 45. Hull Membership Queries
 
 Sort and deduplicate points, build lower and upper monotone chains with exact
 cross products, then locate each query in the appropriate fan wedge by binary
 search. Orientation against the selected hull edge distinguishes inside,
 boundary, and outside. Convexity makes angular order monotone, so the selected
-triangle is unique. This is the query kernel placed at nodes of an offline
-time-segment tree; the package isolates it for independent verification.
+triangle is unique.
 
 ```cpp
 {{< include problems/45_offline_dynamic_hull_queries/solution.cpp >}}
@@ -2854,7 +2869,7 @@ automaton never reaches the full pattern, proving the count.
 {{< include problems/46_digit_language_arithmetic/solution.py >}}
 ```
 
-# 47. Periodic Connected Tiling
+# 47. Periodic Domino Tower
 
 Enumerate all legal transitions between width-`W` occupancy masks for one
 obstacle row, compose the `P` row matrices into one period transfer, and raise
@@ -2870,7 +2885,7 @@ tilings in `O(2^{3W}P + 2^{3W}log H)` time.
 {{< include problems/47_periodic_connected_tiling/solution.py >}}
 ```
 
-# 48. Prize Steiner Frontier
+# 48. Terminal Backbone Frontier
 
 Let `dp[mask][v]` be the cheapest connected subgraph containing the selected
 terminals and ending at `v`. Merge two proper submasks at the same vertex, then
@@ -2885,14 +2900,15 @@ transition unions valid connected subgraphs, establishing soundness.
 {{< include problems/48_prize_steiner_frontier/solution.py >}}
 ```
 
-# 49. Treewidth Connected Cover: Cover Kernel
+# 49. Decomposition Vertex Cover
 
 For every nice-decomposition bag, store the minimum partial vertex-cover cost
 for each selected-vertex mask. Introduce validates newly visible edges, forget
 minimizes over the forgotten choice, and join adds child costs while subtracting
 the common bag once. The separator property proves forgotten vertices have no
-future neighbor, so the invariant is sufficient. Connectivity-aware variants
-extend this kernel with a canonical partition of selected bag vertices.
+future neighbor, so the invariant is sufficient. Work and memory are
+proportional to `sum(2^|bag|)`, which the statement bounds by `2*10^6`; without
+that aggregate bound, `t = 200000` nodes of width 15 would be infeasible.
 
 ```cpp
 {{< include problems/49_treewidth_connected_cover/solution.cpp >}}
@@ -2903,222 +2919,974 @@ extend this kernel with a canonical partition of selected bag vertices.
 
 # 50. Chronicle Path Dictionary
 
-Heavy--light decomposition expresses a directed tree path as logarithmically
-many contiguous base-array fragments. Store forward and reverse double hashes
-so fragments taken upward or downward concatenate in path order. Binary search
-the first unequal prefix against the query word using hash equality, then use
-the next character for lexical comparison. HLD partitions every path vertex
-once, and polynomial concatenation preserves its exact order, proving each
-answer.
+## Turn path occurrences into root-path suffix tests
+
+Let `w = LCA(u,v)`. Split `S(u,v)` into the upward part `A` (from `u` up to
+`w`, inclusive) and the downward part `B` (below `w`, down to `v`). Every
+occurrence lies inside `A`, inside `B`, or crosses the junction between them.
+
+Read upward from its lowest vertex `x`, an occurrence inside `A` spells `p`.
+Equivalently, the root-to-`x` string **ends with** `reverse(p)`. An
+occurrence inside `B` that ends at vertex `y` means the root-to-`y` string
+ends with `p`. So both kinds of occurrence become "ends with" tests on
+root-to-vertex strings.
+
+Build one Aho--Corasick automaton for all patterns and their reversals, and
+run it down the tree: the state of `x` is the automaton state reached on the
+root-to-`x` string. A string ends with a dictionary word `t` exactly when its
+state lies in the fail-tree subtree of `t`'s node, which is an interval of the
+fail-tree Euler order.
+
+Occurrences inside `A` are the vertices `x` on the vertical segment from `u`
+up to depth `depth(w)+|p|-1` whose state lies in that interval. That count is
+(count on the root path of `u`) minus (count on the root path of the segment
+top's parent). One DFS maintains a Fenwick tree over the Euler positions of
+the states on the current root path and evaluates every such event. `B` is
+symmetric, with bottom vertex `v` and top depth `depth(w)+|p|`.
+
+A crossing occurrence uses at most `|p|-1` vertices on each side of the
+junction. Extract those at most `2|p|-2` letters (one ancestor jump plus a
+walk) and run KMP, counting only matches that start before the junction and
+end after it.
+
+## Correctness proof
+
+**Lemma 1.** For a vertex `x` and a word `t`, the root-to-`x` string ends with
+`t` iff the automaton state of `x` is in the fail-subtree of node(`t`).
+
+*Proof.* The automaton state is the longest suffix of the read text that is a
+trie prefix. Its fail chain lists every suffix of the text that is a trie
+prefix, longest first. `t` is such a suffix iff node(`t`) is on that chain,
+i.e. iff node(`t`) is an ancestor of the state in the fail tree.
+
+**Lemma 2.** The three counted families partition all occurrences, and each
+family is counted exactly.
+
+*Proof.* An occurrence occupies consecutive positions of `A+B`. It lies before
+the junction, after it, or covers both sides of it. An occurrence inside `A`
+has a unique lowest vertex, on the stated segment, and it satisfies Lemma 1
+with `reverse(p)`. Conversely, such a vertex yields an occurrence that stays
+inside `A` by the depth bound. The case of `B` is symmetric. Crossing
+occurrences are exactly the matches of the extracted window that start before
+the junction and end after it.
+
+**Theorem.** The printed value is the number of occurrences of `p` in
+`S(u,v)`.
+
+*Proof.* The Fenwick tree holds exactly the states of the current root path,
+so each event returns the count of Lemma 1 on that root path. Differences of
+root paths give vertical segments. Lemma 2 completes the sum.
+
+## Complexity and traps
+
+The automaton has at most `2S+1` states for total pattern length `S`. Building
+it, the Euler tour, and the DFS take `O((n + S) log S)` with the Fenwick tree,
+and each query adds `O(log n + |p|)`. Letters on the upward side must be read
+toward the root. `S(v,u)` is the reverse of `S(u,v)`. The crossing window
+must include `w` itself on the `A` side. Recursion depth reaches `n`, so every
+DFS is iterative.
+
+## C++
 
 ```cpp
 {{< include problems/50_chronicle_path_dictionary/solution.cpp >}}
 ```
+
+## Python
+
 ```python
 {{< include problems/50_chronicle_path_dictionary/solution.py >}}
 ```
 
-# Round VI — Synthesis kernel proofs
+# 51. Echo Census
 
-The final packages deliberately expose the independently testable kernel of
-each multi-technique design. The package statement defines that kernel; the
-opening note states the outer composition. The correctness obligations below
-make those interfaces explicit.
+## From squares to runs
 
-# 51. Versioned Path Pattern Census
+A **run** is a maximal substring `s[a..b)` with smallest period `p` and
+length at least `2p`. Write an echo as `ww` with `w = u^k`, where `u` is
+primitive. Then `ww` has smallest period `|u|` and length at least `2|u|`, so
+it lies inside a unique run of period `|u|`, with half-length `k|u|`.
 
-Failure-tree ancestry is equivalent to pattern-suffix matching. Euler subtree
-range updates therefore make each automaton-state point query equal the number
-of active matching patterns. A version-tree DFS snapshots and rolls back those
-updates, while HLD supplies query text fragments in directed path order.
+Inside one run of period `p`, the echoes of half-length `L = kp` start at
+`a, a+1, ..., b-2L`, and the echoes starting at `x` and `x+p` are equal. Hence
+the first `min(p, b-2L-a+1)` starting points already give every such echo of
+that run. Enumerate those for every run and multiple `L`, and deduplicate by
+`(hash, length)`.
+
+The runs themselves come from the runs theorem. Fix one of the two letter
+orders; the end of the string is smaller than every letter in both. Let
+`lyn[i]` be the length of the longest Lyndon word starting at `i`. Every run
+of period `p` contains, for one of the two orders, a position `i` with
+`lyn[i] = p`. Extending that root left and right with longest-common-extension
+queries recovers the whole run. The Lyndon array follows from the
+next-smaller-suffix recurrence `j += lyn[j]`, whose suffix comparisons are
+LCE queries.
+
+## Correctness proof
+
+**Lemma 1.** Every echo lies in some run whose period is the length of its
+primitive root.
+
+*Proof.* `ww` with `w = u^k` has period `|u|` and length `2k|u| >= 2|u|`, and
+`|u|` is its smallest period by Fine and Wilf. Extending it maximally while
+keeping that period gives a run containing it.
+
+**Lemma 2.** In a run of period `p`, the echo of half-length `L` starting at
+`x` equals the one starting at `x+p`, whenever both lie in the run.
+
+*Proof.* Both substrings have length `2L` and lie in a string of period `p`.
+Shifting by the period does not change the letters.
+
+**Lemma 3.** The Lyndon-root procedure outputs exactly the runs.
+
+*Proof.* This is the runs theorem: each run has an L-root for one of the two
+orders, and the longest Lyndon word starting there is exactly that root.
+Conversely, every reported interval has period `p` and is maximal because both
+extensions stop at a mismatch or at an end of the string.
+
+**Theorem.** The program prints the number of distinct echoes.
+
+*Proof.* By Lemmas 1 and 3 every echo is some `ww` enumerated from its run. By
+Lemma 2 the restricted starting points lose none. Deduplication counts each
+string once.
+
+## Complexity and traps
+
+The number of runs is below `n`, and the enumerated `(start, L)` pairs are
+bounded by the sum over runs of `min(p, len - 2L + 1)` over multiples `L`,
+which stays `O(n log n)`. Each LCE costs `O(log n)` by galloping plus binary
+search on prefix hashes, giving `O(n log n)` overall. Trap: in the Lyndon
+recurrence, a suffix that is a prefix of the other suffix is the **smaller**
+one in both orders, so the comparison must be handled before comparing
+letters.
+
+## C++
+
 ```cpp
-{{< include problems/51_versioned_path_pattern_census/solution.cpp >}}
+{{< include problems/51_echo_census/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/51_versioned_path_pattern_census/solution.py >}}
+{{< include problems/51_echo_census/solution.py >}}
 ```
 
-# 52. Temporal Geometric Alliances
+# 52. Tariff Revision Network
 
-Spatial filtering supplies parity edges with active time intervals. A
-time-segment tree stores each edge in exactly the nodes partitioning that
-interval; rollback parity DSU is therefore in precisely the active constraint
-state at every leaf. Its contradiction counter and component count are complete
-certificates for that time.
+## Divide and conquer over the revision timeline
+
+Recursively solve a time interval `[l,r]` of revisions. Links revised inside
+the interval are *dynamic*; every other link has a fixed tariff there.
+
+1. **Contraction.** Union all dynamic links first, then run Kruskal on the
+   static links. A static link still accepted is in *every* minimum spanning
+   tree of every moment in `[l,r]`. Add its tariff to a running total and
+   contract its endpoints.
+2. **Reduction.** On the contracted graph, run Kruskal on the static links
+   alone. A static link rejected now closes a cycle of cheaper static links
+   and is never needed in `[l,r]`, so drop it.
+
+After both steps an interval with `k` dynamic links keeps `O(k)` vertices and
+static edges. Split the interval, and at a single revision apply it and run
+Kruskal on the tiny remaining graph.
+
+## Correctness proof
+
+**Lemma 1.** A static link chosen during contraction belongs to some MST at
+every moment of `[l,r]`.
+
+*Proof.* Whatever tariffs the dynamic links take, it is at most as good as
+treating them as infinitely cheap. Kruskal with the dynamic links first
+accepts the static link `e` only if its endpoints are not yet connected by
+dynamic links plus cheaper static links. By the cut property, `e` is then a
+minimum edge across some cut for every assignment of dynamic tariffs.
+
+**Lemma 2.** A static link rejected during reduction belongs to no needed MST
+at any moment of `[l,r]`.
+
+*Proof.* It closes a cycle of static links that are no more expensive and
+whose tariffs are fixed in the interval. By the cycle property it can be
+replaced in every spanning tree.
+
+**Theorem.** Each printed value is the MST weight after that revision.
+
+*Proof.* By Lemmas 1 and 2 each recursion level preserves the MST weight of
+every moment of its interval (plus the accumulated contracted weight). A leaf
+computes it directly.
+
+## Complexity and traps
+
+Every level processes `O(q)` edges in total, so the time is
+`O((m + q) log q log m)` with sorting and the memory is `O(m + q log q)`.
+Revisions must be applied in time order: the left half runs before the right
+half reads the updated tariffs. Self-loops and parallel links are handled by
+the DSU. Stamp dynamic links with a fresh counter per call, not with `l`.
+
+## C++
+
 ```cpp
-{{< include problems/52_temporal_geometric_alliances/solution.cpp >}}
+{{< include problems/52_tariff_revision_network/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/52_temporal_geometric_alliances/solution.py >}}
+{{< include problems/52_tariff_revision_network/solution.py >}}
 ```
 
-# 53. Colored Cut-Tree Summaries
+# 53. Spanning Weight Spectrum
 
-Gomory--Hu maps every pair min-cut to the minimum edge on one tree path.
-Virtual-tree compression preserves all such minima among a query's colored
-vertices because it retains terminals and LCAs; aggregating only compressed
-edges therefore loses no candidate pair.
+## Weights as exponents
+
+Give a cable of weight `w` the formal weight `x^w` in the Laplacian. By the
+matrix-tree theorem any cofactor equals
+
+```text
+F(x) = sum over spanning trees T of x^(weight(T)),
+```
+
+so the coefficient of `x^W` is the requested count. `F` has degree at most
+`D = (n-1)K`. Evaluate `F(0), ..., F(D)` by modular Gaussian elimination and
+interpolate the coefficients in `O(D^2)` with the master polynomial
+`prod(x - i)` and synthetic division.
+
+## Correctness proof
+
+**Lemma 1.** For a numeric `x`, the determinant of the reduced Laplacian with
+entries built from `x^w` equals `F(x)`.
+
+*Proof.* The weighted matrix-tree theorem states that the cofactor equals the
+sum over spanning trees of the product of edge weights, here
+`x^(sum of w)`. Self-loops contribute nothing to a Laplacian.
+
+**Lemma 2.** `D+1` distinct evaluation points determine a polynomial of
+degree at most `D` over the field `Z/998244353`.
+
+*Proof.* The Vandermonde matrix of distinct points is invertible; Lagrange's
+formula writes the unique interpolant.
+
+**Theorem.** The output lists the number of spanning trees of each weight
+modulo the prime.
+
+*Proof.* Lemma 1 gives correct values of `F` modulo the prime, and Lemma 2
+recovers its coefficients.
+
+## Complexity and traps
+
+`O(D n^3 + D^2)` time, which is at most about `9.5 * 10^7` field operations at
+the limits, and `O(n^2 + D)` memory. `0^0 = 1` makes weight-0 cables count at
+`x = 0`. A disconnected graph gives the zero polynomial, and `n = 1` prints
+the single empty tree.
+
+## C++
+
 ```cpp
-{{< include problems/53_colored_cut_tree_summaries/solution.cpp >}}
+{{< include problems/53_spanning_weight_spectrum/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/53_colored_cut_tree_summaries/solution.py >}}
+{{< include problems/53_spanning_weight_spectrum/solution.py >}}
 ```
 
-# 54. Exact Fleet Circulation
+# 54. Fleet Pairing
 
-Lower bounds become vertex demands and convex costs become ordered unit
-marginal edges. Feasible min-cost circulation solves a fixed activation
-penalty; monotonicity of the chosen route count permits Aliens search, and the
-minimum/maximum tie counts certify exact-count recoverability.
+## Primal--dual blossom algorithm
+
+Maximum-weight matching in a general graph is solved by Edmonds' blossom
+algorithm with dual variables. Every vertex carries `y_v` (initially the
+maximum weight) and every odd set `B` carries `z_B >= 0`. We keep all edges
+feasible, `y_u + y_v + sum z_B >= 2w(uv)`, and grow alternating trees from all
+free vertices using only *tight* edges. An edge between two outer vertices of
+different trees augments; one inside a tree closes an odd cycle, which is
+shrunk to a blossom. When no tight edge helps, change the duals by the
+smallest of four bounds:
+
+1. an outer vertex dual reaches zero;
+2. an edge from an outer vertex to a free vertex becomes tight;
+3. an edge between two outer blossoms becomes tight;
+4. an inner blossom's `z` reaches zero, which expands it.
+
+Parallel offers keep only the best one. Weights are doubled so that every
+dual change stays an integer.
+
+## Correctness proof
+
+**Lemma 1.** Throughout the algorithm the duals are feasible and every matched
+edge and every blossom's internal matched structure stay tight.
+
+*Proof.* The delta choice is the minimum of exactly the quantities that would
+first violate feasibility or nonnegativity. Tree vertices move in opposite
+directions along every tight tree edge.
+
+**Lemma 2.** At termination the complementary-slackness conditions hold:
+matched edges are tight, positive-`z` blossoms are full, and every free vertex
+has `y_v = 0`.
+
+*Proof.* A stage ends either by augmentation or by delta type 1, which drives
+the duals of all outer vertices, in particular all free vertices, to zero.
+Blossoms with positive `z` are only created as tight odd cycles, and
+augmentation preserves their near-perfect matchings.
+
+**Theorem.** The final matching has maximum weight.
+
+*Proof.* By Edmonds' LP description of the matching polytope, feasible duals
+bound every matching's weight from above. Lemma 2 gives equality for the
+constructed matching.
+
+## Complexity and traps
+
+There are `O(n)` stages with `O(n)` dual changes each, and each change costs
+`O(n)` thanks to the per-blossom best-edge lists. That is `O(n^3)` time and
+`O(n + m)` memory. Handling blossoms inside blossoms is where implementations
+go wrong: relabel with the stored endpoint lists, rotate children on
+augmentation, and expand zero-dual blossoms at the end of a stage.
+
+## C++
+
 ```cpp
-{{< include problems/54_exact_fleet_circulation/solution.cpp >}}
+{{< include problems/54_fleet_pairing/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/54_exact_fleet_circulation/solution.py >}}
+{{< include problems/54_fleet_pairing/solution.py >}}
 ```
 
-# 55. Palindromic Paths Through Centroids
+# 55. Monsoon Diameter
 
-Every tree path is assigned to its highest centroid exactly once. Remove
-same-child pairs by inclusion--exclusion; bidirectional hashes classify the
-two halves that concatenate to a palindrome, and convolution pairs whole
-equal-length classes in bulk.
+## Paths as points
+
+A path with totals `(A, B) = (sum a, sum b)` takes `A t + B` on day `t`. The
+answer on day `t` is the maximum of these linear functions: the upper
+envelope of the point set restricted to `t >= 0`. There are `O(n^2)` paths,
+but only `O(n log n)` candidate points are needed.
+
+Split every vertex of degree above three with zero-cost dummy vertices; path
+totals do not change. Now choose an edge that splits the component into two
+parts of sizes at least about a third each. The paths through that edge are
+sums of one root-to-vertex vector from each side plus the edge itself. The
+useful ones lie on the Minkowski sum of the two sides' upper hulls, which has
+linear size and is computed by merging slopes. Recurse on both sides. Finally
+take the hull of all candidates and sweep `t` upward with a pointer.
+
+## Correctness proof
+
+**Lemma 1.** For vectors `P` and `Q` and every `t >= 0`,
+`max over p+q in P+Q of f_t(p+q) = max_P f_t + max_Q f_t`, where
+`f_t(A,B) = At+B`. So only hull points of each side matter, and hull(P+Q) is
+the Minkowski sum of the hulls.
+
+*Proof.* The function `f_t` is linear, and a linear maximum over a sum set
+separates into the two maxima. The vertices of the Minkowski sum of two convex
+polygons are sums of vertices, merged by edge slope.
+
+**Lemma 2.** Every path is represented at the unique decomposition edge where
+its two endpoints are first separated, or it has zero length.
+
+*Proof.* Recursion removes edges. The first removed edge on the path splits
+it into two root-to-vertex pieces inside that component.
+
+**Theorem.** The printed sequence is the maximum path length on each day.
+
+*Proof.* By Lemma 2 every path's value is dominated by some candidate, and by
+Lemma 1 no maximum is lost in the hulls. The final sweep evaluates the
+envelope correctly because its optimal point moves monotonically to larger `A`
+as `t` grows.
+
+## Complexity and traps
+
+Degree at most three makes the edge-centroid split balanced, so the depth is
+`O(log n)` and the total work is `O(n log^2 n + m)`. Coordinates reach
+`10^16`, so cross products need 128 bits in C++. Keep the point `(0,0)` for a
+single-village path, and drop the hull part before the maximum-`B` point,
+because it never wins for `t >= 0`.
+
+## C++
+
 ```cpp
-{{< include problems/55_palindromic_paths_through_centroids/solution.cpp >}}
+{{< include problems/55_monsoon_diameter/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/55_palindromic_paths_through_centroids/solution.py >}}
+{{< include problems/55_monsoon_diameter/solution.py >}}
 ```
 
-# 56. Congruent Substring Selection
+# 56. Window Substring Census
 
-The suffix interval contains exactly the lexical matches. Persistent roots
-turn that interval into an occurrence-position multiset; CRT converts all
-positional congruences into one residue class. Order-statistic descent while
-counting that class returns the requested surviving occurrence.
+## Count each substring at its last occurrence
+
+Sweep `r` from left to right. For each distinct substring `t` of `s[1..r]`,
+look at its last occurrence ending at or before `r`. That occurrence starts
+at `>= l` exactly when `t` occurs in `s[l..r]`. So give `+1` to the start
+position of every such last occurrence; the answer to `(l, r)` is then the
+sum over starts in `[l, r]`.
+
+In the suffix automaton of `s`, the suffixes of `s[1..r]` are the states on
+the suffix-link path from the prefix state `P_r` to the root. The substrings
+of one state share their end positions, so they also share their last end
+`e <= r`. A state with lengths `(len(link), len]` contributes the starts
+`[e-len+1, e-len(link)]`.
+
+Keep the suffix-link tree in a link--cut tree in which every preferred path
+has one colour, its common `e`. Moving from `r-1` to `r`, `access(P_r)`
+recolours the root path of `P_r` to `r`. Each preferred-path chain
+`top..x` that it absorbs contributes a contiguous length block, so its old
+starts are removed with one range update. The whole path then contributes the
+starts `[1, r]`.
+
+## Correctness proof
+
+**Lemma 1.** After processing `r`, the colour of a state is the largest end
+position `<= r` of its substrings, or `0` if none has occurred yet.
+
+*Proof.* A state's substrings end at `r` iff the state is on the root path of
+`P_r`. Access recolours exactly that path with `r`.
+
+**Lemma 2.** The range-add structure holds, for every start position, the
+number of distinct substrings whose last occurrence (ending at or before `r`)
+starts there.
+
+*Proof.* By Lemma 1 the contribution of every state is determined by its
+colour. Access removes each changed chain's old block and adds the new one.
+Chains in one splay tree cover contiguous length ranges because lengths
+increase strictly along the root path.
+
+**Theorem.** For every window the output is the number of distinct substrings
+of `s[l..r]`.
+
+*Proof.* A substring occurs in `s[l..r]` iff its last occurrence ending at or
+before `r` starts at or after `l`, and by Lemma 2 the range sum over `[l, r]`
+counts exactly those.
+
+## Complexity and traps
+
+Access performs `O(log n)` amortized preferred-child changes, each with a
+Fenwick update, so the time is `O(n log^2 n + q log n)` and the memory is
+`O(n sigma)`. The root state has length `0` and contributes nothing. Use the
+leftmost node of the splayed subtree as the chain top, and push the colour
+tags before reading them.
+
+## C++
+
 ```cpp
-{{< include problems/56_congruent_substring_selection/solution.cpp >}}
+{{< include problems/56_window_substring_census/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/56_congruent_substring_selection/solution.py >}}
+{{< include problems/56_window_substring_census/solution.py >}}
 ```
 
-# 57. Polynomial Tree Colorings
+# 57. Prime Power Xor Sum
 
-Each child contributes an independent generating polynomial conditional on the
-parent color. Their product is the subtree polynomial. Small-to-large ordering
-limits total moved coefficients, while NTT preserves coefficient convolution,
-so the root polynomial counts every coloring once by total statistic.
+## Min_25 sieve
+
+`f` is multiplicative with `f(p) = p xor 1`, which is `p - 1` for odd `p` and
+`3` for `p = 2`. The only values that matter are the `O(sqrt N)` distinct
+quotients `v = floor(N / i)`.
+
+1. **Lucy DP.** For each such `v`, compute the number and the sum of primes up
+   to `v` by sieving out, for each prime `p <= sqrt N`, the numbers whose least
+   prime factor is `p`:
+   `g(v) -= p^j (g(v/p) - g(p-1))`.
+2. **Composite part.** Let `S(v, j)` be the sum of `f(i)` over `2 <= i <= v`
+   whose least prime factor exceeds `p_j`. Then
+
+   ```text
+   S(v,j) = F_prime(v) - F_prime(p_j)
+          + sum_{k>j, p_k^2<=v} sum_{e>=1, p_k^(e+1)<=v}
+              ( f(p_k^e) S(v/p_k^e, k) + f(p_k^(e+1)) ).
+   ```
+
+The answer is `S(N, 0) + 1`.
+
+## Correctness proof
+
+**Lemma 1.** After processing all primes `<= sqrt v`, `g(v)` counts (or sums)
+exactly the primes up to `v`.
+
+*Proof.* Processing `p` removes the numbers in `[2, v]` whose least prime
+factor is `p`. They are `p` times the numbers `m` with least prime factor at
+least `p`, i.e. the terms of `g(v/p) - g(p-1)`. Composite numbers up to `v`
+have least prime factor `<= sqrt v`.
+
+**Lemma 2.** The recurrence for `S` counts every `i` with least prime factor
+`> p_j` exactly once.
+
+*Proof.* A prime `i` is counted in the prime term. A composite `i` factors
+uniquely as `p_k^e * m` with `p_k` its least prime factor and `m` having least
+prime factor `> p_k`. Either `m > 1`, counted in `S(v/p_k^e, k)`, or `m = 1`
+and `e >= 2`, counted by the `f(p_k^(e+1))` terms. Multiplicativity gives
+`f(i) = f(p_k^e) f(m)`.
+
+**Theorem.** The output equals `sum_{i<=N} f(i)` modulo the prime.
+
+*Proof.* By Lemmas 1 and 2, plus `f(1) = 1`.
+
+## Complexity and traps
+
+`O(N^{3/4} / log N)` time and `O(sqrt N)` memory. `f(2) = 3` differs from
+`p - 1`, so correct it in the prime sums. Values of `f` can be `0` (for
+example `f(4) = 2 xor 2`), so never divide by `f`. Compute the square root
+exactly.
+
+## C++
+
 ```cpp
-{{< include problems/57_polynomial_tree_colorings/solution.cpp >}}
+{{< include problems/57_prime_power_xor_sum/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/57_polynomial_tree_colorings/solution.py >}}
+{{< include problems/57_prime_power_xor_sum/solution.py >}}
 ```
 
-# 58. Multiplicative Set Partitions
+# 58. Critical Link Audit
 
-Divisor transforms diagonalize gcd/lcm restrictions; ranked subset convolution
-enforces disjoint labeled groups. Since the two transforms act on independent
-coordinates, applying and inverting them around the rank product counts exactly
-the partitions satisfying both constraints.
+## Dominators after subdividing links
+
+Replace every link `u -> v` by `u -> x_e -> v` with a new vertex `x_e`. Closing
+link `e` equals deleting `x_e`. A station becomes unreachable exactly when
+every path to it from `1` passes through `x_e`, i.e. when `x_e` dominates it.
+So the answer for `e` is the number of original stations in the subtree of
+`x_e` in the dominator tree. Compute the tree with Lengauer--Tarjan
+(semi-dominators, path-compressed link--eval) on `n + m` vertices.
+
+## Correctness proof
+
+**Lemma 1.** A reachable station `t` is disconnected by closing `e` iff `x_e`
+dominates `t` in the subdivided graph.
+
+*Proof.* Paths in the original graph avoiding `e` correspond to paths in the
+subdivided graph avoiding `x_e`, and conversely.
+
+**Lemma 2.** The dominators of `t` are exactly its ancestors in the dominator
+tree.
+
+*Proof.* This is the defining property of the tree built from immediate
+dominators, and Lengauer--Tarjan computes those immediate dominators
+correctly.
+
+**Theorem.** Each output is the number of stations lost when that link closes.
+
+*Proof.* By Lemmas 1 and 2 the lost stations are the original vertices in the
+subtree of `x_e`. An unreachable `x_e` loses nothing.
+
+## Complexity and traps
+
+`O((n + m) log(n + m))` with simple path compression, and linear memory. The
+DFS and `eval` must be iterative. Parallel links correctly lose nothing
+because their subdivision vertices do not dominate each other. Unreachable
+links print `0`.
+
+## C++
+
 ```cpp
-{{< include problems/58_multiplicative_set_partitions/solution.cpp >}}
+{{< include problems/58_critical_link_audit/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/58_multiplicative_set_partitions/solution.py >}}
+{{< include problems/58_critical_link_audit/solution.py >}}
 ```
 
-# 59. Factorized Recurrence Oracle
+# 59. Walk Count Oracle
 
-Factorization identifies the valid Carmichael reductions for each prime-power
-component, including the non-coprime exponent threshold. CRT reconstructs the
-recurrence index class, and rational-series/Bostan--Mori evaluation returns the
-coefficient at that enormous index without expanding preceding terms.
+## A recurrence hidden in the matrix
+
+Let `a_i = e_s^T A^i e_t` be the number of journeys of length `i`. By the
+Cayley--Hamilton theorem, the characteristic polynomial of `A` annihilates
+`A`, so `(a_i)` satisfies a linear recurrence of order at most `n`. Compute
+`a_0, ..., a_{2n+1}` by `2n + 2` sparse vector steps. Berlekamp--Massey then
+returns the shortest recurrence `Q` consistent with them, which is the true
+minimal recurrence. Finally `[x^N] P(x)/Q(x)` with `P = (a Q) mod x^L` comes
+from Bostan--Mori: replace `P/Q` by `P(x)Q(-x) / Q(x)Q(-x)` and keep the
+even or odd part, halving `N` each round.
+
+## Correctness proof
+
+**Lemma 1.** The sequence has a linear recurrence of order at most `n`, valid
+from index `0`, possibly with a nilpotent transient.
+
+*Proof.* Take the minimal polynomial `mu` of `A`, of degree `<= n`. Then
+`e_s^T A^i mu(A) e_t = 0` for all `i`, which is exactly such a recurrence.
+
+**Lemma 2.** Given `2L` terms of a sequence with a recurrence of order at most
+`L`, Berlekamp--Massey outputs a recurrence valid for the whole sequence.
+
+*Proof.* Two recurrences of orders `L1, L2` that agree on `L1 + L2` terms
+generate the same sequence. The algorithm returns the shortest recurrence for
+the prefix, whose order is at most `L`.
+
+**Theorem.** The output is `a_N` modulo the prime.
+
+*Proof.* By Lemmas 1 and 2, `A(x) = P(x)/Q(x)` as formal series. Each
+Bostan--Mori step preserves the coefficient `[x^N]` of `P/Q`.
+
+## Complexity and traps
+
+`O(n m + n^2 log N)` with schoolbook products (`O(n log n log N)` with
+FFT-based products). Powering the `n x n` matrix directly, at `n^3 log N`, is
+far too slow. Keep the transient: build `P` from the actual first `L` terms
+instead of assuming a pure recurrence. `N = 0` counts the empty journey when
+`s = t`.
+
+## C++
+
 ```cpp
-{{< include problems/59_factorized_recurrence_oracle/solution.cpp >}}
+{{< include problems/59_walk_count_oracle/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/59_factorized_recurrence_oracle/solution.py >}}
+{{< include problems/59_walk_count_oracle/solution.py >}}
 ```
 
-# 60. Delaunay Terminal Backbone
+# 60. Taxicab Backbone
 
-Delaunay preserves the geometric bottleneck edges; Kruskal reconstruction turns
-threshold connectivity into ancestor order. Query terminals and their LCAs
-form a virtual tree, on which the terminal-mask Steiner recurrence considers
-every possible branch and no irrelevant original vertex.
+## Bottlenecks live on a Manhattan MST
+
+The minimum possible largest hop between two beacons equals the largest edge
+on their path in any minimum spanning tree of the complete Manhattan graph
+(the minimax path property of MSTs). Some MST uses only candidate edges from
+each point to its nearest neighbour in each of the eight 45-degree octants. A
+sweep in decreasing `x` with a Fenwick tree over `y - x`, minimizing `x + y`,
+finds one octant's nearest neighbours, and four coordinate transforms cover
+all eight octants. Answer queries during Kruskal: each component keeps its
+pending queries, merging moves the smaller list, and a query whose endpoints
+join is answered by the current edge weight.
+
+## Correctness proof
+
+**Lemma 1.** For each point and each octant, the nearest point in that octant
+is enough: some MST uses only these edges.
+
+*Proof.* If `q` and `r` are both in point `p`'s octant and `q` is the nearest,
+then `|q - r| <= |p - r|` in Manhattan distance. So edge `pr` is a maximum on
+the cycle `p, q, r` and can be discarded by the cycle property.
+
+**Lemma 2.** Kruskal answers a query `(s, t)` with the weight of the edge that
+first joins their components, which is the minimax bottleneck.
+
+*Proof.* Components after all edges of weight `< w` are exactly the classes of
+routes with maximum hop `< w`.
+
+**Theorem.** Every printed value is the minimum required strength.
+
+*Proof.* Combine Lemmas 1 and 2. Small-to-large moving keeps every pending
+query in the list of one of its endpoints' components.
+
+## Complexity and traps
+
+`O(n log n + q log q)` time. The sweep's ties decide which of two equal points
+sees the other, so sort by `(x, y)` and query before inserting. Distances
+reach `4 * 10^9`, beyond 32 bits. `s = t` answers `0`.
+
+## C++
+
 ```cpp
-{{< include problems/60_delaunay_terminal_backbone/solution.cpp >}}
+{{< include problems/60_taxicab_backbone/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/60_delaunay_terminal_backbone/solution.py >}}
+{{< include problems/60_taxicab_backbone/solution.py >}}
 ```
 
-# 61. Moving Half-Plane Assignment
+# 61. Cavern Descent
 
-At a fixed time, half-plane feasibility creates the agent--target compatibility
-sets. Their monotonicity makes time searchable; the compressed assignment flow
-is feasible exactly when a perfect matching exists. Thus the first feasible
-time returned by parametric search is optimal.
+## Lines from descendants
+
+`dp[v] = min over proper descendants u of a[v] * b[u] + dp[u]`, and exits have
+`dp = 0`. The descendant `u` is the line `y = b[u] X + dp[u]`, queried at
+`X = a[v]`. Each vertex needs a structure holding its subtree's lines that
+supports minimum queries at a point and merging with its children's
+structures. Li Chao trees over `X in [-10^5, 10^5]` merge by re-inserting the
+line of each node of the smaller tree into the other while walking both trees
+in parallel.
+
+## Correctness proof
+
+**Lemma 1.** A Li Chao tree query returns the minimum over all inserted lines
+at `X`.
+
+*Proof.* Each node keeps the line that is better at its midpoint. The loser
+can only win on one side, where it is inserted. The query visits every node
+whose interval contains `X`.
+
+**Lemma 2.** Merging tree `B` into tree `A` yields a Li Chao tree over the
+union of their lines.
+
+*Proof.* Each line of `B` is inserted into `A` at the position of its node or
+above it. Insertion is valid from any node whose interval contains the line's
+useful region, and the recursion processes every node of `B`.
+
+**Theorem.** `dp` is computed correctly for every chamber.
+
+*Proof.* Process vertices in post-order. Before `v` is queried, its structure
+contains exactly the lines of its proper descendants (Lemma 2). Lemma 1 gives
+the minimum.
+
+## Complexity and traps
+
+A line only moves downward during merges, so the total merge work is
+`O(n log C)` with `C = 2 * 10^5 + 1`, plus `O(n log C)` for queries. Recycle
+the emptied nodes of merged trees to keep the memory linear. `dp` values reach
+`2 * 10^15`, so use 64 bits. The root is not an exit unless `n = 1`.
+
+## C++
+
 ```cpp
-{{< include problems/61_moving_half_plane_assignment/solution.cpp >}}
+{{< include problems/61_cavern_descent/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/61_moving_half_plane_assignment/solution.py >}}
+{{< include problems/61_cavern_descent/solution.py >}}
 ```
 
-# 62. Historical Rectangle Quantiles
+# 62. Window Component Census
 
-Parallel binary search turns every quantile question into repeated count
-questions. CDQ orders updates and queries by time, while the sweep Fenwick
-enforces the rectangle coordinates. Each round keeps exactly the value half
-containing the requested rank, proving convergence to the quantile.
+## Keep the newest spanning forest
+
+Scan cables `1, 2, ..., m` while maintaining a spanning forest that prefers
+newer cables. When cable `i` joins two vertices that are already connected,
+remove the oldest cable on the path between them and insert `i`. Record the
+removed index as `pre[i]`: `0` when nothing is removed, and `i` for a
+self-loop. The forest lives in a link--cut tree whose cable nodes carry their
+index as weight, with path-minimum aggregates.
+
+A window `[l, r]` has `n - #{i in [l, r] : pre[i] < l}` components, counted
+offline by sorting queries by `l` and cables by `pre`.
+
+## Correctness proof
+
+**Lemma 1.** After processing cable `r`, for every `l <= r` the forest cables
+with index `>= l` form a spanning forest of the graph on cables `l..r`.
+
+*Proof.* The forest is a maximum spanning forest with respect to cable index,
+and the cut and cycle properties hold for that order. Restricting a maximum
+spanning forest to weights `>= l` gives a spanning forest of the subgraph with
+those weights.
+
+**Lemma 2.** Cable `i <= r` is in the forest after step `r` with index `>= l`,
+and contributes to that spanning forest, iff `pre[i] < l`.
+
+*Proof.* Cable `i` joins two components of the graph on cables `pre[i]+1..i`
+but not of the graph on cables `pre[i]..i`. Hence it merges components within
+`[l, i]` iff `l > pre[i]`, and cables merging components are exactly the
+forest edges of Lemma 1.
+
+**Theorem.** Each answer equals the number of components of the window's graph.
+
+*Proof.* Components equal `n` minus the forest size. By Lemma 2 the forest
+size is the counted quantity.
+
+## Complexity and traps
+
+`O((m + q) log n)` amortized with the link--cut tree and a Fenwick tree, and
+`O(n + m + q)` memory. Cable nodes separate parallel cables so that the
+oldest one can be cut. Self-loops never merge components. Cut both halves of
+the replaced cable node.
+
+## C++
+
 ```cpp
-{{< include problems/62_historical_rectangle_quantiles/solution.cpp >}}
+{{< include problems/62_window_component_census/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/62_historical_rectangle_quantiles/solution.py >}}
+{{< include problems/62_window_component_census/solution.py >}}
 ```
 
-# 63. Periodic Forbidden Frontier
+# 63. Periodic Loop Frontier
 
-The frontier mask and automaton state jointly contain every fact that a future
-row can observe. One-period transfer composition preserves both components;
-sparse matrix exponentiation repeats it without inspecting height, and rejecting
-terminal automaton states enforces the forbidden language globally.
+## Plug DP produces a recurrence
+
+Process the floor row by row and cell by cell with a broken-profile DP. A
+state stores `W + 1` plugs, each empty, an opening bracket, or a closing
+bracket. Matching brackets are the two ends of one path fragment. Every cell
+must have degree two. Joining two opening (or two closing) brackets
+re-matches the partner, and joining a matched pair would close a loop, which
+is allowed only at the last cell of a row when no other plug is open. That
+closing transition contributes `a_N`, the count for `N` rows.
+
+Row-boundary profiles form a finite set `U`, and
+`a_N = c^T T^(N-1) v` for the row transfer matrix `T`. Thus `(a_N)` has a
+linear recurrence of order at most `|U|` (`1117` for `W = 10`). Generate
+`2|U| + 8` terms, recover the recurrence with Berlekamp--Massey, and jump to
+`N` with Bostan--Mori.
+
+## Correctness proof
+
+**Lemma 1.** The DP counts sets of moves in which every processed cell has
+degree two and the moves form one cycle.
+
+*Proof.* Brackets encode the non-crossing pairing of path ends on the
+frontier. Each transition preserves that encoding. Forbidding a pair to close
+early prevents extra cycles, and requiring an empty profile at closing forces
+all cells to be covered by that single cycle.
+
+**Lemma 2.** Once the cumulative set of reachable row profiles stops growing
+for one row, it is closed under the row transition.
+
+*Proof.* The successors of the new row's profiles are successors of profiles
+already seen, which were already recorded.
+
+**Theorem.** The output is the number of patrols modulo the prime.
+
+*Proof.* By Lemma 1 the generated terms are correct. Lemma 2 bounds the
+recurrence order by the recorded `|U|`, so `2|U|` terms determine it (as in
+Problem 59).
+
+## Complexity and traps
+
+With `S` the number of mid-row states, the plug DP costs `O(|U| W S)`,
+Berlekamp--Massey costs `O(|U|^2)`, and Bostan--Mori costs
+`O(|U|^2 log N)`. Directly powering the `1117 x 1117` transfer matrix would
+need about `10^11` operations. The DP matches the known counts (`37` for
+`4 x 6`, `4638576` for `8 x 8`) and `a(W,N) = a(N,W)`.
+
+## C++
+
 ```cpp
-{{< include problems/63_periodic_forbidden_frontier/solution.cpp >}}
+{{< include problems/63_periodic_loop_frontier/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/63_periodic_forbidden_frontier/solution.py >}}
+{{< include problems/63_periodic_loop_frontier/solution.py >}}
 ```
 
-# 64. Connected Cover On Bags
+# 64. Beacon Placement
 
-A bag state stores selected vertices plus their canonical connectivity
-partition. Introduce, forget, and join preserve edge coverage; forgetting a
-component is allowed only when it is the completed global component. Subset
-convolution accelerates compatible join partitions without changing that
-invariant.
+## Binary search plus 2-SAT
+
+Binary search the answer `d`: is there a placement with all pairwise
+distances `>= d`? Sort the `2n` sites. Literal `k` says "the owner of site
+`k` uses site `k`"; its negation is the owner's other site. Choosing site `k`
+forbids every other site strictly closer than `d`, which is a contiguous block
+of the sorted order. Build a segment tree whose leaf for site `j` implies
+"the owner of `j` uses its other site". Then `k` implies `O(log n)` tree
+nodes, and 2-SAT (Tarjan's SCC) decides the question.
+
+## Correctness proof
+
+**Lemma 1.** A placement with minimum distance `>= d` is exactly an assignment
+satisfying, for every pair of chosen sites `j != k` with distance `< d`, the
+clause `not(k) or not(j)`.
+
+*Proof.* The clause forbids choosing both sites of a close pair. Each beacon
+picks exactly one of its two literals by the pairing of negations.
+
+**Lemma 2.** The segment-tree graph has a path from `k` to `not(j)` iff `j` is
+within distance `< d` of `k` and `j != k`.
+
+*Proof.* Tree edges only go downward, from a covering node to its leaves, and
+each leaf leads to the negation of its site. The range of `k` covers exactly
+the close sites other than `k`.
+
+**Theorem.** The binary search returns the maximum achievable minimum
+distance.
+
+*Proof.* Feasibility is monotone in `d`. By Lemmas 1 and 2 the 2-SAT instance
+is satisfiable iff `d` is feasible, and 2-SAT is satisfiable iff no literal
+shares a strongly connected component with its negation.
+
+## Complexity and traps
+
+`O(n log n log C)` with `C = 10^9`. Coinciding sites are within distance
+`0 < d`. The two sites of one beacon may coincide, which must not create a
+clause against itself. Recursive SCC overflows the stack, so use an iterative
+Tarjan.
+
+## C++
+
 ```cpp
-{{< include problems/64_connected_cover_on_bags/solution.cpp >}}
+{{< include problems/64_beacon_placement/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/64_connected_cover_on_bags/solution.py >}}
+{{< include problems/64_beacon_placement/solution.py >}}
 ```
 
-# 65. Temporal Steiner Dictionary
+# 65. Temporal Steiner Span
 
-Version DFS makes the persistent dictionary count root represent exactly the
-active strings. Suffix-automaton intervals identify occurrence-derived tree
-terminals; adding their LCAs creates a virtual tree that preserves all Steiner
-paths. DP on that tree therefore returns the version-specific optimum and
-closes the course with the same lifetime/separator invariant as Problem 01.
+## Union of root paths, minus the part above the LCA
+
+Root the tree at `1`, and let each vertex own the cable to its parent. The
+minimal connecting subgraph of the sites `l..r` is the union of their root
+paths minus the root path of `LCA(l..r)`. Sweep `r` upward and paint the root
+path of `r` with colour `r`. Then a cable lies on the root path of some site
+in `[l, r]` iff its colour is at least `l`. A Fenwick tree over colours stores
+the total cable length of each colour, so the union has length
+`sum(colours >= l)`.
+
+With heavy--light decomposition, every root path is a sequence of chain
+**prefixes**. Each chain keeps a stack of equally coloured blocks from its
+head downward. Painting a prefix pops fully covered blocks, trims one partial
+block, and pushes the new block, each change updating the Fenwick tree.
+`LCA(l..r)` is the LCA of the two sites with the smallest and largest DFS
+entry time, found with sparse tables.
+
+## Correctness proof
+
+**Lemma 1.** After painting `1..r`, every cable's colour is the largest site
+`<= r` whose root path contains it.
+
+*Proof.* Painting in increasing order overwrites older colours.
+
+**Lemma 2.** The union of the root paths of `l..r` minus the root path of their
+LCA is the minimal connecting subgraph.
+
+*Proof.* Every such root path passes through the LCA. The part above it is
+used by no connecting path, and every cable below the LCA on a root path
+separates some site from the LCA.
+
+**Lemma 3.** The LCA of a vertex set is the LCA of its minimum and maximum DFS
+entry times.
+
+*Proof.* Both extremes lie in the LCA's subtree and in different child
+subtrees (unless all sites share one), and every site lies between them in
+DFS order.
+
+**Theorem.** Each answer is the minimum lit length.
+
+*Proof.* By Lemma 1 the Fenwick suffix gives the union's length, by Lemma 3
+the depth of the correct LCA is subtracted, and Lemma 2 identifies the result.
+
+## Complexity and traps
+
+Each paint touches `O(log n)` chains, with amortized `O(1)` block changes per
+chain, so the time is `O((n + q) log^2 n)` and the memory is `O(n log n)` for
+the sparse tables. HLD LCA must compare the unweighted depths of chain heads,
+not weighted depths. Sum cable lengths in 64 bits.
+
+## C++
+
 ```cpp
-{{< include problems/65_temporal_steiner_dictionary/solution.cpp >}}
+{{< include problems/65_temporal_steiner_span/solution.cpp >}}
 ```
+
+## Python
+
 ```python
-{{< include problems/65_temporal_steiner_dictionary/solution.py >}}
+{{< include problems/65_temporal_steiner_span/solution.py >}}
 ```

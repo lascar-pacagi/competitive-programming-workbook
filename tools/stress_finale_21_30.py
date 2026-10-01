@@ -22,8 +22,8 @@ def k24(out,size):assert out.split()==[str(size),'1']*size
 def c26(size):return f'{size} 0\n'+'a'*size+'\n'+'a'*size+'\n'
 def k26(out,size):v=list(map(int,out.split()));assert v==[size,*range(size)]
 
-def c27(size):return 'a'*size+f'\n{size}\n'+'1\n'*size
-def k27(out,size):assert out.split()==['a']*size
+def c27(size):return 'a'*size+f'\n{size}\n'+''.join(f'{k}\n' for k in range(1,size+1))
+def k27(out,size):assert out.split('\n')[:size]==[f'1 {k}' for k in range(1,size+1)]
 
 def c28(size):return 'a'*size+'\n'
 def k28(out,size):assert out.strip()==str(size*(size+1)*(size-1)//6)

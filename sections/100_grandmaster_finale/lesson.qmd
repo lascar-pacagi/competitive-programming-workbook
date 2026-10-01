@@ -24,8 +24,9 @@ Difficulty is progressive inside each round and across rounds. Problems
 01--10 emphasize histories and tree separators. Problems 11--20 cover
 optimization, flow, matching, and cuts. Problems 21--30 cover strings and
 sequences. Problems 31--40 cover algebra and computational number theory.
-Problems 41--50 cover geometry and frontier DP. Problems 51--65 are
-synthesis-first.
+Problems 41--49 cover geometry and frontier DP. Problems 50--65 are the
+grandmaster gauntlet: each hides one decisive idea behind an ordinary-looking
+statement.
 
 # Round I contract
 
@@ -87,8 +88,10 @@ forgotten cells or vertices can no longer affect the future.
 
 # Round VI contract
 
-The last fifteen packages isolate the critical kernel of a larger synthesis.
-For each one, explain both interfaces: what the outer technique supplies to the
-kernel, and what certificate or compressed result the kernel returns. A list of
-algorithm names is not a proof; the composition is correct only when those
-interfaces preserve the same object and tie rules.
+Problems 50--65 do not announce their technique, and several look like
+routine exercises until the limits are read. Before coding, find the object
+that makes the problem small: a hidden linear recurrence, a dominator, the
+last occurrence of a substring, the newest spanning forest, a run of a
+string, the upper envelope of all paths. Then prove that it keeps the answer
+unchanged. Each package ships a brute-force oracle; use it before tuning for
+speed.

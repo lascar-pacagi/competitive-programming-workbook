@@ -1,7 +1,5 @@
 # GCD Convolution Queries
 
-The gcd-sum query is evaluated by its divisor-transform identity.
-
 For each query `n`, compute:
 
 ```text

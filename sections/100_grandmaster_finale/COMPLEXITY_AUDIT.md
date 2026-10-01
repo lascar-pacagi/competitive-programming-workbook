@@ -2,33 +2,17 @@
 
 ## Release status
 
-Small randomized oracles validate local correctness, but they do not validate
-the published asymptotic bounds. More importantly, the current Problems 51--65
-are **kernel packages**, not implementations of the full synthesis statements
-in `COVERAGE.md`. Their opening notes describe the missing outer layer. A pass
-of the kernel stress suite must not be interpreted as validation of the full
-2800--3300 designs.
+Problems 50--65 were replaced on 2026-09-30. The previous packages were
+byte-identical copies of earlier problems (for example, 52 copied 02 and 65
+copied 10), published under unrelated titles. The new problems each have an
+independent brute-force oracle (`tests/random_cases.py`), C++ and Python
+references, and the adversarial maximum-size suite
+`tools/stress_finale_50_65.py`.
 
-The synthesis round remains release-blocked until each coverage-row problem has
-its own matching input specification, complete implementation, independent
-small oracle, and adversarial limit tests.
-
-This is not confined to Round VI. The consistency review currently classifies
-the section as follows:
-
-| Range | Current status |
-|---|---|
-| 01--30 | Full problem packages; small-oracle checked, limit suite still required |
-| 31--40 | Mostly validated algebra/number-theory kernels; several are weaker than the `COVERAGE.md` synthesis claim |
-| 41--50 | Geometry/frontier kernels; Problems 43--50 omit at least one named outer layer |
-| 51--65 | All fifteen are explicitly kernel-only packages, not the full gauntlet problems |
-
-Examples of material mismatches include: Problem 43 solves Euclidean MST rather
-than query bottlenecks on a reconstruction tree; Problem 46 counts one
-forbidden decimal pattern without the advertised remainder arithmetic; Problem
-59 outputs a rational-series prefix rather than evaluating a factorized
-enormous index; and Problem 65 solves reconstruction-tree order statistics
-rather than a versioned dictionary/virtual-Steiner problem.
+Problems 31--49 are still adapted from earlier course sections (see
+`tools/generate_finale_31_40.py` and `tools/generate_finale_41_50.py`). Their
+statements have been rewritten to drop technique hints and to be
+self-contained.
 
 ## Required evidence per problem
 
@@ -43,60 +27,48 @@ rather than a versioned dictionary/virtual-Steiner problem.
 5. Timings for optimized C++ and the promised Python reference, with an explicit
    memory ceiling and timeout.
 
-## Round VI kernel suite
+## Round VI suite (Problems 50--65)
 
 Run:
 
 ```text
-python3 tools/stress_finale_round6.py --profile quick
-python3 tools/stress_finale_round6.py --profile full --lang cpp
-python3 tools/stress_finale_round6.py --profile full --lang py
+python3 tools/stress_finale_50_65.py --profile quick
+python3 tools/stress_finale_50_65.py --profile full [--problem NN] [--lang cpp|py]
 ```
 
-The suite targets the actual published constraints using structured cases:
+Each problem gets several structured maximum-size cases, for example unary,
+Fibonacci, and Thue--Morse strings; paths, stars, caterpillars, and relabelled
+binary trees; dense and sparse graphs; planted optima; `10^18` indices. A case
+fails if either reference exceeds the manifest limit, if the references
+disagree, or if a closed-form invariant is violated. Invariants used include
+Cayley's formula, OEIS grid-cycle counts, direct simulation of walks, an
+independent sieve at `10^8`, and closed forms on paths and cycles.
 
-- long automaton dictionaries and maximum output;
-- a 200,000-operation parity timeline;
-- dense Gomory--Hu input with 200,000 thresholds;
-- all 6,000 convex marginal units forced through circulation;
-- 100,000-node path centroid decompositions;
-- maximally repetitive suffix arrays and occurrence queries;
-- full `2^16` subset spectra and 200,000-term FPS operations;
-- all `2^10` Steiner masks, 300 flow augmentations, and 100,000-point CDQ;
-- `10^18` transfer exponents, 200,000 nice-decomposition nodes, and a
-  200,000-node reconstruction tree.
+## Measured Round VI results (full profile)
 
-Every case checks a closed-form invariant where one is available and always
-cross-checks token output between the two references.
+Worst case per problem on the workspace machine (time / peak RSS).
 
-## Measured Round VI kernel results
+| Problem | Worst case | C++ | Python | Limit |
+|---:|---|---:|---:|---:|
+| 50 | V-shaped tree, long crossing patterns | 0.19 s / 77 MiB | 1.98 s / 197 MiB | 15 s |
+| 51 | `b a^(n-1)` (long LCEs everywhere) | 0.33 s / 18 MiB | 14.27 s / 55 MiB | 25 s |
+| 52 | dense graph, `n = m/10` | 0.81 s / 34 MiB | 12.77 s / 163 MiB | 30 s |
+| 53 | `n = 70`, `K = 12`, 3000 cables | 0.19 s / 12 MiB | 7.42 s / 13 MiB | 20 s |
+| 54 | `n = 500`, distance-structured weights | 0.16 s / 13 MiB | 9.54 s / 39 MiB | 25 s |
+| 55 | star, `m = 10^6` days | 0.37 s / 62 MiB | 4.28 s / 106 MiB | 15 s |
+| 56 | Fibonacci string, `2*10^5` windows | 0.35 s / 47 MiB | 13.35 s / 120 MiB | 25 s |
+| 57 | `N = 10^10` | 0.24 s / 13 MiB | 6.00 s / 49 MiB | 15 s |
+| 58 | long cycle | 0.08 s / 33 MiB | 0.71 s / 157 MiB | 10 s |
+| 59 | `n = 1000`, `m = 10^4`, `N = 10^18` | 0.18 s / 13 MiB | 1.64 s / 14 MiB | 10 s |
+| 60 | random points | 0.56 s / 42 MiB | 5.87 s / 217 MiB | 15 s |
+| 61 | random tree | 0.14 s / 23 MiB | 1.71 s / 125 MiB | 15 s |
+| 62 | random multigraph | 0.42 s / 20 MiB | 6.66 s / 154 MiB | 20 s |
+| 63 | `W = 10`, `N = 10^18` (1117 profiles) | 2.14 s / 13 MiB | 15.58 s / 13 MiB | 25 s |
+| 64 | random sites, `n = 30000` | 0.66 s / 27 MiB | 12.23 s / 136 MiB | 20 s |
+| 65 | shuffled binary tree | 0.39 s / 78 MiB | 9.20 s / 175 MiB | 20 s |
 
-Measurements below are from the full profile on the current workspace machine.
-They include process peak RSS. They are evidence for the **kernel statements**,
-not for the absent synthesis wrappers.
-
-| Problem | C++ time / RSS | Python time / RSS | Result |
-|---:|---:|---:|---|
-| 51 | 0.04 s / 12.6 MiB | 0.08 s / 20.1 MiB | pass |
-| 52 | 0.07 s / 44.5 MiB | 0.98 s / 159.7 MiB | pass |
-| 53 | 0.05 s / 13.1 MiB | 0.25 s / 53.8 MiB | pass |
-| 54 | 0.04 s / 11.9 MiB | 0.73 s / 11.6 MiB | pass |
-| 55 | 0.35 s / 13.1 MiB | 18.00 s / 57.2 MiB | pass under 30 s limit |
-| 56 | 0.09 s / 29.4 MiB | 1.14 s / 151.6 MiB | pass |
-| 57 | 0.34 s / 13.1 MiB | 17.25 s / 57.2 MiB | pass under 30 s limit |
-| 58 | 0.08 s / 16.8 MiB | 1.81 s / 59.5 MiB | pass |
-| 59 | 0.31 s / 14.3 MiB | 11.03 s / 63.5 MiB | pass, moderate Python margin |
-| 60 | 0.03 s / 11.9 MiB | 0.15 s / 11.6 MiB | pass |
-| 61 | 0.07 s / 11.7 MiB | 0.55 s / 12.9 MiB | pass |
-| 62 | 0.07 s / 13.1 MiB | 1.54 s / 57.9 MiB | pass |
-| 63 | 0.02 s / 11.9 MiB | 0.08 s / 11.7 MiB | pass |
-| 64 | 0.04 s / 26.2 MiB | 0.12 s / 68.8 MiB | pass |
-| 65 | 0.13 s / 93.2 MiB | 2.45 s / 212.9 MiB | pass after memory fix |
-
-Problem 65 originally peaked at 278.4 MiB. Packing the input, DSU,
-reconstruction-tree arrays, and binary-lifting table reduced it to 212.9 MiB;
-the same representation fix was applied to Problem 10. Problems 55 and 57 use
-roughly 60% of their current 30-second manifests and remain performance watches.
+Problems 63 and 51 in Python use about 60% of their limits and stay on the
+performance-watch list. Problem 60 in Python is closest to a 256 MiB ceiling.
 
 ## Measured Problems 01--10
 
@@ -194,13 +166,13 @@ shared 15-second manifest was not compatible with its promised CPython
 reference. Problems 35, Section 89-B, and Section 90-D now use a measured
 40-second limit; this is a support-limit correction, not an algorithmic speedup.
 
-## Measured Problems 41--50
+## Measured Problems 41--49
 
 `tools/stress_finale_41_50.py` uses 200,000-vertex strict integer convex
 polygons, a 200,000-edge regular polygon, a 2,500-point parabola Delaunay
 instance, 100,000 distinct sweep coordinates, all 1,024 Steiner masks, the
-maximum transfer exponent, a width-15 decomposition state, and 100,000
-balanced-tree path comparisons with logarithmically many HLD fragments.
+maximum transfer exponent, a width-15 decomposition state, and (for the
+former Problem 50) 100,000 balanced-tree path comparisons.
 
 | Problem | C++ time / RSS | Python time / RSS | Result |
 |---:|---:|---:|---|
@@ -212,8 +184,7 @@ balanced-tree path comparisons with logarithmically many HLD fragments.
 | 46 | 0.06 s / 11.7 MiB | 0.28 s / 11.6 MiB | pass |
 | 47 | 0.03 s / 11.7 MiB | 0.07 s / 11.5 MiB | pass |
 | 48 | 0.02 s / 11.8 MiB | 0.14 s / 11.7 MiB | pass |
-| 49 | 0.05 s / 32.2 MiB | 0.16 s / 74.0 MiB | axis test passes; joint bound rejected |
-| 50 | 0.09 s / 15.4 MiB | 1.67 s / 98.0 MiB | pass |
+| 49 | 0.05 s / 32.2 MiB | 0.16 s / 74.0 MiB | axis test passes; joint bound fixed below |
 
 Problem 42 had two independent complexity defects. C++ chose its binary-search
 upper bound with an `O(n^2)` all-pairs scan and took 114.81 seconds. Both
@@ -232,11 +203,30 @@ hundreds of millions of map entries. Thus the simultaneous published maxima
 are not computationally viable; the constraints need an aggregate state bound
 or the implementation must discard child tables and adopt a stronger design.
 
+## Fixes on 2026-09-30
+
+- **Problem 27** asked to print the `k`-th distinct substring itself. For
+  `s = a^200000` that is up to 200,000 characters per query, about 40 GB of
+  output at the limits (the old stress case only queried `k = 1`). The output
+  is now `start length` of the leftmost occurrence, answered in `O(log n)` per
+  query from the suffix array. Full profile: 0.19 s C++, 2.1 s Python.
+- **Problems 37 and 38** were measured on primes near `10^12` whose group
+  order has a huge prime factor. There, every query needs about `2*10^6` hash
+  operations. With 50 and 100 queries they took 14.4 s / 25.9 s in C++ and
+  17.9 s / 34.6 s in Python, against a 15 s limit. BSGS now stops at its first
+  giant-step hit (still minimal), and both statements allow at most 20
+  queries. The worst 20-query inputs take 2.5 s / 2.6 s in C++ and
+  5.1 s / 5.7 s in Python; outputs are unchanged.
+- **Problem 49** regained the aggregate bound `sum(2^|bag|) <= 2*10^6` from
+  its source problem, which resolves the incompatible joint maxima described
+  above. A width-15 budget case with `t = 199999` nodes and no edges (every
+  subset is a state) takes 0.25 s C++ and 0.50 s Python / 205 MiB.
+
 ## Next audit stage
 
-1. Resolve Problem 49's incompatible joint maxima.
-2. Keep Python 06/55/57 on the performance-watch list across slower machines.
-3. Replace every kernel-only package whose title promises the larger synthesis.
-4. Only then benchmark the actual 51--65 designs and remove the release block.
-5. Apply this same inventory + oracle + adversary + timing/RSS process to
+1. Keep Python 06, 51, 56, and 63 on the performance-watch list across slower
+   machines.
+2. Decide whether Problems 31--49, which repeat earlier sections' problems,
+   should be replaced like 50--65.
+3. Apply this same inventory + oracle + adversary + timing/RSS process to
    Sections 64--99.

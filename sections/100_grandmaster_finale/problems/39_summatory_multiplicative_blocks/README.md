@@ -1,7 +1,5 @@
 # Summatory Multiplicative Blocks
 
-Totient prefix blocks are the summatory multiplicative primitive used by harmonic-interval decompositions.
-
 For each query `n`, compute `phi(1) + phi(2) + ... + phi(n)` modulo
 `1000000007`, where `phi(x)` is the number of integers in `1..x` that are
 coprime with `x`.

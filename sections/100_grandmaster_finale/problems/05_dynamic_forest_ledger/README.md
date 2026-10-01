@@ -22,6 +22,10 @@ q operations
 - `1 <= n,q <= 200000`
 - all initial values, `m`, and `b` lie in `[0,MOD)`.
 
+## Output
+
+Print the answer of every `SUM` operation on its own line.
+
 ## Sample input
 
 ```text

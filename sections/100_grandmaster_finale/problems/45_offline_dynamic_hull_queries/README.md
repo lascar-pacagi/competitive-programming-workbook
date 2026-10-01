@@ -1,12 +1,27 @@
-# Offline Dynamic Hull Queries: Hull Kernel
+# Hull Membership Queries
 
-This kernel answers the tangent/orientation membership query used at every offline hull node.
+`n` sensor positions are given. For each query point, print `IN` if it lies
+strictly inside the convex hull of the sensors, `BOUNDARY` if it lies on the
+hull's boundary, and `OUT` otherwise. The hull may be a single point or a
+segment.
 
-Build the strict convex hull of the input points. For each query point print `IN`, `BOUNDARY`, or `OUT` relative to the closed hull. Degenerate hulls of one point or one segment are allowed.
+## Input
 
-Input: `n q`, then n points and q queries. `n,q <= 200000`.
+```text
+n q
+n lines: x y      (sensors)
+q lines: x y      (queries)
+```
 
-Sample:
+- `1 <= n, q <= 200000`;
+- integer coordinates with absolute value at most `10^9`.
+
+## Output
+
+Print one line per query.
+
+## Sample input
+
 ```text
 5 3
 0 0
@@ -18,6 +33,9 @@ Sample:
 4 1
 5 1
 ```
+
+## Sample output
+
 ```text
 IN
 BOUNDARY

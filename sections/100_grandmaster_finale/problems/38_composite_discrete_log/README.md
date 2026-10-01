@@ -1,17 +1,31 @@
 # Composite Discrete Log
 
-GCD reduction extends baby-step--giant-step to composite, non-coprime instances.
+For each query `(a, b, m)`, print the smallest integer `x >= 0` such that
+`a^x = b (mod m)`, or `-1` if none exists. The base need not be coprime to the
+modulus, and `a^0 = 1`.
 
-For each `1 <= a,b < m <= 10^12`, print the smallest `x >= 0` with `a^x = b (mod m)`, or `-1`. The base need not be coprime to the modulus. At most 100 queries.
+## Input
 
-Sample input
+```text
+q
+q lines: a b m
+```
+
+- `1 <= q <= 20`;
+- `1 <= a, b < m <= 10^12`.
+
+## Output
+
+Print one answer per query.
+
+## Sample input
 ```text
 3
 2 8 12
 4 2 14
 3 5 7
 ```
-Sample output
+## Sample output
 ```text
 3
 2

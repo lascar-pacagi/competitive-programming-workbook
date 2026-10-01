@@ -169,32 +169,6 @@ def k49(out: str, _: int) -> None:
     assert out.strip() == "0"
 
 
-def c50(size: int) -> str:
-    n = size
-    u = min(n, 65_535)
-    v = min(n, 87_381)
-    edges = "".join(f"{i // 2} {i}\n" for i in range(2, n + 1))
-    queries = f"{u} {v} {u} {v}\n" * size
-    return f"{n} {size}\n" + "a" * n + f"\n{edges}{queries}"
-
-
-def depth(x: int) -> int:
-    return x.bit_length() - 1
-
-
-def k50(out: str, size: int) -> None:
-    u = min(size, 65_535)
-    v = min(size, 87_381)
-    a, b = u, v
-    while a != b:
-        if a > b:
-            a //= 2
-        else:
-            b //= 2
-    length = depth(u) + depth(v) - 2 * depth(a) + 1
-    assert out.split() == [token for _ in range(size) for token in (str(length), "0")]
-
-
 CASES = [
     Case("41_moving_convex_robots", c41, k41, 200_000),
     Case("42_safe_radius_region", c42, k42, 200_000),
@@ -205,7 +179,6 @@ CASES = [
     Case("47_periodic_connected_tiling", c47, k47, 1),
     Case("48_prize_steiner_frontier", c48, k48, 1_000),
     Case("49_treewidth_connected_cover", c49, k49, 199_999),
-    Case("50_chronicle_path_dictionary", c50, k50, 100_000),
 ]
 
 

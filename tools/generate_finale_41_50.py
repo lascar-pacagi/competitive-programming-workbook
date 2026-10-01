@@ -1,4 +1,9 @@
-"""Publish Round V from validated geometry, frontier, and path kernels."""
+"""Publish Round V from validated geometry, frontier, and path kernels.
+
+Historical one-shot publisher.  The finale statements have since been edited
+by hand (spoiler notes removed, statements completed); rerunning this script
+overwrites those edits with the source statements.
+"""
 from pathlib import Path
 import json, shutil
 ROOT=Path(__file__).resolve().parents[1];BASE=ROOT/'sections/100_grandmaster_finale/problems'
@@ -12,7 +17,6 @@ ITEMS=[
 ('47_periodic_connected_tiling','Periodic Connected Tiling','sections/99_master_frontier_dp_mixed/problems/c_repeating_domino_tower','A broken-profile transfer for one obstacle period is exponentiated over an enormous height.'),
 ('48_prize_steiner_frontier','Prize Steiner Frontier','sections/99_master_frontier_dp_mixed/problems/e_terminal_backbone','Steiner subset DP precomputes the complete terminal-mask cost frontier.'),
 ('49_treewidth_connected_cover','Treewidth Connected Cover: Cover Kernel','sections/99_master_frontier_dp_mixed/problems/f_decomposition_profit','This nice-tree-decomposition vertex-cover kernel supplies the weighted selection layer used before connectivity partitions are added.'),
-('50_chronicle_path_dictionary','Chronicle Path Dictionary','sections/100_grandmaster_finale/problems/09_ancestral_pattern_index','Heavy--light path decomposition plus bidirectional hashing turns directed tree paths into searchable string fragments.'),
 ]
 def main():
  for slug,title,source,note in ITEMS:
@@ -20,6 +24,6 @@ def main():
   if dst.exists():shutil.rmtree(dst)
   shutil.copytree(src,dst)
   old=(dst/'README.md').read_text();body=old.split('\n',1)[1] if '\n' in old else ''
-  (dst/'README.md').write_text(f'# {title}\n\n{note}\n{body}')
+  (dst/'README.md').write_text(f'# {title}\n{body}')
   m=json.loads((dst/'manifest.json').read_text());m['title']=title;(dst/'manifest.json').write_text(json.dumps(m,separators=(',',':'))+'\n')
 if __name__=='__main__':main()

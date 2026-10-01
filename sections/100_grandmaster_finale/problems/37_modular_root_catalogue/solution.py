@@ -110,9 +110,9 @@ def bsgs(a, b, m):
     best = None
     for i in range(size + 1):
         if value in baby:
-            candidate = i * size + baby[value]
-            if best is None or candidate < best:
-                best = candidate
+            # Giant step i covers exponents [i*size, i*size+size): first hit is minimal.
+            best = i * size + baby[value]
+            break
         value = value * step % m
     return best
 

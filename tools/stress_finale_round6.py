@@ -1,9 +1,9 @@
-"""Adversarial limit tests for the *published kernels* in finale Problems 51--65.
+"""Shared limit-test helpers for the finale stress tools.
 
-This is intentionally separate from random_cases.py.  It creates structured
-large inputs with cheap exact invariants, compiles both references, measures
-wall time, and compares their output.  It does not validate the synthesis
-wrappers described only in COVERAGE.md; those wrappers are not implemented yet.
+This module once drove limit tests for the original Problems 51--65, which were
+copies of earlier kernels.  Those packages were replaced by new problems whose
+limit tests live in ``stress_finale_50_65.py``.  The generators and the
+``run`` timing wrapper below are still imported by the other stress tools.
 """
 from __future__ import annotations
 
@@ -218,25 +218,6 @@ def k65(out: str, size: int) -> None:
     vals = list(map(int, out.split())); assert vals == list(range(1, size + 1))
 
 
-CASES = [
-    Case("51_versioned_path_pattern_census", c51, k51, 100000),
-    Case("52_temporal_geometric_alliances", c52, k52, 200000),
-    Case("53_colored_cut_tree_summaries", c53, size_line_count, 200000),
-    Case("54_exact_fleet_circulation", c54, one_integer, 1),
-    Case("55_palindromic_paths_through_centroids", tree_distance, k_tree_distance, 100000),
-    Case("56_congruent_substring_selection", c56, k56, 100000),
-    Case("57_polynomial_tree_colorings", tree_distance, k_tree_distance, 100000),
-    Case("58_multiplicative_set_partitions", c58, k58, 16),
-    Case("59_factorized_recurrence_oracle", c59, k59, 200000),
-    Case("60_delaunay_terminal_backbone", c60, k60, 1000),
-    Case("61_moving_half_plane_assignment", c61, k61, 1),
-    Case("62_historical_rectangle_quantiles", c62, k62, 100000),
-    Case("63_periodic_forbidden_frontier", c63, k63, 1),
-    Case("64_connected_cover_on_bags", c64, k64, 199999),
-    Case("65_temporal_steiner_dictionary", c65, k65, 200000),
-]
-
-
 def run(command: list[str], data: str, timeout: int) -> tuple[str, float, int | None]:
     start = time.monotonic()
     wrapper = (
@@ -256,39 +237,7 @@ def run(command: list[str], data: str, timeout: int) -> tuple[str, float, int | 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--profile", choices=("quick", "full"), default="quick")
-    parser.add_argument("--problem", action="append", help="problem number, repeatable")
-    parser.add_argument("--timeout", type=int, default=120)
-    parser.add_argument("--lang", choices=("cpp", "py", "both"), default="both")
-    args = parser.parse_args()
-    wanted = set(args.problem or [])
-    cases = [c for c in CASES if not wanted or c.slug[:2] in wanted]
-    scale = 1.0 if args.profile == "full" else 0.01
-    with tempfile.TemporaryDirectory(prefix="finale-r6-") as tmp:
-        temp = Path(tmp)
-        for case in cases:
-            size = case.full_size if args.profile == "full" else max(1, int(case.full_size * scale))
-            if case.slug.startswith("58_"): size = 16 if args.profile == "full" else 10
-            if case.slug.startswith(("54_", "61_", "63_")): size = 1
-            data = case.make(size)
-            outputs = {}
-            if args.lang in ("cpp", "both"):
-                binary = temp / case.slug
-                subprocess.run(["g++", "-std=c++20", "-O2", "-pipe", str(BASE/case.slug/"solution.cpp"), "-o", str(binary)], check=True)
-                outputs["cpp"], elapsed, rss = run([str(binary)], data, args.timeout)
-                case.check(outputs["cpp"], size)
-                memory = f", {rss / 1024:.1f} MiB" if rss is not None else ""
-                print(f"{case.slug} cpp {elapsed:.3f}s{memory}")
-            if args.lang in ("py", "both"):
-                outputs["py"], elapsed, rss = run(["python3", str(BASE/case.slug/"solution.py")], data, args.timeout)
-                case.check(outputs["py"], size)
-                memory = f", {rss / 1024:.1f} MiB" if rss is not None else ""
-                print(f"{case.slug} py  {elapsed:.3f}s{memory}")
-            if len(outputs) == 2:
-                assert outputs["cpp"].split() == outputs["py"].split()
-            digest = hashlib.sha256(next(iter(outputs.values())).encode()).hexdigest()[:12]
-            print(f"  invariant OK, output sha256={digest}")
+    raise SystemExit("Use tools/stress_finale_50_65.py for Problems 50--65.")
 
 
 if __name__ == "__main__":

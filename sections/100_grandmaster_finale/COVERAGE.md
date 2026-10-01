@@ -30,7 +30,7 @@ all been validated.
 | No. | Problem | Primary technique | Secondary techniques | Target |
 |---:|---|---|---|---|
 | 11 | Bounded Convex Shipping | min-cost circulation | lower bounds, convex marginal edges, potentials | 2400 |
-| 12 | Parametric Quota Cut | Lagrangian relaxation | minimum cut, exact-cardinality recovery | 2500 |
+| 12 | Quota Project Portfolio | Lagrangian relaxation | minimum cut, exact-cardinality recovery | 2500 |
 | 13 | Rainbow Bottleneck Forest | matroid intersection | threshold monotonicity, graphic and partition oracles | 2500 |
 | 14 | Rooted Broadcast Choice | directed arborescence | super-root modeling, cycle contraction | 2400 |
 | 15 | Pairing Under Thresholds | general matching | offline threshold search, blossom feasibility | 2400 |
@@ -51,7 +51,7 @@ all been validated.
 | 25 | Dynamic Pattern Ledger | Aho--Corasick automaton | failure-tree Euler tour, Fenwick activation | 2400 |
 | 26 | Cyclic Match Convolution | NTT convolution | string encoding, wildcard correction | 2300 |
 | 27 | Distinct Substring Rank | suffix automaton path DP | lexicographic unranking, capped counting | 2300 |
-| 28 | Interval LCP Aggregates | LCP Cartesian tree | DSU merging, contribution counting | 2400 |
+| 28 | Suffix Pair Affinity | LCP Cartesian tree | DSU merging, contribution counting | 2400 |
 | 29 | Editable Palindrome Rope | implicit treap | forward/reverse hashes, lazy reversal | 2500 |
 | 30 | Forbidden Superstring Count | automaton product | matrix exponentiation, inclusion--exclusion | 2400 |
 
@@ -64,7 +64,7 @@ all been validated.
 | 33 | Subset Partition Spectrum | ranked subset convolution | zeta/Moebius transforms, generating functions | 2500 |
 | 34 | XOR Walk Spectrum | Walsh--Hadamard transform | exponentiation in transform space | 2300 |
 | 35 | Polynomial Constraint Recovery | interpolation | product trees, derivative evaluation | 2400 |
-| 36 | Factorized Exponent Tower | Pollard--rho | Carmichael recursion, non-coprime exponent handling | 2500 |
+| 36 | Universal Exponent Clock | Pollard--rho | Carmichael recursion, non-coprime exponent handling | 2500 |
 | 37 | Modular Root Catalogue | primitive-root coordinates | linear congruences, root enumeration | 2400 |
 | 38 | Composite Discrete Log | generalized BSGS | CRT, gcd reduction, minimality | 2500 |
 | 39 | Summatory Multiplicative Blocks | floor-quotient decomposition | Moebius inversion, harmonic intervals | 2500 |
@@ -76,38 +76,38 @@ all been validated.
 |---:|---|---|---|---|
 | 41 | Moving Convex Robots | Minkowski sums | rotating calipers, exact segment distance | 2400 |
 | 42 | Safe Radius Region | half-plane intersection | inward offsets, monotone search | 2300 |
-| 43 | Circle Network Bottleneck | Delaunay triangulation | Kruskal reconstruction tree, LCA | 2600 |
-| 44 | Rectangle Coverage Moments | sweep-line segment tree | multi-coverage lengths, modular integration | 2400 |
-| 45 | Offline Dynamic Hull Queries | hull rollback | segment tree over time, tangent queries | 2600 |
+| 43 | Fibre Network Length | Delaunay triangulation | Kruskal reconstruction tree, LCA | 2600 |
+| 44 | Double-Covered Area | sweep-line segment tree | multi-coverage lengths, modular integration | 2400 |
+| 45 | Hull Membership Queries | hull rollback | segment tree over time, tangent queries | 2600 |
 | 46 | Digit Language Arithmetic | digit DP | Aho--Corasick, remainders, range subtraction | 2300 |
-| 47 | Periodic Connected Tiling | plug DP | canonical labels, transfer exponentiation | 2700 |
-| 48 | Prize Steiner Frontier | Steiner subset DP | Lagrangian quota, multi-source Dijkstra | 2600 |
-| 49 | Treewidth Connected Cover | nice tree-decomposition DP | connectivity partitions, join correction | 2800 |
-| 50 | Chronicle Path Dictionary | tree-path decomposition | persistent suffix intervals, offline order statistics | 2900 |
+| 47 | Periodic Domino Tower | plug DP | canonical labels, transfer exponentiation | 2700 |
+| 48 | Terminal Backbone Frontier | Steiner subset DP | Lagrangian quota, multi-source Dijkstra | 2600 |
+| 49 | Decomposition Vertex Cover | nice tree-decomposition DP | connectivity partitions, join correction | 2800 |
+| 50 | Chronicle Path Dictionary | Aho--Corasick run down a tree | fail-tree Euler ranges, offline root-path Fenwick counts, KMP across the LCA | 2800 |
 
-## Round VI — Synthesis gauntlet
+## Round VI — Grandmaster gauntlet
 
-These fifteen problems are synthesis-first. Removing any named component must
-break the intended complexity or correctness; a decorative combination does
-not qualify.
+These problems are new packages (Problems 50--65 previously repeated earlier
+kernels).  Each one needs a decisive idea on top of the machinery practised in
+Rounds I--V; the statements do not name it.
 
-| No. | Problem | Technique interaction | Why the interaction is essential | Target |
+| No. | Problem | Key idea | Supporting techniques | Target |
 |---:|---|---|---|---|
-| 51 | Versioned Path Pattern Census | version tree + HLD + Aho--Corasick failure tree + rollback Fenwick | each version changes active patterns, while each query text is assembled from directed tree-path fragments | 2800 |
-| 52 | Temporal Geometric Alliances | segment tree over time + spatial hashing + rollback parity DSU | proximity edges exist only during overlapping lifetimes, and every edge also imposes a parity relation | 2900 |
-| 53 | Colored Cut-Tree Summaries | Gomory--Hu tree + virtual trees + small-to-large aggregation | pair min-cuts become path minima, but each query restricts endpoints to a new sparse color set | 2700 |
-| 54 | Exact Fleet Circulation | lower-bound min-cost flow + convex marginal costs + Aliens tie handling | feasibility, convex quantity costs, and an exact number of activated routes must be enforced simultaneously | 3000 |
-| 55 | Palindromic Paths Through Centroids | centroid decomposition + bidirectional hashing + polynomial convolution | path palindromes split at centroids, and equal-length hash classes must be paired in bulk | 3000 |
-| 56 | Congruent Substring Selection | suffix-array intervals + persistent order statistics + CRT | lexical constraints define suffix intervals, positional congruences define CRT classes, and the answer is the k-th surviving occurrence | 2800 |
-| 57 | Polynomial Tree Colorings | tree DP + small-to-large polynomial products + NTT | every child contributes a generating polynomial and total degree is too large for quadratic merging | 2800 |
-| 58 | Multiplicative Set Partitions | divisor zeta/Moebius transforms + ranked subset convolution | gcd/lcm restrictions act on divisor coordinates while disjoint group formation acts on mask ranks | 3100 |
-| 59 | Factorized Recurrence Oracle | Pollard--rho + Carmichael reduction + Bostan--Mori | enormous indices are exponent expressions modulo a recurrence period whose valid reduction depends on factorization and non-coprimality | 3000 |
-| 60 | Delaunay Terminal Backbone | Delaunay sparsification + Kruskal reconstruction tree + virtual-tree DP | geometric edges must first be sparsified, bottleneck connectivity compressed, then optimized over query-specific terminal sets | 2900 |
-| 61 | Moving Half-Plane Assignment | half-plane intersection + parametric search + Hungarian feasibility | each agent's feasible region changes with time, creating a monotone geometric compatibility graph whose perfect matching decides the answer | 2900 |
-| 62 | Historical Rectangle Quantiles | CDQ over time + sweep-line Fenwick + parallel binary search | updates and rectangle restrictions are temporal, while each query asks for an order statistic rather than a count | 3000 |
-| 63 | Periodic Forbidden Frontier | Aho--Corasick product automaton + broken-profile DP + sparse matrix exponentiation | every repeated row changes both occupancy and a boundary word automaton, so neither transfer state alone is sufficient | 3100 |
-| 64 | Connected Cover On Bags | nice tree-decomposition DP + canonical connectivity partitions + subset convolution at joins | weighted choices must cover edges and form one component, while join nodes require fast partition-compatible merging | 3200 |
-| 65 | Temporal Steiner Dictionary | offline version tree + suffix automaton intervals + virtual-tree Steiner DP + persistent counts | each version selects dictionary strings, each query creates terminals from substring occurrences, and only their compressed tree can be processed in time | 3300 |
+| 51 | Echo Census | runs theorem via Lyndon arrays under both letter orders | hashing LCE, at most `p` distinct squares per run and multiple | 3000 |
+| 52 | Tariff Revision Network | offline dynamic MST by divide and conquer | contraction of forced edges, reduction of useless edges | 3000 |
+| 53 | Spanning Weight Spectrum | matrix-tree theorem with polynomial edge weights | evaluation at many points, Lagrange interpolation | 2700 |
+| 54 | Fleet Pairing | weighted general matching (primal--dual blossoms) | dual adjustments, blossom expansion | 3300 |
+| 55 | Monsoon Diameter | paths as points; upper envelope of all path vectors | binarization, edge-centroid decomposition, Minkowski sums of hulls | 3200 |
+| 56 | Window Substring Census | last-occurrence counting on the suffix-link tree | suffix automaton, link-cut access colouring, range-add Fenwick | 3200 |
+| 57 | Prime Power Xor Sum | Min_25 sieve | Lucy prime sums, least-prime-factor recursion | 3000 |
+| 58 | Critical Link Audit | dominator tree of the edge-subdivided graph | Lengauer--Tarjan with path compression | 2700 |
+| 59 | Walk Count Oracle | hidden linear recurrence of `e_s^T A^N e_t` | Berlekamp--Massey, Bostan--Mori | 2800 |
+| 60 | Taxicab Backbone | Manhattan MST with O(n) octant candidates | Fenwick sweeps, small-to-large offline bottleneck queries | 2800 |
+| 61 | Cavern Descent | Li Chao trees merged up a rooted tree | line containers, amortized merging | 2700 |
+| 62 | Window Component Census | newest-edge spanning forest in a link--cut tree | replaced-edge indices, offline Fenwick counting | 3000 |
+| 63 | Periodic Loop Frontier | plug DP generating terms of a hidden recurrence | bracket profiles, Berlekamp--Massey, Bostan--Mori | 3100 |
+| 64 | Beacon Placement | binary search with 2-SAT | segment-tree implication graph, iterative Tarjan | 2800 |
+| 65 | Temporal Steiner Span | union of root paths by recency | HLD chain stacks, colour Fenwick, range LCA by DFS order | 3000 |
 
 ## Course-wide coverage
 
@@ -130,7 +130,7 @@ The sixty-five problems cover every major technique family from Sections 1--99:
 | large-integer and multiplicative number theory | 36--40 |
 | convex, sweep, circle, and proximity geometry | 41--45 |
 | digit, profile, plug, Steiner, and treewidth frontiers | 46--49 |
-| cross-family synthesis under versioning, geometry, algebra, and separators | 51--65 |
+| decisive-idea gauntlet across strings, graphs, trees, algebra, and number theory | 50--65 |
 
 No row is satisfied merely by mentioning a technique. The final editorial must
 identify where it enters the algorithm and which invariant or theorem makes

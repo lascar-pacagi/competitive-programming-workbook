@@ -1,15 +1,34 @@
-# Periodic Connected Tiling
+# Periodic Domino Tower
 
-A broken-profile transfer for one obstacle period is exponentiated over an enormous height.
+A tower floor plan is `W` columns wide. A block of `P` rows, each a string of
+`W` characters (`.` free, `#` blocked), is repeated exactly `H` times from top
+to bottom, giving a board of `P*H` rows. Count the ways to cover every free
+cell with non-overlapping dominoes (`1 x 2` or `2 x 1`) that use only free
+cells, modulo `1000000007`. The empty board (`H = 0`) has one tiling.
 
-A block of `P` obstacle rows is repeated exactly `H` times. Count domino tilings of the resulting `(P*H) by W` board modulo `1000000007`. Dots must be covered and `#` cells are blocked. `0 <= H <= 10^18`, `1 <= P,W <= 5`.
+## Input
 
-Sample input
+```text
+H P W
+P lines: the block rows
+```
+
+- `0 <= H <= 10^18`;
+- `1 <= P, W <= 5`.
+
+## Output
+
+Print the number of tilings modulo `1000000007`.
+
+## Sample input
+
 ```text
 2 1 2
 ..
 ```
-Sample output
+
+## Sample output
+
 ```text
 2
 ```

@@ -1,4 +1,9 @@
-"""Publish Round IV from the course's already stress-tested algebra kernels."""
+"""Publish Round IV from the course's already stress-tested algebra kernels.
+
+Historical one-shot publisher.  The finale statements have since been edited
+by hand (spoiler notes removed, statements completed); rerunning this script
+overwrites those edits with the source statements.
+"""
 from pathlib import Path
 import json, shutil
 
@@ -17,18 +22,6 @@ ITEMS=[
 ('40_gcd_convolution_queries','GCD Convolution Queries','sections/35_math_mixed_contest/problems/o_gcd_sum'),
 ]
 
-NOTES={
-31:'The arbitrary-structure series is converted to its connected-component series by formal logarithm.',
-32:'The requested recurrence sample prefix is the coefficient prefix of a rational generating function.',
-33:'The full mask spectrum is one ranked/disjoint subset-convolution layer.',
-34:'Two independent XOR-step spectra combine through the Walsh--Hadamard transform.',
-35:'Distinct modular constraints determine one polynomial, recovered by product-tree interpolation.',
-36:'This kernel computes the Carmichael period used at every modulus level of a non-coprime exponent tower.',
-37:'Primitive-root coordinates turn the power constraint into a linear congruence and return its smallest root exponent.',
-38:'GCD reduction extends baby-step--giant-step to composite, non-coprime instances.',
-39:'Totient prefix blocks are the summatory multiplicative primitive used by harmonic-interval decompositions.',
-40:'The gcd-sum query is evaluated by its divisor-transform identity.',
-}
 
 def main():
  for slug,title,source in ITEMS:
@@ -36,7 +29,7 @@ def main():
   if dst.exists():shutil.rmtree(dst)
   shutil.copytree(src,dst)
   old=(dst/'README.md').read_text();body=old.split('\n',1)[1] if '\n' in old else ''
-  (dst/'README.md').write_text(f'# {title}\n\n{NOTES[int(slug[:2])]}\n{body}')
+  (dst/'README.md').write_text(f'# {title}\n{body}')
   manifest=json.loads((dst/'manifest.json').read_text());manifest['title']=title
   (dst/'manifest.json').write_text(json.dumps(manifest,separators=(',',':'))+'\n')
 if __name__=='__main__':main()

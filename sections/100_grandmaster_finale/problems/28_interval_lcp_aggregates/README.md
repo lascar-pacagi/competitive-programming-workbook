@@ -1,7 +1,7 @@
-# Interval LCP Aggregates
+# Suffix Pair Affinity
 
-For every unordered pair of distinct suffixes of `s`, take their longest
-common-prefix length. Print the sum over all pairs.
+For every unordered pair of distinct suffixes of `s`, take the length of their
+longest common prefix. Print the sum of these lengths over all pairs.
 
 ## Input
 One nonempty lowercase string `s`, `|s| <= 500000`.
