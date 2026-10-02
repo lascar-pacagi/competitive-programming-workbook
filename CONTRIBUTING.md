@@ -38,6 +38,25 @@ resulting PDF. New problems must include the six standard package files, at
 least one fixed test, and preferably a randomized generator with an independent
 small oracle.
 
+For performance-sensitive exercises, also add `tests/stress_cases.py`. Its
+command-line contract is `--out-dir DIRECTORY`; write paired `.in` and `.out`
+files there. The normal judge runs these cases under the manifest's per-case
+time limit, including with `--random-count 0`. Prefer maximum-size adversarial
+shapes with expected answers derived independently from the construction. Keep
+small random oracle tests as well: large cases check different properties.
+
+`tools/audit_performance_tests.py` inventories actual generated input sizes for
+a section range. Its size threshold is a review aid, not proof of TLE coverage.
+Run fixed and performance cases against both reference languages with:
+
+```bash
+python3 tools/check_performance_tests.py --through 42 --workers 1 --output /tmp/performance-reference-results.json
+```
+
+Use one worker when assessing wall-clock limits. Sections 1–41 share explicit
+profiles in `tools/course_performance_profiles.json`; their construction oracles
+live in the `tools/performance_*.py` modules.
+
 Stage course files explicitly and inspect the staged patch:
 
 ```bash

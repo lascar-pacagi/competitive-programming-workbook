@@ -439,56 +439,15 @@ int main() {
 
 ## Full Python solution
 
+The Python implementation flattens the grid and surrounds it with a two-cell
+wall border. Every warp offset then has a valid array index, so the inner loop
+avoids repeated coordinate bounds checks. A queued distance is stored with its
+cell; skip a ticket if a later relaxation improved that cell. The deque's
+0--1 ordering makes the first non-stale removal of the goal optimal, so it is
+safe to stop there. An unreachable goal still requires exhausting the search.
+
 ```python
-from collections import deque
-import sys
-
-
-def main() -> None:
-    input = sys.stdin.readline
-    n, m = map(int, input().split())
-    grid = [list(input().strip()) for _ in range(n)]
-    start = goal = (-1, -1)
-    for r in range(n):
-        for c in range(m):
-            if grid[r][c] == "S":
-                start = (r, c)
-            elif grid[r][c] == "G":
-                goal = (r, c)
-    inf = 10**9
-    dist = [[inf] * m for _ in range(n)]
-    dist[start[0]][start[1]] = 0
-    dq = deque([start])
-    while dq:
-        r, c = dq.popleft()
-        d = dist[r][c]
-        for dr, dc in ((1,0),(-1,0),(0,1),(0,-1)):
-            nr, nc = r + dr, c + dc
-            if (
-                0 <= nr < n
-                and 0 <= nc < m
-                and grid[nr][nc] != "#"
-                and d < dist[nr][nc]
-            ):
-                dist[nr][nc] = d
-                dq.appendleft((nr, nc))
-        for dr in range(-2, 3):
-            for dc in range(-2, 3):
-                nr, nc = r + dr, c + dc
-                if (
-                    0 <= nr < n
-                    and 0 <= nc < m
-                    and grid[nr][nc] != "#"
-                    and d + 1 < dist[nr][nc]
-                ):
-                    dist[nr][nc] = d + 1
-                    dq.append((nr, nc))
-    ans = dist[goal[0]][goal[1]]
-    print(-1 if ans == inf else ans)
-
-
-if __name__ == "__main__":
-    main()
+{{< include problems/c_warp_maze/solution.py >}}
 ```
 
 # Common wrong answers

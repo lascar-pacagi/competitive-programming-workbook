@@ -1263,17 +1263,68 @@ This takes `O(M log log M + q)` time and `O(M)` memory.
 
 # O. GCD Sum
 
-Group the integers `i` according to their exact GCD with `n`. The number of
-`i` in `1..n` with `gcd(i,n)=d` is `phi(n/d)`, because after dividing by `d`
-we obtain a number at most `n/d` that is coprime with `n/d`. Hence:
+Group integers `i` according to their exact GCD with `n`. The number of
+`i` in `1..n` with `gcd(i,n)=d` is `phi(n/d)`, because dividing by `d`
+produces a number coprime with `n/d`. Therefore:
 
 ```text
-sum gcd(i,n) = sum over d dividing n of d * phi(n/d)
+F(n) = sum gcd(i,n) = sum over d dividing n of d * phi(n/d)
 ```
 
-Precompute `phi` once and enumerate the divisors of each query by paired
-divisors. The complexity is `O(M log log M + sum sqrt(n))` time and `O(M)`
-memory.
+With up to `200000` queries, scanning divisors afresh for each query can take
+`O(q sqrt(M))` work. Precompute `F(1)..F(M)` once instead, where `M` is the
+largest queried value. Use the smallest-prime-factor sieve from section 31.
+
+## Prime powers and coprime factors
+
+Euler's totient is multiplicative on coprime factors. In the divisor sum,
+every divisor of coprime `a*b` is uniquely a product of a divisor of `a` and
+a divisor of `b`. Separating the double sum therefore proves
+`F(a*b)=F(a)*F(b)` when `gcd(a,b)=1`.
+
+For a prime power `p^e`, the term for divisor `p^e` is `p^e`. Each of the
+other `e` terms is `p^(e-1)*(p-1)`, giving:
+
+```text
+F(p^e) = p^e + e * p^(e-1) * (p-1)
+F(p)   = 2*p - 1
+F(p^(e+1)) = p*F(p^e) + (p-1)*p^e
+```
+
+## Algorithm and invariant
+
+Process values in increasing order. Let `p=smallest[value]` and
+`rest=value/p`. Store `power[value]`, the largest power of its smallest prime
+that divides `value`, alongside `F(value)`.
+
+```text
+F(1) = 1; power(1) = 1
+if rest is not divisible by p:
+    power(value) = p
+    F(value) = (2*p-1) * F(rest)
+otherwise:
+    previous_power = power(rest)
+    power(value) = p * previous_power
+    F(value) = p * F(rest)
+             + (p-1) * previous_power * F(rest / previous_power)
+```
+
+In the first case, `p` and `rest` are coprime, so multiplicativity applies.
+In the second, factor out the already known prime power and apply the
+prime-power recurrence. All referenced table entries have smaller indices,
+so induction proves the table correct. Answer every query by indexing it and
+reducing modulo `1000000007`.
+
+For example, `F(6)=F(2)*F(3)=3*5=15`, matching
+`1+2+3+2+1+6`. For `4`, the recurrence gives
+`F(4)=2*F(2)+(2-1)*2*F(1)=8`.
+
+Preprocessing costs `O(M log log M)` with the SPF sieve, followed by `O(M)`
+table construction. Queries cost `O(1)` each; total memory is `O(M+q)`.
+Use 64-bit arithmetic in C++. Test prime powers, coprime products, `n=1`,
+repeated large queries, and many distinct large queries. The performance case
+uses `200000` different values near `1000000`, with an independent divisor-
+convolution oracle, so a cache of repeated queries is not sufficient.
 
 ```cpp
 {{< include problems/o_gcd_sum/solution.cpp >}}

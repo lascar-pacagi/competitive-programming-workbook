@@ -1,4 +1,3 @@
-import math
 import sys
 
 MOD = 1_000_000_007
@@ -8,29 +7,33 @@ def main() -> None:
     data = list(map(int, sys.stdin.buffer.read().split()))
     if not data:
         return
-    q = data[0]
-    queries = data[1:1 + q]
+    queries = data[1:1 + data[0]]
     maximum = max(queries, default=1)
+    # Smallest-prime-factor sieve from section 31.
+    smallest = list(range(maximum + 1))
+    p = 2
+    while p * p <= maximum:
+        if smallest[p] == p:
+            for multiple in range(p * p, maximum + 1, p):
+                if smallest[multiple] == multiple:
+                    smallest[multiple] = p
+        p += 1
 
-    phi = list(range(maximum + 1))
-    for p in range(2, maximum + 1):
-        if phi[p] != p:
-            continue
-        for multiple in range(p, maximum + 1, p):
-            phi[multiple] -= phi[multiple] // p
-
-    answers = []
-    for n in queries:
-        answer = 0
-        for d in range(1, math.isqrt(n) + 1):
-            if n % d:
-                continue
-            answer += d * phi[n // d]
-            other = n // d
-            if other != d:
-                answer += other * phi[d]
-        answers.append(str(answer % MOD))
-    print("\n".join(answers))
+    power = [1] * (maximum + 1)
+    answer = [0] * (maximum + 1)
+    answer[1] = 1
+    for value in range(2, maximum + 1):
+        p = smallest[value]
+        rest = value // p
+        if rest % p:
+            power[value] = p
+            answer[value] = (2 * p - 1) * answer[rest]
+        else:
+            previous_power = power[rest]
+            power[value] = previous_power * p
+            answer[value] = (p * answer[rest]
+                + (p - 1) * previous_power * answer[rest // previous_power])
+    print("\n".join(str(answer[value] % MOD) for value in queries))
 
 
 if __name__ == "__main__":

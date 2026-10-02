@@ -19,6 +19,9 @@ HLD and persistence are taught later, in sections 68 and 67 respectively.
 | Static sweeps with weighted Fenwick sums (13, 36) | K. Static Weighted Rectangles |
 
 All twelve problems have statements, C++ and Python reference solutions,
-fixed examples, and random generators with small independent oracles.
+fixed examples, random generators with small independent oracles, and
+deterministic maximum-size performance tests. H has three adversarial
+`n = q = 200000` cases; the other exercises have one each. The standard judge
+runs these even when random tests are disabled.
 
 Run `CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py --keep-going`.

@@ -12,6 +12,7 @@ The runner expects a problem directory with this shape:
       sample1.out
       ...
       random_cases.py    # optional
+      stress_cases.py    # optional, deterministic full-limit cases
 
 Set CP_TARGET=solution to run reference solutions instead of student stubs.
 
@@ -132,6 +133,29 @@ def generate_random_cases(problem: Path, count: int, seed: int) -> list[Case]:
     return cases
 
 
+def generate_stress_cases(problem: Path) -> list[Case]:
+    """Run a package's deterministic performance generator, if supplied.
+
+    Separate from random cases so --random-count 0 does not disable TLE tests.
+    Only solution execution is charged against the per-case time limit.
+    """
+    generator = problem / "tests" / "stress_cases.py"
+    if not generator.exists():
+        return []
+    tmp = Path(tempfile.mkdtemp(prefix="cp-course-stress-"))
+    TEMP_DIRS.append(tmp)
+    subprocess.run([sys.executable, str(generator), "--out-dir", str(tmp)], cwd=ROOT, check=True)
+    cases = []
+    for input_path in sorted(tmp.glob("*.in")):
+        output_path = input_path.with_suffix(".out")
+        if not output_path.exists():
+            raise FileNotFoundError(f"stress generator did not create {output_path}")
+        cases.append(Case(f"stress/{input_path.stem}", input_path, output_path))
+    if not cases:
+        raise ValueError(f"stress generator produced no cases: {generator}")
+    return cases
+
+
 def compile_cpp(source: Path, debug: bool = False) -> Path:
     build_dir = Path(tempfile.mkdtemp(prefix="cp-course-cpp-"))
     TEMP_DIRS.append(build_dir)
@@ -218,6 +242,7 @@ def debug_cpp(
     except ValueError:
         # Fixed cases and explicit paths do not need the random generator.
         cases += generate_random_cases(problem, random_count, seed)
+        cases += generate_stress_cases(problem)
         input_path = resolve_debug_input(problem, cases, case_selector)
 
     try:
@@ -397,7 +422,9 @@ def judge(problem: Path, lang: str, target: str, random_count: int, seed: int, v
     title = manifest.get("title", problem.name)
 
     source = source_for(problem, lang, target)
-    cases = discover_fixed_cases(problem) + generate_random_cases(problem, random_count, seed)
+    cases = (discover_fixed_cases(problem)
+             + generate_random_cases(problem, random_count, seed)
+             + generate_stress_cases(problem))
     if not cases:
         print(f"{problem}: no tests found")
         return 1

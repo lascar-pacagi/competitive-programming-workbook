@@ -3,39 +3,49 @@ import sys
 
 
 def main() -> None:
-    input = sys.stdin.readline
-    n, m = map(int, input().split())
-    grid = [list(input().strip()) for _ in range(n)]
-    start = goal = (-1, -1)
-    for r in range(n):
-        for c in range(m):
-            if grid[r][c] == "S":
-                start = (r, c)
-            elif grid[r][c] == "G":
-                goal = (r, c)
+    data = sys.stdin.buffer.read().split()
+    n, m = map(int, data[:2])
+    rows = data[2:2 + n]
+    # Two wall cells around every border make every 5-by-5 warp offset safe.
+    stride = m + 4
+    border = b'#' * stride
+    grid = border * 2 + b''.join(b'##' + row + b'##' for row in rows) + border * 2
+    start = goal = -1
+    for r, row in enumerate(rows):
+        c = row.find(b'S')
+        if c >= 0: start = (r + 2) * stride + c + 2
+        c = row.find(b'G')
+        if c >= 0: goal = (r + 2) * stride + c + 2
     inf = 10**9
-    dist = [[inf] * m for _ in range(n)]
-    sr, sc = start
-    dist[sr][sc] = 0
-    dq = deque([start])
+    dist = [inf] * len(grid)
+    dist[start] = 0
+    dq = deque([(start, 0)])
+    walks = (stride, -stride, 1, -1)
+    warps = tuple(
+        dr * stride + dc
+        for dr in range(-2, 3)
+        for dc in range(-2, 3)
+    )
     while dq:
-        r, c = dq.popleft()
-        d = dist[r][c]
-        for dr, dc in ((1,0),(-1,0),(0,1),(0,-1)):
-            nr, nc = r + dr, c + dc
-            if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] != "#" and d < dist[nr][nc]:
-                dist[nr][nc] = d
-                dq.appendleft((nr, nc))
-        for dr in range(-2, 3):
-            for dc in range(-2, 3):
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] != "#" and d + 1 < dist[nr][nc]:
-                    dist[nr][nc] = d + 1
-                    dq.append((nr, nc))
-    gr, gc = goal
-    print(-1 if dist[gr][gc] == inf else dist[gr][gc])
+        cell, distance = dq.popleft()
+        if distance != dist[cell]:
+            continue
+        if cell == goal:
+            print(distance)
+            return
+        for offset in walks:
+            other = cell + offset
+            if distance < dist[other] and grid[other] != 35:
+                dist[other] = distance
+                dq.appendleft((other, distance))
+        next_distance = distance + 1
+        for offset in warps:
+            other = cell + offset
+            if next_distance < dist[other] and grid[other] != 35:
+                dist[other] = next_distance
+                dq.append((other, next_distance))
+    print(-1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-

@@ -1,0 +1,668 @@
+{
+  "sections/01_complexity_io_constraints/problems/a_sum_constraints": {
+    "kind": "construction"
+  },
+  "sections/01_complexity_io_constraints/problems/b_until_threshold": {
+    "kind": "construction"
+  },
+  "sections/01_complexity_io_constraints/problems/c_token_budget": {
+    "kind": "construction"
+  },
+  "sections/01_complexity_io_constraints/problems/d_batch_pages": {
+    "kind": "construction"
+  },
+  "sections/02_simulation_bruteforce/problems/a_robot_walk": {
+    "kind": "construction"
+  },
+  "sections/02_simulation_bruteforce/problems/b_ticket_split": {
+    "kind": "construction"
+  },
+  "sections/02_simulation_bruteforce/problems/c_best_subset": {
+    "kind": "construction"
+  },
+  "sections/02_simulation_bruteforce/problems/d_carousel_visits": {
+    "kind": "existing-scale"
+  },
+  "sections/03_counting_frequencies/problems/a_value_counts": {
+    "kind": "construction"
+  },
+  "sections/03_counting_frequencies/problems/b_frequency_winner": {
+    "kind": "construction"
+  },
+  "sections/03_counting_frequencies/problems/c_pair_sum_count": {
+    "kind": "construction"
+  },
+  "sections/03_counting_frequencies/problems/d_equal_index_pairs": {
+    "kind": "construction"
+  },
+  "sections/04_prefix_difference/problems/a_range_sum_queries": {
+    "kind": "construction"
+  },
+  "sections/04_prefix_difference/problems/b_range_add_final_array": {
+    "kind": "construction"
+  },
+  "sections/04_prefix_difference/problems/c_subarray_sum_count": {
+    "kind": "construction"
+  },
+  "sections/04_prefix_difference/problems/d_signal_peak": {
+    "kind": "existing-scale"
+  },
+  "sections/05_sorting_as_tool/problems/a_min_adjacent_gap": {
+    "kind": "construction"
+  },
+  "sections/05_sorting_as_tool/problems/b_rank_table": {
+    "kind": "construction"
+  },
+  "sections/05_sorting_as_tool/problems/c_merge_intervals": {
+    "kind": "construction"
+  },
+  "sections/05_sorting_as_tool/problems/d_compact_team": {
+    "kind": "existing-scale"
+  },
+  "sections/06_two_pointers_sliding_windows/problems/a_sorted_two_sum": {
+    "kind": "construction"
+  },
+  "sections/06_two_pointers_sliding_windows/problems/b_longest_bounded_window": {
+    "kind": "construction"
+  },
+  "sections/06_two_pointers_sliding_windows/problems/c_count_subarrays_at_most": {
+    "kind": "construction"
+  },
+  "sections/06_two_pointers_sliding_windows/problems/d_cover_all_labels": {
+    "kind": "existing-scale"
+  },
+  "sections/07_foundation_mixed_contest/problems/a_inventory_cleanup": {
+    "kind": "construction"
+  },
+  "sections/07_foundation_mixed_contest/problems/b_peak_load": {
+    "kind": "construction"
+  },
+  "sections/07_foundation_mixed_contest/problems/c_best_study_streak": {
+    "kind": "construction"
+  },
+  "sections/07_foundation_mixed_contest/problems/d_balanced_break": {
+    "kind": "existing-scale"
+  },
+  "sections/07_foundation_mixed_contest/problems/e_circular_patrol": {
+    "kind": "construction"
+  },
+  "sections/08_binary_search_answer/problems/a_square_threshold": {
+    "kind": "construction"
+  },
+  "sections/08_binary_search_answer/problems/b_max_min_distance": {
+    "kind": "construction"
+  },
+  "sections/08_binary_search_answer/problems/c_minimum_capacity": {
+    "kind": "construction"
+  },
+  "sections/08_binary_search_answer/problems/d_factory_deadline": {
+    "kind": "existing-scale"
+  },
+  "sections/09_greedy_exchange/problems/a_activity_selection": {
+    "kind": "construction"
+  },
+  "sections/09_greedy_exchange/problems/b_rescue_boats": {
+    "kind": "construction"
+  },
+  "sections/09_greedy_exchange/problems/c_deadline_schedule": {
+    "kind": "construction"
+  },
+  "sections/09_greedy_exchange/problems/d_workshop_badges": {
+    "kind": "existing-scale"
+  },
+  "sections/10_greedy_constructive/problems/a_non_decreasing_repairs": {
+    "kind": "construction"
+  },
+  "sections/10_greedy_constructive/problems/b_bracket_completion": {
+    "kind": "construction"
+  },
+  "sections/10_greedy_constructive/problems/c_bounded_sum_sequence": {
+    "kind": "construction"
+  },
+  "sections/10_greedy_constructive/problems/d_pattern_permutation": {
+    "kind": "existing-scale"
+  },
+  "sections/11_intervals_sweep_line/problems/a_peak_active": {
+    "kind": "construction"
+  },
+  "sections/11_intervals_sweep_line/problems/b_covered_length": {
+    "kind": "construction"
+  },
+  "sections/11_intervals_sweep_line/problems/c_point_coverage": {
+    "kind": "construction"
+  },
+  "sections/11_intervals_sweep_line/problems/d_first_busiest": {
+    "kind": "existing-scale"
+  },
+  "sections/12_stacks_queues_deques/problems/a_next_greater": {
+    "kind": "construction"
+  },
+  "sections/12_stacks_queues_deques/problems/b_sliding_window_max": {
+    "kind": "construction"
+  },
+  "sections/12_stacks_queues_deques/problems/c_shortest_subarray_at_least": {
+    "kind": "construction"
+  },
+  "sections/12_stacks_queues_deques/problems/d_bounded_spread_subarrays": {
+    "kind": "existing-scale"
+  },
+  "sections/13_offline_processing/problems/a_coordinate_compression": {
+    "kind": "construction"
+  },
+  "sections/13_offline_processing/problems/b_range_count_at_most": {
+    "kind": "construction"
+  },
+  "sections/13_offline_processing/problems/c_distinct_range_queries": {
+    "kind": "construction"
+  },
+  "sections/13_offline_processing/problems/d_activation_totals": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/a_complete_window": {
+    "kind": "construction"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/b_minimum_split_limit": {
+    "kind": "construction"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/c_active_colors": {
+    "kind": "construction"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/d_first_free_slot": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/e_smallest_distinct_subsequence": {
+    "kind": "construction"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/f_adjacent_cancellation": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/g_next_smaller_distance": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/h_smallest_fixed_subsequence": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/i_wildcard_parentheses": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/j_interval_point_cover": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/k_deadline_selection": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/l_smallest_after_deletions": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/m_required_letter_subsequence": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/n_wildcard_choice_map": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/o_minimum_parenthesis_depth": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/p_common_deadline": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/q_event_attendance": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/r_coverage_patches": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/s_advantage_assignment": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/t_minimum_refueling": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/u_circular_fuel_start": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/v_smallest_separated_rearrangement": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/w_consecutive_grouping": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/x_subarray_minimum_total": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/y_maximum_width_ramp": {
+    "kind": "existing-scale"
+  },
+  "sections/14_core_patterns_mixed_contest/problems/z_smallest_alternating_partition": {
+    "kind": "existing-scale"
+  },
+  "sections/15_bfs_unweighted_shortest_paths/problems/a_connected_groups": {
+    "kind": "construction"
+  },
+  "sections/15_bfs_unweighted_shortest_paths/problems/b_unweighted_routes": {
+    "kind": "construction"
+  },
+  "sections/15_bfs_unweighted_shortest_paths/problems/c_grid_rescue_path": {
+    "kind": "construction"
+  },
+  "sections/15_bfs_unweighted_shortest_paths/problems/d_nearest_station": {
+    "kind": "existing-scale"
+  },
+  "sections/16_dfs_components_cycles/problems/a_subtree_sizes": {
+    "kind": "construction"
+  },
+  "sections/16_dfs_components_cycles/problems/b_undirected_cycle": {
+    "kind": "construction"
+  },
+  "sections/16_dfs_components_cycles/problems/c_directed_cycle": {
+    "kind": "construction"
+  },
+  "sections/16_dfs_components_cycles/problems/d_component_audit": {
+    "kind": "existing-scale"
+  },
+  "sections/17_topological_sorting_dag_dp/problems/a_lexicographic_course_order": {
+    "kind": "construction"
+  },
+  "sections/17_topological_sorting_dag_dp/problems/b_longest_dag_path": {
+    "kind": "construction"
+  },
+  "sections/17_topological_sorting_dag_dp/problems/c_project_schedule": {
+    "kind": "construction"
+  },
+  "sections/17_topological_sorting_dag_dp/problems/d_unique_build_order": {
+    "kind": "existing-scale"
+  },
+  "sections/18_dsu_minimum_spanning_trees/problems/a_network_growth": {
+    "kind": "construction"
+  },
+  "sections/18_dsu_minimum_spanning_trees/problems/b_minimum_network": {
+    "kind": "construction"
+  },
+  "sections/18_dsu_minimum_spanning_trees/problems/c_cluster_split": {
+    "kind": "construction"
+  },
+  "sections/18_dsu_minimum_spanning_trees/problems/d_cable_savings": {
+    "kind": "existing-scale"
+  },
+  "sections/19_dijkstra_weighted_modeling/problems/a_weighted_route_queries": {
+    "kind": "construction"
+  },
+  "sections/19_dijkstra_weighted_modeling/problems/b_grid_toll_path": {
+    "kind": "construction"
+  },
+  "sections/19_dijkstra_weighted_modeling/problems/c_discount_route": {
+    "kind": "construction"
+  },
+  "sections/19_dijkstra_weighted_modeling/problems/d_even_hop_route": {
+    "kind": "existing-scale"
+  },
+  "sections/20_zero_one_bfs_variants/problems/a_binary_weight_routes": {
+    "kind": "construction"
+  },
+  "sections/20_zero_one_bfs_variants/problems/b_conveyor_grid": {
+    "kind": "construction"
+  },
+  "sections/20_zero_one_bfs_variants/problems/c_warp_maze": {
+    "kind": "construction"
+  },
+  "sections/20_zero_one_bfs_variants/problems/d_letter_portals": {
+    "kind": "existing-scale"
+  },
+  "sections/21_graphs_i_mixed_contest/problems/a_existing_network": {
+    "kind": "construction"
+  },
+  "sections/21_graphs_i_mixed_contest/problems/b_build_timeline": {
+    "kind": "construction"
+  },
+  "sections/21_graphs_i_mixed_contest/problems/c_one_way_reversals": {
+    "kind": "construction"
+  },
+  "sections/21_graphs_i_mixed_contest/problems/d_reliable_link": {
+    "kind": "existing-scale"
+  },
+  "sections/21_graphs_i_mixed_contest/problems/e_station_coverage_report": {
+    "kind": "construction"
+  },
+  "sections/21_graphs_i_mixed_contest/problems/f_component_repair": {
+    "kind": "construction"
+  },
+  "sections/21_graphs_i_mixed_contest/problems/g_alternating_road_route": {
+    "kind": "construction"
+  },
+  "sections/22_one_dimensional_dp/problems/a_broken_stairs": {
+    "kind": "construction"
+  },
+  "sections/22_one_dimensional_dp/problems/b_training_score": {
+    "kind": "construction"
+  },
+  "sections/22_one_dimensional_dp/problems/c_energy_route": {
+    "kind": "construction"
+  },
+  "sections/22_one_dimensional_dp/problems/d_exact_change": {
+    "kind": "construction"
+  },
+  "sections/23_knapsack_subset_dp/problems/a_budget_selection": {
+    "kind": "construction"
+  },
+  "sections/23_knapsack_subset_dp/problems/b_unlimited_training": {
+    "kind": "construction"
+  },
+  "sections/23_knapsack_subset_dp/problems/c_possible_sums": {
+    "kind": "construction"
+  },
+  "sections/23_knapsack_subset_dp/problems/d_balanced_split": {
+    "kind": "construction"
+  },
+  "sections/24_grid_dp/problems/a_safe_paths": {
+    "kind": "construction"
+  },
+  "sections/24_grid_dp/problems/b_lowest_toll": {
+    "kind": "construction"
+  },
+  "sections/24_grid_dp/problems/c_limited_turns": {
+    "kind": "construction"
+  },
+  "sections/24_grid_dp/problems/d_two_couriers": {
+    "kind": "construction"
+  },
+  "sections/25_interval_dp/problems/a_merge_piles": {
+    "kind": "construction"
+  },
+  "sections/25_interval_dp/problems/b_palindrome_repairs": {
+    "kind": "construction"
+  },
+  "sections/25_interval_dp/problems/c_treasure_balloons": {
+    "kind": "construction"
+  },
+  "sections/25_interval_dp/problems/d_endgame_advantage": {
+    "kind": "construction"
+  },
+  "sections/26_tree_dp_basics/problems/a_festival_invite": {
+    "kind": "construction"
+  },
+  "sections/26_tree_dp_basics/problems/b_road_pairing": {
+    "kind": "construction"
+  },
+  "sections/26_tree_dp_basics/problems/c_tree_colorings": {
+    "kind": "construction"
+  },
+  "sections/26_tree_dp_basics/problems/d_road_guards": {
+    "kind": "existing-scale"
+  },
+  "sections/27_bitmask_dp/problems/a_skill_coverage": {
+    "kind": "construction"
+  },
+  "sections/27_bitmask_dp/problems/b_assignment_profit": {
+    "kind": "construction"
+  },
+  "sections/27_bitmask_dp/problems/c_inspection_route": {
+    "kind": "construction"
+  },
+  "sections/27_bitmask_dp/problems/d_compatible_lineup": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/a_training_schedule": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/b_two_carts": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/c_prerequisite_tree": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/d_circular_exhibition": {
+    "kind": "existing-scale"
+  },
+  "sections/28_dp_i_mixed_contest/problems/e_one_diagonal_path": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/f_matrix_chain": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/g_hamiltonian_route": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/h_sliding_jump_cost": {
+    "kind": "existing-scale"
+  },
+  "sections/28_dp_i_mixed_contest/problems/i_grouped_cargo": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/j_minimum_starting_energy": {
+    "kind": "existing-scale"
+  },
+  "sections/28_dp_i_mixed_contest/problems/k_last_crystal_removed": {
+    "kind": "construction"
+  },
+  "sections/28_dp_i_mixed_contest/problems/l_weighted_tree_guards": {
+    "kind": "existing-scale"
+  },
+  "sections/29_modular_arithmetic/problems/a_power_queries": {
+    "kind": "construction"
+  },
+  "sections/29_modular_arithmetic/problems/b_fraction_queries": {
+    "kind": "construction"
+  },
+  "sections/29_modular_arithmetic/problems/c_affine_repeater": {
+    "kind": "construction"
+  },
+  "sections/29_modular_arithmetic/problems/d_nested_power_queries": {
+    "kind": "existing-scale"
+  },
+  "sections/30_gcd_lcm_diophantine/problems/a_gcd_lcm_queries": {
+    "kind": "construction"
+  },
+  "sections/30_gcd_lcm_diophantine/problems/b_general_inverse": {
+    "kind": "construction"
+  },
+  "sections/30_gcd_lcm_diophantine/problems/c_linear_diophantine": {
+    "kind": "construction"
+  },
+  "sections/30_gcd_lcm_diophantine/problems/d_clock_offset": {
+    "kind": "existing-scale"
+  },
+  "sections/30_gcd_lcm_diophantine/problems/e_merge_congruences": {
+    "kind": "existing-scale"
+  },
+  "sections/30_gcd_lcm_diophantine/problems/f_shared_maintenance_window": {
+    "kind": "existing-scale"
+  },
+  "sections/31_sieve_primes_factorization/problems/a_prime_counter": {
+    "kind": "construction"
+  },
+  "sections/31_sieve_primes_factorization/problems/b_factor_signature": {
+    "kind": "construction"
+  },
+  "sections/31_sieve_primes_factorization/problems/c_divisor_queries": {
+    "kind": "construction"
+  },
+  "sections/31_sieve_primes_factorization/problems/d_square_completion": {
+    "kind": "existing-scale"
+  },
+  "sections/32_combinatorics_under_modulo/problems/a_choose_queries": {
+    "kind": "construction"
+  },
+  "sections/32_combinatorics_under_modulo/problems/b_rearrange_letters": {
+    "kind": "construction"
+  },
+  "sections/32_combinatorics_under_modulo/problems/c_distribute_candies": {
+    "kind": "construction"
+  },
+  "sections/32_combinatorics_under_modulo/problems/d_separated_lineup": {
+    "kind": "existing-scale"
+  },
+  "sections/33_inclusion_exclusion/problems/a_multiples_union": {
+    "kind": "construction"
+  },
+  "sections/33_inclusion_exclusion/problems/b_all_symbols": {
+    "kind": "construction"
+  },
+  "sections/33_inclusion_exclusion/problems/c_bounded_candies": {
+    "kind": "construction"
+  },
+  "sections/33_inclusion_exclusion/problems/d_seating_without_matches": {
+    "kind": "construction"
+  },
+  "sections/34_probability_expected_value/problems/a_expected_prize": {
+    "kind": "construction"
+  },
+  "sections/34_probability_expected_value/problems/b_first_success": {
+    "kind": "construction"
+  },
+  "sections/34_probability_expected_value/problems/c_coupon_collector": {
+    "kind": "existing-scale"
+  },
+  "sections/34_probability_expected_value/problems/d_simultaneous_wins": {
+    "kind": "existing-scale"
+  },
+  "sections/35_math_mixed_contest/problems/a_blocked_path": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/b_coprime_pairs": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/c_at_least_one": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/d_complete_alphabet": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/e_modular_appointment": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/f_festival_synchronization": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/g_capped_allocation": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/h_gcd_one_subsets": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/i_exactly_k_colors": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/j_target_lcm_subsets": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/k_weighted_coupon_collection": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/l_random_divisor_descent": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/m_totient_prefix": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/n_squarefree_queries": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/o_gcd_sum": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/p_subarray_gcd_sum": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/q_coprime_rectangles": {
+    "kind": "construction"
+  },
+  "sections/35_math_mixed_contest/problems/r_exact_divisor_count": {
+    "kind": "construction"
+  },
+  "sections/36_fenwick_trees/problems/a_point_add_range_sum": {
+    "kind": "construction"
+  },
+  "sections/36_fenwick_trees/problems/b_inversion_count": {
+    "kind": "construction"
+  },
+  "sections/36_fenwick_trees/problems/c_range_add_point_query": {
+    "kind": "construction"
+  },
+  "sections/36_fenwick_trees/problems/d_offline_distinct_queries": {
+    "kind": "existing-scale"
+  },
+  "sections/37_segment_trees/problems/a_range_minimum_updates": {
+    "kind": "construction"
+  },
+  "sections/37_segment_trees/problems/b_maximum_subarray_updates": {
+    "kind": "construction"
+  },
+  "sections/37_segment_trees/problems/c_lazy_range_add_sum": {
+    "kind": "construction"
+  },
+  "sections/37_segment_trees/problems/d_first_available": {
+    "kind": "existing-scale"
+  },
+  "sections/38_static_queries_binary_lifting/problems/a_static_range_minimum": {
+    "kind": "construction"
+  },
+  "sections/38_static_queries_binary_lifting/problems/b_static_range_gcd": {
+    "kind": "construction"
+  },
+  "sections/38_static_queries_binary_lifting/problems/c_kth_ancestor": {
+    "kind": "construction"
+  },
+  "sections/38_static_queries_binary_lifting/problems/d_ancestor_minimum": {
+    "kind": "existing-scale"
+  },
+  "sections/39_heaps_priority_queues/problems/a_running_median": {
+    "kind": "construction"
+  },
+  "sections/39_heaps_priority_queues/problems/b_course_rooms": {
+    "kind": "construction"
+  },
+  "sections/39_heaps_priority_queues/problems/c_k_smallest_pair_sums": {
+    "kind": "construction"
+  },
+  "sections/39_heaps_priority_queues/problems/d_merge_costs": {
+    "kind": "existing-scale"
+  },
+  "sections/40_data_structures_mixed_contest/problems/a_hotel_queries": {
+    "kind": "construction"
+  },
+  "sections/40_data_structures_mixed_contest/problems/b_list_removals": {
+    "kind": "construction"
+  },
+  "sections/40_data_structures_mixed_contest/problems/c_range_add_range_gcd": {
+    "kind": "existing-scale"
+  },
+  "sections/40_data_structures_mixed_contest/problems/d_salary_queries": {
+    "kind": "existing-scale"
+  },
+  "sections/40_data_structures_mixed_contest/problems/e_functional_walk_minimum": {
+    "kind": "construction"
+  },
+  "sections/40_data_structures_mixed_contest/problems/f_mutable_priority_queue": {
+    "kind": "existing-scale"
+  },
+  "sections/40_data_structures_mixed_contest/problems/g_streaming_room_count": {
+    "kind": "construction"
+  },
+  "sections/40_data_structures_mixed_contest/problems/h_toggle_kth_active": {
+    "kind": "construction"
+  },
+  "sections/40_data_structures_mixed_contest/problems/i_dynamic_maximum_subarray": {
+    "kind": "construction"
+  },
+  "sections/40_data_structures_mixed_contest/problems/j_sliding_median_cost": {
+    "kind": "construction"
+  },
+  "sections/40_data_structures_mixed_contest/problems/k_budget_prefix_search": {
+    "kind": "construction"
+  },
+  "sections/40_data_structures_mixed_contest/problems/l_range_add_threshold_search": {
+    "kind": "construction"
+  },
+  "sections/41_euler_tour_lca_binary_lifting/problems/a_tree_distances": {
+    "kind": "construction"
+  },
+  "sections/41_euler_tour_lca_binary_lifting/problems/b_max_edge_path": {
+    "kind": "construction"
+  },
+  "sections/41_euler_tour_lca_binary_lifting/problems/c_kth_node_path": {
+    "kind": "construction"
+  },
+  "sections/41_euler_tour_lca_binary_lifting/problems/d_weighted_distances": {
+    "kind": "existing-scale"
+  }
+}
