@@ -21,9 +21,9 @@ PROBLEMS = [
     SECTION / "problems" / "f_dynamic_subtree_maximum",
     SECTION / "problems" / "g_subtree_value_count",
     SECTION / "problems" / "h_incremental_connectivity",
-    SECTION / "problems" / "i_subtree_assign_add_sum",
-    SECTION / "problems" / "j_static_vertex_path_sums",
-    SECTION / "problems" / "k_static_weighted_rectangles",
+    SECTION / "problems" / "i_rerooted_subtree_sums",
+    SECTION / "problems" / "j_minimum_bottleneck_routes",
+    SECTION / "problems" / "k_sliding_window_inversions",
     SECTION / "problems" / "l_subtree_add_maximum",
 ]
 

@@ -9,7 +9,7 @@ second half, so the complete contest has twelve local exercises.
 | Data-structure category | Problem |
 |---|---|
 | Fenwick tree | B. List Removals; C. Range Add, Range GCD; D. Salary Queries |
-| Segment tree | A. Hotel Queries; C. Range Add, Range GCD; I. Dynamic Maximum Subarray; K. Budget Prefix Search; L. Range Add Threshold Search |
+| Segment tree | A. Hotel Queries; C. Range Add, Range GCD; I. Dynamic Brackets; K. Budget Prefix Search; L. Range Add Threshold Search |
 | Static queries and binary lifting | [E. Functional Walk Minimum](problems/e_functional_walk_minimum/README.md) |
 | Heaps and priority queues | [F. Mutable Priority Queue](problems/f_mutable_priority_queue/README.md) |
 | Progressive synthesis | G. Streaming Room Count through L. Range Add Threshold Search |

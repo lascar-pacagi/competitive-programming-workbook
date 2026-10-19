@@ -22,7 +22,7 @@ PROBLEMS = [
     SECTION / "problems" / "f_mutable_priority_queue",
     SECTION / "problems" / "g_streaming_room_count",
     SECTION / "problems" / "h_toggle_kth_active",
-    SECTION / "problems" / "i_dynamic_maximum_subarray",
+    SECTION / "problems" / "i_dynamic_brackets",
     SECTION / "problems" / "j_sliding_median_cost",
     SECTION / "problems" / "k_budget_prefix_search",
     SECTION / "problems" / "l_range_add_threshold_search",

@@ -19,6 +19,11 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{fvextra}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+          commandchars=\\\{\},
+          breaklines=true
+        }
 execute:
   enabled: false
 ---
@@ -32,8 +37,9 @@ intervals, LCA, and insertion-only DSU. HLD, persistence, rollback, merge-sort
 trees, and multidimensional Fenwick trees are not required.
 
 A uses count-guided segment-tree descent from section 40. G uses an offline
-value sweep. Every subtree update maps to one Euler interval; J has static
-vertex values and uses root sums with LCA. Keep these contracts explicit when
+value sweep. I combines fixed Euler intervals with ancestor jumps and complement sums.
+J combines Kruskal with maximum-edge path queries; K maintains inversion
+counts while sliding a window. Keep these contracts explicit when
 assessing whether an earlier structure is sufficient.
 
 # A. Dynamic Order Statistics
@@ -82,16 +88,32 @@ Reject ranks above the total before descending. Test an empty multiset,
 multiple copies at one score, scores `1` and `m`, and invalid ranks.
 
 
-## C++ reference solution
+Both implementations use the same algorithm and complexity. The recursive
+class stores intervals `[left, right)` and uses logarithmic recursion
+depth for each operation.
+
+## C++ reference solution (iterative segment tree)
 
 ```cpp
 {{< include problems/a_dynamic_order_statistics/solution.cpp >}}
 ```
 
-## Python reference solution
+## C++ alternative: recursive segment tree class
+
+```cpp
+{{< include problems/a_dynamic_order_statistics/solution_recursive.cpp >}}
+```
+
+## Python reference solution (iterative segment tree)
 
 ```python
 {{< include problems/a_dynamic_order_statistics/solution.py >}}
+```
+
+## Python alternative: recursive segment tree class
+
+```python
+{{< include problems/a_dynamic_order_statistics/solution_recursive.py >}}
 ```
 
 # B. Range Assign and Add
@@ -382,16 +404,35 @@ for the largest chains; segment recursion remains logarithmic.
 Use iterative DFS for the input tree in C++ and Python so a long chain does
 not exhaust the call stack. Segment-tree recursion has logarithmic depth.
 
-## C++ reference solution
+Both implementations use the same algorithm and complexity. The recursive
+class stores intervals `[left, right)` and uses logarithmic recursion
+depth for each operation.
+
+The Euler traversal still uses an explicit stack so that a chain of
+vertices does not cause deep recursion.
+
+## C++ reference solution (iterative segment tree)
 
 ```cpp
 {{< include problems/f_dynamic_subtree_maximum/solution.cpp >}}
 ```
 
-## Python reference solution
+## C++ alternative: recursive segment tree class
+
+```cpp
+{{< include problems/f_dynamic_subtree_maximum/solution_recursive.cpp >}}
+```
+
+## Python reference solution (iterative segment tree)
 
 ```python
 {{< include problems/f_dynamic_subtree_maximum/solution.py >}}
+```
+
+## Python alternative: recursive segment tree class
+
+```python
+{{< include problems/f_dynamic_subtree_maximum/solution_recursive.py >}}
 ```
 
 # G. Subtree Value Count
@@ -508,178 +549,175 @@ chain, isolated vertices, and queries before the first insertion.
 {{< include problems/h_incremental_connectivity/solution.py >}}
 ```
 
-# I. Subtree Assign, Add, and Sum
+# I. Rerooted Subtree Sums
 
-## Contract and reduction
+## Fixed representation, changing interpretation
 
-Compose the Euler mapping from section 41 with the lazy sum tree used in B.
-The new task adds a tree-shaped query set; its assignment/addition semantics
-are unchanged. Convert each subtree to one interval, then reuse B's invariant.
+Preprocess the tree once with reference root `1`. Store Euler entry/exit
+intervals, depths, and binary-lifting ancestors from section 41. A Fenwick
+tree from section 36 stores current values by Euler position. Maintain the
+whole-tree sum as point assignments occur. Changing the current root never
+requires rebuilding these structures.
 
-## Algorithm
+## Three cases for a query
 
-```text
-flatten the tree and build the Euler array
-1 u x: lazy-assign interval [tin[u],tout[u]) to x
-2 u x: lazy-add x to that interval
-3 u: query its sum
-compose and push assignment/addition tags as in B
-```
+Let `r` be the current root. The reference-root subtree of `u` contains `r`
+exactly when `tin[u] <= tin[r] < tout[u]`.
 
-## Sample walkthrough
+1. If `u=r`, its current subtree is the whole tree.
+2. If `u` is not an ancestor of `r` under reference root `1`, its current
+   subtree is still its original Euler interval.
+3. Otherwise `u` is a proper ancestor of `r`. Find the child `c` of `u` on
+   the path to `r`, by lifting `r` exactly `depth[r]-depth[u]-1` edges.
+   Its current subtree is every vertex outside the original subtree of `c`.
+   Answer `total - sum(tin[c], tout[c])`.
 
-Subtree `3` initially sums to `12`. Assigning `7` to it gives
-`7,7,7`; adding `-2` to the leaf subtree of `4` leaves `7,5,7`, sum `19`.
-Vertices `1,2` add `3`, so the entire tree sums to `22`.
-
-## Correctness
-
-Euler contiguity gives exactly the affected vertex set for each operation.
-B's tag rules assign or add the specified amount to every entry in that
-interval, maintaining every node sum. Since the Euler mapping is one-to-one,
-the interval sum equals the sum of the subtree's current vertex values.
-The mapping and the lazy-tree proof establish separate parts of correctness.
-
-## Complexity
-
-Flatten and build `O(n)`; each operation `O(log n)`; memory `O(n)`.
-
-## Implementation notes and targeted tests
-
-Keep interval conventions consistent: these implementations adapt B's
-inclusive 1-based segment-tree interval to `[tin[u]+1,tout[u]]`.
-Test assignments to zero, an ancestor assignment after a descendant addition,
-the opposite order, leaves, and whole-tree operations. Use 64-bit products.
-
-
-Use iterative DFS for the input tree in C++ and Python so a long chain does
-not exhaust the call stack. Segment-tree recursion has logarithmic depth.
-
-## C++ reference solution
-
-```cpp
-{{< include problems/i_subtree_assign_add_sum/solution.cpp >}}
-```
-
-## Python reference solution
-
-```python
-{{< include problems/i_subtree_assign_add_sum/solution.py >}}
-```
-
-# J. Static Vertex Path Sums
-
-## Contract and reduction
-
-The vertex values never change, so root-prefix sums suffice alongside LCA
-from section 41. Let `S[u]` include every vertex from root `1` through `u`.
-For `w=lca(u,v)`, the required sum is
-`S[u]+S[v]-2*S[w]+a[w]`.
-
-## Algorithm
-
-```text
-DFS: compute parent, depth, and S[child] = S[parent] + a[child]
-build the usual binary-lifting ancestor table
-for query u,v:
-    w = lca(u,v)
-    print S[u] + S[v] - 2*S[w] + a[w]
-```
-
-## Sample walkthrough
-
-For query `2,4`, the LCA is `1`: root sums are `3` and `8`, so
-`3+8-2*1+1=10`. For `4,5`, the LCA is `3`; the answer is `4+3+5=12`.
-For `3,3`, the formula returns `a[3]=3`.
+A point assignment adds `new-old` at one Euler position and to `total`.
+An `R` operation only changes the current-root variable.
 
 ## Correctness
 
-The two root prefixes both contain the root-to-`w` prefix. Subtracting it
-twice leaves the two branches strictly below `w`; neither branch contains
-`w`. Adding `a[w]` restores that shared endpoint once. The two branches and
-`w` partition the simple path, proving the formula, including `u=v`.
+Delete the edge between `u` and its parent toward the current root. The
+component containing `u` is precisely its current subtree. In case 2 that
+parent is its original parent, so the component is unchanged. In case 3
+that parent is `c`, and the other component is exactly the original subtree
+of `c`; taking its complement is correct. Case 1 has no parent edge and
+contains all vertices. The Fenwick invariant maintains the exact values in
+these sets after every assignment.
 
-## Complexity
+With root 4 in the sample, `c=4` for query `u=3`; removing the original
+subtree `{4}` from the whole tree leaves `{1,2,3,5}`. This is why changing
+the root changes the first sum from 12 to 11.
 
-Preprocessing `O(n log n)`; each query `O(log n)`; memory `O(n log n)`.
+## Complexity and tests
 
-## Implementation notes and targeted tests
+Preprocessing takes `O(n log n)` time and memory. Assignments and queries
+cost `O(log n)`; root changes cost `O(1)`. Traverse iteratively. Test `n=1`,
+a query at the current root, an unrelated branch, a direct parent of the
+root, distant ancestors, and negative assignments. Random oracles reroot
+the tree explicitly for every query. Performance cases use a 200000-vertex
+chain with changing roots and distant ancestor queries.
 
-Do not apply an edge-distance formula directly to inclusive vertex values:
-the shared ancestor must be restored. This formula relies on static values;
-assignments would invalidate precomputed root sums. Test equal endpoints,
-ancestor endpoints, negative sums, an LCA at the root, and a long chain.
-
-
-Use iterative DFS for the input tree in C++ and Python so a long chain does
-not exhaust the call stack. Segment-tree recursion has logarithmic depth.
-
-## C++ reference solution
+## Full solutions
 
 ```cpp
-{{< include problems/j_static_vertex_path_sums/solution.cpp >}}
+{{< include problems/i_rerooted_subtree_sums/solution.cpp >}}
 ```
-
-## Python reference solution
 
 ```python
-{{< include problems/j_static_vertex_path_sums/solution.py >}}
+{{< include problems/i_rerooted_subtree_sums/solution.py >}}
 ```
 
-# K. Static Weighted Rectangles
+# J. Minimum Bottleneck Routes
 
-## Contract and reduction
+## Reduction to established structures
 
-Reuse C's offline rectangle reduction, but insert the weight of each point
-rather than the count `1`. The point set is fixed; this task needs only one
-ordinary Fenwick tree. Negative weights do not affect the sweep order.
+Use Kruskal's algorithm and DSU from section 18 to construct a minimum
+spanning forest. Within each forest tree, preprocess the maximum-edge
+binary-lifting table from section 41 B. For connected query endpoints,
+return the maximum edge on their forest path. Return `-1` for different
+components, and `0` for a vertex queried against itself.
 
-## Algorithm
+This is a general graph: taking a DFS tree would be incorrect. In the
+sample, the direct edge `1-2` has weight 8, but the forest path through 3
+uses weights 5 and 3 and answers 5.
+
+## Why the forest path is optimal
+
+Let `e` be an edge of maximum weight `W` on the forest path between `u`
+and `v`. Removing `e` splits that tree into two components separating the
+endpoints. Any original-graph path must cross this cut. No crossing edge
+can have weight less than `W`: substituting such an edge for `e` would
+produce a spanning tree of smaller total weight, contradicting minimality.
+Therefore every original path has maximum edge weight at least `W`.
+The forest path itself attains `W`, proving the answer optimal. Equal
+weights do not affect the argument; any minimum spanning forest suffices.
+
+## Algorithm and invariant
 
 ```text
-sort fixed points by x; compress their y coordinates
-create +1 event at c and -1 event at a-1 for each rectangle [a,c] x [b,d]
-insert each eligible point's weight at its y rank
-for each event, accumulate its sign times the Fenwick sum in [b,d]
-restore query order
+sort all edges by weight
+use DSU to accept only edges joining different components
+traverse every forest component, recording parent, depth, and edge-to-parent
+build up[k][u] and high[k][u] for 2^k ancestor jumps
+for each query:
+    reject endpoints in different DSU components
+    lift the deeper endpoint, accumulating maxima
+    lift both endpoints until their parents coincide, accumulating maxima
+    include the final two parent edges
 ```
 
-## Sample walkthrough
+Each `high[k][u]` is the maximum on the corresponding jump. Its recurrence
+combines two consecutive half-jumps, as in section 41 B. All weights are
+nonnegative, so zero is a valid identity, including empty paths.
 
-Weights `5` and `-2` at `(1,1)` contribute `3` together. Including the
-point of weight `4` at `(2,3)` gives the first answer `7`. The second
-rectangle includes only that point, giving `4`; the third gives `3`.
+## Complexity and tests
 
-## Correctness
+Sorting and forest construction take `O(m log(m+1) + m alpha(n))` time.
+Preprocessing takes `O(n log n)` time; each query takes `O(log n)`.
+Memory is `O(m+n log n+q)` for the supplied implementations.
 
-The active Fenwick prefix is the sum of weights with bounded x and y,
-because each eligible point is inserted exactly once. Prefix subtraction
-selects the inclusive y-range. Subtracting the event at `a-1` removes the
-contribution from points left of the rectangle. This is a linear identity
-for weights of either sign, and coincident points remain separate contributions.
+Test parallel edges, zero weights, self-loops, cycles where a direct edge
+is worse than a detour, disconnected vertices, and `u=v`. The small oracle
+uses minimax Floyd–Warshall, independently of spanning trees. A scale test
+has a long cheap chain, an expensive shortcut, and an isolated vertex.
 
-## Complexity
-
-Sorting and processing `O((n+q) log(n+q))`; memory `O(n+q)`.
-
-## Implementation notes and targeted tests
-
-Use 64-bit Fenwick sums and answers. Do not discard negative weights or
-combine coincident points by keeping just one weight. Query bounds can be
-absent from compression. Test cancellations, all-negative weights, coincident
-points, degenerate rectangles, and coordinates near both extremes.
-
-
-## C++ reference solution
+## Full solutions
 
 ```cpp
-{{< include problems/k_static_weighted_rectangles/solution.cpp >}}
+{{< include problems/j_minimum_bottleneck_routes/solution.cpp >}}
 ```
 
-## Python reference solution
+```python
+{{< include problems/j_minimum_bottleneck_routes/solution.py >}}
+```
+
+# K. Sliding Window Inversions
+
+## Moving a window without recounting all pairs
+
+Coordinate-compress values and store their current frequencies in a Fenwick
+tree, as in section 36 B. Maintain an integer `inversions` for the current
+window. Sliding removes its leftmost element and inserts a new rightmost
+element; only pairs involving those elements change.
+
+When removing leftmost value `x`, subtract the number of remaining values
+strictly smaller than `x`. A prefix query at `rank(x)-1` gives this count,
+even before deleting `x`, since `x` does not count itself. Delete its frequency.
+
+When inserting rightmost value `y`, add the number of present values
+strictly greater than `y`: `present - prefix(rank(y))`. Then insert it.
+Using a non-strict boundary would wrongly count equal values.
+
+## Correctness and sample
+
+Every inversion involving the old leftmost element has that element as
+its first member, so it contributes exactly when its partner is smaller.
+Every new inversion involving the new rightmost element has that element
+as its second member, so its partner must be greater. All other pairs stay
+in the same order. These two updates preserve the exact inversion count,
+starting from the empty window and inserting its first `k` values.
+
+The sample windows have counts 2, 0, and 2. The pair of equal 2s contributes
+nothing. A decreasing window contributes `k*(k-1)/2`, which exceeds 32-bit
+range at the maximum window size.
+
+## Complexity and tests
+
+Compression and all window changes take `O(n log n)` time and `O(n)` memory.
+Test `k=1`, `k=n`, equal values, negatives, increasing and decreasing arrays,
+and repeated values that leave and reenter the window. Small random tests
+count pairs directly; full-size decreasing and equal-value tests have
+closed-form answers.
+
+## Full solutions
+
+```cpp
+{{< include problems/k_sliding_window_inversions/solution.cpp >}}
+```
 
 ```python
-{{< include problems/k_static_weighted_rectangles/solution.py >}}
+{{< include problems/k_sliding_window_inversions/solution.py >}}
 ```
 
 # L. Subtree Add, Subtree Maximum

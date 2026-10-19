@@ -1,9 +1,8 @@
 # A. Dynamic Order Statistics
 
 A contest scoreboard records the score of every submission it receives. Scores
-are integers between `1` and `m`, and many submissions may share a score, so
-the scoreboard is a multiset rather than a set. Submissions can also be
-withdrawn.
+are integers between `1` and `m`. Several submissions may share the same
+score. Submissions can also be withdrawn.
 
 Two things are asked of the scoreboard while it changes: *which score sits at a
 given rank*, and *how many submissions scored no more than a given value*.
@@ -66,7 +65,7 @@ recorded. For type `4`, an empty scoreboard answers `0`.
 2
 ```
 
-The first three operations build the multiset `{3, 3, 5}`. Its second smallest
+The first three operations record scores `3, 3, 5`. The second smallest
 score is `3`, because the two copies of `3` take ranks one and two. Two of the
-three scores are at most `4`. Withdrawing one `3` leaves `{3, 5}`, whose second
-smallest is now `5`, and both of its scores are at most `8`.
+three scores are at most `4`. Withdrawing one submission with score `3` leaves
+scores `3, 5`. The second smallest is now `5`, and both scores are at most `8`.

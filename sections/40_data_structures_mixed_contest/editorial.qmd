@@ -53,7 +53,7 @@ invariant and complexity before the reference implementation.
 | F. Mutable Priority Queue | Insert new versions and lazily discard stale heap entries. |
 | G. Streaming Room Count | Sweep starts while a min-heap stores active ending times. |
 | H. Toggle K-th Active | Fenwick frequencies with prefix order-statistic descent. |
-| I. Dynamic Maximum Subarray | Segment-tree nodes store sum, prefix, suffix, and best. |
+| I. Dynamic Brackets | Ordered segment summaries store total and minimum prefix balance. |
 | J. Sliding Median Cost | Two Fenwick trees maintain counts and sums by value. |
 | K. Budget Prefix Search | Segment sums and maximum prefixes guide the first crossing. |
 | L. Range Add Threshold Search | Lazy range addition plus left-first maximum descent. |
@@ -504,6 +504,11 @@ independent oracle.
 
 ## Full Python solution
 
+The Python table build iterates directly over the previous jump endpoints.
+For queries it visits only set bits, in increasing order, and compares the
+block minimum directly. These reduce overhead without changing the jump
+invariants or the `O(log k)` query bound.
+
 ```python
 {{< include problems/e_functional_walk_minimum/solution.py >}}
 ```
@@ -636,31 +641,59 @@ Each operation costs `O(log n)` and memory is `O(n)`. Test repeated toggles,
 {{< include problems/h_toggle_kth_active/solution.py >}}
 ```
 
-# I. Dynamic Maximum Subarray
+# I. Dynamic Brackets
 
-## Node state
+## Reduction and node invariant
 
-For each segment store its total sum, best nonempty prefix, best nonempty
-suffix, and best nonempty subarray. When joining left `L` and right `R`, a best
-subarray is either inside `L`, inside `R`, or `L.suffix + R.prefix`. Prefix and
-suffix have the analogous two choices.
+Encode `(` as `+1` and `)` as `-1`. A substring is balanced precisely when
+its total is zero and none of its prefix sums is negative. A total of zero
+alone is insufficient: `)(` is a counterexample.
+
+Store `(sum, low)` in each segment-tree node. `low` is the minimum prefix
+sum, including the empty prefix. For adjacent segments `L` and `R`:
+
+```text
+sum = L.sum + R.sum
+low = min(L.low, L.sum + R.low)
+```
+
+A leaf stores `(1,0)` or `(-1,-1)`. The empty segment stores `(0,0)`.
+Flipping a bracket changes one leaf and recomputes its ancestors.
+
+## Ordered interval queries
+
+Concatenation is associative but not commutative. An iterative query must
+append left-side blocks to a left accumulator and prepend right-side blocks
+to a right accumulator, then concatenate left and right. Reversing any of
+these orders changes which prefixes are examined.
+
+For a query, print `YES` exactly when `sum=0` and `low>=0`. The sample's
+first flip makes the whole string start with `)`, while an interior `()`
+query remains balanced. All summaries are relative to the queried substring;
+preceding brackets do not help it.
 
 ## Correctness and complexity
 
-Those cases exhaust where a contiguous interval can cross the unique boundary
-between the children. Leaves are correct for a one-element segment, so the
-merge proves every node correct by induction. A point update changes one root
-path: `O(log n)` time per update and `O(n)` memory. Use negative infinity for
-padding; using zero would incorrectly permit an empty subarray.
+Every prefix of a concatenation either ends inside `L`, with minimum
+`L.low`, or includes all of `L` and a prefix of `R`, with minimum
+`L.sum+R.low`. Thus the merge preserves its invariant. Induction over tree
+nodes, and the ordered query merge, recover the exact total and minimum
+prefix. These are precisely the two conditions for balanced parentheses.
+
+Build in `O(n)` time. Each flip or query takes `O(log n)` time; memory is
+`O(n)`. Test single characters, `)(`, nested sequences, repeated flips,
+substrings starting in the middle, and a zero-total full string with a
+negative first prefix. The dedicated tests include long queried ranges and
+that last failure case.
 
 ## Full solutions
 
 ```cpp
-{{< include problems/i_dynamic_maximum_subarray/solution.cpp >}}
+{{< include problems/i_dynamic_brackets/solution.cpp >}}
 ```
 
 ```python
-{{< include problems/i_dynamic_maximum_subarray/solution.py >}}
+{{< include problems/i_dynamic_brackets/solution.py >}}
 ```
 
 # J. Sliding Median Cost

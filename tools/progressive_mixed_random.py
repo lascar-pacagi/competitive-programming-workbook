@@ -54,11 +54,9 @@ def case(name: str, rng: random.Random):
             if rng.random()<.55:i=rng.randrange(n);ops.append(f"T {i+1}");on.symmetric_difference_update({i})
             else:k=rng.randint(1,n+2);ops.append(f"K {k}");v=sorted(on);out.append(v[k-1]+1 if k<=len(v) else -1)
         return f"{n} {q}\n"+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
-    if name == "i_dynamic_maximum_subarray":
-        n=rng.randint(1,10);q=rng.randint(1,20);a=[rng.randint(-9,9) for _ in range(n)];initial=a[:];ops=[];out=[]
-        for _ in range(q):
-            i=rng.randrange(n);x=rng.randint(-9,9);a[i]=x;ops.append(f"{i+1} {x}");out.append(max(sum(a[l:r]) for l in range(n) for r in range(l+1,n+1)))
-        return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+"\n".join(ops)+"\n","\n".join(map(str,out))+"\n"
+    if name in {"i_dynamic_brackets", "i_rerooted_subtree_sums", "j_minimum_bottleneck_routes", "k_sliding_window_inversions"}:
+        from tools.replacement_40_42_cases import random_case
+        return random_case(name, rng)
     if name == "j_sliding_median_cost":
         n=rng.randint(1,15);k=rng.randint(1,n);a=[rng.randint(-9,9) for _ in range(n)];out=[]
         for i in range(n-k+1):v=sorted(a[i:i+k]);m=v[(k-1)//2];out.append(sum(abs(x-m) for x in v))
@@ -95,7 +93,7 @@ def case(name: str, rng: random.Random):
                 for v in desc[u]:a[v]+=x
             else:ops.append(f"Q {u+1}");out.append(a[u])
         return f"{n} {q}\n"+" ".join(map(str,initial))+"\n"+"".join(f"{u+1} {v+1}\n" for u,v in edges)+"\n".join(ops)+"\n","\n".join(map(str,out))+("\n" if out else "")
-    if name in {"f_dynamic_subtree_maximum", "g_subtree_value_count", "h_incremental_connectivity", "i_subtree_assign_add_sum", "j_static_vertex_path_sums", "k_static_weighted_rectangles", "l_subtree_add_maximum"}:
+    if name in {"f_dynamic_subtree_maximum", "g_subtree_value_count", "h_incremental_connectivity", "l_subtree_add_maximum"}:
         from tools.section42_random import case as section42_case
         return section42_case(name, rng)
     if name == "l_profitable_disjoint_routes":

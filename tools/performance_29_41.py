@@ -149,7 +149,10 @@ def build(section,slug):
             return f'{n} {q}\n'+' '.join(map(str,range(2,n+1)))+' 1\n'+' '.join(map(str,range(1,n+1)))+'\n'+f'1 1000000000000000000\n'*q,'1 1\n'*q
         if letter=='g':return f'{n}\n'+''.join(f'{i} {n+1}\n' for i in range(n)),' '.join(map(str,range(1,n+1)))+'\n'
         if letter=='h':return f'{n} {q}\n'+''.join(f'T {i}\n' for i in range(1,h+1))+''.join(f'K {i}\n' for i in range(h,0,-1)),''.join(f'{i}\n' for i in range(h,0,-1))
-        if letter=='i':return build(37,'b_maximum_subarray_updates')
+        if letter=='i':
+            from tools.replacement_40_42_cases import stress_cases
+            _,inp,out=next(stress_cases('i_dynamic_brackets'))
+            return inp,out
         if letter=='j':
             # Consecutive increasing windows have translation-invariant cost.
             return f'{n} {h}\n'+' '.join(map(str,range(n)))+'\n',(str(h*h//4)+' ')*(n-h+1)+'\n'

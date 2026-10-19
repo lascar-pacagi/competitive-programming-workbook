@@ -54,7 +54,9 @@ def main() -> None:
     end = n
     while end:
         start = end - 1
-        while start > 0 and ranges[start - 1][:2] == ranges[end - 1][:2]:
+        while (
+            start > 0 and ranges[start - 1][:2] == ranges[end - 1][:2]
+        ):
             start -= 1
         group_size = end - start
         rank = rank_of(ranges[start][1])

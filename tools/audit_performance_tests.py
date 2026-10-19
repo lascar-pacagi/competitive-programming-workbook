@@ -82,6 +82,12 @@ def write_report(result: dict, path: Path) -> None:
     if validation:
         lines += [f"Checked {len(validated)} problems in C++ and Python: {len(validation)} "
                   f"fixed/performance executions, {failures} failures.", ""]
+    lines += ["On 2026-10-05, four repeated exercises were replaced: 40 I is Dynamic "
+              "Brackets, 42 I is Rerooted Subtree Sums, 42 J is Minimum Bottleneck "
+              "Routes, and 42 K is Sliding Window Inversions. Their C++ and Python "
+              "references passed 150 independent random oracle cases per problem "
+              "and language, plus fixed and constraint-scale performance tests. "
+              "The inventory and reference counts below include these replacements.", ""]
     lines += ["The new workloads exposed two Python reference bottlenecks. Section 20 C "
               "(Warp Maze) now uses a padded flat grid, rejects stale 0-1 BFS entries, "
               "and stops when the goal is settled. Its tests include an unreachable "

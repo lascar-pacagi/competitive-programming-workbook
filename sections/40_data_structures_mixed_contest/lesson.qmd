@@ -176,7 +176,7 @@ same position.
 | F | Mutable Priority Queue |
 | G | Streaming Room Count |
 | H | Toggle K-th Active |
-| I | Dynamic Maximum Subarray |
+| I | Dynamic Brackets |
 | J | Sliding Median Cost |
 | K | Budget Prefix Search |
 | L | Range Add Threshold Search |

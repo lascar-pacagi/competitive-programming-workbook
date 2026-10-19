@@ -20,12 +20,9 @@ def case(name: str, rng: random.Random):
                         if y not in seen:seen.add(y);todo.append(y)
                 ops.append(f'Q {u+1} {v+1}');out.append('YES' if v in seen else 'NO')
         return f'{n} {q}\n'+'\n'.join(ops)+'\n','\n'.join(out)+'\n'
-    if name == 'k_static_weighted_rectangles':
-        n=rng.randint(1,15);q=20;points=[(rng.randint(-4,4),rng.randint(-4,4),rng.randint(-9,9)) for _ in range(n)];ops=[];out=[]
-        for _ in range(q):
-            a=rng.randint(-5,4);c=rng.randint(a,5);b=rng.randint(-5,4);d=rng.randint(b,5)
-            ops.append(f'{a} {b} {c} {d}');out.append(sum(w for x,y,w in points if a<=x<=c and b<=y<=d))
-        return f'{n} {q}\n'+''.join(f'{x} {y} {w}\n' for x,y,w in points)+'\n'.join(ops)+'\n','\n'.join(map(str,out))+'\n'
+    if name in {'i_rerooted_subtree_sums', 'j_minimum_bottleneck_routes', 'k_sliding_window_inversions'}:
+        from tools.replacement_40_42_cases import random_case
+        return random_case(name, rng)
     n=rng.randint(1,13);q=30;edges,g,parent,desc=tree(rng,n)
     a=[rng.randint(-9,9) for _ in range(n)];initial=a[:];ops=[];out=[]
     for _ in range(q):
@@ -39,14 +36,6 @@ def case(name: str, rng: random.Random):
                 x=rng.randint(-10,10);ops.append(f'A {u+1} {x}')
                 for v in desc[u]:a[v]+=x
             else:ops.append(f'Q {u+1}');out.append(max(a[v] for v in desc[u]))
-        elif name == 'i_subtree_assign_add_sum':
-            op=rng.randint(1,3)
-            if op==3:ops.append(f'3 {u+1}');out.append(sum(a[v] for v in desc[u]))
-            else:
-                x=rng.randint(-10,10);ops.append(f'{op} {u+1} {x}')
-                for v in desc[u]:a[v]=x if op==1 else a[v]+x
-        elif name == 'j_static_vertex_path_sums':
-            v=rng.randrange(n);ops.append(f'{u+1} {v+1}');out.append(sum(a[w] for w in path(g,u,v)))
         elif name == 'g_subtree_value_count':
             lo=rng.randint(-12,9);hi=rng.randint(lo,12);ops.append(f'{u+1} {lo} {hi}');out.append(sum(lo<=a[v]<=hi for v in desc[u]))
         else:raise ValueError(name)

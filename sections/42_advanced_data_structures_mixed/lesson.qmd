@@ -37,7 +37,8 @@ before it can answer a question about a tree.
 | Prefix sums, difference arrays | 4 |
 | Sorting, interval sweeps, coordinate compression, offline ordering | 5, 11, 13 |
 | DFS and rooted trees | 16, 26 |
-| DSU for edge insertions | 18 |
+| DSU and Kruskal minimum spanning trees | 18 |
+| Sliding windows | 6 |
 | Fenwick prefix sums and point updates | 36 |
 | Segment-tree aggregates and lazy propagation | 37 |
 | Static aggregates and binary lifting | 38 |
@@ -150,8 +151,8 @@ For every proposed combination, prove these claims separately:
 5. Preprocessing, all operations, and memory fit the constraints.
 
 For a sweep, state which objects have been inserted before each query. For a
-rooted-tree mapping, prove subtree contiguity. For a static path formula, check
-how many times its shared ancestor is counted. For lazy updates, distinguish
+rooted-tree mapping, prove subtree contiguity. For a bottleneck reduction, prove
+why an optimal forest path answers the original graph query. For lazy updates, distinguish
 what the parent summary includes from what its children still need.
 
 Sorting can dominate an otherwise logarithmic query structure. Coordinate
@@ -187,9 +188,9 @@ For DSU, use union by size and path compression as in section 18.
 | F | Dynamic Subtree Maximum |
 | G | Subtree Value Count |
 | H | Incremental Connectivity |
-| I | Subtree Assign, Add, and Sum |
-| J | Static Vertex Path Sums |
-| K | Static Weighted Rectangles |
+| I | Rerooted Subtree Sums |
+| J | Minimum Bottleneck Routes |
+| K | Sliding Window Inversions |
 | L | Subtree Add, Subtree Maximum |
 
 For each problem, write a slow oracle and name the invariant before coding.
@@ -204,8 +205,9 @@ The editorial gives problem-specific reductions after your attempt.
 | offline sweep | equal coordinates, boundaries absent from compression |
 | interval containment | identical intervals and equal endpoints |
 | tree intervals | single vertex, root, leaf, chain, star |
-| static paths | same endpoint, ancestor endpoint, LCA at root |
-| weighted sums | negative weights and coincident points |
+| changing roots | current-root query, ancestor complement, unrelated branch |
+| bottleneck routes | disconnected graph, cycles, zero weights, same endpoint |
+| window inversions | equal values, k=1, decreasing window, 64-bit counts |
 | connectivity | repeated edges, self-loops, separate components |
 
 Compare small random cases with direct array scans or graph searches. Large

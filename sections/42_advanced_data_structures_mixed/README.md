@@ -14,14 +14,16 @@ HLD and persistence are taught later, in sections 68 and 67 respectively.
 | Euler intervals with Fenwick or segment trees (36, 37, 41) | E. Subtree Add, Point Query; F. Dynamic Subtree Maximum |
 | Euler intervals with offline counting (13, 36, 41) | G. Subtree Value Count |
 | Ordinary insertion-only DSU (18) | H. Incremental Connectivity |
-| Euler intervals with lazy propagation (37, 41) | I. Subtree Assign, Add, and Sum; L. Subtree Add, Subtree Maximum |
-| Static prefix sums with LCA (4, 41) | J. Static Vertex Path Sums |
-| Static sweeps with weighted Fenwick sums (13, 36) | K. Static Weighted Rectangles |
+| Euler intervals with lazy propagation (37, 41) | L. Subtree Add, Subtree Maximum |
+| Euler intervals, ancestor jumps, Fenwick sums (36, 41) | I. Rerooted Subtree Sums |
+| Kruskal, DSU, maximum-edge binary lifting (18, 41) | J. Minimum Bottleneck Routes |
+| Sliding windows and Fenwick frequencies (6, 36) | K. Sliding Window Inversions |
 
 All twelve problems have statements, C++ and Python reference solutions,
 fixed examples, random generators with small independent oracles, and
 deterministic maximum-size performance tests. H has three adversarial
-`n = q = 200000` cases; the other exercises have one each. The standard judge
+`n = q = 200000` cases; I and K each have two performance workloads,
+and the other exercises have one each. The standard judge
 runs these even when random tests are disabled.
 
 Run `CP_TARGET=solution python3 sections/42_advanced_data_structures_mixed/check.py --keep-going`.

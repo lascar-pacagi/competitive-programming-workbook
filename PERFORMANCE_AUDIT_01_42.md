@@ -16,7 +16,9 @@ Section 42 H includes three n=q=200000 workloads: growing paths, reversed unions
 
 ## Reference validation
 
-Checked 234 problems in C++ and Python: 1412 fixed/performance executions, 0 failures.
+Checked 234 problems in C++ and Python: 1426 fixed/performance executions, 0 failures.
+
+On 2026-10-05, four repeated exercises were replaced: 40 I is Dynamic Brackets, 42 I is Rerooted Subtree Sums, 42 J is Minimum Bottleneck Routes, and 42 K is Sliding Window Inversions. Their C++ and Python references passed 150 independent random oracle cases per problem and language, plus fixed and constraint-scale performance tests. The inventory and reference counts below include these replacements.
 
 The new workloads exposed two Python reference bottlenecks. Section 20 C (Warp Maze) now uses a padded flat grid, rejects stale 0-1 BFS entries, and stops when the goal is settled. Its tests include an unreachable goal that requires exploring a million-cell region. Section 35 O (GCD Sum) now preprocesses answers using smallest prime factors and the prime-power recurrence, replacing divisor scans per query. Its test uses 200000 distinct large queries. Both editorials were updated; no time limits or course prerequisites were changed.
 
@@ -249,7 +251,7 @@ Every row records actual generated/fixed input size and the presence of a dedica
 | [40 f_mutable_priority_queue](sections/40_data_structures_mixed_contest/problems/f_mutable_priority_queue/README.md) | 27 | 2216691 | `200000` | dedicated stress |
 | [40 g_streaming_room_count](sections/40_data_structures_mixed_contest/problems/g_streaming_room_count/README.md) | 27 | 2688897 | `200000` | dedicated stress |
 | [40 h_toggle_kth_active](sections/40_data_structures_mixed_contest/problems/h_toggle_kth_active/README.md) | 27 | 1577804 | `200000 200000` | dedicated stress |
-| [40 i_dynamic_maximum_subarray](sections/40_data_structures_mixed_contest/problems/i_dynamic_maximum_subarray/README.md) | 27 | 2288910 | `200000 200000` | dedicated stress |
+| [40 i_dynamic_brackets](sections/40_data_structures_mixed_contest/problems/i_dynamic_brackets/README.md) | 29 | 3177795 | `200000 200000` | dedicated stress |
 | [40 j_sliding_median_cost](sections/40_data_structures_mixed_contest/problems/j_sliding_median_cost/README.md) | 27 | 1288904 | `200000 100000` | dedicated stress |
 | [40 k_budget_prefix_search](sections/40_data_structures_mixed_contest/problems/k_budget_prefix_search/README.md) | 27 | 2100015 | `200000 200000` | dedicated stress |
 | [40 l_range_add_threshold_search](sections/40_data_structures_mixed_contest/problems/l_range_add_threshold_search/README.md) | 28 | 3100015 | `200000 200000` | dedicated stress |
@@ -265,7 +267,7 @@ Every row records actual generated/fixed input size and the presence of a dedica
 | [42 f_dynamic_subtree_maximum](sections/42_advanced_data_structures_mixed/problems/f_dynamic_subtree_maximum/README.md) | 27 | 5055596 | `200000 200000` | dedicated stress |
 | [42 g_subtree_value_count](sections/42_advanced_data_structures_mixed/problems/g_subtree_value_count/README.md) | 27 | 5666691 | `200000 200000` | dedicated stress |
 | [42 h_incremental_connectivity](sections/42_advanced_data_structures_mixed/problems/h_incremental_connectivity/README.md) | 29 | 2577803 | `200000 200000` | dedicated stress |
-| [42 i_subtree_assign_add_sum](sections/42_advanced_data_structures_mixed/problems/i_subtree_assign_add_sum/README.md) | 27 | 4727796 | `200000 200000` | dedicated stress |
-| [42 j_static_vertex_path_sums](sections/42_advanced_data_structures_mixed/problems/j_static_vertex_path_sums/README.md) | 27 | 5866691 | `200000 200000` | dedicated stress |
-| [42 k_static_weighted_rectangles](sections/42_advanced_data_structures_mixed/problems/k_static_weighted_rectangles/README.md) | 27 | 8555594 | `200000 200000` | dedicated stress |
+| [42 i_rerooted_subtree_sums](sections/42_advanced_data_structures_mixed/problems/i_rerooted_subtree_sums/README.md) | 29 | 4666691 | `200000 200000` | dedicated stress |
+| [42 j_minimum_bottleneck_routes](sections/42_advanced_data_structures_mixed/problems/j_minimum_bottleneck_routes/README.md) | 28 | 5555590 | `200000 200000 200000` | dedicated stress |
+| [42 k_sliding_window_inversions](sections/42_advanced_data_structures_mixed/problems/k_sliding_window_inversions/README.md) | 29 | 1288909 | `200000 100000` | dedicated stress |
 | [42 l_subtree_add_maximum](sections/42_advanced_data_structures_mixed/problems/l_subtree_add_maximum/README.md) | 27 | 4777796 | `200000 200000` | dedicated stress |
