@@ -84,7 +84,7 @@ object is the query about?**
   \node[nd] (a3) at (11.4,0.76) {};
   \foreach \a/\b in {a0/a1,a0/a2,a1/a2,a2/a3} \draw[ed,->,>=Latex] (\a) -- (\b);
   \node[q] at (10.6,-0.25) {\textbf{how many distinct}\\\textbf{substrings?}\\[2pt]
-                            $O(n)$ states, sum\\$\mathtt{len}-\mathtt{len[link]}$};
+                            $O(n)$ states\\each groups several substrings\\count by length (Chapter 4)};
 
   \node[draw=red!45,rounded corners,fill=red!4,align=left,font=\scriptsize,
         anchor=north west,inner sep=5pt,text width=12.1cm] at (-0.35,-2.1)
@@ -98,6 +98,13 @@ object is the query about?**
 \end{tikzpicture}
 \end{center}
 ```
+
+In the automaton panel, **one circle can represent several distinct
+substrings**. Counting circles therefore does not give the answer. Each state
+stores a consecutive range of substring lengths, with one substring per length.
+The formula introduced in Chapter 4 counts the lengths in each state, then adds
+these counts. For example, in `aba`, one state represents both `ba` and `aba`:
+that single state contributes two substrings.
 
 | The query names | Reach for | Section problem |
 |---|---|---|
@@ -293,8 +300,32 @@ substrings of one string, in `O(n)` states. Two arrays describe it:
 - `link[v]`, the state representing the longest proper suffix that lives in a
   different state.
 
-The states partition every substring, and the count of distinct non-empty
-substrings falls straight out:
+A state groups substrings that have exactly the same **ending positions**
+in the original string. These are positions where an occurrence finishes,
+not where it starts. For `aba`, using 1-based positions:
+
+- `a` ends at positions 1 and 3, so it has its own state.
+- `b` and `ab` both end only at position 2, so they share a state.
+- `ba` and `aba` both end only at position 3, so they share a state.
+
+Within one state, there is exactly one represented substring for each length
+from `len[link[v]] + 1` through `len[v]`, inclusive. Why at most one per length?
+Choose any common ending position: the length and that ending position uniquely
+identify the substring. These lengths are consecutive because removing leading
+characters preserves the ending-position set until we cross into the suffix-link
+state.
+
+Thus, if `a = len[link[v]]` and `b = len[v]`, the lengths belonging to `v` are
+`a + 1, a + 2, ..., b`. There are `b - a` of them. **The subtraction counts
+substrings represented by this state; it does not count their occurrences.**
+
+For the state containing `ba` and `aba`, the longest string has length 3.
+Its suffix link goes to the state for `a`, whose maximum length is 1.
+So its contribution is `3 - 1 = 2`: lengths 2 and 3, namely `ba` and `aba`.
+The shorter suffix `a` belongs to another state and is counted there.
+
+Every distinct nonempty substring belongs to exactly one state. Add the
+contributions of all states except the root:
 
 ```text
 answer = sum over v != root of ( len[v] - len[link[v]] )

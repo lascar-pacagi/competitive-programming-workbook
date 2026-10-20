@@ -36,9 +36,11 @@ comparison: a substring is a palindrome exactly when every symmetric pair is
 equal. This is `O(length)` per query and avoids probabilistic hash collisions.
 
 **C. Distinct Substrings.** The local task uses a suffix automaton. State `v`
-contributes `len[v]-len[link[v]]` distinct substring lengths, so summing these
-over non-root states is linear in the number of automaton states. Enumeration
-of all substrings is only a small-input stress-testing oracle.
+groups several substrings with the same ending positions. Its represented
+lengths run from `len[link[v]] + 1` through `len[v]`, one substring per length,
+so it contributes `len[v] - len[link[v]]` distinct substrings. For `aba`, the
+three non-root states represent `a`, then `b, ab`, then `ba, aba`: the answer
+is `1 + 2 + 2 = 5`. The derivation is detailed in problem C below.
 
 ## Detailed solution guide
 
@@ -193,14 +195,73 @@ Print the number of distinct non-empty substrings of a string.
 
 ## Observations and algorithm
 
-Build a suffix automaton. State v contributes `len[v]-len[link[v]]` new
-substring lengths; sum this over non-root states. For `ababa`, the answer is 9.
+Build a suffix automaton, then count the distinct substrings represented
+by each non-root state. A state can represent several strings, so counting
+states alone is insufficient.
+
+### What a state represents
+
+For a substring, its ending positions are all positions where an occurrence
+finishes. Substrings with exactly the same set of ending positions share a
+state. In `aba`, with positions numbered from 1:
+
+- `a` ends at positions 1 and 3.
+- `b` and `ab` end only at position 2, so they share a state.
+- `ba` and `aba` end only at position 3, so they share a state.
+
+These are groups of distinct string values. Multiple occurrences of the same
+string do not create extra entries in the answer.
+
+### Why subtract the two lengths?
+
+`len[v]` is the longest length in state `v`. The suffix link `link[v]` points
+to the state of the longest suffix that belongs to a different group.
+The shortest length still in `v` is therefore `len[link[v]] + 1`.
+
+State `v` contains exactly one substring for each integer length in this range:
+
+```text
+len[link[v]] + 1, ..., len[v]
+```
+
+For a fixed length, two strings with the same ending positions must be equal:
+choose one ending position, and the length fixes all characters of the string.
+The represented lengths form a consecutive range; taking shorter suffixes
+stays in this group until the suffix-link boundary is reached.
+
+The number of integers in an inclusive range from `a + 1` to `b` is
+`b - (a + 1) + 1 = b - a`. Hence the contribution is:
+
+```text
+len[v] - len[link[v]]
+```
+
+For `aba`, the contributions are:
+
+- State for `a`: `len[v] = 1`, link to the root of length 0.
+  Contribution: `1 - 0 = 1`, for `a`.
+- State for `b, ab`: `len[v] = 2`, link to the root of length 0.
+  Contribution: `2 - 0 = 2`, for lengths 1 and 2.
+- State for `ba, aba`: `len[v] = 3`, link to the `a` state of length 1.
+  Contribution: `3 - 1 = 2`, for lengths 2 and 3.
+
+The answer is `1 + 2 + 2 = 5`: `a`, `b`, `ab`, `ba`, `aba`.
+Length 1 appears in two different states, for `a` and `b`; this is correct
+because they are different strings. The length intervals need not be disjoint
+across states. The groups of strings are disjoint.
+
+Finally, sum the contributions over every non-root state. Exclude the root
+because it represents the empty string. For `ababa`, the same calculation
+gives 9 distinct nonempty substrings.
 
 ## Correctness proof
 
-Suffix links partition represented lengths into disjoint intervals, so every
-distinct nonempty substring belongs to exactly one state's contribution. Clones
-restore this invariant when a transition needs a shorter maximum length. QED.
+Every distinct nonempty substring has exactly one ending-position set,
+so it belongs to exactly one non-root state. Within state `v`, the consecutive
+lengths from `len[link[v]] + 1` through `len[v]` each identify exactly one
+substring. Thus `len[v] - len[link[v]]` counts precisely that state's strings.
+Summing these disjoint groups counts each distinct substring once. Clones
+preserve the state groups during construction. QED.
 
 ## Complexity
 

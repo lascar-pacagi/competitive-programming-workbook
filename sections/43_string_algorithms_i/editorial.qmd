@@ -109,28 +109,86 @@ Time and memory are `O(|pattern|+|text|)`.
 
 ```cpp
 #include <bits/stdc++.h>
-using namespace std; vector<int> pi(string s){vector<int>p(s.size());for(int i=1;i<(int)s.size();i++){int j=p[i-1];while(j&&s[i]!=s[j])j=p[j-1];if(s[i]==s[j])j++;p[i]=j;}return p;}
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string pat,text;if(!(cin>>pat>>text)) return 0; string s=pat+"#"+text; auto p=pi(s); vector<int>a; for(int i=0;i<(int)p.size();i++) if(p[i]==(int)pat.size()) a.push_back(i-2*(int)pat.size()+1); cout<<a.size()<<'\n'; for(int i=0;i<(int)a.size();i++){if(i)cout<<' ';cout<<a[i];} cout<<'\n';}
+using namespace std;
+
+vector<int> pi(const string& s) {
+    vector<int> p(s.size());
+    for (int i = 1; i < (int)s.size(); i++) {
+        int j = p[i - 1];
+        while (j && s[i] != s[j]) {
+            j = p[j - 1];
+        }
+        if (s[i] == s[j]) {
+            j++;
+        }
+        p[i] = j;
+    }
+    return p;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    string pat, text;
+    if (!(cin >> pat >> text)) {
+        return 0;
+    }
+    string s = pat + "#" + text;
+    auto p = pi(s);
+    vector<int> ans;
+    for (int i = 0; i < (int)p.size(); i++) {
+        if (p[i] == (int)pat.size()) {
+            ans.push_back(i - 2 * (int)pat.size() + 1);
+        }
+    }
+
+    cout << ans.size() << '\n';
+    for (int i = 0; i < (int)ans.size(); i++) {
+        if (i) {
+            cout << ' ';
+        }
+        cout << ans[i];
+    }
+    cout << '\n';
+}
 ```
 
 ## Full Python solution
 
 ```python
 import sys
+
+
 def pi(s):
-    p=[0]*len(s)
-    for i in range(1,len(s)):
-        j=p[i-1]
-        while j and s[i]!=s[j]: j=p[j-1]
-        if s[i]==s[j]: j+=1
-        p[i]=j
+    p = [0] * len(s)
+    for i in range(1, len(s)):
+        j = p[i - 1]
+        while j and s[i] != s[j]:
+            j = p[j - 1]
+        if s[i] == s[j]:
+            j += 1
+        p[i] = j
     return p
+
+
 def main():
-    lines=sys.stdin.read().splitlines(); pat=lines[0]; text=lines[1]; s=pat+"#"+text; p=pi(s); ans=[]
-    for i,v in enumerate(p):
-        if v==len(pat): ans.append(i-2*len(pat)+1)
-    print(len(ans)); print(" ".join(map(str,ans)) if ans else "")
-if __name__=="__main__": main()
+    lines = sys.stdin.read().splitlines()
+    pat = lines[0]
+    text = lines[1]
+    s = pat + "#" + text
+    p = pi(s)
+    ans = []
+    for i, value in enumerate(p):
+        if value == len(pat):
+            ans.append(i - 2 * len(pat) + 1)
+
+    print(len(ans))
+    print(" ".join(map(str, ans)))
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## Tests that matter
@@ -164,26 +222,79 @@ Prefix construction and the link walk are `O(n)` time and `O(n)` memory.
 
 ```cpp
 #include <bits/stdc++.h>
-using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; vector<int>p(s.size()); for(int i=1;i<(int)s.size();i++){int j=p[i-1];while(j&&s[i]!=s[j])j=p[j-1];if(s[i]==s[j])j++;p[i]=j;} vector<int>a; for(int k=p.back();k;k=p[k-1]) a.push_back(k); reverse(a.begin(),a.end()); for(int i=0;i<(int)a.size();i++){if(i)cout<<' ';cout<<a[i];} cout<<'\n';}
+using namespace std;
+
+vector<int> pi(const string& s) {
+    vector<int> p(s.size());
+    for (int i = 1; i < (int)s.size(); i++) {
+        int j = p[i - 1];
+        while (j && s[i] != s[j]) {
+            j = p[j - 1];
+        }
+        if (s[i] == s[j]) {
+            j++;
+        }
+        p[i] = j;
+    }
+    return p;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    string s;
+    if (!(cin >> s)) {
+        return 0;
+    }
+    auto p = pi(s);
+    vector<int> ans;
+    for (int k = p.back(); k; k = p[k - 1]) {
+        ans.push_back(k);
+    }
+    reverse(ans.begin(), ans.end());
+
+    for (int i = 0; i < (int)ans.size(); i++) {
+        if (i) {
+            cout << ' ';
+        }
+        cout << ans[i];
+    }
+    cout << '\n';
+}
 ```
 
 ## Full Python solution
 
 ```python
 import sys
+
+
 def pi(s):
-    p=[0]*len(s)
-    for i in range(1,len(s)):
-        j=p[i-1]
-        while j and s[i]!=s[j]: j=p[j-1]
-        if s[i]==s[j]: j+=1
-        p[i]=j
+    p = [0] * len(s)
+    for i in range(1, len(s)):
+        j = p[i - 1]
+        while j and s[i] != s[j]:
+            j = p[j - 1]
+        if s[i] == s[j]:
+            j += 1
+        p[i] = j
     return p
+
+
 def main():
-    s=sys.stdin.readline().strip(); p=pi(s); ans=[]; k=p[-1] if s else 0
-    while k: ans.append(k); k=p[k-1]
-    print(" ".join(map(str,ans[::-1])))
-if __name__=="__main__": main()
+    s = sys.stdin.readline().strip()
+    p = pi(s)
+    ans = []
+    k = p[-1] if s else 0
+    while k:
+        ans.append(k)
+        k = p[k - 1]
+    print(" ".join(map(str, ans[::-1])))
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## Tests that matter
@@ -216,25 +327,65 @@ Time is `O(n)` and memory is `O(n)`.
 
 ```cpp
 #include <bits/stdc++.h>
-using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; int n=s.size(); vector<int>p(n); for(int i=1;i<n;i++){int j=p[i-1];while(j&&s[i]!=s[j])j=p[j-1];if(s[i]==s[j])j++;p[i]=j;} int k=n-p.back(); cout<<(n%k==0?k:n)<<'\n';}
+using namespace std;
+
+vector<int> pi(const string& s) {
+    vector<int> p(s.size());
+    for (int i = 1; i < (int)s.size(); i++) {
+        int j = p[i - 1];
+        while (j && s[i] != s[j]) {
+            j = p[j - 1];
+        }
+        if (s[i] == s[j]) {
+            j++;
+        }
+        p[i] = j;
+    }
+    return p;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    string s;
+    if (!(cin >> s)) {
+        return 0;
+    }
+    int n = s.size();
+    auto p = pi(s);
+    int k = n - p.back();
+    cout << (n % k == 0 ? k : n) << '\n';
+}
 ```
 
 ## Full Python solution
 
 ```python
 import sys
+
+
 def pi(s):
-    p=[0]*len(s)
-    for i in range(1,len(s)):
-        j=p[i-1]
-        while j and s[i]!=s[j]: j=p[j-1]
-        if s[i]==s[j]: j+=1
-        p[i]=j
+    p = [0] * len(s)
+    for i in range(1, len(s)):
+        j = p[i - 1]
+        while j and s[i] != s[j]:
+            j = p[j - 1]
+        if s[i] == s[j]:
+            j += 1
+        p[i] = j
     return p
+
+
 def main():
-    s=sys.stdin.readline().strip(); n=len(s); k=n-pi(s)[-1]
-    print(k if n%k==0 else n)
-if __name__=="__main__": main()
+    s = sys.stdin.readline().strip()
+    n = len(s)
+    k = n - pi(s)[-1]
+    print(k if n % k == 0 else n)
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## Tests that matter
@@ -330,13 +481,79 @@ The prefix function and failure-link propagation are both `O(n)` time and use
 ## Full C++ solution
 
 ```cpp
-{{< include problems/d_prefix_frequency/solution.cpp >}}
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> pi(const string& s) {
+    vector<int> p(s.size());
+    for (int i = 1; i < (int)s.size(); i++) {
+        int j = p[i - 1];
+        while (j && s[i] != s[j]) {
+            j = p[j - 1];
+        }
+        if (s[i] == s[j]) {
+            j++;
+        }
+        p[i] = j;
+    }
+    return p;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    string s;
+    cin >> s;
+    int n = s.size();
+    auto p = pi(s);
+    vector<int> cnt(n + 1);
+
+    for (int x : p) {
+        cnt[x]++;
+    }
+    for (int i = n - 1; i > 0; i--) {
+        cnt[p[i - 1]] += cnt[i];
+    }
+    for (int i = 1; i <= n; i++) {
+        cout << cnt[i] + 1 << (i == n ? '\n' : ' ');
+    }
+}
 ```
 
 ## Full Python solution
 
 ```python
-{{< include problems/d_prefix_frequency/solution.py >}}
+import sys
+
+
+def pi(s):
+    p = [0] * len(s)
+    for i in range(1, len(s)):
+        j = p[i - 1]
+        while j and s[i] != s[j]:
+            j = p[j - 1]
+        if s[i] == s[j]:
+            j += 1
+        p[i] = j
+    return p
+
+
+def main():
+    s = sys.stdin.buffer.readline().strip()
+    n = len(s)
+    p = pi(s)
+    cnt = [0] * (n + 1)
+
+    for x in p:
+        cnt[x] += 1
+    for i in range(n - 1, 0, -1):
+        cnt[p[i - 1]] += cnt[i]
+    print(*(cnt[i] + 1 for i in range(1, n + 1)))
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## Tests and stress testing
