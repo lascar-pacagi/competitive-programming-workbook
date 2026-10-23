@@ -80,8 +80,12 @@ This section shows three string representations.
   the contribution `len[v] - len[link[v]]` per non-root state; enumeration is
   reserved for tiny brute-force tests.
 
-The editorial code uses the same asymptotically appropriate representation as
-the local contract; brute force appears only as a testing oracle.
+The lesson exposes each structure's operations independently of exercise input
+and output. Brute force is used as a testing oracle.
+
+The reusable C++ and Python implementations are in the lesson: trie operations
+in Chapter 2, rolling hash in Chapter 3, and suffix automaton in Chapter 4.
+This editorial focuses on the exercise-specific reasoning and proofs.
 
 # A. Trie Prefix Count
 
@@ -105,37 +109,6 @@ so the query endpoint is exactly the requested count. QED.
 Work is linear in total inserted and queried characters; memory is one node per
 distinct prefix.
 
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std; struct Node{array<int,26> nx{}; int cnt=0;};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,q;if(!(cin>>n>>q)) return 0; vector<Node> tr(1); for(int i=0;i<n;i++){string s;cin>>s;int v=0;tr[v].cnt++;for(char c:s){int x=c-'a';if(!tr[v].nx[x]){tr[v].nx[x]=tr.size();tr.push_back(Node());}v=tr[v].nx[x];tr[v].cnt++;}} while(q--){string p;cin>>p;int v=0;bool ok=true;for(char c:p){int x=c-'a';if(!tr[v].nx[x]){ok=false;break;}v=tr[v].nx[x];} cout<<(ok?tr[v].cnt:0)<<'\n';}}
-```
-
-## Full Python solution
-
-```python
-import sys
-def main():
-    lines=sys.stdin.read().splitlines(); n,q=map(int,lines[0].split()); nxt=[]; cnt=[]
-    nxt.append({}); cnt.append(0)
-    for w in lines[1:1+n]:
-        v=0; cnt[v]+=1
-        for ch in w:
-            if ch not in nxt[v]: nxt[v][ch]=len(nxt); nxt.append({}); cnt.append(0)
-            v=nxt[v][ch]; cnt[v]+=1
-    out=[]
-    for p in lines[1+n:1+n+q]:
-        v=0; ok=True
-        for ch in p:
-            if ch not in nxt[v]: ok=False; break
-            v=nxt[v][ch]
-        out.append(str(cnt[v] if ok else 0))
-    print("\n".join(out))
-if __name__=="__main__": main()
-```
-
 ## Tests that matter
 
 Test duplicate words, one word that prefixes another, an absent prefix, and a
@@ -143,15 +116,27 @@ one-character query.
 
 # B. Palindrome Queries
 
+The trie problem organized many dictionary words by their shared prefixes.
+Here the input is one fixed text, and each query selects a range inside it.
+The question is about the order of the selected characters: do we obtain the
+same string when reading them backward?
+
+We turn that definition into a direct comparison algorithm. Chapter 3 of the
+lesson develops rolling hashes for larger query loads and provides their
+reusable implementations.
+
 ## Restatement
 
-For each substring query, print whether the substring is a palindrome.
+A palindrome reads the same in both directions, such as `aca` or `abba`.
+For each selected range, determine whether its characters form a palindrome.
+The text stays unchanged.
 
 ## Observations and algorithm
 
-The local bounds permit exact mirrored comparison. Convert inclusive 1-based
-`[l,r]`, compare outward characters, and stop on a mismatch. In `abacaba`,
-`[2,4]` is `bac` (NO) while `[3,5]` is `aca` (YES).
+The local bounds permit exact mirrored comparison. Compare the first and last
+characters of the selected part, then move inward and stop on a mismatch.
+In `abacaba`, positions 2 through 4 select `bac` (NO), while positions 3
+through 5 select `aca` (YES).
 
 ## Correctness proof
 
@@ -161,26 +146,9 @@ is exactly the two-pointer condition. QED.
 ## Complexity
 
 Each query is `O(r-l+1)` time and `O(1)` extra memory; this exact approach is
-only suitable for the local small-query contract.
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; int q;cin>>q; while(q--){int l,r;cin>>l>>r; string t=s.substr(l-1,r-l+1); string u=t; reverse(u.begin(),u.end()); cout<<(t==u?"YES":"NO")<<'\n';}}
-```
-
-## Full Python solution
-
-```python
-import sys
-def main():
-    s=sys.stdin.readline().strip(); q=int(sys.stdin.readline()); out=[]
-    for _ in range(q):
-        l,r=map(int,sys.stdin.readline().split()); sub=s[l-1:r]; out.append("YES" if sub==sub[::-1] else "NO")
-    print("\n".join(out))
-if __name__=="__main__": main()
-```
+only suitable for the local small-query contract. An inward two-pointer scan
+avoids constructing substring copies. The reasoning depends only on comparing
+symmetric characters, regardless of how the positions are numbered.
 
 ## Tests that matter
 
@@ -265,39 +233,11 @@ preserve the state groups during construction. QED.
 
 ## Complexity
 
-There are at most `2*n-1` states. The fixed-alphabet version is `O(n)`; the
-map-based listing is `O(n log alphabet)`.
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std; struct St{map<char,int> nx; int link=-1,len=0;};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);string s;if(!(cin>>s)) return 0; vector<St> st(1); int last=0; for(char c:s){int cur=st.size();st.push_back(St());st[cur].len=st[last].len+1;int p=last;while(p!=-1&&!st[p].nx.count(c)){st[p].nx[c]=cur;p=st[p].link;} if(p==-1) st[cur].link=0; else {int q=st[p].nx[c]; if(st[p].len+1==st[q].len) st[cur].link=q; else {int clone=st.size();st.push_back(st[q]);st[clone].len=st[p].len+1;while(p!=-1&&st[p].nx[c]==q){st[p].nx[c]=clone;p=st[p].link;}st[q].link=st[cur].link=clone;}} last=cur;} long long ans=0; for(int v=1;v<(int)st.size();v++) ans+=st[v].len-st[st[v].link].len; cout<<ans<<'\n';}
-```
-
-## Full Python solution
-
-```python
-import sys
-def main():
-    s=sys.stdin.readline().strip(); next=[]; link=[]; length=[]
-    next.append({}); link.append(-1); length.append(0); last=0
-    for ch in s:
-        cur=len(next); next.append({}); length.append(length[last]+1); link.append(0); p=last
-        while p!=-1 and ch not in next[p]: next[p][ch]=cur; p=link[p]
-        if p==-1: link[cur]=0
-        else:
-            q=next[p][ch]
-            if length[p]+1==length[q]: link[cur]=q
-            else:
-                clone=len(next); next.append(next[q].copy()); length.append(length[p]+1); link.append(link[q])
-                while p!=-1 and next[p].get(ch)==q: next[p][ch]=clone; p=link[p]
-                link[q]=link[cur]=clone
-        last=cur
-    print(sum(length[v]-length[link[v]] for v in range(1,len(next))))
-if __name__=="__main__": main()
-```
+There is one root and at most `2*n-1` states for `n >= 2`; a one-character
+string has two states. Memory is `O(n)` for a fixed alphabet. Construction with
+C++ maps takes `O(n log alphabet)` time; Python dictionaries give expected
+`O(n)` time for the fixed lowercase alphabet. Counting the final contributions
+is `O(n)` in both languages.
 
 ## Tests that matter
 
@@ -380,27 +320,17 @@ Memory: O(L)
 
 ## C++ implementation notes
 
-An `array<int,26>` gives fixed lowercase transitions. A node index of zero is
-the root; newly allocated children receive positive indices. Increment only
-the destination node's `pass` count, because the empty prefix is not allowed.
+Reuse the trie operations presented in Chapter 2 of the lesson. The problem-specific traversal is
+left to implement from the algorithm above. Maintain the distinction between
+node indices, prefix lengths, and word-ending markers. The root is never a
+candidate answer because the required prefix must be nonempty.
+Duplicate words each contribute to `pass` and therefore cannot be distinguished.
 
 ## Python implementation notes
 
-A list of dictionaries keeps the implementation direct. Use byte input for
-large files if desired; the reference decodes after splitting because input is
-restricted to lowercase ASCII.
-
-## Full C++ solution
-
-```cpp
-{{< include problems/d_unique_prefix_lengths/solution.cpp >}}
-```
-
-## Full Python solution
-
-```python
-{{< include problems/d_unique_prefix_lengths/solution.py >}}
-```
+Use the same two-pass organization: insert the entire dictionary before
+searching for unique prefixes. Scanning each word's path once costs `O(L)`
+in total. Each new trie node must have its own child dictionary.
 
 ## Common wrong answers
 
@@ -426,49 +356,6 @@ A one-word input: answer is 1 for a nonempty word.
 
 Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.
 
-<!-- Duplicate addendum hidden from the rendered editorial.
-# Complete upsolve notes
-
-## A. Trie Prefix Count
-
-Every node is one prefix and `count[node]` is the number of inserted words that
-visit it. Insert `apple, ape, bat`: the node for `ap` has count two, while a
-missing query edge returns zero immediately. Insert every word character by
-character, incrementing the root and child after each move; walk each query and
-return the endpoint count. The invariant follows by induction over inserted
-words: exactly the words having a prefix pass through that node. Work is linear
-in total inserted and queried characters, with one node per distinct prefix.
-Use fixed 26-child arrays in C++ for lowercase input, dictionaries in Python for
-clarity. Test duplicate words, one word that is a prefix of another, absent
-queries, and a one-character query.
-
-## B. Palindrome Queries
-
-The local bounds permit exact two-pointer checking. Convert inclusive 1-based
-`l,r` to zero-based positions, then compare outward characters while `l<r`.
-For `abacaba`, `[2,4]` is `bac` and fails at `b,c`; `[3,5]` is `aca` and passes.
-A substring equals its reverse iff every mirrored pair is equal, which proves
-the test. A query costs `O(r-l+1)`, with `O(1)` extra memory; this is not the
-right technique for very large query limits. C++ can use `substr` plus reverse
-under the local contract, Python can use `s[l-1:r] == s[l-1:r][::-1]`. Test
-singletons, full string, even and odd lengths, and a mismatch at the center's
-outside pair.
-
-## C. Distinct Substrings
-
-The full listing uses a suffix automaton. After reading a prefix, `last` is the
-state for that entire prefix; each state has maximum represented length `len`
-and a suffix link to the largest proper suffix state. State v represents new
-substring lengths `len[link[v]]+1..len[v]`, so its contribution is
-`len[v]-len[link[v]]`. Summing non-root contributions counts every nonempty
-distinct substring once. A clone copies transitions when the existing target
-cannot have the required `len[p]+1`; redirecting suffix transitions restores
-the state invariant. For `ababa`, the answer is nine. There are at most
-`2*n-1` states and `O(n)` transitions for a fixed alphabet (the map-based local
-listing is `O(n log alphabet)`). Test `a`, `aaa`, all distinct characters, and
-an alternating string. Python dictionaries make the same construction viable.
-
--->
 # Testing discussion
 
 Brute-force small trie prefixes by `word.startswith(prefix)`, palindrome

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 295" width="860" style="font-family: DejaVu Sans, sans-serif;" height="295">
+    <defs>
+      <marker id="arr-i-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#212529"/>
+      </marker>
+      <marker id="arr-i-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#d9480f"/>
+      </marker>
+      <marker id="arr-i-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#dc3545"/>
+      </marker>
+    </defs>
+
+
+    <rect x="20" y="105" width="130" height="82" rx="14" fill="#e9ecef" stroke="#dc3545" stroke-width="2.8"/>
+    <text x="85" y="132" text-anchor="middle" font-weight="bold" font-size="15" fill="#842029">p = 0 (STOP)</text>
+    <text x="85" y="154" text-anchor="middle" font-family="monospace" font-size="14">{ "" }</text>
+    <text x="85" y="174" text-anchor="middle" font-size="12" font-weight="bold" fill="#842029">len[p] = 0</text>
+
+
+    <rect x="235" y="18" width="145" height="80" rx="14" fill="#d1e7dd" stroke="#198754" stroke-width="2.2"/>
+    <text x="307" y="44" text-anchor="middle" font-weight="bold" font-size="15" fill="#0f5132">State 1</text>
+    <text x="307" y="65" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#0f5132">{ "a" } len=1</text>
+    <text x="307" y="84" text-anchor="middle" font-size="11" fill="#198754">endpos = {1}</text>
+
+
+    <rect x="440" y="95" width="190" height="100" rx="14" fill="#f8d7da" stroke="#dc3545" stroke-width="3"/>
+    <text x="535" y="121" text-anchor="middle" font-weight="bold" font-size="15" fill="#842029">q = 2 (CONFLICT)</text>
+    <text x="535" y="143" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#0f5132">"b" : pos {2,3} (OK)</text>
+    <text x="535" y="163" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#dc3545">"ab": {2} (not a suffix)</text>
+    <text x="535" y="183" text-anchor="middle" font-size="11" font-weight="bold" fill="#842029">len[q] = 2 &gt; len[p] + 1</text>
+
+
+    <rect x="685" y="105" width="155" height="82" rx="14" fill="#fff3cd" stroke="#e0a800" stroke-width="2.5"/>
+    <text x="762" y="132" text-anchor="middle" font-weight="bold" font-size="15" fill="#856404">State 3 (cur)</text>
+    <text x="762" y="154" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#856404">{ "bb", "abb" }</text>
+    <text x="762" y="174" text-anchor="middle" font-size="12" fill="#856404">len = 3</text>
+
+     1 --&gt;
+    <path d="M 150 120 L 232 72" fill="none" stroke="#212529" stroke-width="2.2" marker-end="url(#arr-i-b)"/>
+    <rect x="179" y="84" width="24" height="22" rx="5" fill="#fff" stroke="#adb5bd" stroke-width="1.2"/>
+    <text x="191" y="100" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="15">a</text>
+
+     2 --&gt;
+    <path d="M 380 72 L 452 108" fill="none" stroke="#212529" stroke-width="2.2" marker-end="url(#arr-i-b)"/>
+    <rect x="404" y="78" width="24" height="22" rx="5" fill="#fff" stroke="#adb5bd" stroke-width="1.2"/>
+    <text x="416" y="94" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="15">b</text>
+
+     2 (existing transition) --&gt;
+    <path d="M 150 150 L 437 150" fill="none" stroke="#dc3545" stroke-width="2.8" marker-end="url(#arr-i-r)"/>
+    <rect x="235" y="139" width="102" height="22" rx="5" fill="#f8d7da" stroke="#dc3545" stroke-width="1.2"/>
+    <text x="286" y="154" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12" fill="#842029">next[0]['b']=2</text>
+
+     3 (newly added orange transition) --&gt;
+    <path d="M 630 146 L 682 146" fill="none" stroke="#d9480f" stroke-width="2.8" marker-end="url(#arr-i-o)"/>
+    <rect x="644" y="135" width="24" height="22" rx="5" fill="#fff3cd" stroke="#d9480f" stroke-width="1.2"/>
+    <text x="656" y="151" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="15" fill="#d9480f">b</text>
+
+
+    <path d="M 750 187 Q 645 262 555 198" fill="none" stroke="#dc3545" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#arr-i-r)"/>
+    <rect x="568" y="232" width="170" height="24" rx="5" fill="#f8d7da" stroke="#dc3545" stroke-width="1.5"/>
+    <text x="653" y="248" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#842029">link[3] = 2 INVALID</text>
+  </svg>

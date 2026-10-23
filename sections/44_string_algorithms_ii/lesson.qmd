@@ -19,6 +19,8 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{graphicx}
+        \usepackage{pdflscape}
         \usepackage{tikz}
         \usetikzlibrary{decorations.pathreplacing,arrows.meta}
 execute:
@@ -126,6 +128,7 @@ number of inserted words whose path passes through it:
 ```text
 insert(word):
     node = root
+    cnt[node] += 1
     for c in word:
         create edge c if missing
         node = child[node][c]
@@ -192,8 +195,8 @@ query(p):
      \textbf{Not an end-of-word counter.} Double circles mark where a word
      ends. \texttt{cnt} at \texttt{app} is $2$, not $1$, because
      \texttt{apple} passes through on its way down.\\[4pt]
-     The root is left at $0$: an empty-prefix query is $n$ by definition and
-     never needs the trie.};
+     The root represents the empty prefix, shared by all inserted words.
+     Its counter is $n$.};
 \end{tikzpicture}
 \end{center}
 ```
@@ -205,15 +208,58 @@ node can hold a count larger than the number of words ending there. In the
 figure, `app` has `cnt = 2` because `apple` continues below it. If you need to
 know how many words *end* at a node, that is a second, separate counter.
 
-**The root is never incremented.** The loop moves to a child before
-incrementing, so `cnt[root]` stays `0`. The empty prefix is shared by all `n`
-words and no query needs the trie to discover it. A missing edge ends a query
-immediately with `0`, with no need to walk the rest of the pattern.
+**The root counts the empty prefix.** Increment it once per inserted word,
+so `cnt[root]` equals the number of dictionary words. Each move to a child
+then increments the counter for the corresponding nonempty prefix. A missing
+edge ends a query immediately with `0`, with no need to walk the rest of the
+pattern.
+
+## Trie operations and implementation notes
+
+The reusable `Trie` below provides `insert(word)` and `count_prefix(prefix)`.
+Both take time proportional to the argument length.
+The dictionary is restricted to lowercase English letters. Duplicate insertions
+count separately. Node 0 is the root; child index 0 means an absent edge because
+all allocated children have positive indices. `pass` counts all words visiting
+a node, including words that continue below it. This implementation also
+increments the root, so querying the empty prefix returns the number of words.
+
+In C++, store indices rather than references to nodes: `push_back` can move the
+vector's storage. In Python, create a fresh dictionary for each new node.
+Memory is `O(L)` for fixed alphabet size, where `L` is total inserted length.
+
+## Reusable C++ trie
+
+```cpp
+{{< include implementations/trie.hpp >}}
+```
+
+## Reusable Python trie
+
+```python
+{{< include implementations/trie.py >}}
+```
 
 # Palindrome queries
 
-For a substring `s[l..r]`, the direct test walks two pointers inward and stops
-at the first disagreement:
+We now leave the dictionary setting. There is only one text, and every query
+selects a consecutive part of it. The task is to decide whether that selected
+part reads the same from left to right and from right to left. Such a string
+is called a **palindrome**: `a`, `aba`, and `abba` are palindromes; `abc` is not.
+
+For example, keep the text `abacaba` fixed. A query on positions 3 through 5
+selects `aca`, so the answer is YES. A query on positions 2 through 4 selects
+`bac`, so the answer is NO. The queries do not change the text.
+
+Start with the condition itself. For a string to equal its reverse, its first
+and last characters must match, then its second and next-to-last characters,
+and so on. This gives a direct algorithm: place one pointer at each end and
+move them inward. A mismatching pair proves NO immediately. If the pointers
+meet or cross without a mismatch, every required pair matched, so answer YES.
+An odd-length palindrome has a middle character that needs no comparison.
+
+The figure below follows these comparisons on two selected parts of the same
+text. Only the characters inside the selected part participate in the test:
 
 
 ```{=latex}
@@ -231,39 +277,35 @@ at the first disagreement:
   no/.style={font=\scriptsize,text=red!60!black}]
 
   \foreach \i in {1,...,7} \node[hd] at (.8*\i-.8,.62) {$\i$};
-  \foreach \i in {0,...,6} \node[hd,text=gray!40] at (.8*\i,-.52) {$\i$};
   \foreach \ch/\i in {a/0,b/1,a/2,c/3,a/4,b/5,a/6} \node[pl] at (.8*\i,0) {\texttt{\ch}};
-  \node[rl] at (-.5,.62) {1-based};
+  \node[rl] at (-.5,.62) {position};
   \node[rl] at (-.5,0)   {$s$};
-  \node[rl] at (-.5,-.52){0-based};
 
   % query [3,5]
   \foreach \ch/\i/\st in {a/0/gh,b/1/gh,a/2/sel,c/3/sel,a/4/sel,b/5/gh,a/6/gh}
     \node[\st] at (.8*\i,-1.65) {\texttt{\ch}};
   \node[rl] at (-.5,-1.65) {query $[3,5]$};
   \draw[arc] (1.6,-1.99) to[bend right=42] node[below=1pt,ok] {$\texttt{a}=\texttt{a}$} (3.2,-1.99);
-  \node[ok,anchor=west] at (5.05,-1.65) {pointers meet $\Rightarrow$ \textbf{YES}};
+  \node[ok,anchor=west] at (5.3,-1.65) {pointers meet $\Rightarrow$ \textbf{YES}};
 
   % query [2,4]
   \foreach \ch/\i/\st in {a/0/gh,b/1/bad,a/2/bad,c/3/bad,a/4/gh,b/5/gh,a/6/gh}
     \node[\st] at (.8*\i,-3.15) {\texttt{\ch}};
   \node[rl] at (-.5,-3.15) {query $[2,4]$};
   \draw[arc] (0.8,-3.49) to[bend right=42] node[below=1pt,no] {$\texttt{b}\neq\texttt{c}$} (2.4,-3.49);
-  \node[no,anchor=west] at (5.05,-3.15) {first pair fails $\Rightarrow$ \textbf{NO}};
+  \node[no,anchor=west] at (5.3,-3.15) {first pair fails $\Rightarrow$ \textbf{NO}};
 
   \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
-        anchor=north west,inner sep=5pt,text width=12.4cm] at (-1.55,-4.2)
-    {\textbf{Convert the indices first.} Statements here give $[l,r]$ 1-based and
-     inclusive; arrays are 0-based. Subtract one from each end \emph{before}
-     comparing, and compare $s[l]$ with $s[r]$, then move inward while
-     $l<r$. A single off-by-one turns every odd-length answer wrong while
-     leaving even-length ones correct, which is why both parities must be
-     tested.\\[3pt]
-     \textbf{Direct or hashed.} The direct scan is $O(r-l+1)$ per query and
-     exact, which is why the local bounds allow it. For large query loads
-     compare a forward hash of $[l,r]$ against a reverse hash of the mirrored
-     range $[n-1-r,\,n-1-l]$ --- fast, but probabilistic; Manacher or a
-     palindromic tree is the deterministic alternative.};
+        anchor=north west,inner sep=5pt,text width=12.4cm] at (-1.55,-4.5)
+    {\textbf{Compare symmetric pairs.} In \texttt{aca}, the two outer
+     \texttt{a} characters match; the middle \texttt{c} needs no comparison.
+     In \texttt{bac}, the first pair already differs, so the answer is NO.
+     An even-length palindrome finishes when the pointers cross; an odd-length
+     palindrome finishes when they meet.\\[3pt]
+     \textbf{Cost of the direct scan.} A selected part of length $k$ requires
+     at most $\lfloor k/2 \rfloor$ comparisons. This is exact and costs $O(k)$.
+     Many long queries can repeat the same work, which motivates the
+     preprocessing introduced below.};
 \end{tikzpicture}
 \end{center}
 ```
@@ -276,137 +318,924 @@ while l < r:
 return YES
 ```
 
-This is `O(r-l+1)` per query and exactly right, which is why the local bounds
-allow it. It is also completely transparent: the equality condition is visible
-rather than hidden behind a hash.
+This loop tests one selected substring. If that substring has `k` characters,
+the loop compares at most `floor(k / 2)` pairs, so the test takes `O(k)` time
+and `O(1)` extra memory. It returns YES precisely when every symmetric pair
+matches; a single mismatch is enough to return NO.
 
-When the query load is too large for that, compare a forward hash of `[l,r]`
-against a reverse hash of the mirrored range:
+For example, testing `aca` needs one comparison (`a` against `a`). Testing
+`abccba` needs three comparisons: `a` against `a`, then `b` against `b`, then
+`c` against `c`.
 
-```text
-hash_forward(l, r) == hash_reverse(n-1-r, n-1-l)
-```
+Now suppose we must answer `q` queries on a text of length `n`. Running this
+loop separately for every query can take `O(n*q)` time if all selected ranges
+are long. The same characters may be compared repeatedly. This repeated work
+motivates preprocessing the unchanged text so that later queries can reuse
+the results.
+
+A **rolling hash** assigns a numerical fingerprint to a string. Prefix
+fingerprints and precomputed powers let us extract the fingerprint of any
+substring in `O(1)` time. Equal strings always have equal fingerprints;
+different strings can occasionally share one, which is called a collision.
+This tradeoff is why hashing is fast but probabilistic.
+
+A palindrome is a substring equal to its reverse. Build fingerprints for the
+text and for its reversed copy. A selected part of the original text has a
+corresponding part in the reversed text, with its characters in reverse order.
+Compare the two fingerprints.
+
+For example, selecting `bac` in the original text corresponds to `cab` in the
+reversed text. Their fingerprints differ, so this is not a palindrome.
+Selecting `aca` corresponds to `aca`; their fingerprints match, as expected.
+
+The next subsection derives the fingerprint formula and gives reusable C++
+and Python implementations. Endpoint conventions are specified with the
+range-hash operation, where they are needed to use the code.
 
 Hashing is `O(1)` per query after `O(n)` preprocessing, but it is
 probabilistic. Manacher's algorithm and palindromic trees are the deterministic
 alternatives. When the constraints permit the direct check, prefer it.
 
-# Suffix automata: all substrings of one string
+## Rolling hash: reusable implementation
 
-A suffix automaton is a compressed automaton that accepts exactly the
-substrings of one string, in `O(n)` states. Two arrays describe it:
+The direct scan can inspect `O(n)` characters per query, for `O(n*q)` total
+time. Because the text never changes, we can preprocess it and reuse the
+results instead of scanning each selected range again.
 
-- `len[v]`, the length of the longest substring represented by state `v`;
-- `link[v]`, the state representing the longest proper suffix that lives in a
-  different state.
-
-A state groups substrings that have exactly the same **ending positions**
-in the original string. These are positions where an occurrence finishes,
-not where it starts. For `aba`, using 1-based positions:
-
-- `a` ends at positions 1 and 3, so it has its own state.
-- `b` and `ab` both end only at position 2, so they share a state.
-- `ba` and `aba` both end only at position 3, so they share a state.
-
-Within one state, there is exactly one represented substring for each length
-from `len[link[v]] + 1` through `len[v]`, inclusive. Why at most one per length?
-Choose any common ending position: the length and that ending position uniquely
-identify the substring. These lengths are consecutive because removing leading
-characters preserves the ending-position set until we cross into the suffix-link
-state.
-
-Thus, if `a = len[link[v]]` and `b = len[v]`, the lengths belonging to `v` are
-`a + 1, a + 2, ..., b`. There are `b - a` of them. **The subtraction counts
-substrings represented by this state; it does not count their occurrences.**
-
-For the state containing `ba` and `aba`, the longest string has length 3.
-Its suffix link goes to the state for `a`, whose maximum length is 1.
-So its contribution is `3 - 1 = 2`: lengths 2 and 3, namely `ba` and `aba`.
-The shorter suffix `a` belongs to another state and is counted there.
-
-Every distinct nonempty substring belongs to exactly one state. Add the
-contributions of all states except the root:
+The idea is to replace a string by a numerical fingerprint. Interpret its
+characters as digits in base `BASE`: with `a = 1`, `b = 2`, and `c = 3`,
+the fingerprint of `abc` before taking a remainder is:
 
 ```text
-answer = sum over v != root of ( len[v] - len[link[v]] )
+1 * BASE^2 + 2 * BASE + 3
 ```
 
+Appending a character multiplies the old fingerprint by `BASE` and adds the
+new character's value. Taking a remainder modulo `MOD` at each step keeps
+numbers bounded. This is a rolling hash. Equal strings have the same hash,
+but different strings can collide after taking the remainder.
+
+Store the hash of every prefix in `h`, and store powers of the base in
+`power`. To extract a substring, subtract the preceding prefix shifted by
+the substring length. For instance, the hash of `bc` is obtained from `abc`
+by subtracting `hash(a) * BASE^2`, leaving `2 * BASE + 3`. The same subtraction
+works modulo `MOD`, so we do not need to reconstruct the large integer.
+
+One hash can collide: two different strings can produce the same remainder.
+To make collisions harder, the implementation computes the hash twice, using
+the same base but two different divisors:
+
+- `MOD1 = 1000000007` for the first hash.
+- `MOD2 = 1000000009` for the second hash.
+
+The result for a substring is a pair `(first_hash, second_hash)`. To compare
+two substrings of the same length, compare both numbers. If either number
+differs, the substrings are different. If both match, the substrings may be
+equal, but a collision in both calculations is still possible.
+
+The C++ and Python classes implement this same pair of calculations. In each
+calculation, `MOD` below means the chosen divisor (`MOD1` or `MOD2`); keep
+separate prefix-hash and power arrays for the two divisors. Initialize
+`h[0] = 0`, `power[0] = 1`, then use:
+
+```text
+h[i + 1] = (h[i] * BASE + value(s[i])) % MOD
+power[i + 1] = power[i] * BASE % MOD
+hash(l, r) = (h[r] - h[l] * power[r - l]) % MOD
+```
+
+Here `value('a') = 1`, ..., `value('z') = 26`. `get(l, r)` uses **0-based,
+half-open** endpoints: it hashes `s[l:r]`, including `l` and excluding `r`.
+The empty range has hash `(0, 0)`. Compare ranges of equal length, built with
+the same parameters. Subtracting the preceding prefix normalizes the hash, so
+identical substrings at different positions have identical hashes.
+
+Construction takes `O(n)` time and memory; each `get` takes `O(1)` time.
+Unequal hash pairs prove inequality. Equal pairs can collide, so even two moduli
+do not turn this into an exact equality test. The fixed constants make the
+example reproducible; for adversarial inputs, randomizing a shared base is an
+additional precaution. Use the direct scan described above when exactness is
+required and the query lengths allow it.
+
+### Reusable C++ rolling hash
+
+Construct `RollingHash` from a lowercase string. `get(l, r)` returns the pair
+of hash residues for the 0-based half-open range `[l,r)`. The class stores its
+prefix hashes and powers; no query loop or input format is built into it.
+
+```cpp
+{{< include implementations/rolling_hash.hpp >}}
+```
+
+C++ products use `long long`: both residues and the base are below `10^9 + 9`,
+so their products fit in a signed 64-bit integer. Normalize negative remainders
+before returning the hash.
+
+### Reusable Python rolling hash
+
+The Python class offers the same constructor and `get(l, r)` operation.
+Python's `%` already produces a nonnegative residue for positive moduli.
+
+```python
+{{< include implementations/rolling_hash.py >}}
+```
+
+Both versions take `O(n)` time and memory to build and `O(1)` time per range
+hash. Comparing ranges against a reversed text is an application of this
+general substring-hash API; its equality test remains probabilistic.
+
+# Suffix automata: from substring groups to suffix links and clones
+
+## The starting problem: compress all substrings
+
+Imagine a text `s` of length `n = 100000`. It has
+`n * (n + 1) / 2 = 5000050000` nonempty substring occurrences: about five
+billion. The number of *different* substring values can also be quadratic.
+A trie containing every substring can therefore require `O(n^2)` nodes in
+the worst case, which is far too much memory at this scale.
+
+A **suffix automaton**, or **SAM**, represents all those substrings using
+`O(n)` states and transitions. It can be built one character at a time in
+`O(n)` time for a fixed alphabet with constant-time transitions. More precise
+bounds are `2*n - 1` states for `n >= 2` and `3*n - 4` character transitions
+for `n >= 3`. The empty text has one root; a one-character text has two states.
+The C++ implementation below uses maps, adding a `log alphabet` factor.
+
+**The central idea: group strings with the same ending positions.** A trie
+stores a separate node for each different prefix on its paths. A SAM merges
+substrings that finish at exactly the same positions in one text. It indexes
+all substrings, including ones that start in the middle, such as `ba` in
+`aba`.
+
+Strings grouped in one state share their right-hand end: shorter strings
+are **suffixes** of longer ones, not prefixes. For example, one state can
+group `cbc`, `bcbc`, and `abcbc`. We will make this grouping concrete before
+studying the construction.
+
+```{=latex}
+\newpage
+```
+
+## A first complete automaton: `aba`
+
+Start with the complete automaton for `s = "aba"`. Solid black arrows are
+character transitions; dashed blue arrows are suffix links, stored in `link`.
+The boxes show the strings represented by each state, rather than just its
+numeric identifier.
 
 ```{=latex}
 \begin{center}
-\begin{tikzpicture}[font=\small,
-  st/.style={circle,draw,fill=white,minimum size=8mm,inner sep=0pt,font=\small},
-  root/.style={st,fill=gray!18},
-  tr/.style={draw,->,>=Latex,thick},
-  sl/.style={draw,->,>=Latex,densely dashed,blue!60},
-  tl/.style={font=\scriptsize,fill=white,inner sep=1.2pt},
-  ll/.style={font=\scriptsize,text=gray!60}]
-
-  \node[root] (s0) at (0,0)      {$0$};
-  \node[st]   (s1) at (2.3,1.15) {$1$};
-  \node[st]   (s2) at (2.3,-1.15){$2$};
-  \node[st]   (s3) at (4.6,0)    {$3$};
-
-  \draw[tr] (s0) -- node[tl] {\texttt{a}} (s1);
-  \draw[tr] (s0) -- node[tl] {\texttt{b}} (s2);
-  \draw[tr] (s1) -- node[tl] {\texttt{b}} (s2);
-  \draw[tr] (s2) -- node[tl] {\texttt{a}} (s3);
-
-  \draw[sl] (s1) to[bend right=38] (s0);
-  \draw[sl] (s2) to[bend left=38]  (s0);
-  \draw[sl] (s3) to[bend right=38] (s1);
-
-  \node[ll] at (2.3,1.72) {$\mathtt{len}=1$};
-  \node[ll] at (2.3,-1.72){$\mathtt{len}=2$};
-  \node[ll] at (4.6,-0.62) {$\mathtt{len}=3$};
-  \node[ll] at (0,0.62)   {$\mathtt{len}=0$};
-
-  \node[font=\scriptsize,anchor=north west,align=left] at (-0.9,-2.15)
-    {\tikz\draw[tr] (0,0) -- (.5,0);\ transition (read a character)\qquad
-     \tikz\draw[sl] (0,0) -- (.5,0);\ suffix link};
-
-  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
-        anchor=north west,inner sep=5pt] at (6.1,1.65)
-    {\textbf{Suffix automaton of \texttt{aba}}\\[3pt]
-     \begin{tabular}{@{}ccccl@{}}
-       $v$ & $\mathtt{len}$ & $\mathtt{link}$ & $\mathtt{len}[v]-\mathtt{len}[\mathtt{link}]$ & represents\\[1pt]
-       $1$ & $1$ & $0$ & $1$ & \texttt{a}\\
-       $2$ & $2$ & $0$ & $2$ & \texttt{b},\ \texttt{ab}\\
-       $3$ & $3$ & $1$ & $2$ & \texttt{ba},\ \texttt{aba}\\[2pt]
-       \multicolumn{3}{@{}r}{total} & $\mathbf{5}$ & \\
-     \end{tabular}\\[4pt]
-     Enumerating by hand gives the same five:\\
-     \texttt{a},\ \texttt{b},\ \texttt{ab},\ \texttt{ba},\ \texttt{aba}.\\[4pt]
-     One state holds a whole run of lengths that\\
-     end at the same set of positions, and
-     $\mathtt{link}$\\
-     points at the next shorter run. So the state\\
-     adds exactly the lengths its link does not\\
-     already cover --- no substring is counted twice.\\[3pt]
-     State $0$ is excluded: it is the empty string.};
-\end{tikzpicture}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/suffix_automaton_guide/figure-01.pdf}\par\vspace{3mm}
+{\small Complete automaton for \texttt{aba}. Black: character transitions; blue dashed: suffix links.}
+\end{minipage}
 \end{center}
 ```
 
-The reason this does not double count is worth stating plainly: a single state
-holds a whole *run* of lengths whose occurrences end at the same set of
-positions, and `link[v]` points at the state holding the next shorter run. So
-state `v` contributes exactly the lengths its link does not already cover. The
-root is excluded because it represents the empty string.
+**Read every pattern from state 0, following character transitions.**
 
-Check the formula against a string small enough to enumerate. `ababa` has
-distinct substrings `a, b, ab, ba, aba, bab, abab, baba, ababa`, nine of them,
-and the automaton's contributions sum to nine. `aaa` gives `a, aa, aaa`, three.
+| Pattern | Route from the root | State reached |
+| --- | --- | --- |
+| `a` | $0 \xrightarrow{a} 1$ | 1 |
+| `b` | $0 \xrightarrow{b} 2$ | 2 |
+| `ab` | $0 \xrightarrow{a} 1 \xrightarrow{b} 2$ | 2 again |
+| `ba` | $0 \xrightarrow{b} 2 \xrightarrow{a} 3$ | 3 |
+| `aba` | $0 \xrightarrow{a} 1 \xrightarrow{b} 2 \xrightarrow{a} 3$ | 3 again |
 
-**Cloning.** When an existing transition would break the invariant
-`len[p] + 1 == len[q]`, construction splits `q` into a clone carrying the same
-transitions but a shorter `len`, then redirects the affected suffix links. This
-is not an implementation trick; it is what keeps one state from representing two
-different sets of end positions. `abb` is the shortest string that forces one.
+Notice that `ba` is not a prefix of `aba`, but we can still read it directly
+from state 0. If an arrow is missing, the pattern is absent. For example,
+`aa` reaches state 1 after its first character, then fails because state 1
+has no `a` arrow. Finishing the pattern is enough: we may stop at any state.
 
-At the bounds used locally, problem C can also be solved by a set of substrings
-or a suffix array. The formula above is still the thing to know, because it is
-what scales.
+### Why is it called a suffix automaton if it finds all substrings?
+
+Every substring is a prefix of a suffix of the text, or equivalently a suffix
+of a prefix. Reading from the root and allowing a stop at any state therefore
+lets us recognize all substrings. To recognize only suffixes, we would mark
+the states reached by complete suffixes as accepting. In this chapter,
+`contains` accepts a pattern whenever its entire path exists.
+
+The suffix structure also appears *inside* a state: `ba` is a suffix of `aba`,
+so those strings can share a state. They are not two prefixes being grouped
+as in a dictionary trie.
+
+```{=latex}
+\newpage
+```
+
+```{=latex}
+\begin{landscape}
+```
+
+## What is a state? The meaning of `endpos`
+
+Use the richer text `abcbc`, with positions numbered 1 through 5. For each
+substring, record all positions where an occurrence ends: this set is called
+`endpos`. The diagram shows the states' groups and ending positions. State
+identifiers are not text positions.
+
+```{=latex}
+\begin{center}
+{\large\bfseries Character transitions and ending-position groups for \texttt{abcbc}.}\par\vspace{5mm}
+\includegraphics[width=23.5cm,height=12cm,keepaspectratio]{figures/suffix_automaton_guide/figure-02.pdf}
+\end{center}
+```
+
+```{=latex}
+\end{landscape}
+```
+
+The indexed text is:
+
+| Position | 1 | 2 | 3 | 4 | 5 |
+| --- | --- | --- | --- | --- | --- |
+| Character | `a` | `b` | `c` | `b` | `c` |
+
+Focus on the substrings ending in `c`. They reach either state 6 or state 7:
+
+| Substring | Length | `endpos` | What can follow now? | State |
+| --- | --- | --- | --- | --- |
+| `abcbc` | 5 | `{5}` | Nothing | 6 |
+| `bcbc` | 4 | `{5}` | Nothing | 6 |
+| `cbc` | 3 | `{5}` | Nothing | 6 |
+| `bc` | 2 | `{3, 5}` | `b`, after position 3 | 7 |
+| `c` | 1 | `{3, 5}` | `b`, after position 3 | 7 |
+
+### Why can those strings share a state?
+
+First consider state 6, which groups `abcbc`, `bcbc`, and `cbc`.
+All three finish only at position 5. They consequently have the same possible
+future: if we append `x` at position 6, all three can be extended by `x`.
+One state can represent the whole group `{cbc, bcbc, abcbc}`.
+
+State 7 is more interesting because its strings occur twice. Why can `bc`
+and `c` still share a state?
+
+| String | First occurrence | Second occurrence | Ending positions |
+| --- | --- | --- | --- |
+| `c` | Position 3 | Position 5 | `{3, 5}` |
+| `bc` | Positions 2-3 | Positions 4-5 | `{3, 5}` |
+
+Every `c` in this text has a `b` immediately before it. Whether we have read
+`c` or `bc`, the possible current ending positions are exactly the same:
+3 and 5.
+
+- At position 3, the next character is `b`. It extends `c` into `cb` and
+  `bc` into `bcb`, both ending at position 4.
+- At position 5, there is currently no next character. If we later append
+  `x`, it will extend both `c` and `bc` at this position, into `cx` and `bcx`.
+
+**Same ending positions mean the same possible continuations.** This remains
+true when there are several occurrences. A character that follows one of
+these strings at a particular ending position follows the other there too.
+That is why both can use the same outgoing transition table.
+
+If we extend the text to `abcbcbc`, another `bc` ends at position 7. The
+strings `c` and `bc` still reach state 7, whose ending-position set becomes
+`{3, 5, 7}`. As long as every new `c` is preceded by `b`, they stay together.
+If a later `c` has no preceding `b`, as in `abcbcac`, their ending-position
+sets differ and a clone separates them.
+
+### Why does state 7 have a `b` arrow if the last `bc` has nothing after it?
+
+**A transition exists when at least one occurrence can continue with that
+character. It does not require every occurrence to continue.**
+
+Reading `bc` from the root reaches state 7, representing possible ending
+positions `{3, 5}`. Following `7 --b--> 4` then reads `bcb`:
+
+- The occurrence ending at position 5 cannot continue with `b`; discard it.
+- The occurrence ending at position 3 is followed by `b` at position 4;
+  retain that occurrence and advance it.
+- The destination is state 4, grouping `{cb, bcb, abcb}`, with `endpos = {4}`.
+
+Following a character transition **filters and advances the possible ending
+positions**. Outgoing characters are the union of the characters following
+all occurrences. For state 7, position 3 contributes `{b}` and position 5
+contributes no character, so their union is `{b}`. Since `c` and `bc` have
+the same ending positions, they have the same union and the same transitions.
+
+### Where is position 5 in state 7 if its outgoing path seems to use only position 3?
+
+The final graph contains the route
+$7 \xrightarrow{b} 4 \xrightarrow{c} 6$. It is tempting to think that state 7
+therefore means only position 3. But a state represents a set of possible
+occurrences, not one selected occurrence moving through the text.
+
+1. **Stop after reading `bc`.** Starting at 0 and reading `b`, then `c`,
+   stops in state 7, not state 6. The pattern occurs both in the middle,
+   at positions 2-3, and at the end, at positions 4-5. Both ending positions
+   are represented before we choose any further transition.
+2. **The occurrence at the end adds no outgoing arrow yet.** Position 3
+   supplies the `b` arrow. Position 5 has nothing after it, so it contributes
+   an empty set of next characters. An occurrence need not produce an arrow
+   in order to belong to the state.
+3. **Append `d` to make that last occurrence visible.** In `abcbcd`, the new
+   character at position 6 follows the occurrence ending at position 5.
+   Construction starts at state 6 and adds a `d` arrow to new state 8, for
+   `cbcd`, `bcbcd`, and `abcbcd`. It then follows `link[6] = 7` and adds
+   another `d` arrow to 8, for `cd` and `bcd`. That new arrow from state 7
+   comes from position 5, not position 3, whose following character is `b`.
+   Finally, the root also receives a `d` arrow, for the one-letter string `d`.
+
+```{=latex}
+\begin{landscape}
+\begin{center}
+{\large\bfseries Append \texttt{d}: the final occurrence represented by state 7 now supplies a continuation.}\par\vspace{5mm}
+\includegraphics[width=23.5cm,height=12cm,keepaspectratio]{figures/suffix_automaton_guide/figure-03.pdf}
+\end{center}
+\end{landscape}
+```
+
+The new state's group is `{d, cd, bcd, cbcd, bcbcd, abcbcd}`. It contains the
+six suffixes ending in the new `d`, all with `endpos = {6}`.
+
+### The first invariant: what a state contains
+
+A non-root state `v` is a box containing a group of substring values:
+
+- All strings in the box are suffixes of one another, obtained by removing
+  characters from the left of the longest string.
+- Their lengths form one consecutive interval with no gaps, such as 3, 4, 5
+  in state 6, or 1, 2 in state 7.
+- There is **exactly one string per represented length**. A shared ending
+  position and a length uniquely determine the string.
+
+The drawn boxes list strings and ending positions to explain the invariant.
+The implementation does not store those lists or sets.
+
+```{=latex}
+\newpage
+```
+
+## Define the suffix link by shortening a string from the left
+
+A state does not store every string in its group. It stores `len[v]`, the
+length of its longest string, together with transitions and a suffix link.
+How can we find its shortest represented length, or move to shorter suffixes
+in another group? That is the role of `link[v]`.
+
+### Shorten `abcbc` one character at a time
+
+Take the longest string in state 6, `abcbc`, of length 5. It ends only at
+position 5. Remove characters **from the left**, producing shorter suffixes:
+
+```{=latex}
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/suffix_automaton_guide/figure-04.pdf}\par\vspace{3mm}
+{\small Shorten \texttt{abcbc} from the left: the group changes when more ending positions appear.}
+\end{minipage}
+\end{center}
+```
+
+While the suffix is `abcbc`, `bcbc`, or `cbc`, it occurs only at position 5.
+It stays in state 6. Shortening `cbc` to `bc` changes that:
+
+- `bc` also occurs earlier, ending at position 3.
+- Its ending-position set grows from `{5}` to `{3, 5}`.
+- It therefore belongs to state 7 instead of state 6.
+
+**That first change of group is exactly `link[6] = 7`.**
+
+In general, start with the longest string represented by `v` and shorten it
+from the left. `link[v]` is the first different state reached, when the suffix
+becomes short enough to occur at additional ending positions. Equivalently,
+its longest string is the longest suffix that no longer belongs to `v`.
+If the first outside suffix is empty, the link points to the root.
+
+This gives construction a shortcut between whole groups of shorter suffixes.
+When appending a character, it can follow this chain instead of rereading
+each suffix separately from state 0.
+
+### Count substrings without listing them
+
+The suffix of length `len[link[v]]` is the first one outside state `v`.
+Therefore:
+
+```text
+maximum represented length = len[v]
+minimum represented length = len[link[v]] + 1
+number of represented strings = len[v] - len[link[v]]
+```
+
+For state 6, `len[6] = 5` and `len[7] = 2`. Its lengths are 3, 4, and 5,
+so it contains `5 - 2 = 3` strings: `cbc`, `bcbc`, and `abcbc`.
+
+Every distinct nonempty substring belongs to exactly one non-root state.
+Adding the sizes of those groups gives:
+
+$$
+\sum_{v \ne 0}
+\bigl(\mathtt{len}[v] - \mathtt{len}[\mathtt{link}[v]]\bigr).
+$$
+
+The lengths of different groups may overlap. For example, `a` and `b` both
+have length 1 but belong to different states. The groups of string values
+are disjoint, which is why the sum counts each string once.
+
+## The two kinds of arrows
+
+The two kinds of arrows have different jobs. A character transition adds a
+character on the right; a suffix link removes characters from the left.
+
+```{=latex}
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/suffix_automaton_guide/figure-05.pdf}\par\vspace{3mm}
+{\small Character transitions extend on the right; suffix links shorten on the left.}
+\end{minipage}
+\end{center}
+```
+
+| Property | Character transition `next[v][ch]` | Suffix link `link[v]` |
+| --- | --- | --- |
+| Effect on a string | Append `ch` on the right | Remove leading characters to reach a shorter group |
+| Effect on maximum length | Increases `len` | Strictly decreases `len` |
+| Graph structure | A directed acyclic graph reachable from 0 | A tree rooted at 0, with links directed toward the parent |
+| Use | Read a pattern starting at 0 | Build the automaton and identify the represented length intervals |
+
+Only character transitions consume input. **A pattern lookup starts at 0
+and never follows suffix links.** The empty root has `len[0] = 0` and
+`link[0] = -1`, where -1 is a sentinel rather than another state.
+
+```{=latex}
+\newpage
+```
+
+## How `extend(ch)` builds the automaton
+
+Suppose we have built the automaton for text `S`. The state containing the
+whole text is `last`. We now append a character `ch`, producing `S + ch`.
+
+### Which substrings need attention?
+
+A newly appearing substring must end at the new position. The candidates are
+suffixes of the old text, including the empty suffix, followed by `ch`.
+Some candidates may have occurred before; those are not new string values.
+The construction separates newly appearing strings from those already known.
+
+Create a state `cur` for the new whole text and its long suffixes that did
+not occur before. Set:
+
+```cpp
+int cur = states.size();
+states.push_back(State{});
+states[cur].len = states[last].len + 1;
+```
+
+To visit the old suffixes in groups, start at `p = last` and follow suffix
+links. `last` represents the longest suffixes of `S`; `link[last]` represents
+the next shorter group, and the chain continues to state 0, the empty suffix.
+
+```cpp
+int p = last;
+while (p != -1 && !states[p].next.count(ch)) {
+    states[p].next[ch] = cur;  // These extensions are new strings.
+    p = states[p].link;       // Move to the next shorter suffix group.
+}
+```
+
+State 0 is valid. The condition is `p != -1`, not `p != 0`. Processing the
+root can add a one-character string; following `link[0]` then gives -1 and
+ends the walk. Existing transitions are detected before their destination
+is used.
+
+### Three cases when the first loop stops
+
+The updates from `a` to `ab`, and then from `ab` to `aba`, illustrate the
+first two cases. The next subsection develops the third case in detail.
+
+#### Case 1: `p == -1`, the character has not appeared before
+
+Start with `a` and append `b`, making `ab`:
+
+1. Create `cur = 2` with `len[2] = 2`.
+2. At `p = last = 1`, there is no `b` arrow. Add `next[1]['b'] = 2`, for
+   `ab`, then set `p = link[1] = 0`.
+3. At the root, there is no `b` arrow either. Add `next[0]['b'] = 2`, for
+   `b`, then set `p = link[0] = -1`.
+4. The loop stops at -1. No nonempty suffix of `ab` occurred in the old text,
+   so set `link[2] = 0`.
+
+```{=latex}
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/suffix_automaton_guide/figure-06.pdf}\par\vspace{3mm}
+{\small Case 1: append \texttt{b} to \texttt{a}; the walk reaches the sentinel -1.}
+\end{minipage}
+\end{center}
+```
+
+#### Case 2: `len[p] + 1 == len[q]`, the existing group fits
+
+Start with `ab` and append `a`, making `aba`:
+
+1. Create `cur = 3` with `len[3] = 3`, for the new strings `ba` and `aba`.
+2. At `p = last = 2`, representing `{b, ab}`, there is no `a` arrow. Add
+   `next[2]['a'] = 3`, then follow `link[2]` to state 0.
+3. At `p = 0`, the `a` arrow already exists and reaches `q = 1`, the state
+   for `{a}`. Stop the loop with `p = 0`, not -1.
+4. Check `len[p] + 1 = 0 + 1 = 1 = len[q]`. State `q` already has exactly
+   the correct maximum length for the shorter suffix group. Set `link[3] = 1`.
+
+```{=latex}
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/suffix_automaton_guide/figure-07.pdf}\par\vspace{3mm}
+{\small Case 2: append \texttt{a} to \texttt{ab}; the walk stops at the root, with an existing transition.}
+\end{minipage}
+\end{center}
+```
+
+In general, the longest previously known suffix of the new text has length
+`len[p] + 1`. In this equality case, it is the longest string in `q`, so
+all strings in that group are suffixes of the new text. The group does not
+need to split.
+
+#### Case 3: `len[p] + 1 < len[q]`, split the group with a clone
+
+The existing destination also contains strings longer than the shorter suffix
+we need. Those longer strings do not end at the new position. We must separate
+the shorter and longer strings in that state. The next example shows exactly
+why, and how `len`, `next`, and `link` change.
+
+```{=latex}
+\newpage
+```
+
+## Understand the clone: `ab` becomes `abb`
+
+Follow three snapshots: before the new `b`, immediately after the first loop,
+and after resolving the conflict with clone 4.
+
+### Snapshot A: before the second `b`
+
+In `ab`, both `b` and `ab` end only at position 2, so they share state 2,
+with `len[2] = 2`.
+
+```{=latex}
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/suffix_automaton_guide/figure-08.pdf}\par\vspace{3mm}
+{\small Snapshot A: \texttt{b} and \texttt{ab} share state 2 before the append.}
+\end{minipage}
+\end{center}
+```
+
+Both paths start at state 0. The direct `b` arrow reaches state 2, and the
+two-character route `a`, then `b`, reaches that same state.
+
+### Snapshot B: the first loop exposes a conflict
+
+Append `b` to make `abb`:
+
+1. Create `cur = 3`, with `len[3] = 3`, for `bb` and `abb`.
+2. Start at `p = 2`. There is no `b` arrow, so add `2 --b--> 3`, then set
+   `p = link[2] = 0`.
+3. At the root, `0 --b--> 2` already exists. The first loop stops, with
+   `q = 2`.
+
+```{=latex}
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/suffix_automaton_guide/figure-09.pdf}\par\vspace{3mm}
+{\small Snapshot B: the intermediate group is inconsistent; the red proposed suffix link is invalid.}
+\end{minipage}
+\end{center}
+```
+
+The added arrow extends two paths that already start at 0: the route for
+`b` can now read `bb`, and the route for `ab` can now read `abb`. Construction
+working at state 2 does not make it a new starting point for pattern lookups.
+
+The conflict is at `q = 2`:
+
+- Reading `b` from `p = 0` gives a suffix of length `len[p] + 1 = 1`.
+- But `len[q] = 2`, because `q` also contains `ab`.
+- In the new text, `b` ends at `{2, 3}`, while `ab` still ends at `{2}`.
+  They no longer have the same `endpos`.
+
+Setting `link[3] = 2` would point to a group containing `ab`, even though
+`ab` is not a suffix of `abb`. The diagram marks that proposed link as invalid;
+it is not a link that the algorithm actually assigns.
+
+### Snapshot C: separate the short and long strings
+
+The repaired graph keeps `ab` in state 2 and puts `b` in clone 4. The copied
+`b` transition lets clone 4 still extend to state 3.
+
+```{=latex}
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=\linewidth]{figures/suffix_automaton_guide/figure-10.pdf}\par\vspace{3mm}
+{\small Snapshot C: state 2 keeps \texttt{ab}; clone 4 receives \texttt{b}.}
+\end{minipage}
+\end{center}
+```
+
+The root's `b` route now goes through 4, so `bb` follows states 0, 4, 3.
+The route for `abb` still follows 0, 1, 2, 3. All lookups still start at 0.
+
+### The variables at the moment of the split
+
+| Variable | Value in this example | Role |
+| --- | --- | --- |
+| `ch` | `b` | Character being appended |
+| `cur` | 3, grouping `bb, abb` | New whole-text state seeking its suffix link |
+| `p` | 0, representing the empty string | First state on the suffix chain with an existing `b` arrow |
+| `q` | 2, previously grouping `b, ab` | Existing destination, with maximum length 2 instead of the needed 1 |
+
+The split leaves longer strings in `q` and transfers shorter strings to
+`clone`. Four operations update the fields.
+
+#### Operation 1: copy `q`, then shorten the clone's maximum length
+
+```cpp
+int clone = states.size();
+State copied = states[q];          // Copy next[q] and the old link[q].
+copied.len = states[p].len + 1;    // Change only the maximum length.
+states.push_back(copied);
+```
+
+**Why `len[clone] = len[p] + 1`?** Reading `ch` after the longest string in
+`p` forms a string of exactly that length. Here `p = 0`, so the boundary is
+`0 + 1 = 1`, for `b`. Within the old group `q`, strings of length at most
+this boundary are suffixes of the new text and go to the clone. Longer
+strings, here `ab`, are not those suffixes and stay in `q`.
+
+**Why copy the outgoing transitions?** The shorter strings used to live in
+`q`, sharing all their old ending positions and possible following characters
+with its longer strings. They must retain those continuations. Here the clone
+copies the newly added `b` arrow to state 3, preserving the occurrence of `bb`.
+
+**Why copy the old suffix link?** Below the shortest string transferred to
+the clone, the next shorter suffix group is still the same one as before the
+split. In this example, `link[4]` inherits the old `link[2] = 0`.
+
+#### Operation 2: redirect the incoming character transitions for the shorter strings
+
+```cpp
+while (p != -1 && states[p].next.count(ch)
+       && states[p].next[ch] == q) {
+    states[p].next[ch] = clone;
+    p = states[p].link;
+}
+```
+
+Before the split, two `b` arrows entered state 2:
+
+- `1 --b--> 2` extends `a` to the longer string `ab`. It must stay at `q = 2`.
+- `0 --b--> 2` extends the empty string to the shorter string `b`. It must
+  change to `0 --b--> 4`.
+
+The code finds exactly these shorter contexts by following suffix links from
+`p`. While a `ch` transition still points to `q`, redirect it to the clone.
+Stop at -1 or at an ancestor whose transition no longer points to `q`.
+The other incoming arrows continue to point to the longer group in `q`.
+
+#### Operation 3: make the clone the suffix-link parent of `q`
+
+```cpp
+states[q].link = clone;
+```
+
+State `q` now contains only longer strings. Its new shortest represented
+length is `len[clone] + 1`. Shortening beyond that boundary enters the clone's
+group. Here removing the leading `a` from `ab` gives `b`, now in clone 4,
+so `link[2] = 4`.
+
+#### Operation 4: make the clone the suffix-link parent of `cur`
+
+```cpp
+states[cur].link = clone;
+```
+
+This was the original goal: find the group containing the longest suffix of
+the new text that already occurred in the old text. For `abb`, that string
+is `b`. Its group now exists separately in clone 4, so `link[3] = 4`.
+
+### Check every changed field
+
+| Field | Before the split | After the split |
+| --- | --- | --- |
+| Strings in `q` | `b, ab` | `ab` |
+| Strings in `clone` | No clone | `b` |
+| Maximum lengths | `len[q] = 2` | `len[q] = 2`, `len[clone] = 1` |
+| Clone's outgoing arrows | No clone | Copy `next[q]`, including its `b` arrow to 3 |
+| Incoming `b` from 1 | Destination 2 | Still 2 |
+| Incoming `b` from 0 | Destination 2 | Now 4 |
+| Clone's suffix link | No clone | 0, the old `link[2]` |
+| Old state's suffix link | `link[2] = 0` | `link[2] = 4` |
+| New state's suffix link | Not assigned | `link[3] = 4` |
+
+### Why the ending-position invariant must be preserved
+
+In a deterministic automaton, strings reaching the same state share the
+same outgoing transition table. Once there, the machine cannot distinguish
+which of those strings we used to arrive.
+
+Suppose `b`, ending at `{2, 3}`, and `ab`, ending only at `{2}`, were left
+in the same state after building `abb`. Now append `c` to make `abbc`:
+
+- The `b` ending at position 3 can continue with `c`: `bc` exists.
+- The only `ab` ends at position 2, where the next character is `b`:
+  `abc` does not exist.
+
+If both strings shared a transition table, adding the `c` continuation needed
+by `b` would incorrectly allow `abc`. Keeping equal `endpos` within each
+state prevents that false positive during later updates.
+
+### Why at most one clone is needed in an update
+
+Appending `ch` at position `L + 1` changes old ending-position sets only for
+strings that are suffixes of the new text. Such strings acquire the new
+ending position `L + 1`. For any old state, there are three possibilities:
+
+1. **None of its strings is a suffix of the new text.** Their ending-position
+   sets stay unchanged, so the group stays valid.
+2. **All its strings are suffixes of the new text.** Every string in the group
+   gains the same new ending position. In the equality case this includes
+   `q` and all of its suffix-link ancestors. They still share one `endpos`.
+3. **Only its shorter strings are suffixes of the new text.** This can happen
+   at just the boundary state `q`: the longest previously known suffix ends
+   inside its interval of lengths. Split `q` at `len[p] + 1`. The longer
+   strings stay in `q`, keeping their old ending positions. The shorter
+   strings move to the clone and gain the new ending position.
+
+Why is there only one boundary state? Follow the previously known suffixes
+of the new text from longest to shortest. The longest one reaches `q`; all
+shorter groups reached by suffix links are included completely. An old group
+outside this chain contains none of those suffixes. Only the first group can
+be included partially.
+
+One split therefore restores the invariant everywhere. Every append creates
+one whole-text state `cur` and at most one additional state `clone`.
+
+```{=latex}
+\newpage
+```
+
+```{=latex}
+\begin{landscape}
+```
+
+## The complete `abcbc` automaton and its suffix-link tree
+
+The full automaton for `abcbc` has **seven non-root states and eight states
+including the root**. The black arrows read characters; dashed blue arrows
+are suffix links. Each box lists its strings and its contribution to the
+distinct-substring count.
+
+```{=latex}
+\begin{center}
+{\large\bfseries Complete \texttt{abcbc} automaton: seven non-root states, plus the root.}\par\vspace{5mm}
+\includegraphics[width=23.5cm,height=12cm,keepaspectratio]{figures/suffix_automaton_guide/figure-11.pdf}
+\end{center}
+```
+
+```{=latex}
+\newpage
+```
+
+Because character transitions and suffix links cross in the full graph, now
+isolate just the suffix links. We obtain the **suffix-link tree**, rooted at
+state 0, with arrows from each state toward its suffix-link parent.
+
+```{=latex}
+\begin{center}
+{\large\bfseries Suffix-link tree for \texttt{abcbc}; arrows point toward the shorter suffix group.}\par\vspace{5mm}
+\includegraphics[width=23.5cm,height=12cm,keepaspectratio]{figures/suffix_automaton_guide/figure-12.pdf}
+\end{center}
+```
+
+```{=latex}
+\end{landscape}
+```
+
+Moving toward the root removes enough leading characters to reach a string
+with additional ending positions. For the empty string, we use all text
+boundaries `{0, 1, 2, 3, 4, 5}` as ending positions; state 0 is excluded from
+the count of nonempty strings.
+
+### Explain every suffix link in `abcbc`
+
+Remove one character from the left of the *shortest* string in a state's
+group. The result belongs to its suffix-link parent:
+
+| State | Its strings | Shortest string, shortened | Link destination |
+| --- | --- | --- | --- |
+| 1 | `a` | `a` becomes empty | 0 |
+| 2 | `ab` | `ab` becomes `b` | 5 |
+| 3 | `abc` | `abc` becomes `bc` | 7 |
+| 4 | `cb, bcb, abcb` | `cb` becomes `b` | 5 |
+| 5 | `b` | `b` becomes empty | 0 |
+| 6 | `cbc, bcbc, abcbc` | `cbc` becomes `bc` | 7 |
+| 7 | `c, bc` | `c` becomes empty | 0 |
+
+Now count each state's strings using maximum lengths, not state identifiers:
+
+| State | `len[v]` | `len[link[v]]` | Contribution |
+| --- | --- | --- | --- |
+| 1 | 1 | 0 | 1 |
+| 2 | 2 | 1 | 1 |
+| 3 | 3 | 2 | 1 |
+| 4 | 4 | 1 | 3 |
+| 5 | 1 | 0 | 1 |
+| 6 | 5 | 2 | 3 |
+| 7 | 2 | 0 | 2 |
+
+The sum is `1 + 1 + 1 + 3 + 1 + 3 + 2 = 12` distinct nonempty substrings.
+For example, `link[6] = 7`, but its contribution subtracts `len[7] = 2`,
+not the identifier 7.
+
+```{=latex}
+\newpage
+```
+
+## Commented C++ and Python implementations
+
+The fields directly encode the groups discussed above:
+
+- `next[v][ch]` is a character transition: append `ch` to strings in state `v`.
+- `link[v]` points to the next shorter suffix group.
+- `len[v]` is the longest represented length; the Python version calls it
+  `length[v]`.
+- `last` is the state for the whole text built so far. A clone can have a
+  larger identifier than `last`.
+
+The reusable classes below provide `extend`, `contains`, and `count_distinct`.
+All lookups start at 0. They accept the empty pattern; the empty automaton
+has zero distinct nonempty substrings. Appending is supported; deleting or
+replacing earlier characters is not.
+
+### C++
+
+```cpp
+{{< include implementations/suffix_automaton.hpp >}}
+```
+
+The transition maps cost `O(log alphabet)` per lookup or update. Building the
+text takes `O(n log alphabet)` amortized time and `O(n)` memory for a fixed
+alphabet. Reading a pattern of length `m` takes `O(m log alphabet)` time.
+`count_distinct()` scans the states and costs `O(n)` on each call. Calling it
+after every append of a large text can therefore take quadratic time.
+
+Copy the clone before growing the state vector, and retain state indices
+rather than references that vector growth could invalidate. The substring
+count can reach `n * (n + 1) / 2`, so it needs `long long`.
+
+### Python
+
+```python
+{{< include implementations/suffix_automaton.py >}}
+```
+
+Dictionaries give expected constant-time transition operations. For the fixed
+alphabet, building takes expected `O(n)` time and `O(n)` memory. Pattern lookup
+takes expected `O(m)` time, and `count_distinct()` takes `O(n)` time. Each node
+must own its own dictionary: use `.copy()` when cloning. Python integers grow
+automatically to hold the count.
+
+```{=latex}
+\newpage
+```
+
+## Quick reference and checks
+
+1. **State `v`:** a group of substrings with exactly the same ending-position
+   set in the indexed text.
+2. **Strings in `v`:** one suffix of each length from `len[link[v]] + 1`
+   through `len[v]`, inclusive.
+3. **`link[v]`:** shorten the longest string from the left until it acquires
+   additional ending positions; the first different group is the destination.
+4. **Clone:** split a state when only its shorter strings acquire the new
+   ending position. Keep the longer strings in `q` and move the shorter
+   strings into `clone`.
+5. **Character transition:** read a character and filter the possible
+   occurrences. It is enough that one occurrence can continue.
+6. **Membership:** start at 0 and follow only character transitions. Suffix
+   links guide construction and delimit represented length intervals.
+
+For small texts, enumerate all substrings into a set and compare its size
+with `count_distinct()`. Compare `contains(pattern)` with direct substring
+search. Repeat after every append, including appends that create clones.
+Useful checks are `aba` (5 strings), `abb` (5), `abcbc` (12), and `abcbcd`
+(18). Also test `aaaa` (4), `abcd` (10), and the empty text (0).
+
+Check the distinction from the guide directly: in `abcbc`, both `c` and `bc`
+reach state 7, whose possible endings are `{3, 5}`. Reading another `b`
+reaches state 4, with only ending position `{4}`. Appending `d` later adds
+a different continuation from state 7, supplied by its occurrence at position 5.
+
 
 # Implementation notes and tests
 
@@ -415,7 +1244,8 @@ the root and `0` meaning "absent" is compact and fast. Reserve capacity for the
 total input length; that is the exact upper bound on node count.
 
 **Tries in Python.** A `dict` per node is clearer and usually faster than a
-26-slot list for sparse alphabets. Build children with `setdefault`.
+26-slot list for sparse alphabets. Check for a missing edge before allocating
+a new child dictionary, as in the implementation above.
 
 **Everything else.** Read input with `sys.stdin.buffer.read()`. For hashing, use
 two independent moduli or a random base — a single fixed 32-bit modulus is
@@ -448,8 +1278,8 @@ CP_TARGET=solution python3 sections/44_string_algorithms_ii/check.py
 Use A to fix the trie invariant before writing anything: `cnt[v]` counts words
 passing through `v`, not words ending at `v`. Use B to convert the 1-based
 inclusive endpoints exactly once and to test both parities. Use C to state the
-`len[v] - len[link[v]]` invariant even if you solve it with a set at these
-bounds, because that sentence is what transfers to large inputs. Use D as the
+`len[v] - len[link[v]]` invariant and use the automaton at its large input
+bound; a set of substrings is useful only as a tiny-input testing oracle. Use D as the
 blind synthesis problem: the shortest unique prefix of a word is the first node
 on its path whose count has fallen to one, so decide what the trie must store
 and what it means when the count never falls. Test a word that is a prefix of

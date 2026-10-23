@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 315" width="840" style="font-family: DejaVu Sans, sans-serif;" height="315">
+    <defs>
+      <marker id="arr-c2-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#212529"/>
+      </marker>
+      <marker id="arr-c2-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#d9480f"/>
+      </marker>
+      <marker id="arr-c2-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#198754"/>
+      </marker>
+      <marker id="arr-c2-l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#0d6efd"/>
+      </marker>
+    </defs>
+
+
+    <rect x="25" y="118" width="140" height="82" rx="14" fill="#e9ecef" stroke="#198754" stroke-width="3"/>
+    <text x="95" y="145" text-anchor="middle" font-weight="bold" font-size="15" fill="#0f5132">p = 0 (STOP)</text>
+    <text x="95" y="167" text-anchor="middle" font-family="monospace" font-size="14">{ "" }</text>
+    <text x="95" y="187" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f5132">len[p] = 0</text>
+
+
+    <rect x="315" y="18" width="175" height="85" rx="14" fill="#d1e7dd" stroke="#198754" stroke-width="3"/>
+    <text x="402" y="44" text-anchor="middle" font-weight="bold" font-size="15" fill="#0f5132">q = 1 (next[0]['a'])</text>
+    <text x="402" y="66" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#0f5132">{ "a" }</text>
+    <text x="402" y="86" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f5132">len[q] = 1 == len[p]+1</text>
+
+
+    <rect x="315" y="210" width="175" height="82" rx="14" fill="#ffffff" stroke="#495057" stroke-width="2.2"/>
+    <text x="402" y="236" text-anchor="middle" font-weight="bold" font-size="15">State 2 (old last)</text>
+    <text x="402" y="258" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold">{ "b", "ab" }</text>
+    <text x="402" y="278" text-anchor="middle" font-size="12" fill="#343a40">len = 2</text>
+
+
+    <rect x="635" y="118" width="175" height="82" rx="14" fill="#fff3cd" stroke="#e0a800" stroke-width="2.5"/>
+    <text x="722" y="144" text-anchor="middle" font-weight="bold" font-size="15" fill="#856404">State 3 (cur)</text>
+    <text x="722" y="166" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#856404">{ "ba", "aba" }</text>
+    <text x="722" y="186" text-anchor="middle" font-size="12" fill="#856404">len = 3</text>
+
+     1 (existing transition that stops while) --&gt;
+    <path d="M 165 135 L 312 75" fill="none" stroke="#198754" stroke-width="3" marker-end="url(#arr-c2-g)"/>
+    <rect x="186" y="92" width="102" height="22" rx="5" fill="#d1e7dd" stroke="#198754" stroke-width="1.2"/>
+    <text x="237" y="107" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12" fill="#0f5132">'a' exists</text>
+
+     2 --&gt;
+    <path d="M 165 182 L 312 242" fill="none" stroke="#212529" stroke-width="2.2" marker-end="url(#arr-c2-b)"/>
+    <rect x="226" y="201" width="24" height="22" rx="5" fill="#fff" stroke="#adb5bd" stroke-width="1.2"/>
+    <text x="238" y="217" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="15">b</text>
+
+     2 --&gt;
+    <path d="M 402 103 L 402 207" fill="none" stroke="#212529" stroke-width="2.2" marker-end="url(#arr-c2-b)"/>
+    <rect x="390" y="144" width="24" height="22" rx="5" fill="#fff" stroke="#adb5bd" stroke-width="1.2"/>
+    <text x="402" y="160" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="15">b</text>
+
+     3 (added by while) --&gt;
+    <path d="M 490 242 L 632 182" fill="none" stroke="#d9480f" stroke-width="2.6" marker-end="url(#arr-c2-o)"/>
+    <rect x="515" y="201" width="96" height="22" rx="5" fill="#fff3cd" stroke="#d9480f" stroke-width="1.2"/>
+    <text x="563" y="216" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12" fill="#d9480f">+ next[2]['a']</text>
+
+
+    <path d="M 315 275 Q 170 300 100 203" fill="none" stroke="#0d6efd" stroke-width="2.2" stroke-dasharray="6,4" marker-end="url(#arr-c2-l)"/>
+    <rect x="148" y="262" width="110" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1"/>
+    <text x="203" y="277" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">p = link[2] = 0</text>
+
+
+    <path d="M 695 118 Q 595 34 493 48" fill="none" stroke="#0d6efd" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arr-c2-l)"/>
+    <rect x="530" y="42" width="135" height="24" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.5"/>
+    <text x="597" y="58" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#084298">link[3] = q = 1</text>
+  </svg>

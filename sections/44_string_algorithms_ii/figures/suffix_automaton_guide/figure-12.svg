@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 460" width="940" style="font-family: DejaVu Sans, sans-serif;" height="460">
+    <defs>
+      <marker id="arr-lt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#0d6efd"/>
+      </marker>
+    </defs>
+
+
+    <rect x="380" y="15" width="170" height="76" rx="14" fill="#e9ecef" stroke="#495057" stroke-width="2.5"/>
+    <text x="465" y="42" text-anchor="middle" font-weight="bold" font-size="15" fill="#212529">State 0 (root)</text>
+    <text x="465" y="63" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#495057">{ "" } (len = 0)</text>
+    <text x="465" y="81" text-anchor="middle" font-size="11" fill="#343a40">endpos = {0,1,2,3,4,5}</text>
+
+
+
+    <rect x="45" y="185" width="165" height="78" rx="14" fill="#ffffff" stroke="#495057" stroke-width="2.2"/>
+    <text x="127" y="210" text-anchor="middle" font-weight="bold" font-size="14">State 1 (len = 1)</text>
+    <text x="127" y="232" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold">{"a"}</text>
+    <text x="127" y="252" text-anchor="middle" font-size="11" fill="#343a40">endpos = {1} | +1 string</text>
+
+
+    <rect x="330" y="185" width="175" height="78" rx="14" fill="#cfe2ff" stroke="#0d6efd" stroke-width="2.5"/>
+    <text x="417" y="210" text-anchor="middle" font-weight="bold" font-size="14" fill="#084298">Clone 5 (len = 1)</text>
+    <text x="417" y="232" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#084298">{"b"}</text>
+    <text x="417" y="252" text-anchor="middle" font-size="11" fill="#084298">endpos = {2, 4} | +1 string</text>
+
+
+    <rect x="665" y="185" width="185" height="78" rx="14" fill="#cfe2ff" stroke="#0d6efd" stroke-width="2.5"/>
+    <text x="757" y="210" text-anchor="middle" font-weight="bold" font-size="14" fill="#084298">Clone 7 (len = 2)</text>
+    <text x="757" y="232" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#084298">{"c", "bc"}</text>
+    <text x="757" y="252" text-anchor="middle" font-size="11" fill="#084298">endpos = {3, 5} | +2 strings</text>
+
+
+
+    <rect x="175" y="360" width="160" height="78" rx="14" fill="#ffffff" stroke="#495057" stroke-width="2.2"/>
+    <text x="255" y="385" text-anchor="middle" font-weight="bold" font-size="14">State 2 (len = 2)</text>
+    <text x="255" y="407" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold">{"ab"}</text>
+    <text x="255" y="427" text-anchor="middle" font-size="11" fill="#343a40">endpos = {2} | +1 string</text>
+
+
+    <rect x="365" y="360" width="195" height="78" rx="14" fill="#d1e7dd" stroke="#198754" stroke-width="2.5"/>
+    <text x="462" y="385" text-anchor="middle" font-weight="bold" font-size="14" fill="#0f5132">State 4 (len = 4)</text>
+    <text x="462" y="407" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#0f5132">{"cb", "bcb", "abcb"}</text>
+    <text x="462" y="427" text-anchor="middle" font-size="11" fill="#0f5132">endpos = {4} | +3 strings</text>
+
+
+    <rect x="595" y="360" width="145" height="78" rx="14" fill="#ffffff" stroke="#495057" stroke-width="2.2"/>
+    <text x="667" y="385" text-anchor="middle" font-weight="bold" font-size="14">State 3 (len = 3)</text>
+    <text x="667" y="407" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold">{"abc"}</text>
+    <text x="667" y="427" text-anchor="middle" font-size="11" fill="#343a40">endpos = {3} | +1 string</text>
+
+
+    <rect x="760" y="360" width="165" height="78" rx="14" fill="#fff3cd" stroke="#e0a800" stroke-width="2.5"/>
+    <text x="842" y="385" text-anchor="middle" font-weight="bold" font-size="14" fill="#856404">State 6 (len = 5)</text>
+    <text x="842" y="407" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#856404">{"cbc","bcbc","abcbc"}</text>
+    <text x="842" y="427" text-anchor="middle" font-size="11" fill="#856404">endpos = {5} | +3 strings</text>
+
+
+
+    <path d="M 165 185 L 385 82" fill="none" stroke="#0d6efd" stroke-width="2.8" stroke-dasharray="6,4" marker-end="url(#arr-lt)"/>
+    <rect x="218" y="120" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.2"/>
+    <text x="263" y="135" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[1] = 0</text>
+
+
+    <path d="M 428 185 L 452 94" fill="none" stroke="#0d6efd" stroke-width="2.8" stroke-dasharray="6,4" marker-end="url(#arr-lt)"/>
+    <rect x="395" y="128" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.2"/>
+    <text x="440" y="143" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[5] = 0</text>
+
+
+    <path d="M 712 185 L 542 82" fill="none" stroke="#0d6efd" stroke-width="2.8" stroke-dasharray="6,4" marker-end="url(#arr-lt)"/>
+    <rect x="582" y="120" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.2"/>
+    <text x="627" y="135" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[7] = 0</text>
+
+
+    <path d="M 285 360 L 385 266" fill="none" stroke="#0d6efd" stroke-width="2.8" stroke-dasharray="6,4" marker-end="url(#arr-lt)"/>
+    <rect x="282" y="302" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.2"/>
+    <text x="327" y="317" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[2] = 5</text>
+
+
+    <path d="M 455 360 L 432 266" fill="none" stroke="#0d6efd" stroke-width="2.8" stroke-dasharray="6,4" marker-end="url(#arr-lt)"/>
+    <rect x="402" y="302" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.2"/>
+    <text x="447" y="317" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[4] = 5</text>
+
+
+    <path d="M 685 360 L 735 266" fill="none" stroke="#0d6efd" stroke-width="2.8" stroke-dasharray="6,4" marker-end="url(#arr-lt)"/>
+    <rect x="658" y="302" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.2"/>
+    <text x="703" y="317" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[3] = 7</text>
+
+
+    <path d="M 825 360 L 780 266" fill="none" stroke="#0d6efd" stroke-width="2.8" stroke-dasharray="6,4" marker-end="url(#arr-lt)"/>
+    <rect x="762" y="302" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.2"/>
+    <text x="807" y="317" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[6] = 7</text>
+  </svg>

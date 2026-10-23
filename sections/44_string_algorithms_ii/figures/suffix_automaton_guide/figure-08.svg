@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 245" width="700" style="font-family: DejaVu Sans, sans-serif;" height="245">
+    <defs>
+      <marker id="arr-b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#212529"/>
+      </marker>
+      <marker id="arr-l1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+        <path d="M 0 1 L 10 5 L 0 9 z" fill="#0d6efd"/>
+      </marker>
+    </defs>
+
+
+    <rect x="25" y="95" width="130" height="80" rx="14" fill="#e9ecef" stroke="#495057" stroke-width="2.5"/>
+    <text x="90" y="122" text-anchor="middle" font-weight="bold" font-size="15">State 0 (root)</text>
+    <text x="90" y="144" text-anchor="middle" font-family="monospace" font-size="14">{ "" }</text>
+    <text x="90" y="163" text-anchor="middle" font-size="12" fill="#343a40">len = 0</text>
+
+
+    <rect x="255" y="18" width="145" height="80" rx="14" fill="#d1e7dd" stroke="#198754" stroke-width="2.5"/>
+    <text x="327" y="44" text-anchor="middle" font-weight="bold" font-size="15" fill="#0f5132">State 1</text>
+    <text x="327" y="65" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#0f5132">{ "a" } len=1</text>
+    <text x="327" y="84" text-anchor="middle" font-size="11" fill="#198754">endpos = {1}</text>
+
+
+    <rect x="490" y="95" width="180" height="82" rx="14" fill="#fff3cd" stroke="#e0a800" stroke-width="2.5"/>
+    <text x="580" y="121" text-anchor="middle" font-weight="bold" font-size="15" fill="#856404">State 2 (last)</text>
+    <text x="580" y="143" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#856404">{ "b", "ab" } len=2</text>
+    <text x="580" y="163" text-anchor="middle" font-size="11" fill="#856404">endpos = {2}</text>
+
+
+    <path d="M 155 112 L 252 68" fill="none" stroke="#212529" stroke-width="2.5" marker-end="url(#arr-b1)"/>
+    <rect x="192" y="78" width="24" height="22" rx="5" fill="#fff" stroke="#adb5bd" stroke-width="1.2"/>
+    <text x="204" y="94" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="15">a</text>
+
+    <path d="M 400 68 L 502 112" fill="none" stroke="#212529" stroke-width="2.5" marker-end="url(#arr-b1)"/>
+    <rect x="439" y="78" width="24" height="22" rx="5" fill="#fff" stroke="#adb5bd" stroke-width="1.2"/>
+    <text x="451" y="94" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="15">b</text>
+
+    <path d="M 155 142 L 487 142" fill="none" stroke="#212529" stroke-width="2.5" marker-end="url(#arr-b1)"/>
+    <rect x="310" y="131" width="24" height="22" rx="5" fill="#fff" stroke="#adb5bd" stroke-width="1.2"/>
+    <text x="322" y="147" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="15">b</text>
+
+
+    <path d="M 255 36 Q 150 18 98 92" fill="none" stroke="#0d6efd" stroke-width="2.2" stroke-dasharray="6,4" marker-end="url(#arr-l1)"/>
+    <rect x="132" y="30" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1"/>
+    <text x="177" y="45" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[1] = 0</text>
+
+    <path d="M 540 177 Q 325 238 115 178" fill="none" stroke="#0d6efd" stroke-width="2.2" stroke-dasharray="6,4" marker-end="url(#arr-l1)"/>
+    <rect x="282" y="198" width="90" height="22" rx="5" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1"/>
+    <text x="327" y="213" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#084298">link[2] = 0</text>
+  </svg>
