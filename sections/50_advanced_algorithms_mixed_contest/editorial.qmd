@@ -9,7 +9,7 @@ format:
     documentclass: scrreprt
     papersize: a4
     toc: true
-    toc-depth: 2
+    toc-depth: 1
     number-sections: true
     colorlinks: true
     geometry:
@@ -23,21 +23,168 @@ execute:
   enabled: false
 ---
 
-# Phase 6 coverage set
 
-| Category | Contest problem | Detailed editorial |
-|---|---|---|
-| String Algorithms I | E. Pattern Prefix Matches | local package |
-| String Algorithms II | F. Suffix LCP Queries | local package |
-| Flows and Matchings | G. Domino Placement | local package |
-| Rerooting and Advanced Tree DP | H. Weighted Tree Distances | local package |
-| Meet-in-the-Middle | I. Balanced Subset Difference | local package |
-| Divide-and-Conquer DP Optimization | J. Monge Partition Table | local package |
-| Convex Hull Trick and Li Chao Tree | K. Online Line DP | local package |
+# Contest coverage and reading order
 
-The mixed checker runs these seven self-contained packages from this section's
-`problems` directory. Each contains its own statement, student stubs, reference
-implementations, fixed tests, and randomized oracle.
+The checker runs all nineteen local packages, A--S. A--D revisit earlier
+advanced topics; the following pairs provide two main problems for every
+technical section between mixed contests 42 and 50.
+
+| Source section | Topic | First problem | Second problem |
+|---|---|---|---|
+| 43 | String algorithms I | [E. Pattern Prefix Matches](problems/e_pattern_prefix_matches/README.md) | [M. Dial Alignment](problems/m_dial_alignment/README.md) |
+| 44 | String algorithms II | [F. Suffix LCP Queries](problems/f_suffix_lcp_queries/README.md) | [N. Archive Reassembly](problems/n_archive_reassembly/README.md) |
+| 45 | Flows and matchings | [G. Domino Placement](problems/g_domino_placement/README.md) | [O. Relay Throughput](problems/o_relay_throughput/README.md) |
+| 46 | Rerooting and advanced tree DP | [H. Weighted Tree Distances](problems/h_weighted_tree_distances/README.md) | [P. Last Alarm](problems/p_last_alarm/README.md) |
+| 47 | Meet-in-the-middle | [I. Balanced Subset Difference](problems/i_balanced_subset_difference/README.md) | [Q. Exact Beacon Codes](problems/q_exact_beacon_codes/README.md) |
+| 48 | DP optimization | [J. Monge Partition Table](problems/j_monge_partition_table/README.md) | [R. Warehouse Blocks](problems/r_warehouse_blocks/README.md) |
+| 49 | Convex hull trick and Li Chao | [K. Online Line DP](problems/k_online_line_dp/README.md) | [S. Parabolic Signals](problems/s_parabolic_signals/README.md) |
+
+L is an optional min-cost-flow extension, not a substitute for either of the
+two section-45 applications. Its extra algorithm is explained in its chapter.
+Read each chapter only after attempting its statement independently.
+
+# A. DAG Grundy
+
+## Restatement
+
+For each start vertex in a DAG, print whether the first player wins.
+
+## Algorithm and proof
+
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
+
+## Complexity
+
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/a_dag_grundy/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/a_dag_grundy/solution.py >}}
+```
+
+
+# B. General CRT
+
+## Restatement
+
+For each pair of congruences, print the smallest nonnegative solution and lcm modulus, or `NO`.
+
+## Algorithm and proof
+
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
+
+## Complexity
+
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/b_general_crt/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/b_general_crt/solution.py >}}
+```
+
+
+# C. Fast Fibonacci
+
+## Restatement
+
+Answer Fibonacci queries modulo `1e9+7`.
+
+## Algorithm and proof
+
+The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
+
+## Complexity
+
+The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/c_fast_fibonacci/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/c_fast_fibonacci/solution.py >}}
+```
+
+
+# D. Fibonacci Range Sum
+
+## Restatement and observation
+
+For a huge inclusive interval `[l,r]`, sum Fibonacci values modulo `MOD`. The
+blind step is recognizing the telescoping identity:
+
+```text
+F(0)+F(1)+...+F(t) = F(t+2)-1.
+```
+
+Therefore the requested result is:
+
+```text
+F(r+2) - F(l+1) mod MOD.
+```
+
+## Algorithm
+
+Use fast doubling to obtain `(F(n),F(n+1))` in `O(log n)`:
+
+```text
+F(2k)   = F(k) * (2F(k+1)-F(k))
+F(2k+1) = F(k)^2 + F(k+1)^2.
+```
+
+Apply it twice per query and normalize the subtraction.
+
+## Correctness proof
+
+The prefix identity follows by induction from `F(i+2)=F(i+1)+F(i)`. Subtracting
+the prefix through `l-1` from the prefix through `r` gives exactly `[l,r]`.
+Fast doubling identities compute the required Fibonacci values by splitting
+the index in half, so the printed normalized difference is correct. $\square$
+
+## Complexity and implementation
+
+Each query costs `O(log r)` time and `O(log r)` recursion stack; values are
+always reduced modulo `1,000,000,007`. Use unsigned 64-bit indices in C++ for
+the `10^18` bound and Python integers in Python.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_fibonacci_range_sum/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/d_fibonacci_range_sum/solution.py >}}
+```
+
+## Tests that matter
+
+```text
+[0,0], [0,1], one-element ranges, and a range with l>0.
+Large endpoints: never iterate through the interval.
+```
+
 
 # E. Pattern Prefix Matches
 
@@ -92,7 +239,7 @@ The right boundary advances at most the combined-string length, so total time
 and memory are `O(|pattern|+|text|)`.
 
 Choose a separator outside the alphabet, offset text indices by
-`|pattern|+1`, and output one value for every text position—including zeros.
+`|pattern|+1`, and output one value for every text position -- including zeros.
 A naive restart of comparisons at every position does not meet the bound.
 
 ## Tests that matter
@@ -119,6 +266,7 @@ For small strings, compare characters directly at each text position.
 ```python
 {{< include problems/e_pattern_prefix_matches/solution.py >}}
 ```
+
 
 # F. Suffix LCP Queries
 
@@ -195,6 +343,7 @@ The randomized oracle compares the two suffixes character by character.
 {{< include problems/f_suffix_lcp_queries/solution.py >}}
 ```
 
+
 # G. Domino Placement
 
 ## Reduction to bipartite matching
@@ -205,7 +354,7 @@ each cardinally adjacent pair, placing even cells on the left and odd cells
 on the right.
 
 A domino covers exactly one such graph edge. Requiring dominoes not to overlap
-means no two chosen edges may share a vertex—which is precisely a matching.
+means no two chosen edges may share a vertex -- which is precisely a matching.
 Thus the geometry disappears after the reduction.
 
 ## Augmenting-path algorithm
@@ -271,6 +420,7 @@ vertex-disjoint set.
 {{< include problems/g_domino_placement/solution.py >}}
 ```
 
+
 # H. Weighted Tree Distances
 
 ## Restatement and why rerooting is needed
@@ -328,7 +478,7 @@ Both traversals examine every edge a constant number of times, giving `O(n)`
 time and `O(n)` memory. Use 64-bit integers for weights, subtree sums, and
 answers. Iterative traversal avoids recursion overflow at `n = 200000`.
 
-Do not use subtree vertex counts in the formula—the values are weighted.
+Do not use subtree vertex counts in the formula -- the values are weighted.
 Zero-weight vertices remain structurally present even though they add nothing
 to a sum.
 
@@ -356,6 +506,7 @@ For small trees, run BFS from every root and evaluate the definition directly.
 ```python
 {{< include problems/h_weighted_tree_distances/solution.py >}}
 ```
+
 
 # I. Balanced Subset Difference
 
@@ -435,6 +586,7 @@ For small `n`, enumerate every full subset and evaluate `|T-2S|`.
 ```python
 {{< include problems/i_balanced_subset_difference/solution.py >}}
 ```
+
 
 # J. Monge Partition Table
 
@@ -530,6 +682,7 @@ oracle.
 {{< include problems/j_monge_partition_table/solution.py >}}
 ```
 
+
 # K. Online Line DP
 
 ## Turning the recurrence into line queries
@@ -623,242 +776,6 @@ The small oracle evaluates every earlier `j` directly in `O(n^2)`.
 {{< include problems/k_online_line_dp/solution.py >}}
 ```
 
-# A--D. Cross-phase core
-
-The DAG Grundy, generalized CRT, and two Fibonacci problems revisit earlier
-advanced ideas. They are the first four exercises of the complete twelve-
-problem contest; G--L remain its progressively harder half.
-
-# Editorial overview
-
-## Problem-specific proof map
-
-**A. DAG Grundy.** Reverse topological order computes successor Grundy values
-before their parent; mex zero/nonzero gives exactly losing/winning states.
-
-**B. General CRT.** Two congruences intersect iff their residue difference is
-divisible by the gcd. Extended Euclid solves the reduced equation and gives the
-unique merged class modulo the lcm.
-
-**C. Fast Fibonacci.** The doubling identities preserve the adjacent pair
-`(F(k),F(k+1))`, so binary decomposition of the index returns the requested
-value in logarithmic time.
-
-## Detailed solution guide
-
-**A. DAG Game Grundy.** Process vertices in reverse topological order. The
-Grundy value of a terminal vertex is `0`. For a nonterminal vertex, collect the
-Grundy values of all outgoing neighbors and take the mex, the smallest
-nonnegative integer not present. A position is winning exactly when its Grundy
-value is nonzero: move to a child with Grundy `0`; from Grundy `0`, every move
-goes to nonzero.
-
-**B. Chinese Remainder Merge.** To merge
-`x = a (mod m)` and `x = b (mod n)`, first check compatibility:
-`a % gcd(m,n)` must equal `b % gcd(m,n)`. If not, there is no solution. If yes,
-divide by the gcd and use an extended-gcd inverse to solve for the offset. The
-new modulus is `lcm(m,n)`, and the merged residue is normalized into
-`[0,lcm)`.
-
-**C. Fast Doubling Fibonacci.** Maintain the pair `(F(k), F(k+1))`. The
-doubling formulas compute `(F(2k), F(2k+1))`; if the next binary bit is `1`,
-advance once to `(F(2k+1), F(2k+2))`. This gives logarithmic time because each
-bit of `n` does constant work.
-
-**Common pitfalls.** For Grundy values, mex is taken over children only, not all
-smaller numbers. CRT must handle non-coprime moduli. Fast doubling should keep
-all operations modulo the requested modulus.
-
-This mixed section checks whether the model is recognized quickly.
-
-- A computes Grundy numbers on a DAG in reverse topological order. A start is
-  winning iff its Grundy number is nonzero.
-- B merges two congruences with the generalized CRT. The compatibility test is
-  equality modulo `gcd(m,n)`.
-- C uses fast doubling for Fibonacci, returning the pair `(F(n), F(n+1))`.
-
-All three solutions compress a large object into a smaller invariant: mex,
-one merged congruence, or a recurrence pair.
-
-# A. DAG Grundy
-
-## Restatement
-
-For each start vertex in a DAG, print whether the first player wins.
-
-## Algorithm and proof
-
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
-
-## Complexity
-
-The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,q;if(!(cin>>n>>m>>q))return 0;vector<vector<int>>g(n);while(m--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int>gr(n);for(int u=n-1;u>=0;u--){set<int>s;for(int v:g[u])s.insert(gr[v]);while(s.count(gr[u]))gr[u]++;}while(q--){int s;cin>>s;cout<<(gr[s-1]?"WIN":"LOSE")<<'\n';}}
-```
-
-## Full Python solution
-
-```python
-import sys
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,m,q=data[0],data[1],data[2]; idx=3; g=[[] for _ in range(n)]
-    for _ in range(m): g[data[idx]-1].append(data[idx+1]-1); idx+=2
-    gr=[0]*n
-    for u in range(n-1,-1,-1):
-        seen={gr[v] for v in g[u]}; x=0
-        while x in seen: x+=1
-        gr[u]=x
-    out=["WIN" if gr[data[idx+i]-1] else "LOSE" for i in range(q)]
-    print("\n".join(out))
-if __name__=="__main__": main()
-```
-
-# B. General CRT
-
-## Restatement
-
-For each pair of congruences, print the smallest nonnegative solution and lcm modulus, or `NO`.
-
-## Algorithm and proof
-
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
-
-## Complexity
-
-The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std; long long eg(long long a,long long b,long long&x,long long&y){if(!b){x=a>=0?1:-1;y=0;return llabs(a);}long long x1,y1,g=eg(b,a%b,x1,y1);x=y1;y=x1-a/b*y1;return g;}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int T;if(!(cin>>T))return 0;while(T--){long long a,m,b,n,x,y;cin>>a>>m>>b>>n;long long g=eg(m,n,x,y);if((b-a)%g)cout<<"NO\n";else{long long l=m/g*n;__int128 k=(__int128)((b-a)/g)*x;long long mod=n/g;long long kk=(long long)((k%mod+mod)%mod);long long res=(long long)(((__int128)a+(__int128)m*kk)%l);cout<<res<<" "<<l<<"\n";}}}
-```
-
-## Full Python solution
-
-```python
-import sys,math
-def eg(a,b):
-    if b==0: return (abs(a),1 if a>=0 else -1,0)
-    g,x,y=eg(b,a%b); return g,y,x-(a//b)*y
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    t=data[0]; idx=1; out=[]
-    for _ in range(t):
-        a,m,b,n=data[idx],data[idx+1],data[idx+2],data[idx+3]; idx+=4; g,x,y=eg(m,n)
-        if (b-a)%g: out.append("NO")
-        else:
-            l=m//g*n; k=((b-a)//g*x)%(n//g); out.append(f"{(a+m*k)%l} {l}")
-    print("\n".join(out))
-if __name__=="__main__": main()
-```
-
-# C. Fast Fibonacci
-
-## Restatement
-
-Answer Fibonacci queries modulo `1e9+7`.
-
-## Algorithm and proof
-
-The task-specific reduction in the proof map maps legal original choices to exactly the generated states, and the final operation reads the requested optimum or classification. $\square$
-
-## Complexity
-
-The bound is the concrete one stated for this task in the proof map; the code performs only its enumerations, searches, or transitions.
-
-## Full C++ solution
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std; const long long MOD=1000000007; pair<long long,long long> fib(long long n){if(!n)return{0,1};auto [a,b]=fib(n/2);long long c=a*((2*b%MOD-a+MOD)%MOD)%MOD,d=(a*a%MOD+b*b%MOD)%MOD;return n&1?make_pair(d,(c+d)%MOD):make_pair(c,d);}int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int t;if(!(cin>>t))return 0;while(t--){long long n;cin>>n;cout<<fib(n).first<<'\n';}}
-```
-
-## Full Python solution
-
-```python
-import sys
-MOD=1_000_000_007
-def fib(n):
-    if n==0: return (0,1)
-    a,b=fib(n//2)
-    c=a*((2*b-a)%MOD)%MOD
-    d=(a*a+b*b)%MOD
-    return (d,(c+d)%MOD) if n%2 else (c,d)
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    print("\n".join(str(fib(x)[0]) for x in data[1:1+data[0]]))
-if __name__=="__main__": main()
-```
-
-# D. Fibonacci Range Sum
-
-## Restatement and observation
-
-For a huge inclusive interval `[l,r]`, sum Fibonacci values modulo `MOD`. The
-blind step is recognizing the telescoping identity:
-
-```text
-F(0)+F(1)+...+F(t) = F(t+2)-1.
-```
-
-Therefore the requested result is:
-
-```text
-F(r+2) - F(l+1) mod MOD.
-```
-
-## Algorithm
-
-Use fast doubling to obtain `(F(n),F(n+1))` in `O(log n)`:
-
-```text
-F(2k)   = F(k) * (2F(k+1)-F(k))
-F(2k+1) = F(k)^2 + F(k+1)^2.
-```
-
-Apply it twice per query and normalize the subtraction.
-
-## Correctness proof
-
-The prefix identity follows by induction from `F(i+2)=F(i+1)+F(i)`. Subtracting
-the prefix through `l-1` from the prefix through `r` gives exactly `[l,r]`.
-Fast doubling identities compute the required Fibonacci values by splitting
-the index in half, so the printed normalized difference is correct. $\square$
-
-## Complexity and implementation
-
-Each query costs `O(log r)` time and `O(log r)` recursion stack; values are
-always reduced modulo `1,000,000,007`. Use unsigned 64-bit indices in C++ for
-the `10^18` bound and Python integers in Python.
-
-## Full C++ solution
-
-```cpp
-{{< include problems/d_fibonacci_range_sum/solution.cpp >}}
-```
-
-## Full Python solution
-
-```python
-{{< include problems/d_fibonacci_range_sum/solution.py >}}
-```
-
-## Tests that matter
-
-```text
-[0,0], [0,1], one-element ranges, and a range with l>0.
-Large endpoints: never iterate through the interval.
-```
 
 # L. Profitable Disjoint Routes
 
@@ -902,10 +819,682 @@ earlier routing choice.
 {{< include problems/l_profitable_disjoint_routes/solution.py >}}
 ```
 
+
+# M. Dial Alignment
+
+## Restatement and constraints
+
+Count offsets, rather than distinct rotated strings. Both strings have the
+same length `n <= 200000`; constructing and comparing each complete rotation
+would take `O(n^2)` time.
+
+## Observation and algorithm
+
+Every rotation of `s` is a length-`n` window of `s+s` starting at an index in
+`0..n-1`. Therefore count occurrences of `t` in `(s+s)[:-1]` using KMP.
+Omitting the final character removes the duplicated window starting at `n`.
+
+The prefix function of `t` stores, for each prefix, its longest proper border.
+During the scan, `matched` is the longest pattern prefix equal to a suffix of
+the scanned text. On a mismatch, follow prefix-function borders until the next
+character fits or the length reaches zero. After a full match, keep the longest
+proper border so overlapping occurrences remain available.
+
+```text
+compute the prefix function of t
+scan the first 2*n-1 characters of s+s with KMP
+count every complete match, retaining its longest proper border
+```
+
+## Sample walkthrough
+
+For `s = abab`, scan `abababa` for `t = baba`. The complete matches start at
+indices `1` and `3`, representing two dial offsets. Searching all of `s+s`
+would also duplicate offset zero when that offset is a match, for example when
+`s = t = abab`.
+
+## Correctness proof
+
+There is a bijection between valid offsets and pattern matches in the scanned
+text: offset `k` reads exactly its length-`n` window, and all possible window
+starts in a length-`2n-1` text are exactly `0..n-1`. KMP's invariant preserves
+the longest matching prefix after every character. Its border fallbacks remove
+only prefix lengths already contradicted by the mismatch. It consequently
+reports exactly all full occurrences, including overlapping ones. Their count
+is precisely the number of valid offsets.
+
+## Complexity and language notes
+
+Prefix construction and scanning take `O(n)` time and `O(n)` memory. Both
+references use 0-based prefix lengths and reset `matched` immediately after a
+full match, before any further access to `target[matched]`. Python constructs
+one doubled string, not a fresh rotation for each offset. C++ uses integer
+lengths, which fit comfortably at this bound.
+
+## Common mistakes and targeted tests
+
+Do not deduplicate rotations, skip overlaps, or count the repeated offset `n`.
+Fixed cases include single characters, no match, and a periodic string. The
+random oracle builds every small rotation explicitly. Maximum-size tests use
+all equal letters (every offset works) and one exceptional final letter (only
+one offset works, with long unsuccessful comparisons for direct methods).
+
+## Full C++ solution
+
+```cpp
+{{< include problems/m_dial_alignment/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/m_dial_alignment/solution.py >}}
+```
+
+# N. Archive Reassembly
+
+## Restatement and constraints
+
+Partition the target into the fewest nonempty pieces, each a substring of the
+source. Both lengths can reach `200000`. Pieces may be reused without limit,
+so source occurrences are permissions, not consumable resources.
+
+## Longest feasible next piece
+
+Starting at the current target position, take the longest prefix that occurs
+in the source. A suffix automaton of the source recognizes exactly its
+substrings: a path from state zero exists if and only if its letters form an
+allowed piece. Every visited state is sufficient; terminal-suffix flags are
+not needed for substring membership.
+
+Walk transitions while possible. If the next character has no transition,
+commit the current piece and retry that character from state zero. If even
+state zero lacks its character, no piece can contain it, so return `-1`.
+The references start with one prospective piece because the target is nonempty.
+
+```text
+build the source suffix automaton
+pieces = 1; state = 0
+for each target character:
+    if its transition from state is missing:
+        pieces += 1
+        restart from state 0
+        if the root transition is missing: answer -1
+    follow the transition
+answer pieces
+```
+
+## Sample walkthrough
+
+For source `abac` and target `acaba`, the longest first piece is `ac`.
+There is no transition extending this path with the next `a`, so restart at
+that `a`. The remaining `aba` is a source substring. The answer is `2`.
+Repeated copies and overlapping source locations are legal.
+
+## Correctness proof of the greedy choice
+
+Every substring of an allowed piece is itself allowed. Let a greedy first
+piece end at position `g`, and consider an optimal partition of the same target
+suffix. Its first piece cannot extend beyond `g`, by maximality of the greedy
+match. Find the optimal piece containing position `g`. Replace all optimal
+pieces through that point by the greedy piece, retaining the part after `g`
+of the containing piece if it is nonempty.
+
+That retained part is still a source substring. If only one optimal piece was
+replaced, it already ended at `g`, so no extra piece is introduced. If several
+were replaced, one greedy piece plus at most one retained suffix uses no more
+pieces than before. Thus an optimal partition can be made to start with the
+greedy piece. Induction on the remaining target proves optimality.
+
+If the root lacks a character, that character occurs nowhere in the source,
+so no partition is possible. Otherwise single-character pieces always give a
+construction, and the greedy algorithm returns its minimum piece count.
+
+## Automaton reminder and complexity
+
+An ordinary new state represents the new longest prefix. Suffix links visit
+its shorter suffix groups. Missing character transitions are added along that
+chain; an existing destination whose length range is too wide is split by a
+clone, preserving its transitions and redirecting the relevant incoming edges.
+This is the construction taught in section 44.
+
+For the fixed lowercase alphabet, construction takes `O(|s|)` time and memory.
+Each target character requires at most one failed lookup and one root lookup,
+so total time is `O(|s|+|t|)`. C++ uses arrays of 26 transitions and integer
+state IDs; Python uses dictionaries and parallel state arrays. A clone copies
+its transition dictionary rather than aliasing it. Neither reference uses
+recursion or enumerates source substrings.
+
+## Common mistakes and targeted tests
+
+Do not consume source positions, require pieces to be suffixes, or forget to
+retry the character that caused a restart. Fixed cases test absent characters,
+reusing a one-letter source, and paths through cloned states. The random oracle
+enumerates all small source substrings and uses an exhaustive partition DP.
+Full-size cases include two long alternating pieces and a clone-heavy random
+source copied whole, whose expected answer is immediately `1`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/n_archive_reassembly/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/n_archive_reassembly/solution.py >}}
+```
+
+# O. Relay Throughput
+
+## Restatement and constraints
+
+Maximize source-to-sink delivery subject to link capacities and station
+processing limits, including the source and sink limits. There are at most
+`250` stations and `4000` links; parallel links, zero capacities, and internal
+cycles are legal. All capacities are at most `10^9`.
+
+## Reduction by splitting a station
+
+Replace station `v` by `in(v)` and `out(v)`, with an internal edge
+
+```text
+in(v) -> out(v), capacity limit[v]
+```
+
+Replace each input link `u -> v` of capacity `c` by
+`out(u) -> in(v)` of capacity `c`. Use `in(1)` as source and `out(n)` as sink.
+Thus every unit must cross the internal edge of every station it uses,
+including the endpoints. No artificial infinite capacity is needed.
+
+The code uses `in(v) = 2*v` and `out(v) = 2*v+1` after converting input vertices
+to 0-based IDs. The transformed graph has `2n` vertices and `n+m` input edges.
+
+```text
+create every station's internal capacity edge
+create every link from its sender's out-node to its receiver's in-node
+run Dinic from in(1) to out(n)
+```
+
+## Sample walkthrough
+
+The two middle internal edges have capacities `2` and `3`. The links can each
+carry `9`, but no path can avoid a middle station's internal edge. Send `2`
+through station 2 and `3` through station 3. Cutting those two internal edges
+has capacity `5`, certifying that this delivery is maximum.
+
+## Correctness proof
+
+Given a feasible delivery, put every input link's amount on its corresponding
+transformed link. At an intermediate station, put its total throughput on its
+internal edge. Conservation balances both split nodes, and the station limit
+is precisely the internal edge's capacity. The source and sink internal edges
+carry the total delivered amount and enforce their limits. This constructs a
+feasible transformed flow of the same value.
+
+Conversely, conservation in the transformed graph forces a station's internal
+edge to carry its throughput between incoming and outgoing links. Its capacity
+enforces the processing limit; transformed link capacities enforce all input
+link limits. Reading these link flows gives a feasible original delivery of
+the same value. Since both mappings preserve value, maximum flow solves the
+problem exactly.
+
+## Dinic reminder and complexity
+
+Store each residual edge with a separate reverse member. A push subtracts from
+one member and adds to the other. BFS labels positive-residual distances;
+explicit-stack searches use only edges advancing one level and send a blocking
+flow. Reset current pointers for every new BFS. When the sink is unreachable,
+the current flow is maximum by the residual-cut argument from section 45.
+
+With `V=2n` and `E=n+m`, the general bound is `O(V^2*E)` time and `O(V+E)`
+storage. Actual searches send bottlenecks rather than iterating once per unit
+of capacity. C++ uses `long long`; Python's explicit stack avoids recursion
+limits. Parallel links always retain independent reverse pairs.
+
+## Common mistakes and targeted tests
+
+Splitting only middle stations ignores the supplier and receiver limits.
+Clamping each individual adjacent edge separately does not enforce a shared
+station limit. Do not merge a cancellation edge with an opposite input link.
+Fixed cases cover rerouting, a supplier bottleneck, and disconnected vertices.
+Small random answers come from exhaustive cuts in the split network, not from
+Dinic. Maximum-size chain/parallel-link cases test a large bottleneck and a
+closed internal relay, with expected answers `10^9` and `0` respectively.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/o_relay_throughput/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/o_relay_throughput/solution.py >}}
+```
+
+# P. Last Alarm
+
+## Restatement and constraints
+
+For every receiver `r`, compute `max_v(a[v] + distance(v,r))` on a weighted
+tree. Alarms do not compete for edges. With `n <= 200000`, a traversal from
+every receiver is too slow; edge delays and emission times can each be `10^9`.
+
+## Two directional summaries
+
+Root the tree temporarily at vertex 1. Let `down[u]` be the latest alarm
+arrival at `u` from its rooted subtree, including `u` itself. Then
+
+```text
+down[u] = max(a[u], down[child] + edge_delay over all children)
+```
+
+Compute this in reverse traversal order. Let `up[u]` be the latest arrival
+from outside that subtree, or `-1` for an empty outside set. The final answer
+is `max(down[u], up[u])`.
+
+For child `v` of `u`, outside alarms come from `u` itself, outside `u`'s
+subtree, or a different child branch. Therefore:
+
+```text
+up[v] = delay(u,v) + max(a[u], up[u], best other child contribution at u)
+```
+
+Keep the two largest child contributions and the child owning the largest.
+This lets each child exclude its own branch in constant time. Equal largest
+values from different children must occupy both best slots.
+
+## Sample walkthrough
+
+Root the sample at vertex 1. The downward values are `12,10,0`: station 2's
+alarm reaches station 1 at time `12`. The outside values for vertices 2 and 3
+are `2` and `13`. Taking the larger directional value gives `12,10,13`.
+
+```text
+build parent-before-child traversal order iteratively
+compute down[] in reverse order
+for each vertex in forward order:
+    answer it from down and up
+    find its two best child branches
+    pass the best contribution excluding each child down to that child
+```
+
+## Correctness proof
+
+Induction from the leaves proves `down[u]`: every subtree alarm is either
+`u`'s own or lies in exactly one child subtree and must cross its connecting
+edge. For the forward pass, assume `up[u]` is correct. Removing edge `(u,v)`
+partitions all alarms outside `v` into exactly the three families in the
+transition. Their latest arrival at `u`, plus that edge's delay, is exactly
+the latest outside arrival at `v`. This proves every `up` value by induction.
+The subtree and outside sets partition all alarms, so their maximum is the
+required answer at each receiver.
+
+## Complexity and language notes
+
+Every adjacency list is scanned a constant number of times: `O(n)` time and
+`O(n)` memory. Both implementations use iterative traversals. Times fit signed
+64-bit integers: every candidate is at most `10^9 + (n-1)*10^9`. The `-1`
+sentinel is safe because emission times are nonnegative and delays positive.
+
+## Common mistakes and targeted tests
+
+Using only distance to the farthest station ignores emission times. A single
+maximum branch cannot safely exclude its owner; preserve a second maximum,
+including ties. Fixed tests cover a singleton, tied branches, and a late alarm
+with a large delay. The random oracle independently traverses from every
+receiver. Full-size tests are a deep path with billion-unit delays and a star
+whose equal branches exercise exclusion and ties.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/p_last_alarm/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/p_last_alarm/solution.py >}}
+```
+
+# Q. Exact Beacon Codes
+
+## Restatement and constraints
+
+Count index subsets having both cardinality `k` and XOR `target`. There are
+up to `40` beacons, so `2^n` enumeration is too large, while a code-indexed DP
+would need up to `2^30` states. Equal values remain distinct beacons.
+
+## Split by index, retain both summaries
+
+Divide the indices into two halves of at most 20 elements. Enumerate left
+subsets and store their frequencies by `(selected count, XOR)`. For a right
+subset with count `c` and XOR `x`, its complement requirements are
+
+```text
+left count = k - c
+left XOR   = target XOR x
+```
+
+The second identity follows because XOR is its own inverse. Add the stored
+frequency, rather than just checking whether a matching key exists.
+
+```text
+enumerate all left subsets into frequency[count][xor]
+answer = 0
+for every right subset:
+    if the required left count is legal:
+        answer += frequency[required count][required xor]
+```
+
+Recursive include/skip enumeration has depth at most 20. Branches already
+using more than `k` elements may be discarded. The empty subset is enumerated
+on both sides with count zero and XOR zero.
+
+## Sample walkthrough
+
+The left half has codes `1,1`, and the right half `2,2`. For target zero and
+count two, either take both left beacons and no right beacon, or both right
+beacons and no left beacon. The cross pairs have XOR `3` and do not qualify.
+The answer is `2`.
+
+## Correctness proof
+
+Every full index subset decomposes uniquely into its intersections with the
+two disjoint halves. Its counts add and its codes combine by XOR. Thus a right
+subset pairs with exactly those left subsets in its required frequency bucket.
+The algorithm counts each of these pairs once, counts no invalid pair, and
+visits the unique right component of every valid full subset. The total is
+therefore exact, including multiplicities from equal codes.
+
+## Complexity and language notes
+
+With expected constant-time dictionary operations, time is
+`O(2^floor(n/2) + 2^ceil(n/2))`, and memory is `O(2^floor(n/2))`.
+C++ uses `unordered_map<int,long long>` buckets and a 64-bit total; Python uses
+dictionaries and integer counts. There is no modulus. The answer is at most
+`C(40,20) = 137846528820`, which fits signed 64-bit arithmetic.
+
+## Common mistakes and targeted tests
+
+Do not collapse identical beacons, discard subset frequencies, omit cardinality,
+or forget `k=0`. Fixed tests include both empty-subset outcomes, multiplicities,
+and the highest allowed code bits. The random oracle enumerates full masks,
+filters by cardinality, and directly XORs selected codes. Full-size tests use
+40 zero codes and two copies of each of 20 independent bits. Their answers
+are independently `C(40,20)` and `C(20,10)`; the latter requires selecting
+both copies of exactly ten bits.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/q_exact_beacon_codes/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/q_exact_beacon_codes/solution.py >}}
+```
+
+# R. Warehouse Blocks
+
+## Restatement and constraints
+
+Partition sorted customers into exactly `k` nonempty contiguous blocks, each
+served by one freely placed warehouse. With `n <= 30000` and `k <= 30`, the
+straightforward `O(kn^2)` partition DP is too slow.
+
+## Optimal cost of one block
+
+A warehouse minimizing the sum of absolute distances can be placed at a
+median customer. Pair the leftmost and rightmost customer, then the next pair:
+for each pair, every coordinate between them minimizes their combined distance.
+A median lies in all these intervals, so it minimizes the total. For an odd
+block, the unpaired middle customer also favors that median.
+
+Using 0-based half-open block `[l,r)`, let `m=(l+r-1)//2`, the lower median.
+With prefix sums `P`, its cost is
+
+```text
+C(l,r) = x[m]*(m-l) - (P[m]-P[l])
+       + (P[r]-P[m+1]) - x[m]*(r-m-1)
+```
+
+This costs `O(1)` to evaluate after `O(n)` preprocessing.
+
+## Recurrence and why its optima are ordered
+
+Let `dp[g][i]` be the minimum cost of serving the first `i` customers with
+exactly `g` blocks. Initialize only `dp[0][0]=0`; other states are infinity.
+The last block begins after a prefix of `j` customers:
+
+```text
+dp[g][i] = min(dp[g-1][j] + C(j,i)) for g-1 <= j < i
+```
+
+We must prove the cost has the Monge property before restricting split ranges.
+For this paragraph only, use inclusive 1-based interval cost `D(l,r)`.
+Appending a customer has marginal cost
+
+```text
+D(l,r+1) - D(l,r) = x[r+1] - x[floor((l+r+1)/2)]
+```
+
+This follows directly by separating even and odd block sizes in the median
+formula. As `l` increases, the median index moves right, so this marginal cost
+cannot increase. Summing such marginal costs gives, for `a <= b <= c <= d`,
+
+```text
+D(a,c) + D(b,d) <= D(a,d) + D(b,c)
+```
+
+This is exactly the Monge inequality for the transition-cost matrix. Adding
+`dp[g-1][j]` to an entire candidate row preserves that inequality. Consequently,
+choosing the smallest minimizing split gives `opt[g][i] <= opt[g][i+1]`.
+For completeness, if two smallest minima crossed, apply the inequality to the
+two candidates and outputs. Together with their minimizing inequalities, it
+forces both candidates to tie at both outputs, contradicting the choice of
+the smallest split at the earlier output.
+
+## Divide-and-conquer algorithm and sample
+
+For one layer, evaluate the middle output in its allowed candidate range.
+If its best split is `best`, recurse on left outputs with upper candidate
+bound `best`, and right outputs with lower candidate bound `best`.
+Search candidates in increasing order and replace the best only on a strict
+improvement to preserve the smallest-minimizer tie rule.
+
+```text
+previous[0] = 0; all other states = infinity
+for g = 1..k:
+    compute outputs g..n by divide and conquer
+    search only j >= g-1 and j < output
+    keep two DP rows
+return dp[k][n]
+```
+
+In the sample, the first three customers use median `2` at cost `3`, and the
+last two use median `10` at cost `1`. Split `j=3` gives total `4`.
+
+## Correctness proof
+
+The recurrence covers every possible last block and combines it with an
+optimal prefix, so it equals the true optimum. At each divide-and-conquer
+call, assume the candidate interval contains a smallest optimum for all its
+outputs. The middle search finds its optimum exactly. Monotonicity then proves
+the restricted left and right candidate intervals still contain their optima.
+Induction over recursive calls preserves the recurrence's answers, and over
+layers yields the required optimum for exactly `k` nonempty blocks.
+
+## Complexity and language notes
+
+Each layer uses `O(n log n)` candidate evaluations, for `O(kn log n)` time
+and `O(n)` storage. Recursive computation depth is only `O(log n)`, safe in
+Python; it is not recursion along all customers. C++ uses `long long` for
+prefixes, products, and costs. Both references use half-open block costs and
+start layer `g` at output `g`, excluding empty blocks.
+
+## Common mistakes and targeted tests
+
+An average minimizes squared distances, not these absolute distances. Do not
+apply monotone optimization before proving the actual median cost's inequality.
+Fixed cases cover one customer, one warehouse per customer, even-sized blocks,
+and duplicate positions. The small oracle enumerates every cut combination
+and tries every customer coordinate as warehouse, sharing neither optimized
+DP nor its cost formula. Maximum-size tests have equally spaced customers
+and all coordinates equal. For equally spaced blocks of size `h`, cost is
+`gap*floor(h*h/4)`; convexity makes balanced block sizes optimal. The generated
+`n=30000,k=30` instance therefore has independently known answer `225000000000`.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/r_warehouse_blocks/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/r_warehouse_blocks/solution.py >}}
+```
+
+# S. Parabolic Signals
+
+## Restatement and constraints
+
+At each receiver coordinate, maximize `b[i]-(x-p[i])^2` over all transmitters.
+There can be `200000` transmitters and queries, with arbitrary repeated signed
+coordinates. Directly comparing every transmitter for every receiver is
+quadratic. The answer may be negative.
+
+## Turn parabolas into a line envelope
+
+All parabolas have the same quadratic coefficient. Expanding gives
+
+```text
+b[i] - (x-p[i])^2 = -x^2 + 2*p[i]*x + b[i] - p[i]^2
+```
+
+The term `-x^2` is independent of the transmitter. To reuse a minimum line
+container, negate the remaining part:
+
+```text
+line slope     = -2*p[i]
+line intercept = p[i]^2 - b[i]
+answer(x)      = -min_line_value(x) - x^2
+```
+
+All transmitters are available from the start, so insert every line before
+answering any query. No DP order restriction is involved.
+
+## Discrete Li Chao operations
+
+Sort the distinct query coordinates. A tree node owns an interval of their
+indices and stores at most one line. At insertion, keep the better line at
+the middle coordinate in the node. The displaced line can improve on the
+retained line on at most one side, because the difference of two lines is
+linear. Compare at the two endpoints, recurse into the improving half, or
+discard the line if neither endpoint improves. Empty nodes accept immediately.
+
+A query walks the root-to-leaf path containing its coordinate and takes the
+minimum among stored lines on that path. Index compression does not replace
+coordinates by ranks in line evaluation: always evaluate at the actual `x`.
+
+```text
+collect and sort unique receiver coordinates
+insert (-2*p, p*p-b) for every transmitter
+for each receiver in its original order:
+    print -minimum_line_value(x) - x*x
+```
+
+## Sample walkthrough
+
+Transmitters `(0,5)` and `(4,8)` become lines `-5` and `-8*x+8`.
+
+| Receiver x | Minimum line value | Subtract x squared after negation | Answer |
+|---|---|---|---|
+| 0 | -5 | 5 - 0 | 5 |
+| 2 | -8 | 8 - 4 | 4 |
+| 5 | -32 | 32 - 25 | 7 |
+
+## Correctness proof
+
+The expansion is an exact identity for each transmitter. Thus maximizing its
+strength is equivalent to negating the minimum transformed line value and
+subtracting `x^2`.
+
+Insertion preserves the minimum envelope at every query coordinate: the
+retained line dominates the displaced one at the midpoint; outside a possible
+single improving side the displaced line cannot matter, and on that side it
+is retained recursively. Previously stored alternatives remain available in
+their subtrees. Induction over insertions proves that each coordinate's true
+minimum is represented somewhere along its root-to-leaf path. Querying that
+path therefore returns the exact minimum, and the identity yields the exact
+maximum signal strength.
+
+## Complexity and language notes
+
+Let `U <= q` be the number of distinct receiver coordinates. Sorting takes
+`O(q log q)` time; insertions and queries take `O((n+q)*log(U+1))`, with
+`O(n+q)` storage including input and output. The tree itself uses `O(U)` slots.
+
+C++ evaluates all products in `long long`. Under the bounds, a squared distance
+is at most `4*10^12` and a strength has absolute value at most `5*10^12`.
+Python uses integer arithmetic. Explicit empty slots avoid evaluating a fake
+infinite line. Equal slopes and a single distinct coordinate need no special
+intersection division.
+
+## Common mistakes and targeted tests
+
+Do not clamp negative strengths to zero, evaluate at compressed ranks, assume
+sorted input, or insert transmitters only after answering some receivers.
+Fixed cases cover negative-only answers, equal slopes, a single query coordinate,
+ties, and large signed products. The random oracle evaluates the original
+parabolic formula for every pair. Full-size tests have many different winning
+transmitters and many equal slopes with large positive and negative answers.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/s_parabolic_signals/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/s_parabolic_signals/solution.py >}}
+```
+
 # Testing discussion
 
-Use a slow mex DFS on tiny DAGs, brute-force congruence search on small moduli,
-and iterative Fibonacci as independent oracles. Check CRT normalization into
-`[0,lcm)`, zero Fibonacci, and a DAG vertex with no outgoing edges.
+The seven new packages use independent small oracles: explicit rotations,
+exhaustive substring partitions, enumerated cuts, traversals from every tree
+receiver, full subset masks, all warehouse cut combinations and positions,
+and direct parabolic evaluations. None calls a reference solution to obtain
+its expected outputs. Each also supplies fixed edge cases and two full-limit
+performance workloads with construction-based answers.
 
-Random tests compare C++ and Python against fixed expected outputs generated from the reference implementation. Important cases include singletons, negative numbers where allowed, repeated values, and boundary query sizes.
+Run all nineteen references in both languages with the standard section
+checker. Performance cases are included even when randomized testing is
+disabled through the underlying judge's `--random-count 0` option. A fast
+implementation should pass both oracle and performance cases; neither class
+of test substitutes for the other.
+
+For the older packages, also compare tiny games with direct mex evaluation,
+CRT with brute-force residue search, Fibonacci with iterative recurrence,
+and optimization tasks with their direct formulations. Keep impossible cases,
+empty selections, repeated values, negative quantities, and large products
+as separate regression targets.
+
+# What to carry forward
+
+Identify the exact objects being counted or optimized before choosing the
+structure. Preserve multiplicities when counting, distinguish state IDs from
+string lengths, and prove reductions in both directions. Greedy choices and
+restricted DP searches need their own proofs. Finally, choose tests that expose
+the proposed algorithm's failure modes at both small and maximum input sizes.

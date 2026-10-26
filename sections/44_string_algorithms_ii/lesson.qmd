@@ -356,6 +356,11 @@ Hashing is `O(1)` per query after `O(n)` preprocessing, but it is
 probabilistic. Manacher's algorithm and palindromic trees are the deterministic
 alternatives. When the constraints permit the direct check, prefer it.
 
+Problem B allows `n, q <= 200000`. Scanning every selected range could
+therefore examine about `40000000000` characters. A direct scan is a useful
+small-input oracle, but the exercise requires preprocessing so that long
+queries can be answered without reading all their characters again.
+
 ## Rolling hash: reusable implementation
 
 The direct scan can inspect `O(n)` characters per query, for `O(n*q)` total
@@ -984,9 +989,14 @@ split. In this example, `link[4]` inherits the old `link[2] = 0`.
 #### Operation 2: redirect the incoming character transitions for the shorter strings
 
 ```cpp
-while (p != -1 && states[p].next.count(ch)
-       && states[p].next[ch] == q) {
-    states[p].next[ch] = clone;
+while (p != -1) {
+    auto it = states[p].next.find(ch);
+    // Every shorter suffix also has a ch transition.
+    assert(it != states[p].next.end());
+    if (it->second != q) {
+        break;
+    }
+    it->second = clone;
     p = states[p].link;
 }
 ```
@@ -1001,6 +1011,22 @@ The code finds exactly these shorter contexts by following suffix links from
 `p`. While a `ch` transition still points to `q`, redirect it to the clone.
 Stop at -1 or at an ancestor whose transition no longer points to `q`.
 The other incoming arrows continue to point to the longer group in `q`.
+
+**An existing transition is guaranteed here.** The first loop has already
+found a string `P + ch` occurring in the old text. Every shorter suffix
+`S + ch` also occurs there, so every suffix-link ancestor reached during
+redirection has a `ch` transition. The assertion states this invariant;
+a missing transition would indicate a construction bug, not a normal stopping
+condition. This guarantee applies to the redirection loop, not to the first
+loop that adds missing transitions.
+
+**The destination need not remain `q`.** Keep `q` fixed as `p` moves up its
+suffix links. Shorter strings ending in `ch` can have additional ending
+positions. Once a transition reaches a different group, that group has
+strictly more ending positions than the original group of `q`. Still shorter
+suffixes retain these extra positions, so none can return to `q`. This is why
+the single `break` stops the entire redirection search rather than skipping
+one ancestor.
 
 #### Operation 3: make the clone the suffix-link parent of `q`
 

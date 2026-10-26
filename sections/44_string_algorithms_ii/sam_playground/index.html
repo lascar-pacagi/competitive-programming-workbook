@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Construisez un suffix automaton au pas a pas : code C++, variables, transitions et clones.">
+<title>SAM - Construction pas a pas</title>
+<style>
+:root{color-scheme:light;--paper:#f6f5f0;--card:#fff;--ink:#172c37;--muted:#63767d;--line:#dce3e2;--teal:#17796b;--teal-soft:#e5f2ed;--orange:#b05b13;--orange-soft:#fff0d8;--blue:#365fbb;--blue-soft:#ebf0ff;--red:#a63745;--shadow:0 3px 16px #223b4510}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.42}button,input,select{border:1px solid var(--line);border-radius:8px}button{background:#fff;padding:8px 12px;color:var(--ink);font-weight:600;white-space:nowrap}button:hover:not(:disabled){border-color:var(--teal);background:#f2f8f5}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #c4a244;outline-offset:3px}input,select{padding:9px 11px;background:white;color:var(--ink);min-width:0}input{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}button.primary{background:var(--teal);border-color:var(--teal);color:white}button.primary:hover:not(:disabled){background:#106052}button.soft{background:var(--teal-soft);border-color:#c0dcd2;color:#165d51}button.icon{min-width:36px;padding:6px 10px}.app{max-width:1700px;margin:auto;padding:22px 30px 36px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.brand{display:flex;align-items:center;gap:10px;font-weight:750;letter-spacing:.035em}.brand-icon{width:30px;height:30px}.top-note{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:30px;padding:4px 10px}.intro{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:20px}h1{font-size:clamp(25px,2.5vw,36px);font-weight:650;line-height:1.16;letter-spacing:-.04em;margin:0 0 8px}h2{font-size:15px;margin:0;letter-spacing:-.015em}p{margin:0}.subtitle{color:var(--muted);max-width:760px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.input-card{padding:15px 17px;margin-bottom:14px}.input-row{display:grid;grid-template-columns:minmax(190px,1fr) auto 140px minmax(130px,.4fr) auto;gap:9px;align-items:end}.field{display:flex;flex-direction:column;gap:5px}.field>span,.field>label{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.075em;color:var(--muted)}.input-row input,.input-row select{width:100%}.append-field{border-left:1px solid var(--line);padding-left:16px}.input-help{font-size:12px;color:var(--muted);margin-top:9px;min-height:18px}.input-help.error{color:var(--red)}.transport{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 0}.transport-left,.transport-right{display:flex;align-items:center;gap:7px}.speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.speed input{width:82px;padding:0;accent-color:var(--teal)}.step-count{font-size:12px;color:var(--muted);min-width:130px;text-align:right;font-variant-numeric:tabular-nums}.workspace{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(340px,.8fr);gap:14px;align-items:start}.workspace>*{min-width:0}.graph-card{overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);min-height:53px}.panel-tools{display:flex;gap:6px;align-items:center}.toggle{font-size:12px;display:flex;align-items:center;gap:5px;color:var(--muted);white-space:nowrap}.toggle input{accent-color:var(--blue);margin:0}.mini-button{font-size:12px;padding:4px 8px}.status-pill{font-size:11px;font-weight:700;letter-spacing:.02em;border-radius:30px;padding:4px 9px;background:var(--teal-soft);color:var(--teal);white-space:nowrap}.status-pill.pending{background:var(--orange-soft);color:var(--orange)}.text-track{display:flex;gap:5px;align-items:center;padding:14px 16px;overflow-x:auto;border-bottom:1px solid #edf0ee;min-height:65px}.text-char{display:inline-flex;flex:none;flex-direction:column;text-align:center;min-width:28px}.text-char b{font:600 17px/30px ui-monospace,SFMono-Regular,Consolas,monospace;border-radius:5px;background:#f1f2ee;color:#7b898b;border:1px solid transparent}.text-char small{font-size:9px;color:#7b898b}.text-char.done b{background:var(--teal-soft);color:var(--teal)}.text-char.current b{background:var(--orange-soft);color:var(--orange);border-color:#dba25f}.empty-text{font-size:12px;color:var(--muted)}.graph-viewport{height:330px;overflow:auto;background:radial-gradient(#dfe6e3 .7px,transparent .7px);background-size:18px 18px;scrollbar-width:thin}.graph-viewport svg{display:block;touch-action:pan-x pan-y}.graph-node{cursor:pointer}.graph-node:focus{outline:none}.graph-node:focus rect{stroke-width:3}.graph-node:hover rect{filter:brightness(.97)}.graph-legend{display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:10px 16px;font-size:11px;color:#556970;border-top:1px solid var(--line)}.legend-dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:#e5eae7;border:1px solid #849a93}.legend-dot.new{background:#ffe1b8;border-color:#bc6a22}.legend-dot.clone{background:#dbe5ff;border-color:#466ac7}.legend-line{display:inline-block;width:17px;margin-right:5px;border-top:2px dashed var(--blue);vertical-align:middle}.explanation{padding:13px 16px;background:#fbfcfa;border-top:1px solid var(--line);min-height:90px}.eyebrow{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:750;letter-spacing:.09em;margin-bottom:5px}.explanation-text{font-size:13px;line-height:1.6}.metrics{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line)}.metric{padding:11px 16px;border-right:1px solid var(--line)}.metric:last-child{border-right:0}.metric strong{display:block;font-size:20px;line-height:1.2;font-weight:650;font-variant-numeric:tabular-nums}.metric small{font-size:10px;color:var(--muted)}.code-card{overflow:hidden}.code-label{font-size:11px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.code-pane{height:505px;overflow:auto;scrollbar-width:thin;padding:10px 0;background:#fbfcfd;tab-size:4}.code-line{display:flex;align-items:baseline;min-height:23px;white-space:pre;border-left:3px solid transparent;font:11.5px/23px ui-monospace,SFMono-Regular,Consolas,monospace;padding-right:14px}.line-number{color:#97a5ab;display:inline-block;min-width:36px;text-align:right;padding-right:12px;user-select:none;font-size:10px}.code-line.active{background:#fff0d8;border-left-color:#c47a28}.code-line.active .line-number{color:#985912;font-weight:750}.kw{color:#7046a4}.num{color:#975b20}.comment{color:#667d86}.code-note{font-size:11px;color:var(--muted);padding:9px 15px;border-top:1px solid var(--line)}.variables{margin-top:14px;padding:13px 16px}.variables-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.sentinel-note{font-size:11px;color:var(--muted)}.var-grid{display:grid;grid-template-columns:repeat(8,minmax(68px,1fr));gap:7px}.var{border:1px solid var(--line);border-radius:7px;background:#fafbf9;padding:7px 10px;min-height:60px}.var.changed{border-color:#d39a55;background:#fff7e9}.var-name{font:11px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--muted);display:block}.var-value{font:600 18px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;display:block}.var.negative .var-value{color:var(--red)}.copied{margin-top:8px;font:11px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--muted);overflow-wrap:anywhere}.state-section{margin-top:14px;overflow:hidden}.table-wrap{overflow:auto;max-height:270px}table{width:100%;border-collapse:collapse;font-size:12px;text-align:left}th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:#fafbf9;position:sticky;top:0;z-index:1}th,td{padding:9px 13px;border-bottom:1px solid #edf0ee;white-space:nowrap}tbody tr{cursor:pointer}tbody tr:hover{background:#f2f7f4}tbody tr.selected{background:var(--blue-soft)}td.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.inspector{padding:12px 16px;background:#f8faf7;min-height:75px;font-size:12px;border-top:1px solid var(--line)}.inspector strong{color:#223c47}.inspector .warning{color:#9c5620}.timeline{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:11px;color:var(--muted)}.timeline input{width:100%;accent-color:var(--teal);padding:0}.footer{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-top:17px;font-size:11px;color:var(--muted)}kbd{font:10px ui-monospace,SFMono-Regular,Consolas,monospace;border:1px solid #cdd8d3;border-radius:3px;padding:1px 4px;background:white}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(min-width:1450px){.graph-viewport{height:375px}.code-pane{height:550px}.code-line{font-size:12px}}@media(max-width:1000px){.app{padding:18px}.workspace{grid-template-columns:minmax(0,1fr) minmax(300px,.8fr)}.input-row{grid-template-columns:minmax(170px,1fr) auto 115px}.append-field{grid-column:1/3;border-left:0;padding-left:0}.var-grid{grid-template-columns:repeat(4,1fr)}.intro{display:block}}@media(max-width:740px){.app{padding:14px 10px 25px}.top{margin-bottom:16px}.top-note{display:none}.workspace{grid-template-columns:1fr}.input-row{grid-template-columns:minmax(120px,1fr) auto}.input-row>.field:nth-child(3){grid-column:1/3}.append-field{grid-column:1}.input-row>.field:nth-child(3) select{padding:6px 10px}.transport{gap:10px}.transport-left{flex-wrap:wrap;gap:5px}.transport button{font-size:12px;padding:8px}.transport-right{width:100%;justify-content:space-between}.code-pane{height:290px}.graph-viewport{height:300px}.panel-head{padding:11px 12px}.toggle{font-size:10px}.graph-legend{gap:10px}.variables{padding:12px}.sentinel-note{display:none}.var-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.var{padding:6px}.var-name{font-size:10px}.metric{padding:10px 12px}.metric strong{font-size:18px}.footer{display:block}.footer p+p{margin-top:7px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="top"><div class="brand"><svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M8 9h15M8 9v15h15" fill="none" stroke="#17796b" stroke-width="1.5"/><rect x="3" y="4" width="10" height="10" rx="3" fill="#17796b"/><rect x="20" y="5" width="8" height="8" rx="2" fill="#cde4d9" stroke="#17796b"/><rect x="20" y="20" width="8" height="8" rx="2" fill="#ffe1b8" stroke="#ad6d25"/></svg>SAM <span style="font-weight:400;color:#899b9b">/</span> PAS A PAS</div><div class="top-note">Section 44 &middot; String algorithms</div></header>
+<div class="intro"><div><h1>Construire un suffix automaton</h1><p class="subtitle">Une instruction a la fois. Suivez les variables, les transitions et la creation des clones.</p></div></div>
+<section class="card input-card" aria-label="Texte a construire">
+<form id="input-form" class="input-row"><label class="field"><span>Chaine d'entree</span><input id="source-input" value="abcbc" aria-label="Chaine d'entree" spellcheck="false" autocomplete="off"></label><button type="submit" class="soft" id="load-button">Charger</button><label class="field"><span>Exemples</span><select id="preset" aria-label="Choisir un exemple"><option value="">Choisir...</option><option value="aba">aba</option><option value="abb">abb</option><option value="abcbc">abcbc</option><option value="abcbcd">abcbcd</option><option value="banana">banana</option><option value="abcbcac">abcbcac</option></select></label><label class="field append-field"><span>Prolonger le texte</span><input id="append-input" placeholder="ex. d" aria-label="Caracteres a ajouter" spellcheck="false" autocomplete="off"></label><button type="button" id="append-button">Ajouter</button></form>
+<p class="input-help" id="input-help">Chargez votre texte, puis avancez. Vous pouvez ajouter des caracteres a tout moment.</p>
+</section>
+<nav class="transport" aria-label="Commandes de lecture"><div class="transport-left"><button id="reset-button" title="Revenir au debut de la construction">Recommencer</button><button id="prev-button" aria-label="Instruction precedente">&larr;</button><button id="play-button">Lecture</button><button id="next-button" class="primary">Instruction &rarr;</button><button id="letter-button">Fin de lettre &rsaquo;</button></div><div class="transport-right"><label class="speed">Vitesse<input id="speed" type="range" min="100" max="1400" step="100" value="600" aria-label="Delai entre les instructions"><span id="speed-label">600 ms</span></label><span class="step-count" id="step-count">Etape 0</span></div></nav>
+<div class="workspace">
+<div>
+<section class="card graph-card" aria-label="Automate en cours de construction"><div class="panel-head"><h2>L'automate</h2><div class="panel-tools"><label class="toggle"><input type="checkbox" id="show-links" checked>Liens suffixes</label><button class="mini-button" id="zoom-out" aria-label="Reduire le graphe">-</button><button class="mini-button" id="zoom-in" aria-label="Agrandir le graphe">+</button><button class="mini-button" id="zoom-fit">Ajuster</button></div></div><div class="text-track" id="text-track" aria-label="Progression dans le texte"></div><div class="graph-viewport" id="graph-viewport"><svg id="graph" role="img" aria-label="Graphe de l'automate"></svg></div><div class="graph-legend"><span><i class="legend-dot"></i>Etat</span><span><i class="legend-dot new"></i>Nouveau / modifie</span><span><i class="legend-dot clone"></i>Clone</span><span><i class="legend-line"></i>Suffix link</span><span style="margin-left:auto">Cliquez sur un etat</span></div><div class="explanation"><div class="eyebrow">Ce qui se passe <span id="phase" class="status-pill" style="float:right">Pret</span></div><p id="explanation" class="explanation-text" aria-live="polite"></p></div><div class="metrics"><div class="metric"><strong id="state-count">1</strong><small>etats, racine incluse</small></div><div class="metric"><strong id="transition-count">0</strong><small>transitions de lecture</small></div><div class="metric"><strong id="distinct-count">0</strong><small id="distinct-label">sous-chaines distinctes</small></div></div></section>
+<section class="card variables" aria-label="Valeurs des variables"><div class="variables-top"><h2>Les variables</h2><span class="sentinel-note">0 est la racine &middot; -1 est une sentinelle</span></div><div class="var-grid" id="variables"></div><div class="copied" id="copied"></div></section>
+</div>
+<section class="card code-card" aria-label="Code C++"><div class="panel-head"><h2>Le code</h2><span class="code-label">C++ &middot; extend(ch)</span></div><div class="code-pane" id="code-pane" tabindex="0" aria-label="Code C++ avec ligne active"><div id="code"></div></div><p class="code-note">La ligne coloree vient d'etre executee ou sa condition vient d'etre evaluee.</p></section>
+</div>
+<div class="timeline"><label for="timeline">Historique</label><input type="range" id="timeline" min="0" max="0" value="0" aria-label="Parcourir les instructions deja executees"><span id="history-count">0</span></div>
+<section class="card state-section" aria-label="Table des etats"><div class="panel-head"><h2>Dans chaque etat</h2><span class="code-label" id="table-note">Automate vide</span></div><div class="table-wrap"><table><thead><tr><th>Etat</th><th>len</th><th>link</th><th>Transitions next</th><th>Sous-chaines representees</th></tr></thead><tbody id="state-table"></tbody></table></div><div class="inspector" id="inspector"></div></section>
+<footer class="footer"><p><kbd>&larr;</kbd> retour &nbsp; <kbd>&rarr;</kbd> instruction &nbsp; <kbd>Espace</kbd> lecture / pause</p><p>Texte et calculs dans votre navigateur &middot; Page utilisable hors ligne</p></footer>
+</main>
+<script id="sam-core">
+"use strict";
+(() => {
+const CODE = [
+'void extend(char ch) {',
+'    int cur = states.size();',
+'    states.push_back(State{});',
+'    states[cur].len = states[last].len + 1;',
+'    int p = last;',
+'    while (p != -1 && !states[p].next.count(ch)) {',
+'        states[p].next[ch] = cur;',
+'        p = states[p].link;',
+'    }',
+'    if (p == -1) {',
+'        states[cur].link = 0;',
+'    } else {',
+'        int q = states[p].next[ch];',
+'        if (states[p].len + 1 == states[q].len) {',
+'            states[cur].link = q;',
+'        } else {',
+'            int clone = states.size();',
+'            State copied = states[q];',
+'            copied.len = states[p].len + 1;',
+'            states.push_back(copied);',
+'            while (p != -1 && states[p].next.count(ch)',
+'                   && states[p].next[ch] == q) {',
+'                states[p].next[ch] = clone;',
+'                p = states[p].link;',
+'            }',
+'            states[q].link = clone;',
+'            states[cur].link = clone;',
+'        }',
+'    }',
+'    last = cur;',
+'}'
+];
+const blankVars = () => ({ch:null,cur:null,p:null,q:null,clone:null,copied:null});
+function createMachine() {
+  return {states:[{len:0,link:-1,next:{},firstPos:0,cloneOf:null}],last:0,text:[],vars:blankVars(),line:null,phase:'ready',message:'La racine 0 represente la chaine vide. Avancez pour commencer la premiere lettre.',change:null,distinct:0};
+}
+function frame(m) {
+  return {...m,vars:{...m.vars},text:m.text.slice()};
+}
+function update(m,v,patch) {
+  const states=m.states.slice();
+  states[v]={...states[v],...patch};
+  m.states=states;
+}
+function edge(m,v,ch,w) {
+  update(m,v,{next:{...m.states[v].next,[ch]:w}});
+}
+function countDistinct(states) {
+  return states.reduce((n,s,v)=>v===0?n:n+s.len-states[s.link].len,0);
+}
+function contains(states,pattern) {
+  let v=0;
+  for(const ch of Array.from(pattern)) {
+    if(!Object.hasOwn(states[v].next,ch))return false;
+    v=states[v].next[ch];
+  }
+  return true;
+}
+function* traceCharacter(m,ch) {
+  if(Array.from(ch).length!==1)throw new Error('Un seul caractere par appel.');
+  m.phase='active';m.vars={...blankVars(),ch};
+  function emit(line,message,change=null) {m.line=line;m.message=message;m.change=change;return frame(m);}
+  yield emit(1,'On ajoute '+JSON.stringify(ch)+' a la fin de '+JSON.stringify(m.text.join(''))+'.');
+  const cur=m.states.length;m.vars.cur=cur;
+  yield emit(2,'cur = '+cur+' : on reserve l\'identifiant du nouvel etat. Il n\'est pas encore cree.');
+  m.states=[...m.states,{len:0,link:-1,next:{},firstPos:m.text.length+1,cloneOf:null}];
+  yield emit(3,'L\'etat '+cur+' est cree avec len = 0, link = -1 et aucune transition.',{node:cur});
+  update(m,cur,{len:m.states[m.last].len+1});
+  yield emit(4,'len['+cur+'] = len['+m.last+'] + 1 = '+m.states[cur].len+'. C\'est la longueur du nouveau texte.',{node:cur});
+  let p=m.last;m.vars.p=p;
+  yield emit(5,'p = last = '+p+'. On commence par le groupe des plus longs suffixes.');
+  for(;;) {
+    const missing=p!==-1&&!Object.hasOwn(m.states[p].next,ch);
+    yield emit(6,p===-1?'p vaut -1 : on a depasse la racine, la boucle s\'arrete.':missing?'La transition '+p+' --'+JSON.stringify(ch)+'--> ? manque : on entre dans la boucle.':'La transition existe en '+p+' : on quitte la boucle. '+(p===0?'La racine 0 est un etat valide.':''));
+    if(!missing)break;
+    edge(m,p,ch,cur);
+    yield emit(7,'On ajoute '+p+' --'+JSON.stringify(ch)+'--> '+cur+'. On prolonge les chemins qui arrivaient deja en '+p+'.',{edge:{from:p,ch,to:cur}});
+    const from=p;p=m.states[p].link;m.vars.p=p;
+    yield emit(8,p===-1?'p = link[0] = -1. On vient de depasser la racine.':'p = link['+from+'] = '+p+'. '+(p===0?'On arrive a la racine : elle doit encore etre examinee.':'On passe au groupe des suffixes plus courts.'),{link:{from,to:p}});
+  }
+  yield emit(10,'p == -1 est '+(p===-1?'vrai : le lien du nouvel etat ira vers la racine.':'faux : on examine la transition deja existante.'));
+  if(p===-1) {
+    update(m,cur,{link:0});
+    yield emit(11,'Cas 1 : link['+cur+'] = 0. Le seul suffixe deja connu est la chaine vide.',{link:{from:cur,to:0}});
+  } else {
+    const q=m.states[p].next[ch];m.vars.q=q;
+    yield emit(13,'q = next['+p+']['+JSON.stringify(ch)+'] = '+q+'. C\'est la destination de la transition existante.',{edge:{from:p,ch,to:q}});
+    const fits=m.states[p].len+1===m.states[q].len;
+    yield emit(14,'len['+p+'] + 1 = '+(m.states[p].len+1)+' ; len['+q+'] = '+m.states[q].len+'. '+(fits?'Egalite : le groupe q convient.':'Le groupe q contient des chaines trop longues : il faut le scinder.'));
+    if(fits) {
+      update(m,cur,{link:q});
+      yield emit(15,'Cas 2 : link['+cur+'] = '+q+'. Aucun clone n\'est necessaire.',{link:{from:cur,to:q}});
+    } else {
+      const clone=m.states.length;m.vars.clone=clone;
+      yield emit(17,'Cas 3 : clone = '+clone+'. On reserve un etat pour les chaines courtes de q.');
+      let copied={...m.states[q],next:{...m.states[q].next},cloneOf:q};m.vars.copied=copied;
+      yield emit(18,'On copie q = '+q+', y compris ses transitions et son ancien lien suffixe. La copie est independante.');
+      copied={...copied,len:m.states[p].len+1};m.vars.copied=copied;
+      yield emit(19,'copied.len = len['+p+'] + 1 = '+copied.len+'. C\'est la frontiere entre les chaines courtes et longues.');
+      m.states=[...m.states,copied];
+      yield emit(20,'Le clone '+clone+' est cree. Il gardera les chaines courtes ; q = '+q+' gardera les longues.',{node:clone});
+      for(;;) {
+        const redirects=p!==-1&&Object.hasOwn(m.states[p].next,ch)&&m.states[p].next[ch]===q;
+        yield emit(21,p===-1?'p vaut -1 : fin des redirections.':redirects?'La transition depuis '+p+' pointe encore vers q = '+q+' : on la redirige.':'La transition depuis '+p+' ne pointe plus vers q : fin des redirections.');
+        if(!redirects)break;
+        edge(m,p,ch,clone);
+        yield emit(23,'On redirige '+p+' --'+JSON.stringify(ch)+'--> '+clone+' (ancienne destination : '+q+').',{edge:{from:p,ch,to:clone,oldTo:q}});
+        const from=p;p=m.states[p].link;m.vars.p=p;
+        yield emit(24,'p = link['+from+'] = '+p+'. On cherche un contexte encore plus court.',{link:{from,to:p}});
+      }
+      update(m,q,{link:clone});
+      yield emit(26,'link['+q+'] = '+clone+'. Les chaines longues de q ont maintenant le clone comme prochain groupe suffixe.',{link:{from:q,to:clone}});
+      update(m,cur,{link:clone});
+      yield emit(27,'link['+cur+'] = '+clone+'. Le nouveau texte rejoint aussi le groupe des chaines courtes.',{link:{from:cur,to:clone}});
+    }
+  }
+  m.last=cur;m.text=[...m.text,ch];m.phase='complete';m.distinct=countDistinct(m.states);
+  yield emit(30,'last = '+cur+'. La lettre est terminee : le texte indexe est '+JSON.stringify(m.text.join(''))+'. Les paquets sont de nouveau coherents.',{node:cur});
+}
+function wordsInState(f,v,limit=5) {
+  if(v===0)return {words:[''],total:1,pending:false};
+  const s=f.states[v],parent=f.states[s.link];
+  if(!parent||s.len<=parent.len)return {words:[],total:0,pending:true};
+  const text=f.phase==='active'?[...f.text,f.vars.ch]:f.text;
+  const min=parent.len+1,total=s.len-parent.len,words=[];
+  for(let size=min;size<=s.len&&words.length<limit;size++)words.push(text.slice(s.firstPos-size,s.firstPos).join(''));
+  return {words,total,pending:false};
+}
+function endings(text,word) {
+  const chars=Array.from(word),result=[];
+  if(!chars.length)return Array.from({length:text.length+1},(_,i)=>i);
+  outer:for(let i=0;i+chars.length<=text.length;i++) {
+    for(let j=0;j<chars.length;j++)if(text[i+j]!==chars[j])continue outer;
+    result.push(i+chars.length);
+  }
+  return result;
+}
+globalThis.SAM={CODE,createMachine,frame,traceCharacter,countDistinct,contains,wordsInState,endings};
+})();
+</script>
+<script id="sam-ui">
+"use strict";
+(() => {
+const $=id=>document.getElementById(id);
+const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let target=Array.from('abcbc'),machine=SAM.createMachine(),history=[SAM.frame(machine)],cursor=0,generator=null,timer=null,selected=0,zoom=1,lastGeometry=null,lastGraphCursor=-1;
+const source=$('source-input'),append=$('append-input');
+const code=$('code');
+code.innerHTML=SAM.CODE.map((line,i)=>'<div class="code-line" data-line="'+(i+1)+'"><span class="line-number">'+(i+1)+'</span><span>'+esc(line).replace(/\b(void|char|int|while|if|else|State)\b/g,'<span class="kw">$1</span>')+'</span></div>').join('');
+function current(){return history[cursor];}
+function canAdvance(){return cursor<history.length-1||machine.text.length<target.length||(!!generator&&machine.phase==='active');}
+function pause(){if(timer!==null){clearInterval(timer);timer=null;}$('play-button').textContent='Lecture';$('play-button').setAttribute('aria-pressed','false');}
+function tick(render=true) {
+  if(cursor<history.length-1){cursor++;if(render)draw();return true;}
+  if(!generator){if(machine.text.length>=target.length){pause();return false;}generator=SAM.traceCharacter(machine,target[machine.text.length]);}
+  let next=generator.next();
+  if(next.done){generator=null;return tick(render);}
+  history.push(next.value);cursor=history.length-1;
+  if(!canAdvance())pause();
+  if(render)draw();
+  return true;
+}
+function previous(){pause();if(cursor>0){cursor--;draw();}}
+function reset(text=target.join('')){pause();target=Array.from(text);source.value=text;machine=SAM.createMachine();history=[SAM.frame(machine)];cursor=0;generator=null;selected=0;$('input-help').classList.remove('error');$('input-help').textContent='Texte charge. Avancez instruction par instruction ou utilisez Fin de lettre.';draw();$('graph-viewport').scrollTo(0,0);}
+function nextLetter(){pause();let steps=0;do{if(!tick(false))break;steps++;}while(current().phase!=='complete'&&steps<100000);draw();}
+function play(){if(timer!==null){pause();return;}if(!canAdvance())return;$('play-button').textContent='Pause';$('play-button').setAttribute('aria-pressed','true');timer=setInterval(()=>{if(!tick())pause();},Number($('speed').value));}
+function addText(){const text=append.value;if(!text){$('input-help').textContent='Saisissez un ou plusieurs caracteres a ajouter.';$('input-help').classList.add('error');append.focus();return;}target=[...target,...Array.from(text)];source.value=target.join('');append.value='';$('input-help').classList.remove('error');$('input-help').textContent=Array.from(text).length+' caractere(s) ajoute(s) a la suite. Votre position dans le pas a pas est conservee.';draw();}
+function variableValue(f,name){if(name==='last')return f.last;if(name==='len[p]+1')return f.vars.p!==null&&f.vars.p>=0?f.states[f.vars.p].len+1:null;if(name==='len[q]')return f.vars.q!==null?f.states[f.vars.q].len:null;return f.vars[name];}
+function drawVariables(f){const before=cursor>0?history[cursor-1]:null;const names=['ch','cur','p','q','clone','last','len[p]+1','len[q]'];$('variables').innerHTML=names.map(name=>{const v=variableValue(f,name),prev=before?variableValue(before,name):v;return '<div class="var'+(v!==prev?' changed':'')+(v===-1?' negative':'')+'"><span class="var-name">'+esc(name)+'</span><span class="var-value" title="'+esc(v===null?'non defini':JSON.stringify(v))+'">'+(v===null?'&mdash;':esc(typeof v==='string'?JSON.stringify(v):v))+'</span></div>';}).join('');const c=f.vars.copied;$('copied').textContent=c?'copied = { len: '+c.len+', link: '+c.link+', next: '+JSON.stringify(c.next)+' }':'copied : aucune copie en cours';}
+function formatWords(info){if(info.pending)return 'Lien suffixe en attente';return info.words.map(w=>JSON.stringify(w)).join(', ')+(info.total>info.words.length?' ... ('+info.total+' chaines)':'');}
+function drawTable(f){if(selected>=f.states.length)selected=0;$('table-note').textContent=f.phase==='active'?'Paquets provisoires pendant cette mise a jour':f.text.length?'Paquets coherents pour '+JSON.stringify(f.text.join('')):'Automate vide';$('state-table').innerHTML=f.states.map((s,v)=>{const info=SAM.wordsInState(f,v);const transitions=Object.entries(s.next).map(([ch,w])=>JSON.stringify(ch)+' : '+w).join(' ; ')||'--';return '<tr data-state="'+v+'" tabindex="0" class="'+(selected===v?'selected':'')+'" aria-label="Inspecter l\'etat '+v+'"><td class="mono">'+v+(s.cloneOf!==null?' (clone de '+s.cloneOf+')':'')+'</td><td class="mono">'+s.len+'</td><td class="mono">'+s.link+'</td><td class="mono">'+esc(transitions)+'</td><td class="mono">'+esc(formatWords(info))+'</td></tr>';}).join('');drawInspector(f);}
+function drawInspector(f){const info=SAM.wordsInState(f,selected,6),text=f.phase==='active'?[...f.text,f.vars.ch]:f.text;let details='<strong>Etat '+selected+'</strong> &middot; ';if(info.pending){details+='Le lien suffixe n\'est pas encore attribue. Le paquet ne peut pas encore etre determine.';}else if(selected===0){details+='Chaine vide. len = 0, link = -1 : -1 est une sentinelle, pas un etat.';}else{const sets=info.words.map(w=>({word:w,positions:SAM.endings(text,w)}));const inconsistent=sets.some(s=>JSON.stringify(s.positions)!==JSON.stringify(sets[0].positions));details+=sets.map(s=>esc(JSON.stringify(s.word))+' se termine en {'+s.positions.join(', ')+'}').join(' &middot; ');if(info.total>sets.length)details+=' &middot; premiers elements du paquet';if(inconsistent)details+='<br><span class="warning">Le groupe est encore incoherent : ces chaines n\'ont pas les memes positions de fin. La mise a jour doit retablir cet invariant.</span>';else if(f.phase==='active')details+='<br><span class="warning">Mise a jour en cours : les paquets sont provisoires jusqu\'a last = cur.</span>';else details+='<br>Contribution : '+f.states[selected].len+' - '+f.states[f.states[selected].link].len+' = '+info.total+' sous-chaine(s).';}$('inspector').innerHTML=details;}
+function selectState(v){selected=v;drawTable(current());drawGraph(current());}
+function geometry(f){const rows=new Map(),nodes=[];for(let v=0;v<f.states.length;v++){const s=f.states[v];const row=rows.get(s.len)||0;rows.set(s.len,row+1);nodes.push({v,x:110+s.len*186,y:120+row*160});}const maxRow=Math.max(0,...Array.from(rows.values()).map(n=>n-1));return {nodes,width:Math.max(650,...nodes.map(n=>n.x+100)),height:Math.max(300,225+maxRow*160+60)};}
+function drawGraph(f){const geo=geometry(f);lastGeometry=geo;const {nodes,width,height}=geo;const svg=$('graph');svg.setAttribute('viewBox','0 0 '+width+' '+height);svg.style.width=(width*zoom)+'px';svg.style.height=(height*zoom)+'px';const defs='<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#647a80"/></marker><marker id="changed-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#b86a1d"/></marker><marker id="link-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#456cbe"/></marker></defs>';let links='',edges='',boxes='';if($('show-links').checked){for(const a of nodes){const p=f.states[a.v].link;if(p<0)continue;const b=nodes[p],active=f.change&&f.change.link&&f.change.link.from===a.v;const top=Math.max(15,38-(a.v%3)*10);const d='M '+a.x+' '+(a.y-38)+' C '+a.x+' '+top+', '+b.x+' '+top+', '+b.x+' '+(b.y-38);links+='<path d="'+d+'" fill="none" stroke="#456cbe" stroke-width="'+(active?3:1.4)+'" stroke-dasharray="5 5" marker-end="url(#link-arrow)" opacity="'+(active?1:.65)+'"><title>link['+a.v+'] = '+p+'</title></path>';}}
+let longEdge=0;for(const a of nodes){for(const [ch,to]of Object.entries(f.states[a.v].next)){const b=nodes[to];const changed=f.change&&f.change.edge&&f.change.edge.from===a.v&&f.change.edge.ch===ch;let d,lx,ly;const dx=b.x-a.x;if(dx<=0){const lane=Math.max(a.y,b.y)+85;d='M '+a.x+' '+(a.y+38)+' C '+a.x+' '+lane+', '+b.x+' '+lane+', '+b.x+' '+(b.y+38);lx=(a.x+b.x)/2;ly=lane-10;}else if(a.y===b.y&&dx>220){const lane=height-32-(longEdge++%3)*18;d='M '+a.x+' '+(a.y+38)+' C '+a.x+' '+lane+', '+b.x+' '+lane+', '+b.x+' '+(b.y+38);lx=(a.x+b.x)/2;ly=.25*(a.y+38)+.75*lane;}else{const start=a.x+67,end=b.x-67,mid=(start+end)/2;d='M '+start+' '+a.y+' C '+mid+' '+a.y+', '+mid+' '+b.y+', '+end+' '+b.y;lx=mid;ly=(a.y+b.y)/2;}const label=ch===' '?'espace':ch;const labelWidth=Math.max(23,Math.min(100,Array.from(label).length*9+12));edges+='<g><path d="'+d+'" fill="none" stroke="'+(changed?'#b86a1d':'#647a80')+'" stroke-width="'+(changed?2.7:1.7)+'" marker-end="url(#'+(changed?'changed-arrow':'arrow')+')"/><rect x="'+(lx-labelWidth/2)+'" y="'+(ly-11)+'" width="'+labelWidth+'" height="22" rx="5" fill="white" stroke="'+(changed?'#d2a067':'#dce3e2')+'"/><text x="'+lx+'" y="'+(ly+4)+'" text-anchor="middle" font-size="12" fill="#263e48">'+esc(label)+'</text><title>next['+a.v+']['+esc(JSON.stringify(ch))+'] = '+to+(changed&&f.change.edge.oldTo!==undefined?' ; ancienne destination '+f.change.edge.oldTo:'')+'</title></g>';}}
+for(const n of nodes){const s=f.states[n.v],info=SAM.wordsInState(f,n.v,2),isNew=f.change&&f.change.node===n.v,isLast=n.v===f.last;let fill=s.cloneOf!==null?'#e5ecff':n.v===0?'#edf1ed':'#fff',stroke=s.cloneOf!==null?'#5a78c0':'#8b9d9d';if(isNew){fill='#fff0d8';stroke='#bc782d';}if(n.v===selected)stroke='#17796b';let word=info.pending?'link en attente':n.v===0?'chaine vide':info.words.map(w=>w===''?'vide':w).join(', ');if(Array.from(word).length>18)word=Array.from(word).slice(0,16).join('')+'...';if(info.total>2&&!info.pending)word+=' ...';const badges=[isLast?'last':'',f.vars.p===n.v?'p':'',f.vars.q===n.v?'q':'',f.vars.cur===n.v?'cur':'',f.vars.clone===n.v?'clone':''].filter(Boolean).join(' / ');boxes+='<g class="graph-node" data-state="'+n.v+'" tabindex="0" role="button" aria-label="Inspecter l\'etat '+n.v+'" transform="translate('+(n.x-67)+','+(n.y-38)+')"><rect width="134" height="76" rx="11" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+(n.v===selected?2.8:1.6)+'"/><text x="67" y="23" text-anchor="middle" font-size="14" font-weight="700" fill="#263e48">'+(s.cloneOf!==null?'Clone ':'Etat ')+n.v+'</text><text x="67" y="43" text-anchor="middle" font-size="10.5" fill="#465d66">len '+s.len+' &middot; link '+s.link+'</text><text x="67" y="62" text-anchor="middle" font-size="10.5" fill="#465d66">'+esc(word)+'</text>'+(badges?'<text x="67" y="94" text-anchor="middle" font-size="10" font-weight="700" fill="#9c5d22">'+esc(badges)+'</text>':'')+'</g>';}
+svg.innerHTML=defs+links+edges+boxes;svg.setAttribute('aria-label','Automate : '+nodes.length+' etats. '+(f.phase==='active'?'Mise a jour en cours.':'Construction coherente.'));if(lastGraphCursor!==cursor){lastGraphCursor=cursor;const focus=f.change?.node??f.change?.edge?.to??f.change?.link?.to??f.vars.p??f.last;const node=nodes[focus];if(node){const viewport=$('graph-viewport'),left=(node.x-80)*zoom,right=(node.x+80)*zoom;if(left<viewport.scrollLeft||right>viewport.scrollLeft+viewport.clientWidth)viewport.scrollLeft=Math.max(0,node.x*zoom-viewport.clientWidth/2);}}}
+function draw(){const f=current();$('text-track').innerHTML=target.length?target.map((ch,i)=>'<span class="text-char '+(i<f.text.length?'done':f.phase==='active'&&i===f.text.length?'current':'')+'"><b>'+esc(ch===' '?'_':ch)+'</b><small>'+(i+1)+'</small></span>').join(''):'<span class="empty-text">Chaine vide : seule la racine existe.</span>';$('explanation').textContent=f.message;$('phase').textContent=f.phase==='active'?'En cours':f.phase==='complete'?'Lettre terminee':'Pret';$('phase').classList.toggle('pending',f.phase==='active');$('state-count').textContent=f.states.length;$('transition-count').textContent=f.states.reduce((n,s)=>n+Object.keys(s.next).length,0);$('distinct-count').textContent=f.distinct;$('distinct-label').textContent=f.phase==='active'?'distinctes avant cette lettre':'sous-chaines distinctes';$('step-count').textContent='Etape '+cursor+' / '+(history.length-1);$('history-count').textContent=cursor;$('timeline').max=history.length-1;$('timeline').value=cursor;$('timeline').disabled=history.length===1;$('prev-button').disabled=cursor===0;$('next-button').disabled=!canAdvance();$('letter-button').disabled=!canAdvance();$('play-button').disabled=!canAdvance();drawVariables(f);drawTable(f);drawGraph(f);const active=code.querySelector('.active');if(active){active.classList.remove('active');active.removeAttribute('aria-current');}if(f.line!==null){const row=code.querySelector('[data-line="'+f.line+'"]');row.classList.add('active');row.setAttribute('aria-current','step');const pane=$('code-pane');const r=row.getBoundingClientRect(),pr=pane.getBoundingClientRect();if(r.top<pr.top||r.bottom>pr.bottom)pane.scrollTop+=r.top-pr.top-pane.clientHeight/2+row.offsetHeight/2;}}
+$('input-form').addEventListener('submit',event=>{event.preventDefault();reset(source.value);});$('append-button').addEventListener('click',addText);append.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();addText();}});$('preset').addEventListener('change',event=>{if(event.target.value){reset(event.target.value);event.target.value='';}});$('reset-button').addEventListener('click',()=>reset());$('next-button').addEventListener('click',()=>{pause();tick();});$('prev-button').addEventListener('click',previous);$('letter-button').addEventListener('click',nextLetter);$('play-button').addEventListener('click',play);$('speed').addEventListener('input',()=>{$('speed-label').textContent=$('speed').value+' ms';if(timer!==null){pause();play();}});$('show-links').addEventListener('change',()=>drawGraph(current()));$('timeline').addEventListener('input',()=>{pause();cursor=Number($('timeline').value);draw();});$('zoom-in').addEventListener('click',()=>{zoom=Math.min(2.5,zoom+.15);drawGraph(current());});$('zoom-out').addEventListener('click',()=>{zoom=Math.max(.3,zoom-.15);drawGraph(current());});$('zoom-fit').addEventListener('click',()=>{if(lastGeometry)zoom=Math.max(.3,Math.min(1.5,($('graph-viewport').clientWidth-20)/lastGeometry.width));drawGraph(current());});for(const id of ['graph','state-table']){$(id).addEventListener('click',event=>{const item=event.target.closest('[data-state]');if(item)selectState(Number(item.dataset.state));});$(id).addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){const item=event.target.closest('[data-state]');if(item){event.preventDefault();selectState(Number(item.dataset.state));}}});}document.addEventListener('keydown',event=>{if(event.target.closest('input,textarea,select,button,[role="button"]'))return;if(event.key==='ArrowRight'){event.preventDefault();pause();tick();}else if(event.key==='ArrowLeft'){event.preventDefault();previous();}else if(event.code==='Space'){event.preventDefault();play();}});document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
+try{const params=new URLSearchParams(location.hash.slice(1));if(params.has('text'))target=Array.from(params.get('text'));}catch{}
+window.addEventListener('resize',()=>requestAnimationFrame(draw));
+source.value=target.join('');draw();
+// Small read-only debugging surface used by the offline UI checks.
+globalThis.samPlayground={getFrame:()=>current(),getTarget:()=>target.join(''),getCursor:()=>cursor,getHistoryLength:()=>history.length};
+})();
+</script>
+</body>
+</html>

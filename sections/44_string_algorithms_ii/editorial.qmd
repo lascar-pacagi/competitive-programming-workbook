@@ -9,7 +9,7 @@ format:
     documentclass: scrreprt
     papersize: a4
     toc: true
-    toc-depth: 2
+    toc-depth: 1
     number-sections: true
     colorlinks: true
     geometry:
@@ -25,343 +25,506 @@ execute:
 
 # Editorial overview
 
-## Problem-specific proof map
+The lesson develops the reusable structures; this editorial applies their
+invariants to the four local problems. Trie operations are in Chapter 2,
+rolling hash in Chapter 3, and the suffix automaton in Chapter 4, including
+its groups of ending positions, suffix links, and clone operations.
 
-**A. Trie Prefix Count.** Incrementing every trie node visited by an inserted
-word makes that node's count equal to the number of words sharing its prefix.
-Following a query prefix therefore returns the desired count in its length.
+| Problem | Local constraints | Main idea |
+| --- | --- | --- |
+| A. Trie Prefix Count | At most 200000 dictionary characters and 200000 query characters | Count dictionary entries passing through each prefix node |
+| B. Palindrome Queries | `n, q <= 200000` | Compare forward and mirrored reverse hashes |
+| C. Distinct Substrings | `n <= 200000` | Sum the sizes of the final SAM groups |
+| D. Unique Prefix Lengths | At most 200000 input characters | Find the first unique node on each word's trie path |
 
-**B. Palindrome Queries.** The local constraints permit direct mirrored
-comparison: a substring is a palindrome exactly when every symmetric pair is
-equal. This is `O(length)` per query and avoids probabilistic hash collisions.
-
-**C. Distinct Substrings.** The local task uses a suffix automaton. State `v`
-groups several substrings with the same ending positions. Its represented
-lengths run from `len[link[v]] + 1` through `len[v]`, one substring per length,
-so it contributes `len[v] - len[link[v]]` distinct substrings. For `aba`, the
-three non-root states represent `a`, then `b, ab`, then `ba, aba`: the answer
-is `1 + 2 + 2 = 5`. The derivation is detailed in problem C below.
-
-## Detailed solution guide
-
-**A. Trie Prefix Count.** Each trie node represents exactly one prefix: the
-string on the path from the root to that node. During insertion, increment
-`cnt` at the root and after moving to each next node. Therefore, after all
-insertions, `cnt[v]` is the number of dictionary words whose path passes
-through `v`, which is precisely the number of words with that prefix. A query
-walks the prefix characters; a missing edge means zero matches.
-
-**B. Palindrome Queries.** For the local constraints, comparing mirrored
-characters is the clearest exact solution. For substring `[l,r]`, compare
-`s[l]` with `s[r]`, then `s[l+1]` with `s[r-1]`, and so on. If all pairs match,
-the substring equals its reverse. If one pair differs, the two strings differ at
-a mirrored position, so it is not a palindrome. In a larger contest version,
-the same condition can be checked with forward and reverse rolling hashes.
-
-**C. Distinct Substrings.** The local solution is a suffix automaton. Each
-state contributes `len[v] - len[link[v]]` new substrings: these are exactly the
-lengths whose end-position class first appears at that state. Summing over
-non-root states gives the answer. Enumerating every substring into a set is
-correct only for tiny random tests used to validate the automaton.
-
-**Common pitfalls.** Trie counters count prefixes, not terminal words only.
-Palindrome queries must convert input indices consistently. For distinct
-substrings, enumeration is pedagogical and exact at small limits, but a suffix
-automaton is required for large external tasks.
-
-This section shows three string representations.
-
-- A uses a trie. Each inserted word increments counters on the nodes along its
-  path, so the counter at the prefix endpoint is exactly the number of words
-  with that prefix.
-- B checks palindromes by comparing mirrored characters. For larger limits this
-  can be replaced by forward/reverse hashes, but the local proof is exact.
-- C counts distinct substrings with a suffix automaton. The local invariant is
-  the contribution `len[v] - len[link[v]]` per non-root state; enumeration is
-  reserved for tiny brute-force tests.
-
-The lesson exposes each structure's operations independently of exercise input
-and output. Brute force is used as a testing oracle.
-
-The reusable C++ and Python implementations are in the lesson: trie operations
-in Chapter 2, rolling hash in Chapter 3, and suffix automaton in Chapter 4.
-This editorial focuses on the exercise-specific reasoning and proofs.
+The lesson contains reusable structure implementations. Each exercise below
+connects their invariants to its own algorithm, sample, proof, and complexity,
+then gives a complete C++ and Python program. The listings include the tested
+reference files directly, so the printed solutions and the local judge's
+reference code stay identical.
 
 # A. Trie Prefix Count
 
-## Restatement
+## Restatement and constraints
 
-Given dictionary words and prefix queries, count words having each prefix.
+For every query string, count the dictionary entries beginning with it.
+Entries are counted separately, so duplicate words contribute more than once.
+The whole word is one of its prefixes; queries never modify the dictionary.
 
-## Observations and algorithm
+Let `W` be the total dictionary length and `P` the total query length.
+Both are at most `200000`. Scanning the whole dictionary for each query can
+repeat far too much work. A trie shares the work for common prefixes.
 
-Each trie node is one prefix. Increment its counter for every inserted word
-visiting it; walk a query to its endpoint and return that counter, or zero on a
-missing edge. Inserting `apple, ape, bat` makes query `ap` return two.
+## Observation and algorithm
+
+The characters on the root-to-node path identify one prefix. Store
+`pass[v]`, the number of inserted dictionary entries whose path visits node
+`v`. Increment it for every entry, including another copy of an equal word.
+
+A query walks its characters from the root. If an edge is missing, no word
+has that prefix, so the answer is zero. Otherwise the final node's `pass`
+is exactly the required count. Count words passing through the node, not
+only words ending there.
+
+```text
+create an empty trie
+for each dictionary entry:
+    insert it, incrementing the pass counts on its path
+
+for each query prefix:
+    walk its characters from the root
+    if an edge is missing, answer 0
+    otherwise, answer the final node's pass count
+```
+
+## Sample walkthrough
+
+Insert `apple`, `ape`, `bat`, and `bar`:
+
+| Query | Entries sharing the prefix | Answer |
+| --- | --- | --- |
+| `ap` | `apple`, `ape` | 2 |
+| `app` | `apple` | 1 |
+| `b` | `bat`, `bar` | 2 |
+| `z` | None | 0 |
+
+If another `apple` were inserted, the `ap` count would become 3 and the
+`app` count would become 2. This is why insertion must preserve duplicates.
 
 ## Correctness proof
 
-After every insertion, a node counter equals the words with that node's prefix,
-so the query endpoint is exactly the requested count. QED.
+For a node representing prefix `p`, an inserted word visits the node exactly
+when it begins with `p`. Incrementing once per visited node and per input
+entry makes `pass[v]` equal to the number of entries beginning with `p`.
 
-## Complexity
+A successful query reaches precisely the node for its prefix, so returning
+that node's count is correct. If a query edge is absent, no inserted entry
+has the required character path, so returning zero is correct.
 
-Work is linear in total inserted and queried characters; memory is one node per
-distinct prefix.
+## Complexity and implementation notes
 
-## Tests that matter
+Building takes `O(W)` time and all queries together take `O(P)` time for the
+fixed lowercase alphabet. Trie storage is `O(W + 1)` nodes; a query costs
+`O(|prefix|)` time at most.
 
-Test duplicate words, one word that prefixes another, an absent prefix, and a
-one-character query.
+The lesson's `Trie.insert` and `Trie.count_prefix` provide these operations.
+Its implementation increments the root too, giving the empty prefix count
+`n`; local queries are nonempty. Its field is called `pass` in C++ and
+`passed` in Python; the lesson's introductory pseudocode calls it `cnt`.
+They express the same invariant.
+
+In C++, zero is the root index and also the missing-child marker. Every
+allocated child has a positive index, so the two uses are unambiguous.
+Keep indices rather than references when growing the node vector. In Python,
+use an independent dictionary for each node. Reading the entire input at
+once additionally stores `O(W + P)` input characters; queries may instead
+be read one at a time.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/a_trie_prefix_count/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/a_trie_prefix_count/solution.py >}}
+```
+
+## Common mistakes and useful tests
+
+Test a query equal to a whole word, a query longer than every word, an absent
+edge, duplicate dictionary entries, and one dictionary word that prefixes
+another. A terminal-word counter would answer the wrong question: a word
+continuing below a node still contributes to that node's prefix count.
 
 # B. Palindrome Queries
 
-The trie problem organized many dictionary words by their shared prefixes.
-Here the input is one fixed text, and each query selects a range inside it.
-The question is about the order of the selected characters: do we obtain the
-same string when reading them backward?
+## Restatement and constraints
 
-We turn that definition into a direct comparison algorithm. Chapter 3 of the
-lesson develops rolling hashes for larger query loads and provides their
-reusable implementations.
+For each selected substring, determine whether it reads the same forward
+and backward. The text is unchanged between queries.
 
-## Restatement
+Both `n` and `q` may reach `200000`. Scanning or copying each selected
+substring takes `O(n*q)` time in the worst case, about forty billion
+characters. We need preprocessing and constant-time range comparisons.
+The lesson's rolling hash provides these operations.
 
-A palindrome reads the same in both directions, such as `aca` or `abba`.
-For each selected range, determine whether its characters form a palindrome.
-The text stays unchanged.
+## Observation and algorithm
 
-## Observations and algorithm
+A palindrome is equal to its reverse. Build a rolling hash of `s` and
+another hash of the reversed full text. Every selected range corresponds
+to a mirrored range in that reversed text.
 
-The local bounds permit exact mirrored comparison. Compare the first and last
-characters of the selected part, then move inward and stop on a mismatch.
-In `abacaba`, positions 2 through 4 select `bac` (NO), while positions 3
-through 5 select `aca` (YES).
+The API `get(L, R)` is 0-based and half-open. Input endpoints `l, r` are
+1-based and inclusive, so set `L = l - 1` and `R = r`. The reversed range
+is `[n - R, n - L)`. The two ranges have the same length.
 
-## Correctness proof
+```text
+build the forward and reversed-text rolling hashes once
+for each input query l, r:
+    L = l - 1 and R = r
+    compare forward.get(L, R) with backward.get(n - R, n - L)
+    answer YES if both residues match, otherwise NO
+```
 
-A substring equals its reverse iff each mirrored character pair is equal, which
-is exactly the two-pointer condition. QED.
+`h[k]` stores the hash of the first `k` characters, so `h[0]` represents
+the empty prefix. This prefix-length indexing does not make the substring
+API 1-based. Both language implementations use the same half-open ranges.
 
-## Complexity
+## Sample walkthrough
 
-Each query is `O(r-l+1)` time and `O(1)` extra memory; this exact approach is
-only suitable for the local small-query contract. An inward two-pointer scan
-avoids constructing substring copies. The reasoning depends only on comparing
-symmetric characters, regardless of how the positions are numbered.
+For `s = abacaba`, the reversed full text is also `abacaba`:
 
-## Tests that matter
+| Input query | Forward range | Selected text | Mirrored range | Reversed text | Answer |
+| --- | --- | --- | --- | --- | --- |
+| `1 7` | `[0,7)` | `abacaba` | `[0,7)` | `abacaba` | YES |
+| `2 4` | `[1,4)` | `bac` | `[3,6)` | `cab` | NO |
+| `3 5` | `[2,5)` | `aca` | `[2,5)` | `aca` | YES |
+| `1 3` | `[0,3)` | `aba` | `[4,7)` | `aba` | YES |
 
-Test singleton, full string, even and odd lengths, and a mismatch in the outer
-pair.
+The reverse of a selected substring is found in the mirrored range, not
+necessarily at the same endpoints in the reversed full text.
+
+## Correctness and collision model
+
+The mirrored range contains exactly the selected substring's characters
+in reverse order. Thus, exact equality of these two strings is equivalent
+to the palindrome condition.
+
+Identical strings always yield identical hash pairs, so every palindrome
+receives YES. If the pairs differ, the strings differ and NO is correct.
+A pair collision can produce a false YES for different strings. The two
+moduli reduce collision risk, but this is still a probabilistic comparison,
+not an exact equality proof. The reference follows the lesson's double-hash
+approach. A correct efficient exact method, such as Manacher preprocessing,
+is also a valid solution; performance tests reject quadratic scans, not
+alternative efficient algorithms.
+
+## Complexity and implementation notes
+
+Preprocessing the two texts takes `O(n)` time and memory. Each query takes
+`O(1)` time, for `O(n + q)` total time. The Python reference buffers `O(q)`
+output strings in addition to the `O(n)` hash arrays.
+
+Do not construct a substring inside the query loop and do not verify every
+hash match by rescanning the range: many long palindrome queries would then
+restore quadratic work. Create the forward and backward hash structures
+once, outside the loop. C++ needs 64-bit intermediate products; Python's
+modulo already normalizes negative residues.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/b_palindrome_queries/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/b_palindrome_queries/solution.py >}}
+```
+
+## Common mistakes and useful tests
+
+Test single characters, both length parities, full-text ranges, boundary
+ranges, and a mismatch near the center. The small randomized oracle compares
+slices directly and does not use the hash solution to generate its answers.
+
+Full-size tests include `200000` repeated characters with `200000` long
+palindrome queries, plus a string with one different character and a mix
+of symmetric, asymmetric, and boundary queries. The latter construction's
+answers follow from the exceptional character's position. These cases make
+per-query scanning and reversed substring copies exceed the time limit.
 
 # C. Distinct Substrings
 
-## Restatement
+## Restatement and constraints
 
-Print the number of distinct non-empty substrings of a string.
+Count different nonempty string values appearing anywhere in `s`, once each,
+regardless of how often they occur or whether occurrences overlap.
 
-## Observations and algorithm
+The input length is at most `200000`. Enumerating all substring occurrences
+would produce up to `n * (n + 1) / 2` ranges. Storing their string values in a
+set is suitable only for tiny verification cases, not the local maximum input.
+Use the suffix automaton developed in Chapter 4 of the lesson.
 
-Build a suffix automaton, then count the distinct substrings represented
-by each non-root state. A state can represent several strings, so counting
-states alone is insufficient.
+## Reuse the lesson's state invariant
 
-### What a state represents
-
-For a substring, its ending positions are all positions where an occurrence
-finishes. Substrings with exactly the same set of ending positions share a
-state. In `aba`, with positions numbered from 1:
-
-- `a` ends at positions 1 and 3.
-- `b` and `ab` end only at position 2, so they share a state.
-- `ba` and `aba` end only at position 3, so they share a state.
-
-These are groups of distinct string values. Multiple occurrences of the same
-string do not create extra entries in the answer.
-
-### Why subtract the two lengths?
-
-`len[v]` is the longest length in state `v`. The suffix link `link[v]` points
-to the state of the longest suffix that belongs to a different group.
-The shortest length still in `v` is therefore `len[link[v]] + 1`.
-
-State `v` contains exactly one substring for each integer length in this range:
+A non-root state groups substrings with exactly the same set of ending
+positions, called `endpos`. Those strings are suffixes of one another and
+occupy a consecutive interval of lengths, with exactly one string at each
+length. The implementation stores the interval through:
 
 ```text
-len[link[v]] + 1, ..., len[v]
+longest represented length  = len[v]
+shortest represented length = len[link[v]] + 1
+number of strings in v      = len[v] - len[link[v]]
 ```
 
-For a fixed length, two strings with the same ending positions must be equal:
-choose one ending position, and the length fixes all characters of the string.
-The represented lengths form a consecutive range; taking shorter suffixes
-stays in this group until the suffix-link boundary is reached.
+The suffix link identifies the next shorter group, where the ending-position
+set grows. It does not mean "the previous state created." State identifiers
+are not lengths. For example, in the lesson's `abcbc` graph, `link[6] = 7`,
+but `len[7] = 2`: state 6 contributes `5 - 2 = 3` strings.
 
-The number of integers in an inclusive range from `a + 1` to `b` is
-`b - (a + 1) + 1 = b - a`. Hence the contribution is:
+The question counts string values, not occurrences. State `v` contributes
+its number of represented lengths, not the size of its `endpos` set.
+
+## Algorithm and the role of clones
+
+Start with the empty automaton, append the input characters in order, then
+sum the contributions of every non-root state in the completed automaton.
+The lesson's `extend` and `count_distinct` implement these operations.
 
 ```text
-len[v] - len[link[v]]
+start with the root only
+for each input character from left to right:
+    extend the automaton by that character
+
+answer = 0
+for each final state except the root:
+    answer += len[state] - len[link[state]]
+report answer
 ```
 
-For `aba`, the contributions are:
+A clone separates an old group when only its shorter strings acquire the
+new ending position. It inherits transitions and the old suffix link; the
+old state keeps the longer strings. Certain incoming character transitions
+are redirected to the clone, and both the old state and the new whole-text
+state receive a suffix link to it. Chapter 4's `ab` to `abb` example details
+those four updates.
 
-- State for `a`: `len[v] = 1`, link to the root of length 0.
-  Contribution: `1 - 0 = 1`, for `a`.
-- State for `b, ab`: `len[v] = 2`, link to the root of length 0.
-  Contribution: `2 - 0 = 2`, for lengths 1 and 2.
-- State for `ba, aba`: `len[v] = 3`, link to the `a` state of length 1.
-  Contribution: `3 - 1 = 2`, for lengths 2 and 3.
+**Count clones just like other final non-root states.** They own part of a
+group after a split. Excluding them would omit strings; treating their
+creation as an extra occurrence would also answer the wrong question.
+The sum above describes the final groups, not the order in which strings
+or states first appeared during construction.
 
-The answer is `1 + 2 + 2 = 5`: `a`, `b`, `ab`, `ba`, `aba`.
-Length 1 appears in two different states, for `a` and `b`; this is correct
-because they are different strings. The length intervals need not be disjoint
-across states. The groups of strings are disjoint.
+## Sample walkthrough: `ababa`
 
-Finally, sum the contributions over every non-root state. Exclude the root
-because it represents the empty string. For `ababa`, the same calculation
-gives 9 distinct nonempty substrings.
+This sample creates no clones. Its completed groups are:
+
+| State | Strings represented | `endpos` | `len[v]` | `link[v]` | Contribution |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `a` | `{1, 3, 5}` | 1 | 0 | `1 - 0 = 1` |
+| 2 | `b, ab` | `{2, 4}` | 2 | 0 | `2 - 0 = 2` |
+| 3 | `ba, aba` | `{3, 5}` | 3 | 1 | `3 - 1 = 2` |
+| 4 | `bab, abab` | `{4}` | 4 | 2 | `4 - 2 = 2` |
+| 5 | `baba, ababa` | `{5}` | 5 | 3 | `5 - 3 = 2` |
+
+For example, state 3 represents lengths 2 and 3. Its link reaches state 1,
+whose maximum length is 1, so its contribution is `3 - 1 = 2`.
+
+The total is `1 + 2 + 2 + 2 + 2 = 9`. Reading the strings in these groups
+gives exactly the sample's nine values. Although `a` occurs three times,
+it contributes only one value. Different groups can contain strings of the
+same length; their string values, not their length intervals, are disjoint.
+
+As a clone check, the lesson's `abb` has groups `a`, `ab`, `bb, abb`, and
+clone group `b`. They contribute `1 + 1 + 2 + 1 = 5`. The larger `abcbc`
+example has two clones and contributes 12, as shown in the lesson.
 
 ## Correctness proof
 
-Every distinct nonempty substring has exactly one ending-position set,
-so it belongs to exactly one non-root state. Within state `v`, the consecutive
-lengths from `len[link[v]] + 1` through `len[v]` each identify exactly one
-substring. Thus `len[v] - len[link[v]]` counts precisely that state's strings.
-Summing these disjoint groups counts each distinct substring once. Clones
-preserve the state groups during construction. QED.
+By the lesson's SAM invariant, each distinct nonempty substring belongs to
+exactly one non-root state, and each state's strings occupy every length
+from `len[link[v]] + 1` through `len[v]`, once per length. The number of
+strings in that state is therefore `len[v] - len[link[v]]`.
 
-## Complexity
+The algorithm sums this size for all non-root states, including clones.
+Their groups partition the distinct nonempty strings, so every required
+string is counted once. The root contributes the empty string and is
+excluded. The resulting sum is the required answer.
 
-There is one root and at most `2*n-1` states for `n >= 2`; a one-character
-string has two states. Memory is `O(n)` for a fixed alphabet. Construction with
-C++ maps takes `O(n log alphabet)` time; Python dictionaries give expected
-`O(n)` time for the fixed lowercase alphabet. Counting the final contributions
-is `O(n)` in both languages.
+## Complexity and implementation notes
 
-## Tests that matter
+There are at most `2*n - 1` states for `n >= 2`; a one-character input has
+one root and one non-root state. Construction with the C++ maps takes
+`O(n log alphabet)` time, and Python dictionaries give expected `O(n)` time
+for the fixed lowercase alphabet. The final sum takes `O(n)` time, and
+storage is `O(n)` for this alphabet.
 
-Test `a`, `aaa`, all distinct characters, and an alternating string.
+Call `count_distinct()` once after building the full text. The reusable
+method scans all states each time; calling it after every append would
+make that counting work quadratic.
+
+Use `long long` for the C++ answer. The upper bound `n * (n + 1) / 2` is
+`20000100000` at `n = 200000`, exceeding a signed 32-bit integer. Python's
+integers already accommodate the result. The Python implementation calls
+maximum lengths `length`, while C++ calls the field `len`.
+
+When implementing the structure, copy the clone's transition table rather
+than sharing mutable storage. In Python this means copying the dictionary.
+In C++, growing a vector can invalidate references: retain indices and copy
+the old state before appending the clone. Pattern-reading transitions and
+suffix links have separate roles; only the suffix links determine the
+lower boundary in this sum.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/c_distinct_substrings/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/c_distinct_substrings/solution.py >}}
+```
+
+## Common mistakes and useful tests
+
+Do not count states, occurrences, or only suffixes of the whole text.
+Do not subtract a suffix-link identifier instead of its maximum length,
+skip clones, or count the root.
+
+Check `a` (1), `aaaa` (4), `abcd` (10), the sample `ababa` (9), `abb` (5),
+`abcbc` (12), and `abcbcd` (18). The last three connect directly to the
+lesson's split and extension examples. Long repeated and alternating texts
+help expose algorithms that accidentally enumerate substrings.
 
 # D. Unique Prefix Lengths
 
-## Restatement
+## Restatement and constraints
 
-For every input word, find the shortest nonempty prefix shared by exactly one
-input occurrence. Equal words are still separate occurrences, so no prefix can
-distinguish one copy from another. A word that is a prefix of a longer word may
-also have no answer.
+For each input entry, find its shortest nonempty prefix shared by exactly
+one input entry. Equal words remain separate entries. A word that is a
+prefix of another entry has no answer, because every prefix it offers is
+shared with that other entry.
 
-This is the blind trie exercise for the section: the task asks for a property
-of all prefixes of each word, not merely a count for one supplied prefix.
+There are up to `200000` words and their total length `L` is at most
+`200000`. Test uniqueness against the entire list before producing answers;
+reporting an answer does not remove a word from the dictionary.
 
-## Constraints and traps
+## Observation and algorithm
 
-There are up to `200,000` words and the same bound on total characters. Testing
-every prefix against every word is quadratic. The answer is an input-order
-answer, so duplicate words need repeated `-1` lines rather than being merged.
+Use the same trie invariant as A: `pass[v]` counts input entries beginning
+with the node's prefix. After inserting every word, a prefix is unique
+exactly when its node has `pass[v] = 1`.
 
-Do not mistake "the word ends here" for "the prefix is unique." For `do` and
-`dog`, the prefix `do` is a prefix of both input words even though only one
-word ends at that trie node.
-
-## Observations and trace
-
-In a trie, store `pass[node]`: the number of input words whose path visits the
-node. During insertion, increment it after every character. Then a prefix is
-unique exactly when the node reached by that prefix has `pass == 1`.
-
-Insert the sample's `cat`, `car`, `dog`, `do`, `cat`. The node for `ca` has
-`pass=3` because it serves both copies of `cat` and `car`. The node for `car`
-has `pass=1`, so `car` needs length three. The node for `do` has `pass=2`, and
-there is no later node for the shorter word `do`, so its answer is `-1`.
-
-## Algorithm
+Walk each word's path in order of increasing prefix length. The first node
+with count 1 supplies the shortest valid length. If no such node exists,
+answer -1. The root is never a candidate because its prefix is empty.
 
 ```text
-make a trie whose nodes store child links and pass counts
-for every word:
-    walk/create its character path
-    increment pass at each reached node
+insert all input entries, maintaining pass counts
 
-for every word in input order:
-    walk its trie path from the root
-    print the first position whose node has pass = 1
-    print -1 if no such position occurs
+for each input entry in its original order:
+    start at the root
+    walk one character edge at a time
+    stop at the first reached node with pass = 1
+    report that prefix length, or -1 if no node qualifies
 ```
+
+## Sample walkthrough
+
+For `cat`, `car`, `dog`, `do`, `cat`, the relevant paths have counts:
+
+| Word | Counts along its path | First unique prefix | Answer |
+| --- | --- | --- | --- |
+| `cat` | `c:3`, `ca:3`, `cat:2` | None | -1 |
+| `car` | `c:3`, `ca:3`, `car:1` | `car` | 3 |
+| `dog` | `d:2`, `do:2`, `dog:1` | `dog` | 3 |
+| `do` | `d:2`, `do:2` | None | -1 |
+| `cat` | Same counts as its other copy | None | -1 |
+
+The node for `do` is not unique even though a word ends there: `dog` also
+passes through it. The two copies of `cat` must each receive an answer.
 
 ## Correctness proof
 
-**Lemma.** For every trie node representing prefix `p`, `pass[node]` equals
-the number of input words beginning with `p`.
+Each dictionary entry visits exactly its nonempty prefix nodes during
+insertion. A node's count therefore equals the number of entries beginning
+with its prefix. A node qualifies exactly when this count is 1.
 
-**Proof.** A word visits exactly the nodes for its nonempty prefixes during
-insertion. The algorithm increments this node once for that word and never for
-a word that does not have the prefix. Summing over all input occurrences gives
-the stated count. $\square$
+The second traversal visits candidate prefixes from shortest to longest.
+Consequently, its first qualifying node is the shortest valid prefix. If
+none qualifies, every candidate is shared and -1 is correct. Since the trie
+contains the complete list before any traversal, each answer uses all input
+entries and is unaffected by the order of reporting.
 
-**Theorem.** The algorithm prints the required shortest unique-prefix length
-for every word.
+## Complexity and implementation notes
 
-**Proof.** By the lemma, a scanned prefix is unique exactly when its node has
-`pass=1`. The second traversal checks prefixes in increasing length order, so
-the first such node is the shortest valid prefix. If none is found, every
-nonempty prefix is shared by at least two occurrences and `-1` is correct.
-$\square$
+Insertion takes `O(L)` time. Walking each word's path once takes `O(L)`
+additional time. Storage is `O(L)` for the trie and the input words, using
+fixed lowercase transitions in C++ or dictionaries in Python.
 
-## Complexity
+Reuse the lesson's trie storage and count invariant. The demonstrated public
+interface exposes `insert` and `count_prefix`; D additionally needs a walk
+that checks the count after each next character. Add that traversal inside
+the trie, or use the child/count arrays directly in your own implementation.
 
-Let `L` be the total input length.
+Do not call `count_prefix` separately for every prefix length. For a word
+of length `m`, restarting from the root would inspect
+`1 + 2 + ... + m = O(m^2)` characters. Creating a new substring for each
+prefix can add another quadratic cost. A single incremental walk avoids both.
 
-```text
-Time:   O(L)
-Memory: O(L)
+The reusable trie also counts the root; D simply ignores that count.
+The problem-specific reference programs leave the root count unused and
+increment only reached non-root nodes. Both choices give the same answers
+for the nonempty prefixes considered here.
+
+Keep counts of entries, not terminal markers and not distinct word values.
+Store words for the second pass and return answers in input order. In Python,
+create independent child dictionaries; in C++, retain node indices when
+growing the trie vector.
+
+## Full C++ solution
+
+```cpp
+{{< include problems/d_unique_prefix_lengths/solution.cpp >}}
 ```
 
-## C++ implementation notes
+## Full Python solution
 
-Reuse the trie operations presented in Chapter 2 of the lesson. The problem-specific traversal is
-left to implement from the algorithm above. Maintain the distinction between
-node indices, prefix lengths, and word-ending markers. The root is never a
-candidate answer because the required prefix must be nonempty.
-Duplicate words each contribute to `pass` and therefore cannot be distinguished.
-
-## Python implementation notes
-
-Use the same two-pass organization: insert the entire dictionary before
-searching for unique prefixes. Scanning each word's path once costs `O(L)`
-in total. Each new trie node must have its own child dictionary.
-
-## Common wrong answers
-
-```text
-Counting only words ending at a node instead of every word passing through it.
-Deduplicating equal strings before answering.
-Returning a prefix for do when dog is also present.
-Using the root count as an empty-prefix answer.
-Scanning all words for every candidate prefix.
+```python
+{{< include problems/d_unique_prefix_lengths/solution.py >}}
 ```
 
-## Tests that matter
+## Common mistakes and useful tests
 
-```text
-Identical words: every copy must print -1.
-A word that is a prefix of another word.
-Words sharing a long prefix before branching.
-A one-word input: answer is 1 for a nonempty word.
-200,000 identical one-letter words: checks linear memory and output.
+Test identical words, a word that prefixes another, long shared prefixes,
+and one nonempty word by itself (answer 1). For `do` and `dog`, the answers
+are -1 and 3. For `app` and `apple`, they are -1 and 4. For `app` and `ape`,
+both answers are 3. Repeated identical one-letter entries all need -1.
+
+Answering before all words have been inserted, deduplicating entries,
+checking only terminal markers, or accepting the root would break the
+required uniqueness condition.
+
+# Testing discussion
+
+Use independent small oracles before trying large cases:
+
+- A: count entries satisfying `word.startswith(prefix)` for each query.
+- B: compare the selected slice with its reversal.
+- C: enumerate nonempty substrings into a set for tiny texts, then take its size.
+- D: scan prefix lengths in increasing order and count matching input entries;
+  keep duplicates in that count.
+
+For C, test after appending characters as well as on complete texts. This
+checks the lesson's `extend` operation, particularly clones, independently of
+the final sum. The exercise itself needs only the completed text's answer.
+
+Large inputs serve a different purpose: long shared trie paths exercise
+storage and traversal; many long palindrome ranges reject per-query scans;
+long strings with many distinct substrings exercise time, memory, and 64-bit
+counts. Small random tests establish behavior, while maximum-size cases
+check that the chosen complexity fits.
+
+Run the reference solutions in both languages with:
+
+```bash
+CP_TARGET=solution python3 sections/44_string_algorithms_ii/check.py --keep-going
 ```
 
 # What to carry forward
 
-Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.
-
-# Testing discussion
-
-Brute-force small trie prefixes by `word.startswith(prefix)`, palindrome
-queries by reverse comparison, and distinct substrings with a set of all slices.
-Then run:
-
-```bash
-CP_TARGET=solution python3 sections/44_string_algorithms_ii/check.py
-```
+State exactly what a node groups before choosing its counter. Trie nodes
+group dictionary entries by prefix; SAM states group substring values by
+ending positions. A word ending at a trie node does not make its prefix
+unique, and several occurrences of a substring do not create several values
+to count. Keep input endpoints separate from the rolling hash's half-open
+API. For the local palindrome problem, preprocess range hashes instead of
+scanning each query; keep the exact scan as a small-input oracle.

@@ -18,8 +18,8 @@ The second line contains the integer `q`.
 Each of the next `q` lines contains two integers `l` and `r`, describing one
 query.
 
-- `1 <= n <= 2000`.
-- `1 <= q <= 2000`.
+- `1 <= n <= 200000`.
+- `1 <= q <= 200000`.
 - `s` contains only lowercase English letters (`a`-`z`).
 - For every query, `1 <= l <= r <= n`.
 

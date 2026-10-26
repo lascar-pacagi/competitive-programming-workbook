@@ -1,18 +1,46 @@
 import sys
+
+
+class Trie:
+    def __init__(self):
+        self.children = [{}]
+        self.passed = [0]
+
+    def insert(self, word):
+        v = 0
+        self.passed[v] += 1
+        for ch in word:
+            if ch not in self.children[v]:
+                child = len(self.children)
+                self.children[v][ch] = child
+                self.children.append({})
+                self.passed.append(0)
+            v = self.children[v][ch]
+            self.passed[v] += 1
+
+    def count_prefix(self, prefix):
+        v = 0
+        for ch in prefix:
+            if ch not in self.children[v]:
+                return 0
+            v = self.children[v][ch]
+        return self.passed[v]
+
+
 def main():
-    lines=sys.stdin.read().splitlines(); n,q=map(int,lines[0].split()); nxt=[]; cnt=[]
-    nxt.append({}); cnt.append(0)
-    for w in lines[1:1+n]:
-        v=0; cnt[v]+=1
-        for ch in w:
-            if ch not in nxt[v]: nxt[v][ch]=len(nxt); nxt.append({}); cnt.append(0)
-            v=nxt[v][ch]; cnt[v]+=1
-    out=[]
-    for p in lines[1+n:1+n+q]:
-        v=0; ok=True
-        for ch in p:
-            if ch not in nxt[v]: ok=False; break
-            v=nxt[v][ch]
-        out.append(str(cnt[v] if ok else 0))
-    print("\n".join(out))
-if __name__=="__main__": main()
+    tokens = iter(sys.stdin.read().split())
+    n = int(next(tokens))
+    q = int(next(tokens))
+    trie = Trie()
+    for _ in range(n):
+        trie.insert(next(tokens))
+
+    answers = []
+    for _ in range(q):
+        prefix = next(tokens)
+        answers.append(str(trie.count_prefix(prefix)))
+    print("\n".join(answers))
+
+
+if __name__ == "__main__":
+    main()

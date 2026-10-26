@@ -44,7 +44,11 @@ class SuffixAutomaton:
                 self.link.append(self.link[q])
 
                 # Redirect only the shorter incoming contexts.
-                while p != -1 and self.next[p].get(ch) == q:
+                while p != -1:
+                    # Every shorter suffix also has a ch transition.
+                    assert ch in self.next[p]
+                    if self.next[p][ch] != q:
+                        break
                     self.next[p][ch] = clone
                     p = self.link[p]
                 # Both longer groups now have clone as suffix parent.

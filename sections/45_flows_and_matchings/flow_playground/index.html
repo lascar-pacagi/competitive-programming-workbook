@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flows and matching, step by step</title>
+<meta name="description" content="Explore Dinic's residual graph and augmenting paths for bipartite matching, with code and variables at every step.">
+<style>
+:root{font-family:system-ui,sans-serif;color:#18332e;background:#f4f6f2;--ink:#18332e;--green:#17654f;--line:#d9e2dc;--orange:#ad501a;--blue:#235da3}*{box-sizing:border-box}body{margin:0}button,select,textarea,input{font:inherit}button,select{border:1px solid #baccc1;border-radius:7px;background:white;color:var(--ink);padding:9px 12px}button{cursor:pointer}button:hover{background:#edf5ee}button:disabled{opacity:.4;cursor:default}button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid #92bbfa;outline-offset:2px}.primary{background:var(--green);color:white;border-color:var(--green)}.primary:hover{background:#104e3c}header{max-width:1580px;margin:auto;padding:26px 26px 14px}.kicker{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:#46685a;font-weight:700}h1{font-size:clamp(24px,3vw,36px);line-height:1.15;margin:8px 0 10px;font-weight:700;letter-spacing:-.04em}.intro{margin:0;color:#4a6159;font-size:15px;max-width:900px;line-height:1.5}main{max-width:1580px;margin:auto;padding:0 26px 28px}.modes{display:flex;gap:8px;margin:18px 0 14px}.modes button[aria-selected=true]{background:var(--ink);color:white;border-color:var(--ink)}.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:white;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:12px}.toolbar label{font-size:13px}.toolbar input[type=range]{width:85px}.step-count{font:13px ui-monospace,monospace;margin-left:auto;color:#496158}.workspace{display:grid;grid-template-columns:210px minmax(0,1fr) 390px;gap:14px;align-items:start}.workspace>*{min-width:0}.panel{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}.panel-head{padding:13px 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);gap:8px}h2{font-size:14px;margin:0}.panel-body{padding:14px}.input-panel label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}.input-panel select{width:100%;font-size:12px;padding:8px 4px}.input-panel textarea{display:block;width:100%;min-height:215px;resize:vertical;border:1px solid #bdcfc3;border-radius:7px;padding:10px;font:13px/1.6 ui-monospace,monospace;color:#17362d;background:#fafcf9;margin:10px 0}.input-panel button{width:100%}.hint{font-size:12px;color:#536b61;line-height:1.6;margin:12px 0}.hint code{color:#18332e}#input-error{color:#9f281d;font-size:13px;line-height:1.5;min-height:18px}.graph-head{flex-wrap:wrap}.graph-head label{font-size:12px;font-weight:500}.graph-scroll{overflow:auto}#graph{display:block;width:100%;height:auto;min-height:260px;max-height:470px;background:#fff}#graph text{font-family:system-ui,sans-serif}.legend{display:flex;gap:14px;flex-wrap:wrap;padding:0 16px 13px;font-size:11px;color:#53665e}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:#60756b}.dot.green{background:#17654f}.dot.orange{background:#b75817}.dot.blue{background:#235da3}.message{border-top:1px solid var(--line);background:#f0f7f1;padding:15px;min-height:91px;font-size:14px;line-height:1.55}#stage{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#37664d;font-weight:750;margin-bottom:5px}#notice{padding:10px 15px;background:#fff0d9;color:#74400f;font-size:12px;line-height:1.5}.vars{margin-top:14px}.badges{display:flex;gap:18px;flex-wrap:wrap;padding:15px;border-bottom:1px solid var(--line)}.badge{font-size:12px;color:#50675c}.badge strong{display:block;font-size:24px;color:var(--ink);font-variant-numeric:tabular-nums}.var-wrap{padding:10px 15px;overflow:auto}.var-wrap table{width:100%;border-collapse:collapse;font:12px/1.8 ui-monospace,monospace}.var-wrap th{text-align:left;color:#607268;font-weight:500;white-space:nowrap;padding-right:13px}.var-wrap td{color:#153f33;overflow-wrap:anywhere}.array-wrap{padding:0 15px 15px;overflow:auto}.array-wrap table{border-collapse:collapse;width:100%;font:12px/1.9 ui-monospace,monospace}.array-wrap th,.array-wrap td{text-align:center;min-width:30px;padding:3px 5px;border-bottom:1px solid #edf0ed}.array-wrap th:first-child{text-align:left;min-width:65px;color:#627568}.array-wrap th{font-weight:500;color:#627568}.code-caption{font-size:11px;line-height:1.6;color:#64746c;padding:10px 14px;border-bottom:1px solid var(--line)}.code-scroll{max-height:680px;overflow:auto;background:#fbfcfa;padding:10px 0}.code-line{display:flex;min-width:100%;font:11px/1.9 ui-monospace,SFMono-Regular,Consolas,monospace;padding:1px 13px 1px 0;border-left:3px solid transparent}.code-line.active{background:#dcefe0;border-left-color:#17654f;color:#113b2e}.line-number{display:inline-block;width:37px;flex-shrink:0;text-align:right;padding-right:12px;color:#92a295;user-select:none}.code-line code{white-space:pre-wrap;overflow-wrap:anywhere;flex:1;min-width:0}.section-label{font:12px system-ui,sans-serif;color:#315642;padding:13px 14px 7px;font-weight:700}.timeline{width:100%;margin-top:12px;accent-color:#17654f}.timeline-caption{display:flex;justify-content:space-between;font-size:11px;color:#627568;gap:10px}.details{margin-top:18px;max-width:1000px;color:#4f665b;font-size:13px;line-height:1.7}.details summary{cursor:pointer;color:#2d5543;font-weight:600}.details p{margin:8px 0}footer{font-size:12px;color:#68796f;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}.key{font:11px ui-monospace,monospace;background:#e8eee6;border-radius:4px;padding:2px 5px}#cut-summary{font-size:12px;line-height:1.6;color:#254f3b;padding:0 15px 12px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:1250px){.workspace{grid-template-columns:200px minmax(0,1fr)}.code-panel{grid-column:1/-1}.code-scroll{max-height:420px}.code-line{font-size:12px}}@media(max-width:700px){header{padding:20px 14px 12px}main{padding:0 14px 20px}.workspace{grid-template-columns:minmax(0,1fr)}.code-panel{grid-column:auto}.input-panel textarea{min-height:150px}.input-panel .panel-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}.input-panel textarea,.input-panel .hint,#input-error{grid-column:1/-1}.input-panel textarea{margin:0}.input-panel label{align-self:center}.input-panel button{grid-column:1/-1}.input-panel .hint{margin:0}.toolbar{gap:6px}.toolbar button{padding:9px 8px;font-size:12px}.step-count{font-size:11px;margin-left:0}.modes button{flex:1;font-size:13px}.code-scroll{max-height:400px}.code-line{font-size:11px}#graph{min-height:200px;min-width:620px}.panel-head{padding:12px}.badges{gap:16px}.badge strong{font-size:21px}}
+</style>
+</head>
+<body>
+<header><div class="kicker">Section 45 / Algorithm laboratory</div><h1>Flows and matching, step by step.</h1><p class="intro">Follow each search, inspect the variables, and see how reversing an earlier choice creates room for a better answer.</p></header>
+<main>
+<div class="modes" role="tablist" aria-label="Algorithm"><button id="flow-tab" role="tab" aria-selected="true">Maximum flow / Dinic</button><button id="matching-tab" role="tab" aria-selected="false">Bipartite matching</button></div>
+<div class="toolbar" aria-label="Execution controls"><button id="reset-button" title="Return to the start">Reset</button><button id="previous-button">Previous</button><button class="primary" id="next-button">Next step</button><button id="augment-button">Next augmentation</button><button id="finish-button">Finish</button><button id="play-button">Play</button><label for="speed">Speed</label><input id="speed" type="range" min="1" max="10" value="5"><span id="step-count" class="step-count"></span></div>
+<div class="workspace">
+<aside class="panel input-panel"><div class="panel-head"><h2>Your graph</h2></div><div class="panel-body"><label for="preset">Preset</label><select id="preset"></select><textarea id="graph-input" aria-label="Graph input" spellcheck="false"></textarea><button id="load-button">Load graph</button><p id="format-hint" class="hint"></p><div id="input-error" role="alert"></div><p class="hint">Vertices and variables are <strong>0-based</strong>. Edit the input and load again to try a new graph. No connection is needed.</p></div></aside>
+<div class="center"><section class="panel"><div class="panel-head graph-head"><h2 id="graph-title">Residual network</h2><label id="residual-label"><input id="residual-toggle" type="checkbox" checked> Residual view</label></div><div class="graph-scroll" tabindex="0" aria-label="Scrollable algorithm diagram"><svg id="graph" viewBox="0 0 760 430" role="img" aria-label="Algorithm graph"></svg></div><div id="legend" class="legend"></div><div id="cut-summary"></div><div class="message" role="status" aria-live="polite"><div id="stage"></div><div id="message"></div></div><div id="notice" hidden></div></section>
+<section class="panel vars"><div class="badges"><div class="badge"><span id="value-label">Flow value</span><strong id="total-value">0</strong></div><div class="badge"><span id="phase-label">BFS phase</span><strong id="phase-value">0</strong></div><div class="badge">Bottleneck / delta<strong id="delta-value">-</strong></div></div><div class="var-wrap"><table><tbody id="variables"></tbody></table></div><div class="array-wrap" id="arrays"></div></section>
+<input id="timeline" class="timeline" type="range" min="0" max="0" value="0" aria-label="Recorded execution history"><div class="timeline-caption"><span>Recorded history</span><span id="history-label">0 steps</span></div></div>
+<section class="panel code-panel"><div class="panel-head"><h2>Python implementation</h2><span class="kicker" style="font-size:10px">Live line</span></div><div class="code-caption">The highlighted line has just executed. These methods come from the lesson's reusable implementation. Paired residual updates are shown together for the whole path.</div><div id="code" class="code-scroll" tabindex="0" aria-label="Highlighted Python code"></div></section>
+</div>
+<details class="details"><summary>How to read this page</summary><p>In the flow tab, a solid residual arrow increases an input edge's flow; a dashed orange arrow cancels it. Only positive residual capacities are drawn. Edge labels show residual capacity and the residual edge ID. Switch off residual view to see flow/capacity on the input edges. Every input edge owns an even forward ID and an odd reverse ID; <code>edge ^ 1</code> swaps them. The current path is blue, and the inspected edge is orange.</p><p>Try <strong>Cancellation required</strong>. After one unit takes 0-1-3-5, the next route is 0-2-3-1-4-5. Its step 3-1 undoes the old flow on 1-3. In the matching tab, try <strong>A partner must move</strong>: L0 gives up R0 for R1, freeing R0 for L1. Partner arrays can temporarily disagree during an individual path-flip assignment; an amber note marks these steps.</p><p>Previous and the history slider revisit snapshots. Next augmentation stops after a completed push or matching flip. Finish runs to the optimum. Changing the graph resets the execution. On narrow screens, scroll the diagram sideways to inspect it. Teaching limits keep diagrams readable: at most 10 flow vertices and 30 input edges, or 8 vertices per matching side and 32 pairs. Capacities are integers from 0 to 1000000000.</p><p>Keyboard: <span class="key">Right</span> next step, <span class="key">Left</span> previous, <span class="key">Space</span> play/pause when focus is outside an input.</p></details>
+<footer>Competitive Programming / Section 45. Standalone HTML, with all computation in your browser.</footer>
+</main>
+<script id="algorithm-core">
+'use strict';
+const FLOW_CODE = "from collections import deque\n\n\nclass Dinic:\n    \"\"\"0-based vertices; integer capacities; paired residual edge IDs.\"\"\"\n\n    def __init__(self, n):\n        self.n = n\n        self.adj = [[] for _ in range(n)]\n        self.to = []\n        self.cap = []\n\n    def add_edge(self, u, v, capacity):\n        assert 0 <= u < self.n and 0 <= v < self.n\n        assert capacity >= 0\n        edge = len(self.to)\n        self.adj[u].append(edge)\n        self.to.append(v)\n        self.cap.append(capacity)\n        self.adj[v].append(edge ^ 1)\n        self.to.append(u)\n        self.cap.append(0)\n        return edge\n\n    def _bfs(self, s, t):\n        self.level = [-1] * self.n\n        self.level[s] = 0\n        queue = deque([s])\n        while queue:\n            u = queue.popleft()\n            for edge in self.adj[u]:\n                v = self.to[edge]\n                if self.cap[edge] > 0 and self.level[v] == -1:\n                    self.level[v] = self.level[u] + 1\n                    queue.append(v)\n        return self.level[t] != -1\n\n    def _send(self, s, t, limit):\n        vertices = [s]\n        path = []\n        bottleneck = [limit]\n        while vertices:\n            u = vertices[-1]\n            if u == t:\n                delta = bottleneck[-1]\n                for edge in path:\n                    self.cap[edge] -= delta\n                    self.cap[edge ^ 1] += delta\n                return delta\n            while self.ptr[u] < len(self.adj[u]):\n                edge = self.adj[u][self.ptr[u]]\n                v = self.to[edge]\n                if (self.cap[edge] > 0\n                        and self.level[v] == self.level[u] + 1):\n                    break\n                self.ptr[u] += 1\n            if self.ptr[u] == len(self.adj[u]):\n                vertices.pop()\n                bottleneck.pop()\n                if path:\n                    path.pop()\n                    self.ptr[vertices[-1]] += 1\n            else:\n                edge = self.adj[u][self.ptr[u]]\n                path.append(edge)\n                vertices.append(self.to[edge])\n                bottleneck.append(min(bottleneck[-1], self.cap[edge]))\n        return 0\n\n    def max_flow(self, s, t):\n        assert 0 <= s < self.n and 0 <= t < self.n and s != t\n        added = 0\n        # A finite upper bound on every possible augmentation.\n        limit = sum(self.cap[edge] for edge in self.adj[s])\n        while self._bfs(s, t):\n            self.ptr = [0] * self.n\n            while True:\n                delta = self._send(s, t, limit)\n                if delta == 0:\n                    break\n                added += delta\n        return added\n\n    def reachable(self, s):\n        seen = [False] * self.n\n        seen[s] = True\n        queue = deque([s])\n        while queue:\n            u = queue.popleft()\n            for edge in self.adj[u]:\n                v = self.to[edge]\n                if self.cap[edge] > 0 and not seen[v]:\n                    seen[v] = True\n                    queue.append(v)\n        return seen\n";
+const MATCH_CODE = "from collections import deque\n\n\nclass BipartiteMatching:\n    \"\"\"Independent 0-based IDs on each side. -1 means unmatched.\"\"\"\n\n    def __init__(self, left_count, right_count):\n        self.adj = [[] for _ in range(left_count)]\n        self.left = [-1] * left_count\n        self.right = [-1] * right_count\n\n    def add_edge(self, u, v):\n        assert 0 <= u < len(self.left) and 0 <= v < len(self.right)\n        self.adj[u].append(v)\n\n    def _augment(self, root):\n        previous = [-1] * len(self.right)\n        seen = [False] * len(self.left)\n        seen[root] = True\n        queue = deque([root])\n        while queue:\n            u = queue.popleft()\n            for v in self.adj[u]:\n                if previous[v] != -1:\n                    continue\n                previous[v] = u\n                owner = self.right[v]\n                if owner == -1:\n                    # Follow predecessors and flip the entire path.\n                    while v != -1:\n                        u = previous[v]\n                        old = self.left[u]\n                        self.left[u] = v\n                        self.right[v] = u\n                        v = old\n                    return True\n                if not seen[owner]:\n                    seen[owner] = True\n                    queue.append(owner)\n        return False\n\n    def maximum_matching(self):\n        for root in range(len(self.left)):\n            if self.left[root] == -1:\n                self._augment(root)\n        return [(u, v) for u, v in enumerate(self.left) if v != -1]\n";
+const PRESETS = {
+ flow:[
+  {name:'Five units, two phases',text:'4 5\n0 1 3\n0 2 2\n1 2 1\n1 3 2\n2 3 4'},
+  {name:'Cancellation required',text:'6 7\n0 1 1\n0 2 1\n1 3 1\n1 4 1\n2 3 1\n3 5 1\n4 5 1'},
+  {name:'Parallel and opposite edges',text:'3 5\n0 1 2\n0 1 3\n1 0 4\n1 2 4\n0 2 1'},
+  {name:'Sink unreachable',text:'4 3\n0 1 7\n1 2 2\n2 0 1'}
+ ],
+ matching:[
+  {name:'A partner must move',text:'2 2 3\n0 0\n0 1\n1 0'},
+  {name:'A longer reassignment',text:'4 4 7\n0 0\n0 1\n1 1\n1 2\n2 2\n2 3\n3 0'},
+  {name:'Too few right partners',text:'4 2 6\n0 0\n0 1\n1 0\n2 0\n2 1\n3 1'},
+  {name:'No allowed pairs',text:'3 3 0'}
+ ]
+};
+function parseGraph(mode,text){
+ const tokens=text.trim().split(/\s+/);
+ if(!text.trim()||tokens.some(x=>!/^\d+$/.test(x)))throw Error('Use nonnegative integers only, separated by spaces or new lines.');
+ const a=tokens.map(Number);
+ if(a.some(x=>!Number.isSafeInteger(x)))throw Error('An integer is too large.');
+ if(mode==='flow'){
+  const [n,m]=a;
+  if(n<2||n>10||m<0||m>30)throw Error('Use 2 to 10 vertices and 0 to 30 input edges.');
+  if(a.length!==2+3*m)throw Error('Expected n m, followed by exactly m triples: u v capacity.');
+  const edges=[];
+  for(let i=0;i<m;i++){
+   const [u,v,c]=a.slice(2+3*i,5+3*i);
+   if(u>=n||v>=n||c>1e9)throw Error('Endpoints must be in 0..n-1, and capacities at most 1000000000.');
+   edges.push({u,v,c});
+  }
+  return {mode,n,edges};
+ }
+ const [n,r,m]=a;
+ if(n<1||n>8||r<1||r>8||m<0||m>32)throw Error('Use 1 to 8 vertices on each side and 0 to 32 allowed pairs.');
+ if(a.length!==3+2*m)throw Error('Expected L R E, followed by exactly E pairs: left right.');
+ const edges=[];
+ for(let i=0;i<m;i++){
+  const [u,v]=a.slice(3+2*i,5+2*i);
+  if(u>=n||v>=r)throw Error('A pair endpoint is outside its side.');
+  edges.push({u,v});
+ }
+ return {mode,n,r,edges};
+}
+function codeLine(mode,method,needle){
+ const code=mode==='flow'?FLOW_CODE:MATCH_CODE;
+ const lines=code.split('\n');
+ let inside=false;
+ for(let i=0;i<lines.length;i++){
+  if(lines[i].startsWith('    def '))inside=lines[i].startsWith('    def '+method+'(');
+  if(inside&&lines[i].trim()===needle)return i;
+ }
+ throw Error('Missing code anchor: '+method+' / '+needle);
+}
+function* flowTrace(input){
+ const {n,edges}=input,s=0,t=n-1;
+ const model={mode:'flow',n,edges,adj:Array.from({length:n},()=>[]),to:[],cap:[],level:Array(n).fill(-1),ptr:Array(n).fill(0),queue:[],vertices:[],path:[],bottleneck:[],u:null,v:null,edge:null,delta:null,total:0,phase:0,done:false,checkpoint:false};
+ for(const {u,v,c} of edges){const e=model.to.length;model.adj[u].push(e);model.to.push(v);model.cap.push(c);model.adj[v].push(e^1);model.to.push(u);model.cap.push(0);}
+ const frame=(method,line,message,extra={})=>{Object.assign(model,{checkpoint:false},extra);return {line:codeLine('flow',method,line),method,message,...structuredClone(model)};};
+ const limit=model.adj[s].reduce((sum,e)=>sum+model.cap[e],0);
+ yield frame('max_flow','added = 0','Start with zero flow. Every input edge has its own residual pair.');
+ while(true){
+  model.phase++;model.path=[];model.vertices=[];model.bottleneck=[];model.u=model.v=model.edge=model.delta=null;
+  model.level=Array(n).fill(-1);
+  yield frame('_bfs','self.level = [-1] * self.n','New BFS: discard the previous levels.');
+  model.level[s]=0;model.queue=[s];
+  yield frame('_bfs','queue = deque([s])','Set level[0] = 0 and enqueue the source.');
+  while(model.queue.length){
+   model.u=model.queue.shift();model.v=model.edge=null;
+   yield frame('_bfs','u = queue.popleft()',`BFS removes vertex ${model.u} from the queue.`);
+   for(const e of model.adj[model.u]){
+    model.edge=e;model.v=model.to[e];
+    yield frame('_bfs','v = self.to[edge]',`Inspect residual edge #${e}: ${model.u} -> ${model.v}, capacity ${model.cap[e]}.`);
+    if(model.cap[e]>0&&model.level[model.v]===-1){
+     model.level[model.v]=model.level[model.u]+1;model.queue.push(model.v);
+     yield frame('_bfs','queue.append(v)',`Discover vertex ${model.v} at level ${model.level[model.v]} and enqueue it.`);
+    }
+   }
+  }
+  if(model.level[t]===-1){
+   model.done=true;model.side=model.level.map(x=>x!==-1);model.edge=model.u=model.v=null;
+   yield frame('_bfs','return self.level[t] != -1',`The sink is unreachable. Maximum flow = ${model.total}; the reachable source side certifies a minimum cut.`);
+   return;
+  }
+  yield frame('_bfs','return self.level[t] != -1',`The sink is at level ${model.level[t]}. Search only edges going up exactly one level.`);
+  model.ptr=Array(n).fill(0);
+  yield frame('max_flow','self.ptr = [0] * self.n','Reset current pointers once for this BFS phase.');
+  while(true){
+   model.vertices=[s];model.path=[];model.bottleneck=[limit];model.delta=null;model.edge=null;
+   yield frame('_send','bottleneck = [limit]','Start a path search with the current pointers and a safe upper bound.');
+   let pushed=false;
+   while(model.vertices.length){
+    model.u=model.vertices.at(-1);model.v=null;
+    yield frame('_send','u = vertices[-1]',`Search from the top stack vertex ${model.u}.`);
+    if(model.u===t){
+     model.delta=model.bottleneck.at(-1);
+     yield frame('_send','delta = bottleneck[-1]',`The sink is reached. This path can send ${model.delta}.`);
+     for(const e of model.path){model.cap[e]-=model.delta;model.cap[e^1]+=model.delta;}
+     yield frame('_send','self.cap[edge] -= delta','Update both residual members for every path edge. Odd IDs cancel earlier input flow.');
+     model.total+=model.delta;pushed=true;
+     yield frame('max_flow','added += delta',`Completed augmentation: add ${model.delta}; total flow is ${model.total}.`,{checkpoint:true});
+     break;
+    }
+    while(model.ptr[model.u]<model.adj[model.u].length){
+     const e=model.adj[model.u][model.ptr[model.u]];model.edge=e;model.v=model.to[e];
+     yield frame('_send','v = self.to[edge]',`Try #${e}: capacity ${model.cap[e]}, levels ${model.level[model.u]} -> ${model.level[model.v]}.`);
+     if(model.cap[e]>0&&model.level[model.v]===model.level[model.u]+1)break;
+     model.ptr[model.u]++;
+     yield frame('_send','self.ptr[u] += 1','Skip this edge: it is empty or does not advance exactly one level.');
+    }
+    if(model.ptr[model.u]===model.adj[model.u].length){
+     model.vertices.pop();model.bottleneck.pop();
+     if(model.path.length){model.path.pop();model.ptr[model.vertices.at(-1)]++;}
+     model.edge=null;
+     yield frame('_send','vertices.pop()','This vertex has no remaining route in the level graph. Backtrack and advance the parent pointer.');
+    }else{
+     const e=model.adj[model.u][model.ptr[model.u]];
+     model.edge=e;model.v=model.to[e];model.path.push(e);model.vertices.push(model.v);model.bottleneck.push(Math.min(model.bottleneck.at(-1),model.cap[e]));
+     yield frame('_send','bottleneck.append(min(bottleneck[-1], self.cap[edge]))',`Follow #${e} to ${model.v}. The path bottleneck is now ${model.bottleneck.at(-1)}.`);
+    }
+   }
+   if(!pushed){model.delta=0;yield frame('_send','return 0','No path remains in these fixed levels. The blocking flow is complete; rebuild BFS.');break;}
+  }
+ }
+}
+function* matchingTrace(input){
+ const {n,r,edges}=input;
+ const adj=Array.from({length:n},()=>[]);for(const {u,v}of edges)adj[u].push(v);
+ const model={mode:'matching',n,r,edges,adj,left:Array(n).fill(-1),right:Array(r).fill(-1),previous:Array(r).fill(-1),seen:Array(n).fill(false),queue:[],path:[],root:null,u:null,v:null,owner:null,old:null,total:0,phase:0,delta:null,done:false,checkpoint:false,provisional:false};
+ const frame=(method,line,message,extra={})=>{Object.assign(model,{checkpoint:false},extra);return {line:codeLine('matching',method,line),method,message,...structuredClone(model)};};
+ yield frame('maximum_matching','for root in range(len(self.left)):','Start with every vertex unmatched. Each root search may add one pair.');
+ for(let root=0;root<n;root++){
+  model.root=root;model.phase=root+1;model.path=[];model.u=model.v=model.owner=model.old=null;model.delta=null;
+  if(model.left[root]!==-1)continue;
+  model.previous=Array(r).fill(-1);model.seen=Array(n).fill(false);model.seen[root]=true;model.queue=[root];
+  yield frame('_augment','queue = deque([root])',`Start an alternating search from unmatched left vertex L${root}.`);
+  let success=false;
+  search:while(model.queue.length){
+   model.u=model.queue.shift();model.v=null;
+   yield frame('_augment','u = queue.popleft()',`Try possible partners for L${model.u}.`);
+   for(const v of adj[model.u]){
+    model.v=v;
+    if(model.previous[v]!==-1){yield frame('_augment','continue',`R${v} was already visited in this search; skip it.`);continue;}
+    model.previous[v]=model.u;model.owner=model.right[v];
+    yield frame('_augment','owner = self.right[v]',`Record previous[R${v}] = L${model.u}. `+(model.owner===-1?'This right vertex is free.':`Its current owner is L${model.owner}.`));
+    if(model.owner===-1){
+     let cursor=v;const flips=[];
+     while(cursor!==-1){const u=model.previous[cursor];flips.push({u,v:cursor,old:model.left[u]});cursor=model.left[u];}
+     model.path=flips;model.provisional=true;
+     yield frame('_augment','while v != -1:','A free right endpoint is reached. Flip the alternating path back to the unmatched root.');
+     for(const flip of flips){
+      model.v=flip.v;model.u=model.previous[model.v];model.old=model.left[model.u];
+      yield frame('_augment','old = self.left[u]',`Remember L${model.u}'s old partner: ${model.old===-1?'none':'R'+model.old}.`);
+      model.left[model.u]=model.v;
+      yield frame('_augment','self.left[u] = v',`Set left[${model.u}] = ${model.v}. The path flip is still in progress.`);
+      model.right[model.v]=model.u;
+      yield frame('_augment','self.right[v] = u',`Set right[${model.v}] = ${model.u}.`);
+      model.v=model.old;
+      yield frame('_augment','v = old','Continue with the old partner, or stop at -1.');
+     }
+     model.provisional=false;model.total++;model.delta=1;success=true;
+     yield frame('_augment','return True',`Completed augmentation: the matching now has ${model.total} pairs.`,{checkpoint:true});
+     break search;
+    }
+    if(!model.seen[model.owner]){model.seen[model.owner]=true;model.queue.push(model.owner);yield frame('_augment','queue.append(owner)',`Enqueue owner L${model.owner} to look for a replacement partner.`);}
+   }
+  }
+  if(!success)yield frame('_augment','return False','No alternating route reaches a free right vertex. This root cannot increase the matching.');
+ }
+ model.done=true;model.provisional=false;model.u=model.v=null;model.path=[];
+ yield frame('maximum_matching','return [(u, v) for u, v in enumerate(self.left) if v != -1]',`All left roots have been processed. Maximum matching size = ${model.total}.`);
+}
+globalThis.FlowLab={parseGraph,flowTrace,matchingTrace,PRESETS,FLOW_CODE,MATCH_CODE};
+</script>
+<script id="algorithm-ui">
+'use strict';
+(()=>{
+ const $=id=>document.getElementById(id);
+ let mode='flow',frames=[],position=0,generator=null,timer=null;
+ const MAX_FRAMES=15000;
+ const safe=value=>String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+ function stop(){if(timer)clearTimeout(timer);timer=null;$('play-button').textContent='Play';}
+ function configure(){
+  stop();$('flow-tab').setAttribute('aria-selected',String(mode==='flow'));$('matching-tab').setAttribute('aria-selected',String(mode==='matching'));
+  $('preset').innerHTML=PRESETS[mode].map((p,i)=>`<option value="${i}">${safe(p.name)}</option>`).join('');
+  $('graph-input').value=PRESETS[mode][0].text;
+  $('format-hint').textContent=mode==='flow'?'Format: n m, then m lines u v capacity. Source = 0, sink = n-1.':'Format: L R E, then E lines left right. Each side has its own 0-based IDs.';
+  $('residual-label').hidden=mode!=='flow';$('graph-title').textContent=mode==='flow'?'Residual network':'Alternating paths';
+  $('value-label').textContent=mode==='flow'?'Flow value':'Matching size';$('phase-label').textContent=mode==='flow'?'BFS phase':'Root search';
+  const code=mode==='flow'?FLOW_CODE:MATCH_CODE;
+  $('code').innerHTML=code.split('\n').map((line,i)=>`<div id="code-${i}" class="code-line"><span class="line-number">${i+1}</span><code>${safe(line)}</code></div>`).join('');
+  load();
+ }
+ function load(){
+  stop();
+  try{const input=parseGraph(mode,$('graph-input').value);generator=mode==='flow'?flowTrace(input):matchingTrace(input);frames=[];position=-1;$('input-error').textContent='';next();}
+  catch(error){$('input-error').textContent=error.message;}
+ }
+ function next(renderNow=true){
+  if(position<frames.length-1){position++;if(renderNow)render();return true;}
+  if(frames.length&&frames.at(-1).done)return false;
+  if(frames.length>=MAX_FRAMES){stop();$('input-error').textContent='The trace reached 15000 steps. Try a smaller graph.';return false;}
+  const result=generator.next();if(result.done)return false;frames.push(result.value);position++;if(renderNow)render();return true;
+ }
+ function advance(finish){stop();let count=0;do{if(!next(false))break;count++;}while(count<MAX_FRAMES&&!frames[position].done&&(finish||!frames[position].checkpoint));render();}
+ function previous(){stop();if(position>0){position--;render();}}
+ function playTick(){if(!next()){stop();return;}timer=setTimeout(playTick,Math.round(1200/Number($('speed').value)));}
+ function render(){
+  const f=frames[position];if(!f)return;
+  $('previous-button').disabled=position===0;
+  const ended=f.done&&position===frames.length-1;
+  for(const id of ['next-button','augment-button','finish-button','play-button'])$(id).disabled=ended;
+  $('total-value').textContent=f.total;$('phase-value').textContent=f.phase;$('delta-value').textContent=f.delta===null?'-':f.delta;
+  $('step-count').textContent=`Step ${position+1} / ${frames.length}${f.done?' / complete':''}`;
+  $('timeline').max=Math.max(0,frames.length-1);$('timeline').value=position;$('history-label').textContent=`${frames.length} recorded steps`;
+  $('stage').textContent=f.done?'Optimal answer':`${f.method} / ${f.mode==='flow'?'phase':'search'} ${f.phase}`;
+  $('message').textContent=f.message;
+  $('notice').hidden=!f.provisional;$('notice').textContent='Path flip in progress: partner arrays may temporarily disagree. They are consistent again at the completed augmentation.';
+  const rows=mode==='flow'?[['u / v',`${f.u??'-'} / ${f.v??'-'}`],['edge / reverse',f.edge===null?'-':`${f.edge} / ${f.edge^1}`],['queue',f.queue],['vertices',f.vertices],['path IDs',f.path],['bottleneck',f.bottleneck],['ptr',f.ptr]]:[['root / u / v',`${f.root??'-'} / ${f.u??'-'} / ${f.v??'-'}`],['owner / old',`${f.owner??'-'} / ${f.old??'-'}`],['queue (left)',f.queue],['previous (right)',f.previous],['seen (left)',f.seen.map(Number)]];
+  $('variables').innerHTML=rows.map(([k,v])=>`<tr><th>${safe(k)}</th><td>${safe(Array.isArray(v)?'['+v.join(', ')+']':v)}</td></tr>`).join('');
+  const table=(label,values)=>`<table><thead><tr><th>${safe(label)}</th>${values.map((_,i)=>`<th>${i}</th>`).join('')}</tr></thead><tbody><tr><th>${mode==='flow'?'level':'partner'}</th>${values.map(x=>`<td>${x}</td>`).join('')}</tr></tbody></table>`;
+  $('arrays').innerHTML=mode==='flow'?table('vertex',f.level):table('left',f.left)+table('right',f.right);
+  const old=$('code').querySelector('.active');if(old)old.classList.remove('active');
+  const line=$('code-'+f.line);if(line){line.classList.add('active');const a=line.getBoundingClientRect(),b=$('code').getBoundingClientRect();if(a.top<b.top||a.bottom>b.bottom)$('code').scrollTop+=a.top-b.top-$('code').clientHeight/2+line.offsetHeight/2;}
+  draw(f);
+ }
+ function draw(f){
+  const flow=f.mode==='flow',residual=flow&&$('residual-toggle').checked;
+  let svg='<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/></marker></defs>';
+  const pos=[];
+  if(flow){
+   pos.push([60,215]);
+   const middle=f.n-2,cols=middle<=2?1:2,per=Math.ceil(middle/cols);
+   for(let i=0;i<middle;i++){const col=Math.floor(i/per),row=i%per;const count=Math.min(per,middle-col*per);pos.push([cols===1?380:270+220*col,75+(count===1?140:row*280/(count-1))]);}
+   pos.push([700,215]);
+  }else{
+   for(let i=0;i<f.n;i++)pos.push([170,f.n===1?215:60+i*310/(f.n-1)]);
+   for(let i=0;i<f.r;i++)pos.push([590,f.r===1?215:60+i*310/(f.r-1)]);
+  }
+  const items=[];
+  if(flow){for(let i=0;i<f.edges.length;i++){
+   const e=f.edges[i];
+   if(residual){if(f.cap[2*i]>0)items.push({u:e.u,v:e.v,label:`${f.cap[2*i]} (#${2*i})`,id:2*i,reverse:false});if(f.cap[2*i+1]>0)items.push({u:e.v,v:e.u,label:`${f.cap[2*i+1]} (#${2*i+1})`,id:2*i+1,reverse:true});}
+   else items.push({u:e.u,v:e.v,label:`${f.cap[2*i+1]}/${e.c}`,id:2*i,reverse:false});
+  }}else{for(const e of f.edges)items.push({u:e.u,v:f.n+e.v,label:'',id:null,matched:f.left[e.u]===e.v});}
+  const groups=new Map();for(const e of items){const key=[Math.min(e.u,e.v),Math.max(e.u,e.v)].join('-');if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e);}
+  for(const group of groups.values())for(let index=0;index<group.length;index++){
+   const e=group[index],a=pos[e.u],b=pos[e.v],dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy)||1;
+   const direction=e.u<e.v?1:-1,bend=(index-(group.length-1)/2)*42*direction;
+   const cx=(a[0]+b[0])/2-dy/length*bend,cy=(a[1]+b[1])/2+dx/length*bend;
+   const normalize=(x,y)=>{const d=Math.hypot(x,y)||1;return [x/d,y/d];};
+   const va=normalize(cx-a[0],cy-a[1]),vb=normalize(b[0]-cx,b[1]-cy);
+   const start=[a[0]+va[0]*24,a[1]+va[1]*24],end=[b[0]-vb[0]*26,b[1]-vb[1]*26];
+   let d=`M${start} Q${cx},${cy} ${end}`,lx=(a[0]+2*cx+b[0])/4,ly=(a[1]+2*cy+b[1])/4;
+   if(e.u===e.v){const offset=index*20;d=`M${a[0]-15},${a[1]-18} C${a[0]-90-offset},${a[1]-110-offset} ${a[0]+90+offset},${a[1]-110-offset} ${a[0]+15},${a[1]-18}`;lx=a[0];ly=a[1]-85-offset;}
+   const inPath=flow?(residual?f.path.includes(e.id):f.path.some(id=>(id>>1)===(e.id>>1))):f.path.some(p=>p.u===e.u&&(f.n+p.v===e.v||f.n+p.old===e.v));
+   const inspected=flow?f.edge===e.id:(f.u===e.u&&f.v===e.v-f.n);
+   const color=inspected?'#ad501a':inPath?'#235da3':e.reverse?'#ad501a':e.matched?'#17654f':'#7c9185';
+   svg+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="${inPath||e.matched?4:2}" ${e.reverse?'stroke-dasharray="7 5"':''} ${flow?'marker-end="url(#arrow)"':''}/>`;
+   if(e.label){const w=Math.max(45,e.label.length*10+8);svg+=`<rect x="${lx-w/2}" y="${ly-13}" width="${w}" height="26" rx="4" fill="white"/><text x="${lx}" y="${ly+6}" text-anchor="middle" font-size="18" fill="${color}">${safe(e.label)}</text>`;}
+  }
+  for(let i=0;i<pos.length;i++){
+   const [x,y]=pos[i],active=flow?f.u===i:f.u===i||f.v===i-f.n&&i>=f.n;
+   const reachable=flow&&f.side&&f.side[i];
+   const fill=active?'#fff0d9':reachable?'#d5ecdc':flow&&(i===0||i===f.n-1)?'#e6efe5':'#fff';
+   svg+=`<circle cx="${x}" cy="${y}" r="23" fill="${fill}" stroke="${active?'#ad501a':'#2c5140'}" stroke-width="${active?3:2}"/><text x="${x}" y="${y+7}" text-anchor="middle" font-size="20" fill="#18332e">${flow?i:(i<f.n?'L'+i:'R'+(i-f.n))}</text>`;
+   const sub=flow?(i===0?'s / ':'')+(i===f.n-1?'t / ':'')+'level '+f.level[i]:'';
+   if(sub)svg+=`<text x="${x}" y="${y+45}" text-anchor="middle" font-size="16" fill="#53675d">${safe(sub)}</text>`;
+  }
+  $('graph').innerHTML=svg;
+  $('graph').setAttribute('aria-label',flow?`Flow network, value ${f.total}, phase ${f.phase}. ${f.message}`:`Bipartite graph, matching size ${f.total}. ${f.message}`);
+  $('legend').innerHTML=flow?`<span><i class="dot blue"></i>current path</span><span><i class="dot orange"></i>inspected / cancellation</span><span>${residual?'residual capacity (#edge ID)':'input flow/capacity'}</span>`:'<span><i class="dot green"></i>matched pair</span><span><i class="dot blue"></i>alternating path</span><span><i class="dot orange"></i>inspected pair</span>';
+  $('cut-summary').textContent=flow&&f.done?'Minimum-cut source side S = {'+f.side.flatMap((yes,i)=>yes?[i]:[]).join(', ')+'}; input cut capacity = '+f.edges.reduce((sum,e)=>sum+(f.side[e.u]&&!f.side[e.v]?e.c:0),0):'';
+ }
+ $('flow-tab').onclick=()=>{if(mode!=='flow'){mode='flow';configure();}};
+ $('matching-tab').onclick=()=>{if(mode!=='matching'){mode='matching';configure();}};
+ $('preset').onchange=()=>{$('graph-input').value=PRESETS[mode][Number($('preset').value)].text;load();};
+ $('load-button').onclick=load;$('next-button').onclick=()=>{stop();next();};$('previous-button').onclick=previous;
+ $('augment-button').onclick=()=>advance(false);$('finish-button').onclick=()=>advance(true);
+ $('reset-button').onclick=()=>{stop();position=0;render();};
+ $('play-button').onclick=()=>{if(timer)stop();else {$('play-button').textContent='Pause';playTick();}};
+ $('timeline').oninput=()=>{stop();position=Number($('timeline').value);render();};
+ $('residual-toggle').onchange=()=>draw(frames[position]);
+ document.addEventListener('keydown',event=>{
+  if(/INPUT|TEXTAREA|SELECT|BUTTON/.test(event.target.tagName)||event.ctrlKey||event.altKey||event.metaKey)return;
+  if(event.key==='ArrowRight'){event.preventDefault();stop();next();}else if(event.key==='ArrowLeft'){event.preventDefault();previous();}else if(event.key===' '){event.preventDefault();if(timer)stop();else {$('play-button').textContent='Pause';playTick();}}
+ });
+ globalThis.flowPlayground={getFrame:()=>structuredClone(frames[position]),getHistory:()=>structuredClone(frames),load,finish:()=>advance(true),next,previous};
+ configure();
+})();
+</script>
+</body></html>

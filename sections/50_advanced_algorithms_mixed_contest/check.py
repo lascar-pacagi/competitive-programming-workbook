@@ -26,6 +26,13 @@ PROBLEMS = [
     SECTION / "problems" / "j_monge_partition_table",
     SECTION / "problems" / "k_online_line_dp",
     SECTION / "problems" / "l_profitable_disjoint_routes",
+    SECTION / "problems" / "m_dial_alignment",
+    SECTION / "problems" / "n_archive_reassembly",
+    SECTION / "problems" / "o_relay_throughput",
+    SECTION / "problems" / "p_last_alarm",
+    SECTION / "problems" / "q_exact_beacon_codes",
+    SECTION / "problems" / "r_warehouse_blocks",
+    SECTION / "problems" / "s_parabolic_signals",
 ]
 
 def main() -> int:

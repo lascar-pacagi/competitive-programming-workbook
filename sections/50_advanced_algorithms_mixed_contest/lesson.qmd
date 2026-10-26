@@ -9,7 +9,7 @@ format:
     documentclass: scrreprt
     papersize: a4
     toc: true
-    toc-depth: 2
+    toc-depth: 1
     number-sections: true
     colorlinks: true
     geometry: [margin=25mm]
@@ -17,62 +17,102 @@ execute:
   enabled: false
 ---
 
+
 # Mixed advanced contest habits
 
-At this level, the danger is applying a powerful tool before the problem model
-has earned it.
+At this level, a powerful tool is useful only after the mathematical model
+has earned it. This contest tests whether you can choose that model without
+being told the technique in the statement.
 
-# Complete twelve-problem set
+# Nineteen original problems
 
-The virtual contest contains twelve problems. A--F establish the broad core;
-G--L are ordered as a progressively harder second half:
+The contest contains nineteen self-contained packages, A--S. The seven new
+problems M--S bring each technical topic in sections 43--49 to two main
+problems across the section-50 set. Together with section 42's coverage of
+section 41, this closes the gap between the two mixed contests.
 
-| Category | Problem package |
+| Problem | Title |
 |---|---|
-| String Algorithms I | E. Pattern Prefix Matches |
-| String Algorithms II | F. Suffix LCP Queries |
-| Flows and Matchings | G. Domino Placement |
-| Rerooting and Advanced Tree DP | H. Weighted Tree Distances |
-| Meet-in-the-Middle | I. Balanced Subset Difference |
-| Divide-and-Conquer DP Optimization | J. Monge Partition Table |
-| Convex Hull Trick and Li Chao Tree | K. Online Line DP |
-| Min-cost flow synthesis | L. Profitable Disjoint Routes |
+| A | DAG Grundy |
+| B | General CRT |
+| C | Fast Fibonacci |
+| D | Fibonacci Range Sum |
+| E | Pattern Prefix Matches |
+| F | Suffix LCP Queries |
+| G | Domino Placement |
+| H | Weighted Tree Distances |
+| I | Balanced Subset Difference |
+| J | Monge Partition Table |
+| K | Online Line DP |
+| L | Profitable Disjoint Routes |
+| M | Dial Alignment |
+| N | Archive Reassembly |
+| O | Relay Throughput |
+| P | Last Alarm |
+| Q | Exact Beacon Codes |
+| R | Warehouse Blocks |
+| S | Parabolic Signals |
 
-All twelve packages are local and contain statements, stubs, references, and
-tests. The checker runs A--L.
+Each package contains its statement, public student stubs, both reference
+languages, and tests. All seven new packages include explicit input constraints,
+independent small oracles, and maximum-size workloads. The checker runs A--S.
+
+For three shorter rounds, attempt A--F, G--L, then M--S. M--S are grouped by
+source topic rather than difficulty. L is an optional extension requiring its
+editorial's extra material; leave it aside until the main set is complete.
+Use the coverage map in the README only after choosing your own models.
 
 # Diagnose the mathematical object
 
-For every local task, write a short model before coding:
+Before coding, write down what a candidate solution represents. Identify the
+allowed choices, the quantity being optimized or counted, and the precise
+meaning of one state or maintained object.
 
 ```text
-What is the state, relation, or algebraic constraint?
-Which quantities are invariant under the allowed operations?
-Can the input be split into independent parts or reduced recursively?
-What makes a candidate answer valid?
+What makes a candidate valid?
+Which choices interact, and which can be separated?
+What changes when I move one endpoint, root, or query position?
+What do the largest inputs rule out?
 ```
 
-Then derive a small case by hand and compare it with the proposed model. Do
-not use the local statements as labels for known algorithms; the editorial is
-where their final reductions belong.
+Test your proposed model on a tiny case before optimizing it. A repeated value
+can expose accidental deduplication; a boundary endpoint can expose an indexing
+error; an impossible instance can expose an invalid default answer.
 
 # Proof checkpoints
 
-An advanced solution needs a proof of the transformation as well as a proof of
-the algorithm. Check that every original solution maps to a constructed object
-and every constructed object maps back. For a recurrence, prove base cases and
-the split. For a modular condition, verify existence and uniqueness assumptions
-before combining constraints.
+A reduction needs a mapping in both directions, with the objective preserved.
+A recurrence needs an exhaustive description of its last choice. A greedy
+choice needs an exchange or dominance argument. An optimization needs its
+ordering assumptions proved for the actual cost function, not borrowed from
+a similar-looking exercise.
+
+Write those obligations before opening the corresponding source editorial.
+The mixed lesson intentionally leaves the individual reductions to your attempt.
 
 # Implementation and testing
 
-Use types large enough for intermediate products, normalize modular values, and
-make base cases explicit. Write a deliberately slow oracle for very small input
-when possible. Test neutral elements, repeated constraints, impossible cases,
-and maximum bit lengths separately.
+Keep public `solve.*` files as stubs and put personal solutions in the private
+submissions overlay. The reference checker can be run separately:
+
+```bash
+CP_TARGET=solution python3 sections/50_advanced_algorithms_mixed_contest/check.py --keep-going
+```
+
+Use independent exhaustive oracles on small inputs. For example, enumerating
+all legal choices can check a fast implementation without sharing its internal
+state or transition formula. Agreement between two optimized implementations
+alone does not establish correctness.
+
+Performance tests serve a separate purpose. A small random case rarely rejects
+a quadratic method. M--S each include two full-limit workloads with expected
+answers derived from their construction. They run under the normal time limit.
+Use wide integers for totals and products, and remember that a valid optimum
+can be negative or can count many subsets.
 
 # Exercises
 
-Attempt all twelve problems by recording the model, the key proof
-obligation, and a tiny counterexample that would disprove your idea. Read each
-source section's editorial only after that written attempt.
+Attempt all eighteen main problems and the optional extension L. For each,
+record the model, proof obligation, target complexity, and one counterexample
+to a tempting wrong approach. Then use the full editorial to upsolve and
+rerun the judge after correcting your implementation.

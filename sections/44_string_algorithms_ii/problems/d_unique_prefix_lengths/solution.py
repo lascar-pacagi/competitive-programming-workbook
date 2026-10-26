@@ -1,25 +1,38 @@
 import sys
 
 
-def main() -> None:
-    words = sys.stdin.buffer.read().split()
-    if not words: return
-    n = int(words[0]); words = [word.decode() for word in words[1:n + 1]]
-    children = [{}]; passed = [0]
+def main():
+    tokens = sys.stdin.buffer.read().split()
+    if not tokens:
+        return
+    n = int(tokens[0])
+    words = [word.decode() for word in tokens[1:n + 1]]
+    children = [{}]
+    passed = [0]
+
     for word in words:
         node = 0
-        for char in word:
-            if char not in children[node]:
-                children[node][char] = len(children); children.append({}); passed.append(0)
-            node = children[node][char]; passed[node] += 1
-    output = []
+        for ch in word:
+            if ch not in children[node]:
+                child = len(children)
+                children[node][ch] = child
+                children.append({})
+                passed.append(0)
+            node = children[node][ch]
+            passed[node] += 1
+
+    answers = []
     for word in words:
-        node = 0; answer = -1
-        for length, char in enumerate(word, 1):
-            node = children[node][char]
-            if passed[node] == 1: answer = length; break
-        output.append(str(answer))
-    sys.stdout.write("\n".join(output) + "\n")
+        node = 0
+        answer = -1
+        for length, ch in enumerate(word, 1):
+            node = children[node][ch]
+            if passed[node] == 1:
+                answer = length
+                break
+        answers.append(str(answer))
+    print("\n".join(answers))
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()

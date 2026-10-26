@@ -9,7 +9,7 @@ format:
     documentclass: scrreprt
     papersize: a4
     toc: true
-    toc-depth: 2
+    toc-depth: 1
     number-sections: true
     colorlinks: true
     geometry:
@@ -20,418 +20,3214 @@ format:
         \usepackage{amsmath}
         \usepackage{booktabs}
         \usepackage{tikz}
+        \usepackage{needspace}
         \usetikzlibrary{decorations.pathreplacing,arrows.meta}
 execute:
   enabled: false
 ---
 
-# Flow as controlled movement
+# Start with five units to deliver
 
-A flow network is a directed graph whose edges have capacities, plus two
-distinguished vertices: a source `s` that may create material and a sink `t`
-that may absorb it. Every other vertex is a junction that must pass on exactly
-what it receives.
+Imagine that vertex `1` has material to send to vertex `4`. An arrow's
+capacity is the most material it can carry. Vertices `2` and `3` may forward
+material, but cannot create or keep it. How much can reach `4` altogether?
 
-Formally, a flow assigns a number `f(u,v)` to each edge with
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=9mm,fill=white},
+ ar/.style={->,thick},lab/.style={fill=white,inner sep=2pt}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.3) {2};
+\node[nd] (b) at (3,-1.3) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[ar] (s)--node[lab]{3}(a);
+\draw[ar] (s)--node[lab]{2}(b);
+\draw[ar] (a)--node[lab]{1}(b);
+\draw[ar] (a)--node[lab]{2}(t);
+\draw[ar] (b)--node[lab]{4}(t);
+\node[below=5mm] at (s.south) {source};
+\node[below=5mm] at (t.south) {sink};
+\end{tikzpicture}
+\end{center}
+```
+
+Start with nothing on any arrow. We will build a delivery by choosing one
+complete route at a time. For now, follow the amounts in the drawings; we
+will study how an algorithm finds its routes later.
+
+In the next three drawings, each label is **amount already sent / capacity**,
+after the step. For example, `2/3` means that the arrow carries `2` units and
+can still carry `1` more. Blue arrows show the route used in that step; the
+other arrows keep their previous amounts.
+
+```{=latex}
+\Needspace{8cm}
+```
+
+## First route: send two units through vertex 2
+
+Choose `1 -> 2 -> 4`. The first arrow can carry `3` units, but the second
+can carry only `2`. Send **2 units along both arrows**: vertex 2 receives
+2 and immediately forwards 2 to vertex 4. Sending 3 would overload `2 -> 4`.
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=9mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ chosen/.style={->,very thick,draw=blue!65!black},
+ lab/.style={fill=white,inner sep=2pt}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.6,1.1) {2};
+\node[nd] (b) at (2.6,-1.1) {3};
+\node[nd,fill=green!20] (t) at (5.2,0) {4};
+\draw[chosen] (s)--node[lab] {$\mathbf{2}/3$} (a);
+\draw[ar] (s)--node[lab] {$0/2$} (b);
+\draw[ar] (a)--node[lab] {$0/1$} (b);
+\draw[chosen] (a)--node[lab] {$\mathbf{2}/2$} (t);
+\draw[ar] (b)--node[lab] {$0/4$} (t);
+\node[anchor=west,align=left,text width=5.1cm,
+        font=\small] at (6.2,0) {\textbf{Added on this route: 2}\\[4pt]\textbf{Total delivered: 2}\\[8pt]Vertex 2: $2$ arrives, $2$ leaves.\\[4pt]Edge $2\to4$ is now full.\\Edge $1\to2$ still has room for $1$.};
+\end{tikzpicture}
+\end{center}
+```
+
+```{=latex}
+\Needspace{8cm}
+```
+
+## Second route: send two more units through vertex 3
+
+Keep the first delivery in place. On `1 -> 3 -> 4`, neither arrow has been
+used yet: they have room for `2` and `4` units respectively. Send **2 more
+units along both arrows**. The receiver now gets 2 through vertex 2 and
+2 through vertex 3, for a total of 4.
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=9mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ chosen/.style={->,very thick,draw=blue!65!black},
+ lab/.style={fill=white,inner sep=2pt}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.6,1.1) {2};
+\node[nd] (b) at (2.6,-1.1) {3};
+\node[nd,fill=green!20] (t) at (5.2,0) {4};
+\draw[ar] (s)--node[lab] {$2/3$} (a);
+\draw[chosen] (s)--node[lab] {$\mathbf{2}/2$} (b);
+\draw[ar] (a)--node[lab] {$0/1$} (b);
+\draw[ar] (a)--node[lab] {$2/2$} (t);
+\draw[chosen] (b)--node[lab] {$\mathbf{2}/4$} (t);
+\node[anchor=west,align=left,text width=5.1cm,
+        font=\small] at (6.2,0) {\textbf{Added on this route: 2}\\[4pt]\textbf{Total delivered: 4}\\[8pt]Vertex 3: $2$ arrives, $2$ leaves.\\[4pt]Edge $1\to3$ is now full.\\Edge $3\to4$ still has room for $2$.};
+\end{tikzpicture}
+\end{center}
+```
+
+```{=latex}
+\Needspace{10cm}
+```
+
+## Third route: use the remaining room between the branches
+
+Four is not the limit. Although `2 -> 4` is full, we can still go from
+vertex 2 through vertex 3 to reach vertex 4. Look at the previous drawing:
+
+- `1 -> 2` carries 2 of its capacity 3: room for **1** more.
+- `2 -> 3` carries 0 of its capacity 1: room for **1** more.
+- `3 -> 4` carries 2 of its capacity 4: room for **2** more.
+
+So route `1 -> 2 -> 3 -> 4` can carry **1 additional unit**. Add it on each
+of these three arrows, leaving every other amount unchanged:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=9mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ chosen/.style={->,very thick,draw=blue!65!black},
+ lab/.style={fill=white,inner sep=2pt}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.6,1.1) {2};
+\node[nd] (b) at (2.6,-1.1) {3};
+\node[nd,fill=green!20] (t) at (5.2,0) {4};
+\draw[chosen] (s)--node[lab] {$\mathbf{3}/3$} (a);
+\draw[ar] (s)--node[lab] {$2/2$} (b);
+\draw[chosen] (a)--node[lab] {$\mathbf{1}/1$} (b);
+\draw[ar] (a)--node[lab] {$2/2$} (t);
+\draw[chosen] (b)--node[lab] {$\mathbf{3}/4$} (t);
+\node[anchor=west,align=left,text width=5.1cm,
+        font=\small] at (6.2,0) {\textbf{Added on this route: 1}\\[4pt]\textbf{Total delivered: 5}\\[8pt]Vertex 2: $3$ arrives, $2+1$ leaves.\\[4pt]Vertex 3: $2+1$ arrives, $3$ leaves.\\[4pt]Both junctions still balance.};
+\end{tikzpicture}
+\end{center}
+```
+
+The amount an entire route can add is limited by its smallest remaining
+room. This amount is called its **bottleneck**: here it was 2, then 2, then 1.
+Notice that the final labels show the accumulated amounts, not just the last
+unit added: `1 -> 2` now carries 3, and `3 -> 4` now carries 3.
+
+## Why five is the maximum
+
+The receiver gets `2 + 3 = 5`. No larger delivery is possible because the
+only arrows leaving vertex 1 have capacities `3` and `2`, and both are full.
+Even though `3 -> 4` still has room for one more unit, no additional unit can
+leave the source to reach it.
+
+We have both a feasible routing of 5 units and an upper bound of 5. This is
+the basic proof pattern we will reuse for maximum flow.
+
+## Vocabulary for the example
+
+A **flow network** is a directed graph, a nonnegative capacity for each input
+edge, and distinct vertices `s` (source) and `t` (sink). Each input edge has
+its own flow, even when several arrows have the same endpoints.
+
+A feasible flow satisfies two rules:
 
 ```text
-0 <= f(u,v) <= c(u,v)                         capacity
-sum of flow in = sum of flow out, for v != s, t   conservation
+0 <= flow[edge] <= capacity[edge]
+for each vertex except s and t: total incoming flow = total outgoing flow
 ```
 
-and its **value** is the net amount leaving `s`. Conservation means that value
-can equally well be measured as the amount arriving at `t`.
+The **flow value** measures how much the source supplies to the sink. In our
+final drawing, it is **5**: `3 + 2` leaves vertex 1, and `2 + 3` reaches
+vertex 4. Do not add the amounts on every edge of the graph: that would count
+the same unit again each time it passes through another edge.
 
+**A return to the source must be subtracted.** Some networks have actual input edges
+returning to the source. In the drawing below, the source sends 7 units to
+`u`, but `u` sends 2 back and forwards only 5 to the sink. The value is
+therefore **7 - 2 = 5**, not 7. Labels here are the amounts carried; capacities
+are omitted. Both opposite arrows are real input edges.
 
 ```{=latex}
+\Needspace{5cm}
 \begin{center}
-\begin{tikzpicture}[font=\small,
-  nd/.style={circle,draw,fill=white,minimum size=8mm,inner sep=0pt,font=\small},
-  src/.style={nd,fill=orange!30,very thick},
-  snk/.style={nd,fill=green!30,very thick},
-  ar/.style={draw,->,>=Latex,thick,gray!75},
-  cl/.style={font=\scriptsize,fill=white,inner sep=1.5pt},
-  tg/.style={font=\scriptsize,text=gray!60}]
-
-  \node[src] (n1) at (0,0)     {$1$};
-  \node[nd]  (n2) at (2.7,1.2) {$2$};
-  \node[nd]  (n3) at (2.7,-1.2){$3$};
-  \node[snk] (n4) at (5.4,0)   {$4$};
-
-  \draw[ar] (n1) -- node[cl] {$3$} (n2);
-  \draw[ar] (n1) -- node[cl] {$2$} (n3);
-  \draw[ar] (n2) -- node[cl] {$1$} (n3);
-  \draw[ar] (n2) -- node[cl] {$2$} (n4);
-  \draw[ar] (n3) -- node[cl] {$4$} (n4);
-
-  \node[tg] at (0,-0.72)   {source $s$};
-  \node[tg] at (5.4,-0.72) {sink $t$};
-
-  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
-        anchor=north west,inner sep=5pt,text width=7.3cm] at (6.5,1.9)
-    {\textbf{One network, four questions.} This is the sample input of
-     problem A, and every figure in this section uses it.\\[4pt]
-     Edge labels are \emph{capacities}. A flow puts a number $f(u,v)$ on each
-     edge with $0\le f(u,v)\le c(u,v)$, and every vertex except $s$ and $t$
-     must send out exactly what it takes in.\\[4pt]
-     \begin{tabular}{@{}ll@{}}
-       What is the largest flow $s\to t$? & problem A\\
-       Which edges form the cheapest barrier? & problem C\\
-       How large can a matching be? & problem B\\
-       Which projects should be taken? & problem D\\
-     \end{tabular}\\[4pt]
-     The answer to the first is $5$, and it is \emph{not} reachable by
-     obvious paths alone --- that is what the rest of this section is about.};
-
-  \node[font=\scriptsize,align=left,anchor=north west,text width=6.2cm] at (-0.75,-2.05)
-    {\textbf{Conservation, read at vertex $2$.} Whatever arrives on $1\to2$
-     must leave again along $2\to3$ and $2\to4$ together. Only $s$ may create
-     flow, and only $t$ may absorb it.};
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=9mm,fill=white},
+ ar/.style={->,thick},lab/.style={fill=white,inner sep=2pt}]
+\node[nd,fill=orange!20] (s) at (0,0) {$s$};
+\node[nd] (u) at (4,0) {$u$};
+\node[nd,fill=green!20] (t) at (8,0) {$t$};
+\draw[ar] (s) to[bend left=25] node[lab,above] {$7$} (u);
+\draw[ar] (u) to[bend left=25] node[lab,below] {$2$} (s);
+\draw[ar] (u)--node[lab,above] {$5$}(t);
+\node[below=11mm,align=center,font=\small] at (s.south)
+ {supplies $7-2=5$};
+\node[below=11mm,align=center,font=\small] at (u.south)
+ {receives $7$, forwards $2+5$};
+\node[below=11mm,align=center,font=\small] at (t.south)
+ {receives $5$};
 \end{tikzpicture}
 \end{center}
 ```
 
-Four questions in this section all reduce to that one object, and all four
-problems use graphs of this shape.
-
-# The residual graph
-
-Everything interesting about flow algorithms comes from one idea: a decision
-already made must remain reversible. That is what the residual graph encodes.
-
-
-```{=latex}
-\begin{center}
-\begin{tikzpicture}[font=\small,
-  nd/.style={circle,draw,fill=white,minimum size=7.5mm,inner sep=0pt,font=\small},
-  ar/.style={draw,->,>=Latex,thick},
-  cl/.style={font=\scriptsize,fill=white,inner sep=1.5pt}]
-
-  % original
-  \node[nd] (u1) at (0,0)   {$u$};
-  \node[nd] (v1) at (3.8,0) {$v$};
-  \draw[ar,gray!75] (u1) -- node[cl,above=1pt] {$f{=}5,\ c{=}7$} (v1);
-  \node[font=\scriptsize,anchor=north] at (1.9,-0.5) {as the problem states it};
-
-  \draw[->,very thick,gray!55] (4.65,0) -- (5.65,0);
-
-  % residual pair
-  \node[nd] (u2) at (6.6,0)  {$u$};
-  \node[nd] (v2) at (9.8,0)  {$v$};
-  \draw[ar,blue!65] (u2) to[bend left=28]
-       node[cl,text=blue!55!black] {residual $2$} (v2);
-  \draw[ar,orange!80!black] (v2) to[bend left=28]
-       node[cl,text=orange!60!black] {residual $5$} (u2);
-  \node[font=\scriptsize,anchor=north] at (8.2,-0.5) {as the algorithm sees it};
-
-  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
-        anchor=north west,inner sep=5pt,text width=13.3cm] at (-0.5,-1.6)
-    {\textcolor{blue!55!black}{\textbf{Forward residual}} $c-f=2$: how much more
-     can still be pushed along the edge.\\[2pt]
-     \textcolor{orange!60!black}{\textbf{Backward residual}} $f=5$: how much of
-     the flow already there may be \emph{taken back}.\\[4pt]
-     The backward edge is not a road that exists in the input. It is
-     permission to cancel up to $5$ units of an earlier decision when a better
-     global routing turns up. Without it, an algorithm would have to get every
-     choice right the first time; with it, no choice is ever final.\\[4pt]
-     \textbf{The update.} Pushing $x$ along an edge does two things at once:
-     subtract $x$ from the forward residual and add $x$ to the backward one.
-     Store the index of the reverse edge, not just the endpoint, or the second
-     half of that update cannot be done.};
-\end{tikzpicture}
-\end{center}
-```
-
-Concretely, if an edge of capacity `7` currently carries `5`:
+This gives the general definition:
 
 ```text
-forward residual  c - f = 2      push at most 2 more
-backward residual     f = 5      take back at most 5
+flow value = total leaving s - total returning to s
+           = total entering t - total leaving t
 ```
 
-An augmenting path is any `s`-to-`t` path in the residual graph, and it may mix
-forward and backward edges freely. Pushing `x` along it subtracts `x` from each
-forward residual and adds `x` to each matching backward residual.
+The two calculations agree because every intermediate vertex forwards exactly
+what it receives: it creates nothing and keeps nothing. The amount supplied
+by the source must therefore equal the amount absorbed by the sink. If no
+input edge enters `s` or leaves `t`, as in our opening network, the subtracted
+amounts are simply zero.
 
-In code, each edge is stored together with the **index** of its reverse edge,
-so that both halves of that update are one array access apart. Storing only the
-reverse endpoint is not enough: parallel edges between the same pair would
-become indistinguishable.
+**The optimization goal.** We want the largest flow value among all
+assignments satisfying the capacity and conservation rules. We can start with
+zero on every edge: no capacity is exceeded, and each junction receives and
+forwards zero. We will then improve this assignment while keeping both rules
+true.
 
-# Dinic's algorithm
+A maximum flow need not fill every edge. In the opening example, `3 -> 4`
+carries only 3 of its capacity 4, yet the value 5 is maximum because no more
+can leave the source. The algorithm maintains the edge amounts; an exercise
+asking only for the maximum value needs just the number `5` as output.
 
-Repeatedly augmenting along any residual path terminates, but slowly. Dinic
-organises the search into phases:
+# Reversible choices let us repair a routing
 
-1. BFS from `s` over edges with positive residual, giving `level[v]`.
-2. DFS that may only move from `v` to `to` when `level[to] == level[v] + 1`.
-3. Keep sending flow in this level graph until no augmenting path remains.
-4. Relevel and repeat; stop when the BFS cannot reach `t`.
-
-The level restriction is not a heuristic. It forbids sideways and backward
-moves, so the DFS cannot wander, and each phase strictly increases the length
-of the shortest `s`-to-`t` path. That bounds the number of phases by `O(V)`.
-
+In the opening example, we never changed an amount already assigned to an
+edge. We now examine a strategy that repeatedly chooses a route with room
+left and sends flow along it. An early route can be perfectly feasible yet
+need revising later. Consider this network, where every capacity is `1`.
 
 ```{=latex}
 \begin{center}
-\begin{tikzpicture}[font=\small,
-  nd/.style={circle,draw,fill=white,minimum size=7.6mm,inner sep=0pt,font=\small},
-  src/.style={nd,fill=orange!30},
-  snk/.style={nd,fill=green!30},
-  ar/.style={draw,->,>=Latex,gray!70},
-  hi/.style={draw,->,>=Latex,very thick},
-  dead/.style={draw,->,>=Latex,gray!40,densely dashed},
-  cl/.style={font=\scriptsize,fill=white,inner sep=1.3pt},
-  lv/.style={font=\scriptsize,text=gray!55},
-  hd/.style={font=\small\bfseries,anchor=west}]
-
-  % ================= PHASE 1 =================
-  \node[hd] at (-0.75,2.35) {Phase 1};
-  \node[lv,anchor=west] at (0.85,2.35) {levels $0,1,1,2$};
-  \node[src] (a1) at (0,0)     {$1$};
-  \node[nd]  (a2) at (2.2,1.1) {$2$};
-  \node[nd]  (a3) at (2.2,-1.1){$3$};
-  \node[snk] (a4) at (4.4,0)   {$4$};
-  \node[lv] at (0,0.72)    {$0$};
-  \node[lv] at (2.2,1.82)  {$1$};
-  \node[lv] at (2.2,-1.82) {$1$};
-  \node[lv] at (4.4,0.72)  {$2$};
-  \draw[hi,orange!80!black] (a1) -- node[cl] {$2/3$} (a2);
-  \draw[hi,blue!65]         (a1) -- node[cl] {$2/2$} (a3);
-  \draw[dead]               (a2) -- node[cl,text=gray!55] {$0/1$} (a3);
-  \draw[hi,orange!80!black] (a2) -- node[cl] {$2/2$} (a4);
-  \draw[hi,blue!65]         (a3) -- node[cl] {$2/4$} (a4);
-  \node[font=\scriptsize,anchor=north,align=center,text=gray!60] at (2.2,-2.15)
-    {$2\to3$ joins two vertices of the \emph{same} level,\\
-     so it is not in the level graph at all};
-  \node[font=\scriptsize,anchor=north,align=center] at (2.2,-3.05)
-    {blocking flow $=\mathbf{4}$};
-
-  % ================= PHASE 2 =================
-  \node[hd] at (6.75,2.35) {Phase 2};
-  \node[lv,anchor=west] at (8.35,2.35) {levels $0,1,2,3$};
-  \node[src] (b1) at (7.5,0)    {$1$};
-  \node[nd]  (b2) at (9.7,1.1)  {$2$};
-  \node[nd]  (b3) at (9.7,-1.1) {$3$};
-  \node[snk] (b4) at (11.9,0)   {$4$};
-  \node[lv] at (7.5,0.72)   {$0$};
-  \node[lv] at (9.7,1.82)   {$1$};
-  \node[lv] at (9.7,-1.82)  {$2$};
-  \node[lv] at (11.9,0.72)  {$3$};
-  \draw[hi,green!45!black] (b1) -- node[cl] {$1$} (b2);
-  \draw[dead]              (b1) -- node[cl,text=gray!55] {$0$} (b3);
-  \draw[hi,green!45!black] (b2) -- node[cl] {$1$} (b3);
-  \draw[dead]              (b2) -- node[cl,text=gray!55] {$0$} (b4);
-  \draw[hi,green!45!black] (b3) -- node[cl] {$2$} (b4);
-  \node[font=\scriptsize,anchor=north,align=center,text=gray!60] at (9.7,-2.15)
-    {relevelling put $3$ below $2$, so $2\to3$ is now\\
-     usable; the two saturated edges drop out};
-  \node[font=\scriptsize,anchor=north,align=center] at (9.7,-3.05)
-    {blocking flow $=\mathbf{1}$, \ total $=\mathbf{5}$};
-
-  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
-        anchor=north west,inner sep=5pt,text width=12.9cm] at (-0.8,-3.65)
-    {Phase 1 labels show \emph{flow\,/\,capacity}; phase 2 labels show the
-     \emph{residual} left on each edge.\\[4pt]
-     \textbf{Four is not the answer.} The first phase saturates both obvious
-     routes and stops at $4$, because the only edge that could carry more,
-     $2\to3$, runs between two vertices of the same level. A fresh BFS then
-     puts $3$ one level below $2$, the edge becomes legal, and
-     $1\to2\to3\to4$ carries the fifth unit. A third BFS cannot reach $4$ at
-     all, and that is the proof that $5$ is maximum.\\[3pt]
-     This is the whole reason Dinic relevels instead of running one DFS: each
-     phase strictly lengthens the shortest $s\to t$ path, so there are at most
-     $O(V)$ phases.};
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick},sel/.style={->,very thick,blue!65!black},
+ lab/.style={fill=white,inner sep=2pt,font=\small}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.5,1.3) {2};
+\node[nd] (b) at (2.5,-1.3) {3};
+\node[nd] (c) at (5,1.3) {4};
+\node[nd] (d) at (5,-1.3) {5};
+\node[nd,fill=green!20] (t) at (7.5,0) {6};
+\draw[sel] (s)--node[lab]{1/1}(a);
+\draw[ar] (s)--node[lab]{0/1}(b);
+\draw[sel] (a)--node[lab]{1/1}(c);
+\draw[ar] (a)--node[lab,pos=.65]{0/1}(d);
+\draw[ar] (b)--node[lab,pos=.65]{0/1}(c);
+\draw[sel] (c)--node[lab]{1/1}(t);
+\draw[ar] (d)--node[lab]{0/1}(t);
+\node[align=center] at (3.75,-2.3)
+ {After choosing route $1\to2\to4\to6$.\\Labels are flow/capacity.};
 \end{tikzpicture}
 \end{center}
 ```
 
-The pointer array `it[v]`, reset once per phase, remembers how many of `v`'s
-outgoing edges have already been exhausted, so no edge is examined twice within
-a phase.
+The route `1 -> 2 -> 4 -> 6` carries one unit and respects every rule.
+But keeping it unchanged blocks further delivery: the remaining branch
+`1 -> 3 -> 4` cannot reach the sink because `4 -> 6` is full, and `1 -> 2`
+is also full. A search restricted to unused forward capacity stops at value 1.
 
-Two habits matter more than the rest. Rebuild `level` every phase, and reset
-`it` at the same time; a stale pointer array silently skips usable edges.
+## A different first choice would succeed
 
-# Minimum cut
-
-A cut is a split of the vertices into `S` containing `s` and `V - S` containing
-`t`. Its capacity is the total capacity of the original edges pointing from `S`
-into `V - S`. Edges pointing back into `S` contribute nothing.
-
-Any flow is bounded by any cut, since everything reaching `t` must cross. The
-max-flow min-cut theorem says the two optima coincide, and the proof is
-constructive: after a maximum flow, take `S` to be the set of vertices still
-reachable from `s` in the residual graph.
-
+We could instead have chosen `1 -> 2 -> 5 -> 6` first, then
+`1 -> 3 -> 4 -> 6`. These two routes fit together and deliver 2 units:
 
 ```{=latex}
+\Needspace{5cm}
 \begin{center}
-\begin{tikzpicture}[font=\small,
-  nd/.style={circle,draw,fill=white,minimum size=8mm,inner sep=0pt,font=\small},
-  src/.style={nd,fill=orange!30,very thick},
-  snk/.style={nd,fill=green!30},
-  ar/.style={draw,->,>=Latex,gray!70},
-  cut/.style={draw,->,>=Latex,very thick,red!70!black},
-  cl/.style={font=\scriptsize,fill=white,inner sep=1.3pt},
-  tg/.style={font=\scriptsize,text=gray!60}]
-
-  \node[src] (n1) at (0,0)     {$1$};
-  \node[nd]  (n2) at (2.7,1.2) {$2$};
-  \node[nd]  (n3) at (2.7,-1.2){$3$};
-  \node[snk] (n4) at (5.4,0)   {$4$};
-
-  \draw[cut] (n1) -- node[cl,text=red!60!black] {$3/3$} (n2);
-  \draw[cut] (n1) -- node[cl,text=red!60!black] {$2/2$} (n3);
-  \draw[ar]  (n2) -- node[cl] {$1/1$} (n3);
-  \draw[ar]  (n2) -- node[cl] {$2/2$} (n4);
-  \draw[ar]  (n3) -- node[cl] {$3/4$} (n4);
-
-  \draw[red!55,dashed,very thick] (1.15,2.3) .. controls (1.5,0.6) and (1.5,-0.6) .. (1.15,-2.3);
-  \node[font=\scriptsize,text=red!60!black,anchor=south] at (1.15,2.32) {the cut};
-  \node[tg,anchor=east] at (-0.55,0) {$S=\{1\}$};
-  \node[tg,anchor=west] at (1.95,-2.35) {$V\setminus S=\{2,3,4\}$};
-
-  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
-        anchor=north west,inner sep=5pt,text width=7.1cm] at (6.4,1.95)
-    {\textbf{Reading the cut off the residual graph.}\\[3pt]
-     After the maximum flow, walk from $s$ using only edges with residual
-     capacity left. Here both edges out of $1$ are saturated, so the walk stops
-     immediately and $S=\{1\}$.\\[4pt]
-     The cut is the set of \emph{original} edges from $S$ to $V\setminus S$:\\
-     \hspace*{1em}$1\to2$ of capacity $3$\\
-     \hspace*{1em}$1\to3$ of capacity $2$\\
-     \hspace*{1em}total $\mathbf{5}$ $=$ the maximum flow.\\[4pt]
-     Every such edge must be saturated --- otherwise it would still have
-     residual capacity and its far end would have been reached, putting it
-     inside $S$. That is the whole proof.\\[4pt]
-     Note $3\to4$ carries $3$ of $4$ and is \emph{not} saturated. It does not
-     matter: both ends lie outside $S$, so it never crosses the cut. Only
-     edges leaving $S$ are counted, and edges re-entering $S$ are ignored.};
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ first/.style={->,very thick,draw=blue!65!black},
+ second/.style={->,very thick,draw=green!40!black},
+ lab/.style={fill=white,inner sep=2pt,font=\small}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.5,1.3) {2};
+\node[nd] (b) at (2.5,-1.3) {3};
+\node[nd] (c) at (5,1.3) {4};
+\node[nd] (d) at (5,-1.3) {5};
+\node[nd,fill=green!20] (t) at (7.5,0) {6};
+\draw[first] (s)--node[lab]{1/1}(a);
+\draw[second] (s)--node[lab]{1/1}(b);
+\draw[ar] (a)--node[lab]{0/1}(c);
+\draw[first] (a)--node[lab,pos=.65]{1/1}(d);
+\draw[second] (b)--node[lab,pos=.65]{1/1}(c);
+\draw[second] (c)--node[lab]{1/1}(t);
+\draw[first] (d)--node[lab]{1/1}(t);
+\node[align=center,font=\small] at (3.75,-2.3)
+ {Blue: $1\to2\to5\to6$. Green: $1\to3\to4\to6$.\\
+  Total delivered: 2. Labels are flow/capacity.};
 \end{tikzpicture}
 \end{center}
 ```
 
-That set is exactly what problem C asks you to print, and it costs one extra
-BFS after the flow is already computed.
+So cancellation is not required in every execution. On this graph, a good
+first choice avoids it. The issue is how to choose a first route before we
+know the final arrangement. All three initial routes have three edges and a
+bottleneck of 1; choosing a shortest route or a route with the largest
+bottleneck does not distinguish the unfortunate choice from the other two.
 
-# Bipartite matching
+## Let an early choice remain provisional
 
-A matching is a set of edges sharing no endpoint. For a bipartite graph the
-maximum matching is a maximum flow on a graph built in three lines:
+We want a method that can take a feasible route without first proving that
+it belongs to some optimal final routing. To achieve that, earlier amounts
+must remain adjustable. Otherwise, after the first drawing, the method would
+incorrectly conclude that no improvement is possible.
+
+We could abandon earlier routes and try alternatives. The residual graph
+provides a systematic way to express just the adjustments needed. In this
+example, keep the unit on `1 -> 2` and `4 -> 6`, cancel its use of `2 -> 4`,
+and add flow on the other branch edges. That produces exactly the two-unit
+routing in the second drawing. The next subsection explains how one search
+can describe all those changes together.
+
+```{=latex}
+\Needspace{12cm}
+```
+
+## Residual capacity means permission to change flow
+
+For an input edge `u -> v` with capacity `c` and current flow `f`, maintain
+**two residual edges**:
+
+The forward residual arrow `u -> v` has capacity `c - f`: room to add more
+flow. The backward residual arrow `v -> u` has capacity `f`: room to cancel
+flow already assigned to this input edge.
+
+For capacity `7` and current flow `5`, these permissions are `2` and `5`.
+The two rows below show what changes when we use the backward permission to
+cancel `3` units:
+
+
+```{=latex}
+% Residual permissions before and after cancellation
+\Needspace{8cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[note,anchor=west] at (-.4,2.1) {Input edge: flow/capacity};
+\node[note,anchor=west] at (5.1,2.1) {Residual pair: permitted changes};
+\node[nd] (a) at (0,1) {$u$};
+\node[nd] (b) at (2.4,1) {$v$};
+\draw[ar] (a)--node[lab,above] {$5/7$}(b);
+\draw[ar] (3.1,1)--(4.1,1);
+\node[nd] (c) at (5.2,1) {$u$};
+\node[nd] (d) at (8.6,1) {$v$};
+\draw[blue] (c) to[bend left=26] node[lab,above] {add up to 2} (d);
+\draw[undo] (d) to[bend left=26] node[lab,below] {cancel up to 5} (c);
+\node[note,anchor=west] at (-.4,-.5)
+ {Cancel 3 units of the input edge's flow. Its capacity remains 7.};
+\node[nd] (e) at (0,-2) {$u$};
+\node[nd] (f) at (2.4,-2) {$v$};
+\draw[ar] (e)--node[lab,above] {$2/7$}(f);
+\draw[ar] (3.1,-2)--(4.1,-2);
+\node[nd] (g) at (5.2,-2) {$u$};
+\node[nd] (h) at (8.6,-2) {$v$};
+\draw[blue] (g) to[bend left=26] node[lab,above] {add up to 5} (h);
+\draw[undo] (h) to[bend left=26] node[lab,below] {cancel up to 2} (g);
+
+\node[note,anchor=west] at (-.4,-3.4) {Blue increases input flow. Dashed orange decreases input flow.};
+\end{tikzpicture}
+\end{center}
+```
+
+Read the bottom row: the input flow is now `5 - 3 = 2`, so there is room
+to add `7 - 2 = 5` units or to cancel the remaining `2`. These are amounts
+we may change, not two additional flows already travelling through the graph.
+
+A backward residual arrow is permission to cancel an earlier decision. It
+need not be an arrow in the input. If the input also has `v -> u`, that input
+edge gets its own pair; never combine it with this cancellation edge.
+
+An **augmenting path** is a path from `s` to `t` using positive residual
+capacities. Its bottleneck is the minimum residual capacity on the path.
+Pushing that amount changes each input flow in the direction indicated by
+the corresponding residual edge.
+
+```{=latex}
+\Needspace{10cm}
+```
+
+## Trace the cancellation
+
+For the six-vertex example, use residual path
 
 ```text
-s -> every left vertex            capacity 1
-left u -> right v for each edge   capacity 1
-every right vertex -> t           capacity 1
+1 -> 3 -> 4 -> 2 -> 5 -> 6
 ```
+
+The step `4 -> 2` cancels the old unit on input edge `2 -> 4`. All five
+residual capacities on the path are `1`, so the bottleneck is `1`.
 
 
 ```{=latex}
+% The residual path that repairs the first routing
+\Needspace{6cm}
 \begin{center}
-\begin{tikzpicture}[font=\small,
-  nd/.style={circle,draw,fill=white,minimum size=7.2mm,inner sep=0pt,font=\small},
-  src/.style={nd,fill=orange!30},
-  snk/.style={nd,fill=green!30},
-  ar/.style={draw,->,>=Latex,gray!55},
-  mt/.style={draw,->,>=Latex,very thick,green!45!black},
-  tg/.style={font=\scriptsize,text=gray!60}]
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
 
-  \node[src] (s)  at (0,0)     {$s$};
-  \node[nd]  (l1) at (1.9,1.35){$1$};
-  \node[nd]  (l2) at (1.9,0)   {$2$};
-  \node[nd]  (l3) at (1.9,-1.35){$3$};
-  \node[nd]  (r1) at (4.1,1.35){$1$};
-  \node[nd]  (r2) at (4.1,0)   {$2$};
-  \node[nd]  (r3) at (4.1,-1.35){$3$};
-  \node[snk] (t)  at (6.0,0)   {$t$};
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.6,1.3) {2};
+\node[nd] (b) at (2.6,-1.3) {3};
+\node[nd] (c) at (5.2,1.3) {4};
+\node[nd] (d) at (5.2,-1.3) {5};
+\node[nd,fill=green!20] (t) at (7.8,0) {6};
 
-  \draw[mt] (s) -- (l1);  \draw[mt] (s) -- (l2);  \draw[mt] (s) -- (l3);
-  \draw[mt] (l1) -- (r1); \draw[ar] (l1) -- (r2);
-  \draw[mt] (l2) -- (r2); \draw[mt] (l3) -- (r3);
-  \draw[mt] (r1) -- (t);  \draw[mt] (r2) -- (t);  \draw[mt] (r3) -- (t);
+\draw[muted] (a)--node[lab]{1}(s);
+\draw[blue] (s)--node[lab]{1}(b);
+\draw[undo] (c)--node[lab]{1}(a);
+\draw[blue] (a)--node[lab,pos=.65]{1}(d);
+\draw[blue] (b)--node[lab,pos=.65]{1}(c);
+\draw[muted] (t)--node[lab]{1}(c);
+\draw[blue] (d)--node[lab]{1}(t);
 
-  \node[tg] at (1.9,2.0)  {left};
-  \node[tg] at (4.1,2.0)  {right};
-  \node[tg,anchor=north,align=center] at (3.0,-2.0)
-    {every capacity is $1$};
-
-  \node[draw=gray!45,rounded corners,fill=gray!4,align=left,font=\scriptsize,
-        anchor=north west,inner sep=5pt,text width=7.6cm] at (6.9,2.15)
-    {\textbf{Problem B's sample, as a flow network.} Add $s$ with an edge to
-     every left vertex, $t$ with an edge from every right vertex, and give
-     \emph{every} edge capacity $1$.\\[4pt]
-     One unit of flow is one matched pair. Capacity $1$ out of $s$ stops a
-     left vertex being used twice; capacity $1$ into $t$ does the same on the
-     right. So a maximum integral flow \emph{is} a maximum matching, here of
-     size $\mathbf{3}$.\\[4pt]
-     \textbf{Why the residual edge matters here too.} Suppose vertex $1$ takes
-     right-$2$ first. Then vertex $2$ has nowhere to go --- right-$2$ is its
-     only option. The augmenting search does not give up: it walks
-     \emph{backwards} along the edge $1\to$ right-$2$, sends $1$ to right-$1$
-     instead, and frees right-$2$ for vertex $2$. That backward step is
-     exactly the residual edge of the previous figure.\\[4pt]
-     The classic augmenting-path DFS used for problem B is this same
-     algorithm with the gadget left implicit.};
+\node[note,align=center] at (3.9,-2.5)
+ {Positive residual capacities only. The chosen path is $1\to3\to4\to2\to5\to6$.\\
+  Its orange step $4\to2$ cancels the old flow on input edge $2\to4$.\\
+  Gray dashed arrows are other available cancellations, unused by this path.};
 \end{tikzpicture}
 \end{center}
 ```
 
-Because capacities are integral, some maximum flow is integral too, so each
-edge carries `0` or `1` and the saturated middle edges are a matching. The
-capacity-`1` edges at `s` and `t` are what forbid reusing a vertex.
 
-For problem B the usual augmenting-path DFS is shorter to write than a full
-Dinic, and it is the same algorithm: "try to give this left vertex a partner,
-and if that partner is taken, ask its current owner to move". That request to
-move is a backward residual edge, spelled out in plain recursion.
+Now apply the path as one revision: add one unit on its four blue input
+edges, and remove the unit on `2 -> 4`. The resulting input flow is:
 
-# Implementation and tests
 
-**Edge storage.** Keep one array of edges and, for each vertex, a list of
-indices into it. Adding `u -> v` with capacity `c` appends two entries: the
-forward edge with residual `c`, and its reverse with residual `0`. Edge `i`
-and edge `i ^ 1` are then reverses of each other, which makes the update after
-pushing `x` a two-line operation.
+```{=latex}
+% Input flows after repairing the first routing
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
 
-**Types.** Capacities and the accumulated flow go in `long long` in C++. Total
-capacity out of the source can exceed `2^31` long before `n` does.
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.6,1.3) {2};
+\node[nd] (b) at (2.6,-1.3) {3};
+\node[nd] (c) at (5.2,1.3) {4};
+\node[nd] (d) at (5.2,-1.3) {5};
+\node[nd,fill=green!20] (t) at (7.8,0) {6};
 
-**Python.** Write the DFS iteratively or raise the recursion limit; a long
-chain of unit capacities reaches recursion depth `O(V)`. Read all input at once
-with `sys.stdin.buffer.read().split()`.
+\draw[ar] (s)--node[lab]{1/1}(a);
+\draw[blue] (s)--node[lab]{1/1}(b);
+\draw[ar] (a)--node[lab]{0/1}(c);
+\draw[blue] (a)--node[lab,pos=.65]{1/1}(d);
+\draw[blue] (b)--node[lab,pos=.65]{1/1}(c);
+\draw[ar] (c)--node[lab]{1/1}(t);
+\draw[blue] (d)--node[lab]{1/1}(t);
 
-| Test | What it catches |
-|---|---|
-| a single edge `s -> t` | the base case, and off-by-one in vertex numbering |
-| two disjoint paths | flow accumulating rather than overwriting |
-| a bottleneck edge in the middle | using the wrong minimum along a path |
-| sink unreachable from the source | an output of `0` rather than a crash |
-| the sample of problem A | an augmenting path that needs a residual edge |
-| parallel edges between one pair | merging edges that must stay separate |
-| for matching, many left vertices on one right vertex | a DFS that never reassigns |
-| for matching, `e = 0` | an empty-input path |
+\node[note,align=center] at (3.9,-2.5)
+ {Final input flows, labelled flow/capacity. Total delivered: 2.\\
+  Edge $2\to4$ is unused; $1\to2$ and $4\to6$ keep their original unit.};
+\end{tikzpicture}
+\end{center}
+```
 
-Run the local reference suite with:
+
+Edges `1 -> 2` and `4 -> 6` keep their old unit. Read the final input flows:
+they form the two routes promised above. We have not sent physical material
+backward along an input road; we have replaced one feasible routing by another.
+
+Why is an augmentation safe? The bottleneck protects every capacity bound.
+At an internal path vertex, the two incident changes balance, whether a step
+adds or cancels input flow. The source gains the bottleneck in net outgoing
+flow and the sink gains the same amount in net incoming flow.
+
+The minimum-cut proof later in this lesson will establish a stronger guarantee:
+**whenever the current feasible flow is not maximum, its residual graph has
+an augmenting path**. Thus the method can keep improving from any feasible
+routing, including one obtained from an unfortunate early choice. Reverse
+edges are what preserve this guarantee when earlier amounts need to move.
+
+```{=latex}
+\Needspace{9cm}
+```
+
+## Store paired edge IDs
+
+The code needs to store the residual arrows we have just drawn. Whenever it
+uses one arrow, it must also update that arrow's cancellation partner. Give
+each residual arrow a unique **edge ID**, its index in a global array. One
+input edge creates two stored entries.
+
+### Create the pair before sending any flow
+
+Start with vertices `0` and `1` and no edges. Adding the input edge
+`0 -> 1` with capacity `7` creates:
+
+- **ID 0**, from vertex 0 to vertex 1, with residual capacity 7: we may send
+  up to 7 units on the input edge.
+- **ID 1**, from vertex 1 to vertex 0, with residual capacity 0: we have sent
+  nothing yet, so there is nothing to cancel.
+
+These are two representations of what we may change on the **same input
+edge**. Adding the reverse entry does not add a second input link.
+
+```{=latex}
+% Creating the first two residual entries
+\Needspace{5cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd] (a) at (0,0) {0};
+\node[nd] (b) at (3.8,0) {1};
+\draw[blue] (a) to[bend left=28] node[lab,above] {ID 0: cap 7} (b);
+\draw[undo] (b) to[bend left=28] node[lab,below] {ID 1: cap 0} (a);
+\node[note,align=center] at (1.9,-1.7)
+ {Circles: vertex numbers.\\Arrows: residual edge IDs.};
+\node[note] at (6.7,1.2) {ID 0};
+\node[note] at (8.8,1.2) {ID 1};
+\node[note,anchor=east] at (5.7,.3) {to};
+\node[note,anchor=east] at (5.7,-.7) {cap};
+\node[cell] at (6.7,.3) {1};
+\node[cell] at (8.8,.3) {0};
+\node[cell,fill=blue!8] at (6.7,-.7) {7};
+\node[cell,fill=orange!12] at (8.8,-.7) {0};
+\node[note,align=center] at (7.75,-1.7)
+ {Each column stores one entry.\\The reverse starts at zero.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+Each stored entry has a destination `to` and a remaining permission `cap`.
+Thus `to[0] = 1`, `cap[0] = 7`, `to[1] = 0`, and `cap[1] = 0` initially.
+The vertex numbers and the edge IDs are separate numbering systems.
+
+For each vertex, `adj` lists the IDs of residual arrows leaving it:
+
+```text
+adj[0] = [0]    from vertex 0, examine residual entry 0
+adj[1] = [1]    from vertex 1, examine residual entry 1
+```
+
+Store even the zero-capacity reverse entry. It will become usable after flow
+is sent. A search follows an entry only when its current capacity is positive.
+
+In the Python implementation, these fields are `self.to[id]` and
+`self.cap[id]`. C++ stores them together as `edges[id].to` and `edges[id].cap`.
+Below, `cap[id]` is shorthand for either language's residual capacity field.
+
+```{=latex}
+\Needspace{12cm}
+```
+
+### Every push changes both entries
+
+Send 5 units using ID 0. Its permission falls from 7 to 2, and the permission
+to cancel that flow, ID 1, rises from 0 to 5. Later, cancelling 3 units means
+using ID 1: its permission falls from 5 to 2, while ID 0 regains 3 units of
+forward room.
+
+```{=latex}
+% Residual entries after adding and cancelling flow
+\Needspace{8cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[note,anchor=west] at (-.4,2.8) {First send 5 units on ID 0. Input flow becomes 5.};
+\node[nd] (a) at (0,1.3) {0};
+\node[nd] (b) at (3.8,1.3) {1};
+\draw[blue] (a) to[bend left=28] node[lab,above] {ID 0: cap 2} (b);
+\draw[undo] (b) to[bend left=28] node[lab,below] {ID 1: cap 5} (a);
+\node[note,anchor=west,text width=4.5cm] at (5.4,1.3)
+ {\texttt{cap[0] = 7 - 5 = 2}\\[4pt]
+  \texttt{cap[1] = 0 + 5 = 5}};
+\node[note,anchor=west] at (-.4,-.3) {Then cancel 3 units by using ID 1. Input flow becomes 2.};
+\node[nd] (c) at (0,-1.8) {0};
+\node[nd] (d) at (3.8,-1.8) {1};
+\draw[blue] (c) to[bend left=28] node[lab,above] {ID 0: cap 5} (d);
+\draw[undo] (d) to[bend left=28] node[lab,below] {ID 1: cap 2} (c);
+\node[note,anchor=west,text width=4.5cm] at (5.4,-1.8)
+ {\texttt{cap[1] = 5 - 3 = 2}\\[4pt]
+  \texttt{cap[0] = 2 + 3 = 5}};
+\node[note,align=center] at (4.3,-3.4)
+ {IDs and destinations never change. Only the two residual capacities change.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+This is why the same two assignments work in either direction:
+
+```text
+cap[chosen ID]  -= amount
+cap[partner ID] += amount
+```
+
+After the second row, the input edge carries `5 - 3 = 2` units. The two
+residual capacities are `5` and `2`, whose sum remains the original capacity
+`7`. The reverse member's capacity is exactly this input edge's current flow.
+
+### Find the partner without searching
+
+Create each pair consecutively, starting at ID zero:
+
+```text
+first input edge:   IDs 0 and 1
+second input edge:  IDs 2 and 3
+third input edge:   IDs 4 and 5
+```
+
+An even ID's partner is the next ID; an odd ID's partner is the previous ID.
+In both C++ and Python, bitwise XOR with 1 performs exactly that exchange:
+
+```text
+0 ^ 1 = 1       1 ^ 1 = 0
+2 ^ 1 = 3       3 ^ 1 = 2
+4 ^ 1 = 5       5 ^ 1 = 4
+```
+
+```{=latex}
+\Needspace{5cm}
+```
+
+Here `^` means **bitwise XOR**, not exponentiation. It toggles the last binary
+bit, exchanging the two consecutive members of a pair. The update therefore
+becomes:
+
+```text
+cap[edge]     -= delta
+cap[edge ^ 1] += delta
+```
+
+For the cancellation above, `edge = 1`, so `edge ^ 1 = 0`: decrease the
+backward permission and increase the forward permission. No special backward
+case is needed. `add_edge` returns the even ID so callers can identify the
+original input edge later.
+
+```{=latex}
+\Needspace{12cm}
+```
+
+### Keep different input edges in different pairs
+
+Continue the same example, where the first edge now carries 2 units. Add
+another input edge `0 -> 1` with capacity 4, then an input edge `1 -> 0`
+with capacity 6. They create two new pairs; they do not reuse the old pair.
+
+```{=latex}
+% Three input edges require three independent residual pairs
+\Needspace{10cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd] (a) at (0,2.7) {0};
+\node[nd] (b) at (3.8,2.7) {1};
+\draw[blue] (a) to[bend left=28] node[lab,above] {ID 0: cap 5} (b);
+\draw[undo] (b) to[bend left=28] node[lab,below] {ID 1: cap 2} (a);
+\node[note,anchor=west,text width=4.8cm] at (5.4,2.7)
+ {Input edge A: $0\to1$.\\Capacity 7; current flow 2.};
+\node[nd] (c) at (0,0) {0};
+\node[nd] (d) at (3.8,0) {1};
+\draw[blue] (c) to[bend left=28] node[lab,above] {ID 2: cap 4} (d);
+\draw[undo] (d) to[bend left=28] node[lab,below] {ID 3: cap 0} (c);
+\node[note,anchor=west,text width=4.8cm] at (5.4,0)
+ {Input edge B: $0\to1$.\\Capacity 4; current flow 0.};
+\node[nd] (e) at (0,-2.7) {0};
+\node[nd] (f) at (3.8,-2.7) {1};
+\draw[undo] (e) to[bend left=28] node[lab,above] {ID 5: cap 0} (f);
+\draw[blue] (f) to[bend left=28] node[lab,below] {ID 4: cap 6} (e);
+\node[note,anchor=west,text width=4.8cm] at (5.4,-2.7)
+ {Input edge C: $1\to0$.\\Capacity 6; current flow 0.};
+\node[note,align=center] at (4.6,-4.2)
+ {Each row shows a separate pair between the same two vertices.\\
+  ID 1 cancels edge A's flow; ID 4 adds flow on edge C.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+In particular, IDs 1 and 4 both point from vertex 1 to vertex 0, but they
+have different meanings. Using ID 1 reduces flow on input edge A; using ID 4
+increases flow on input edge C. Their partner IDs are 0 and 5 respectively.
+Knowing only the destination vertex would not tell us which partner to update.
+
+The outgoing lists now contain:
+
+```text
+adj[0] = [0, 2, 5]
+adj[1] = [1, 3, 4]
+```
+
+An outgoing list contains **edge IDs**, not destination vertices. Its local
+positions are different from those IDs: position 1 of `adj[0]` contains edge
+ID 2, and `to[2]` tells us that this edge leads to vertex 1. Later, Dinic's
+current pointer will remember a position in such a list.
+
+# Dinic: organize the searches into phases
+
+Residual paths let us repair earlier choices, but correctness alone does
+not guarantee speed. Even with integer capacities, a poor choice of paths
+can make progress depend on the amount of flow rather than the graph size.
+
+Consider this network. All four outer edges have capacity `U`; the central
+edge has capacity 1. Take `U = 1 000 000 000`:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={font=\small,align=left}]
+\node[nd,fill=orange!20] (s) at (0,0) {$s$};
+\node[nd] (a) at (3,1.2) {$a$};
+\node[nd] (b) at (3,-1.2) {$b$};
+\node[nd,fill=green!20] (t) at (6,0) {$t$};
+\draw[ar] (s)--node[lab]{$U$}(a);
+\draw[ar] (s)--node[lab]{$U$}(b);
+\draw[->,very thick,red!70!black] (a)--node[lab]{1}(b);
+\draw[ar] (a)--node[lab]{$U$}(t);
+\draw[ar] (b)--node[lab]{$U$}(t);
+\node[note,anchor=west,text width=4.4cm] at (7.1,0)
+ {Input capacities.\\[4pt]
+  Maximum flow: $2U$.\\
+  Send $U$ on each outer branch.};
+\end{tikzpicture}
+\end{center}
+```
+
+**Arbitrary paths can alternate between using and cancelling the central
+edge.** Starting from zero, choose:
+
+1. `s -> a -> b -> t`: send 1, limited by `a -> b`.
+2. `s -> b -> a -> t`: send 1, using the residual arrow `b -> a` to cancel
+   the unit on `a -> b`.
+
+After these two augmentations, each outer input edge carries 1, while the
+central edge again carries zero. The total value is 2. Repeat the same
+pair of choices: each pair adds only 2, and restores the central edge to
+zero flow. After `k` pairs, every outer edge carries `k` and the value is
+`2k`. Both choices remain possible until `k = U`.
+
+This legal execution needs **`2U` augmentations to obtain value `2U`**:
+two billion augmentations on a graph with only four vertices and five edges.
+The total always increases, so the algorithm terminates, but far too slowly.
+
+**Dinic uses shortest-path levels to avoid this execution.** The first BFS
+assigns `level[s] = 0`, `level[a] = level[b] = 1`, and `level[t] = 2`.
+During a phase, flow searches may follow only arrows that advance exactly
+one level. The central arrow `a -> b` stays at level 1, so it is excluded.
+Dinic sends `U` on `s -> a -> t` and `U` on `s -> b -> t`: **two
+augmentations in one phase** reach the maximum.
+
+This example exposes the danger of arbitrary paths; other algorithms, such
+as Edmonds-Karp, also avoid it by choosing shortest residual paths. Dinic
+goes further: it works through the current shortest-path levels until no
+allowed source-to-sink path remains, then recomputes the levels. We will
+show that this organization bounds the number of phases by `O(V)`,
+independently of the capacity values.
+
+```{=latex}
+\newpage
+```
+
+Dinic has two nested loops. The **outer loop** runs BFS on the full residual
+graph. If the sink is reachable, the **inner loop** sends flow using just the
+current levels. When that inner loop is blocked, the outer loop runs a fresh
+BFS and may discover longer routes. The algorithm returns the maximum value
+only when a full BFS cannot reach the sink.
+
+```{=latex}
+% The outer Dinic loop continues after each blocking phase
+\Needspace{9cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ box/.style={draw,rounded corners,align=center,text width=4cm,
+             inner sep=5pt,font=\small,fill=white},
+ ar/.style={->,thick},lab/.style={fill=white,inner sep=2pt,font=\small}]
+\node[box] (start) at (0,3.2) {Start with flow value 0.};
+\node[box] (bfs) at (0,1.7) {Run BFS on all positive residual arrows.};
+\node[box] (test) at (0,.2) {Does BFS reach the sink?};
+\node[box,fill=green!12,text width=3.5cm] (done) at (5.2,.2)
+ {Return the accumulated value.\\It is the maximum flow.};
+\node[box,fill=blue!7] (phase) at (0,-2)
+ {One phase: keep these levels fixed.\\
+  Send allowed paths until blocked.\\
+  Add the amount sent to the total.};
+\draw[ar] (start)--(bfs);
+\draw[ar] (bfs)--(test);
+\draw[ar] (test)--node[lab,above]{No}(done);
+\draw[ar] (test)--node[lab,right]{Yes}(phase);
+\draw[ar,blue!65!black] (phase.west)--(-3.4,-2)--(-3.4,1.7)--(bfs.west);
+\node[align=center,text width=2cm,font=\small,anchor=east] at (-3.6,-.2)
+ {New phase:\\recompute levels};
+\end{tikzpicture}
+\end{center}
+```
+
+```{=latex}
+\Needspace{11cm}
+```
+
+## Build a level graph with BFS
+
+```{=latex}
+% The first BFS level graph
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.2) {2};
+\node[nd] (b) at (3,-1.2) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[blue] (s)--node[lab] {3} (a);
+\draw[blue] (s)--node[lab] {2} (b);
+\draw[muted] (a)--node[lab] {1} (b);
+\draw[blue] (a)--node[lab] {2} (t);
+\draw[blue] (b)--node[lab] {4} (t);
+\node[note] at (0,-.85) {level 0};
+\node[note] at (3,2) {level 1};
+\node[note] at (3,-2) {level 1};
+\node[note] at (6,-.85) {level 2};
+\node[note,anchor=west,text width=4.2cm] at (7.1,0)
+ {Count arrows from vertex 1.\\[5pt]
+  Vertices 2 and 3 need one step.\\
+  Vertex 4 needs two steps.};
+
+\node[note,align=center] at (3,-2.8) {Initial residual capacities; no flow has been sent yet.};
+\end{tikzpicture}
+\end{center}
+```
+
+`level` is an array with one entry per vertex. **`level[v]` is the smallest
+number of usable residual arrows needed to reach vertex `v` from the source.**
+Usable means positive residual capacity. Each arrow counts as one step,
+regardless of its capacity; the level is a distance, not an amount of flow.
+
+In the opening network, before sending flow, the source is vertex 1:
+
+```text
+level[1] = 0    already at the source: no arrow needed
+level[2] = 1    follow 1 -> 2
+level[3] = 1    follow 1 -> 3
+level[4] = 2    follow 1 -> 2 -> 4, or 1 -> 3 -> 4
+```
+
+"Set `level[4]` to 2" means storing `2` in vertex 4's array entry. The longer
+route `1 -> 2 -> 3` does not change `level[3]`: the direct route needs only
+one step.
+
+BFS computes these distances one layer at a time:
+
+1. Initialize levels to `-1` (not reached), set `level[s] = 0`, and enqueue `s`.
+2. Pop a vertex `u`. Inspect all its positive-capacity residual arrows,
+   including cancellation arrows.
+3. For each destination `v` still at `-1`, assign `level[v] = level[u] + 1`
+   and enqueue it. Keep an already assigned level: the first discovery is shortest.
+4. Repeat until the queue is empty. Vertices still at `-1` are unreachable.
+
+If `level[t] == -1`, no augmenting path exists and the algorithm stops.
+Otherwise, this phase's flow searches use only arrows advancing one layer,
+`level[v] == level[u] + 1`. These arrows form the **level graph**. Since
+`v = to[edge]`, the code condition is:
+
+```text
+cap[edge] > 0 and level[to[edge]] == level[u] + 1
+```
+
+In the drawing above, blue arrows advance one layer. Vertices 2 and 3 both
+have level 1, so their dashed connecting arrow is excluded from the level
+graph. Arrow labels are residual capacities; vertex "level" labels are
+distances. Levels strictly increase along retained arrows, preventing cycles.
+
+
+
+
+
+```{=latex}
+\newpage
+```
+
+## One phase: send a blocking flow
+
+We are now inside **one iteration of Dinic's outer loop**. Keep the current
+BFS levels fixed, repeatedly find an allowed source-to-sink path, and send
+its bottleneck. Eventually no path remains that advances through these fixed
+levels. The extra flow sent during this phase is called a **blocking flow**:
+every source-to-sink path in the phase's initial level graph now has an edge
+with zero residual capacity.
+
+**This ends the phase, not the algorithm.** Keep the flow already sent and
+run BFS again on the full updated residual graph, including arrows excluded
+during the phase that just ended. That BFS can reveal a longer route and start another phase.
+Only when this full BFS cannot reach the sink is the accumulated flow maximum.
+
+For the opening network, first send 2 along `1 -> 2 -> 4`, then 2 along
+`1 -> 3 -> 4`. In these levels, `2 -> 3` is forbidden, so the phase stops
+at value 4:
+
+
+```{=latex}
+% Blocking flow after the first phase
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.2) {2};
+\node[nd] (b) at (3,-1.2) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[blue] (s)--node[lab] {2/3} (a);
+\draw[blue] (s)--node[lab] {2/2} (b);
+\draw[muted] (a)--node[lab] {0/1} (b);
+\draw[blue] (a)--node[lab] {2/2} (t);
+\draw[blue] (b)--node[lab] {2/4} (t);
+\node[note] at (0,-.85) {level 0};
+\node[note] at (3,2) {level 1};
+\node[note] at (3,-2) {level 1};
+\node[note] at (6,-.85) {level 2};
+\node[note,anchor=west,text width=4.2cm] at (7.1,0)
+ {Phase 1 adds $2+2=4$.\\[5pt]
+  Both two-edge routes are blocked.\\
+  Edge $2\to3$ is still excluded by the levels.};
+
+\node[note,align=center] at (3,-2.8) {Flow/capacity after phase 1. Levels are fixed for the whole phase.};
+\end{tikzpicture}
+\end{center}
+```
+
+The remaining forward capacities along `1 -> 2 -> 3 -> 4` are `1,1,2`.
+A fresh BFS gives these vertices levels `0,1,2,3`. The previously skipped
+edge now advances one level, so the next phase sends one more unit:
+
+
+```{=latex}
+% Blocking flow after the second phase
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.2) {2};
+\node[nd] (b) at (3,-1.2) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[blue] (s)--node[lab] {3/3} (a);
+\draw[ar] (s)--node[lab] {2/2} (b);
+\draw[blue] (a)--node[lab] {1/1} (b);
+\draw[ar] (a)--node[lab] {2/2} (t);
+\draw[blue] (b)--node[lab] {3/4} (t);
+\node[note] at (0,-.85) {level 0};
+\node[note] at (3,2) {level 1};
+\node[note] at (3,-2) {level 2};
+\node[note] at (6,-.85) {level 3};
+\node[note,anchor=west,text width=4.2cm] at (7.1,0)
+ {A fresh BFS makes $2\to3$ usable.\\[5pt]
+  Phase 2 sends 1 along $1\to2\to3\to4$.\\
+  Total flow is now 5.};
+
+\node[note,align=center] at (3,-2.8) {Flow/capacity after phase 2. The new levels allow a longer path.};
+\end{tikzpicture}
+\end{center}
+```
+
+Rebuild BFS once more. It cannot leave the source:
+
+
+```{=latex}
+% The last BFS cannot leave the source
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.2) {2};
+\node[nd] (b) at (3,-1.2) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[muted] (s)--node[lab] {0} (a);
+\draw[muted] (s)--node[lab] {0} (b);
+\draw[muted] (a)--node[lab] {0} (b);
+\draw[muted] (a)--node[lab] {0} (t);
+\draw[ar] (b)--node[lab] {1} (t);
+\node[note] at (0,-.85) {level 0};
+\node[note] at (3,2) {level -1};
+\node[note] at (3,-2) {level -1};
+\node[note] at (6,-.85) {level -1};
+\node[note,anchor=west,text width=4.2cm] at (7.1,0)
+ {Both outgoing capacities at 1 are zero.\\[5pt]
+  Only vertex 1 is reached. The sink stays at level $-1$: stop.};
+
+\node[note,align=center] at (3,-2.8)
+ {Forward residual capacities after value 5. Dashed zero-capacity arrows are unusable.\\
+  Positive reverse residual arrows are omitted; none can be reached from 1.};
+\end{tikzpicture}
+\end{center}
+```
+
+The first phase was blocking but not globally maximum. Rebuilding levels
+revealed the extra route; the final failed BFS certifies that none remains.
+
+```{=latex}
+\newpage
+```
+
+**Return to the six-vertex cancellation example.** The complete network is
+repeated here so that the next BFS can be read without returning to chapter 2:
+
+```{=latex}
+% The full cancellation example input graph repeated in section 3.2
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!45,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=center,font=\small}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.7,1.3) {2};
+\node[nd] (b) at (2.7,-1.3) {3};
+\node[nd] (c) at (5.4,1.3) {4};
+\node[nd] (d) at (5.4,-1.3) {5};
+\node[nd,fill=green!20] (t) at (8.1,0) {6};
+\draw[blue] (s)--node[lab]{1/1} (a);
+\draw[ar] (s)--node[lab]{0/1} (b);
+\draw[blue] (a)--node[lab]{1/1} (c);
+\draw[ar] (a)--node[lab,pos=.65]{0/1} (d);
+\draw[ar] (b)--node[lab,pos=.65]{0/1} (c);
+\draw[blue] (c)--node[lab]{1/1} (t);
+\draw[ar] (d)--node[lab]{0/1} (t);
+\node[note] at (4.05,-2.4)
+ {A. The entire input graph after phase 1, labelled flow/capacity.\\
+  The blue route $1\to2\to4\to6$ carries one unit. Total flow: 1.};
+\end{tikzpicture}
+\end{center}
+```
+
+The saturated input arrows `1 -> 2`, `2 -> 4`, and `4 -> 6` now permit
+cancellation in the opposite direction. Run BFS on all positive residual
+arrows; it gives the levels shown beside the vertices below:
+
+```{=latex}
+% The full positive residual graph with the next phase BFS levels
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!45,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=center,font=\small}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (2.7,1.3) {2};
+\node[nd] (b) at (2.7,-1.3) {3};
+\node[nd] (c) at (5.4,1.3) {4};
+\node[nd] (d) at (5.4,-1.3) {5};
+\node[nd,fill=green!20] (t) at (8.1,0) {6};
+\draw[muted] (a)--node[lab]{1} (s);
+\draw[blue] (s)--node[lab]{1} (b);
+\draw[undo] (c)--node[lab]{1} (a);
+\draw[blue] (a)--node[lab,pos=.65]{1} (d);
+\draw[blue] (b)--node[lab,pos=.65]{1} (c);
+\draw[muted] (t)--node[lab]{1} (c);
+\draw[blue] (d)--node[lab]{1} (t);
+\node[note] at (0,-.85) {level 0};
+\node[note] at (2.7,2.1) {level 3};
+\node[note] at (2.7,-2.1) {level 1};
+\node[note] at (5.4,2.1) {level 2};
+\node[note] at (5.4,-2.1) {level 4};
+\node[note] at (8.1,-.85) {level 5};
+\node[note] at (4.05,-3)
+ {B. All positive residual arrows after phase 1; labels are residual capacities.\\
+  Blue and orange form $1\to3\to4\to2\to5\to6$.\\
+  Gray arrows are available cancellations that do not advance one BFS level.};
+\end{tikzpicture}
+\end{center}
+```
+
+The original input edge is `2 -> 4`. Its orange cancellation arrow is
+`4 -> 2`: backward relative to that input edge, but from level 2 to level 3
+in this new BFS. It therefore satisfies `level[to] == level[u] + 1`, just
+like the blue arrows. Gray arrows `2 -> 1` and `6 -> 4` go to smaller levels,
+so this phase excludes them. The highlighted path adds one unit, raising the
+total from 1 to 2.
+
+```{=latex}
+\newpage
+```
+
+## Current pointers and the explicit search stack
+
+Use this small network throughout the subsection. Vertices are 0-based, as
+in the implementation. The BFS levels are already computed and remain fixed:
+
+```{=latex}
+% The four-vertex search example used throughout section 3.3
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=16mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=orange!20] (s) at (0,0) {0};
+\node[nd] (u) at (2.7,0) {1};
+\node[nd] (dead) at (5.4,1.2) {2};
+\node[nd,fill=green!20] (t) at (5.4,-1.2) {3};
+
+\draw[ar] (s)--node[lab,above]{ID 0: 4}(u);
+\draw[ar] (u)--node[lab,above]{ID 2: 3}(dead);
+\draw[ar] (u)--node[lab,below]{ID 4: 2}(t);
+\node[note] at (0,-.8) {level 0};
+\node[note] at (2.7,-.8) {level 1};
+\node[note] at (5.4,2) {level 2};
+\node[note] at (5.4,-2) {level 2};
+\node[note,anchor=west,text width=4cm] at (6.6,0)
+ {Source: 0. Sink: 3.\\[4pt]
+  Vertex 2 is a dead end.\\
+  The other branch reaches the sink.};
+\node[note,align=center] at (3.8,-2.9)
+ {Arrow labels are residual edge ID: capacity. Zero-capacity reverse entries are omitted.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+### First understand the search, without the arrays
+
+We need a complete route from source 0 to sink 3. Start by trying `0 -> 1`,
+then `1 -> 2`. Vertex 2 has no allowed continuation, so this attempt fails.
+Return to vertex 1 and try its other branch, `1 -> 3`. That reaches the sink.
+
+**Exploring an arrow does not send flow yet.** We change capacities only after
+finding a complete source-to-sink route. Returning from the dead end abandons
+a search attempt; there is no flow on that branch to cancel.
+
+### Remember which outgoing entry to try next
+
+The residual pairs were inserted in this order:
+
+```text
+input 0 -> 1: forward ID 0, reverse ID 1
+input 1 -> 2: forward ID 2, reverse ID 3
+input 1 -> 3: forward ID 4, reverse ID 5
+```
+
+Thus vertex 1's outgoing list is `adj[1] = [1, 2, 4]`. The variable `ptr[1]`
+is a bookmark: **the position in this list where its search should resume**.
+
+Initially `ptr[1] = 0`, selecting ID 1. This reverse entry has capacity zero,
+so skip it. Position 1 selects ID 2, which leads to the dead end. Once that
+attempt fails, advance to position 2, selecting ID 4:
+
+```{=latex}
+% The current pointer chooses a position in the outgoing list
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=16mm,minimum height=8mm,fill=white}]
+
+\node[note,anchor=east] at (-1.2,0) {adj[1]};
+\node[note] at (0,1) {position 0};
+\node[note] at (3,1) {position 1};
+\node[note] at (6,1) {position 2};
+\node[cell,fill=black!5] at (0,0) {ID 1};
+\node[cell,fill=black!5] at (3,0) {ID 2};
+\node[cell,fill=blue!8] at (6,0) {ID 4};
+\node[note,align=center] at (0,-1.1) {to vertex 0\\cap 0: skip};
+\node[note,align=center] at (3,-1.1) {to vertex 2\\tried; dead end};
+\node[note,align=center] at (6,-1.1) {to vertex 3\\next choice};
+\draw[blue] (3,-2.1)--node[lab,below]{ptr[1]: 1 to 2}(6,-2.1);
+\node[note,align=center] at (2.5,-3.1)
+ {After the dead end, ptr[1] = 2 selects edge ID 4, not edge ID 2.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+In general, `edge = adj[u][ptr[u]]` reads the selected edge ID, then
+`v = to[edge]` reads its destination. These are three separate quantities:
+list position, edge ID, and destination vertex.
+
+### Store the route currently being explored
+
+The iterative search keeps three lists, used as stacks: append to extend the
+route; remove the last entry to return one step.
+
+- `vertices` lists the visited vertices on the current candidate route.
+  Its last entry tells us where the search is now.
+- `path` lists the residual edge IDs joining those vertices. We need the
+  exact IDs to update their capacities and their paired reverse entries.
+- `bottleneck` records the minimum capacity along each prefix of that route.
+  Keeping every prefix value lets us recover the previous minimum when we
+  remove the last step.
+
+Start with `vertices = [0]`, `path = []`, and `bottleneck = [4]`. The initial
+4 is a safe upper bound: only 4 units can leave the source. After edge ID 0,
+the minimum is still 4; after edge ID 2, it becomes `min(4,3) = 3`:
+
+```{=latex}
+% Tentative search stack at the dead-end vertex
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=16mm,minimum height=8mm,fill=white}]
+\node[note,anchor=west] at (-.4,2.4) {A. Search reaches vertex 2, but no continuation reaches the sink.};
+
+\node[nd,fill=orange!20] (s) at (0,0) {0};
+\node[nd] (u) at (2.7,0) {1};
+\node[nd] (dead) at (5.4,1.2) {2};
+\node[nd,fill=green!20] (t) at (5.4,-1.2) {3};
+\draw[blue] (s)--node[lab,above]{ID 0: 4} (u);
+\draw[blue] (u)--node[lab,above]{ID 2: 3} (dead);
+\draw[ar] (u)--node[lab,below]{ID 4: 2} (t);
+\node[note,anchor=west] at (6.6,0) {\texttt{vertices = [0, 1, 2]}\\[4pt]
+\texttt{path = [0, 2]}\\[4pt]
+\texttt{bottleneck = [4, 4, 3]}\\[4pt]
+\texttt{ptr[1] = 1}};
+\node[note,align=center] at (5,-2.4) {The path is only a candidate. No flow has been sent; all capacities are unchanged.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+Return to vertex 1: remove vertex 2, the last edge ID 2, and its prefix
+bottleneck 3. Advance `ptr[1]` from position 1 to position 2:
+
+```{=latex}
+% Search stack after backtracking from the dead branch
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=16mm,minimum height=8mm,fill=white}]
+\node[note,anchor=west] at (-.4,2.4) {B. Remove the unsuccessful last step and resume at vertex 1.};
+
+\node[nd,fill=orange!20] (s) at (0,0) {0};
+\node[nd] (u) at (2.7,0) {1};
+\node[nd] (dead) at (5.4,1.2) {2};
+\node[nd,fill=green!20] (t) at (5.4,-1.2) {3};
+\draw[blue] (s)--node[lab,above]{ID 0: 4} (u);
+\draw[muted] (u)--node[lab,above]{ID 2: 3} (dead);
+\draw[ar] (u)--node[lab,below]{ID 4: 2} (t);
+\node[note,anchor=west] at (6.6,0) {\texttt{vertices = [0, 1]}\\[4pt]
+\texttt{path = [0]}\\[4pt]
+\texttt{bottleneck = [4, 4]}\\[4pt]
+\texttt{ptr[1] = 2}};
+\node[note,align=center] at (5,-2.4) {ID 2 still has capacity 3. Its branch cannot continue in these levels, so skip it.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+Position 2 of `adj[1]` contains ID 4. Follow it to the sink, append vertex
+3 and edge ID 4, and append `min(4,2) = 2` to the bottleneck list:
+
+```{=latex}
+% Search stack when the other branch reaches the sink
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=16mm,minimum height=8mm,fill=white}]
+\node[note,anchor=west] at (-.4,2.4) {C. The route 0 to 1 to 3 reaches the sink.};
+
+\node[nd,fill=orange!20] (s) at (0,0) {0};
+\node[nd] (u) at (2.7,0) {1};
+\node[nd] (dead) at (5.4,1.2) {2};
+\node[nd,fill=green!20] (t) at (5.4,-1.2) {3};
+\draw[blue] (s)--node[lab,above]{ID 0: 4} (u);
+\draw[muted] (u)--node[lab,above]{ID 2: 3} (dead);
+\draw[blue] (u)--node[lab,below]{ID 4: 2} (t);
+\node[note,anchor=west] at (6.6,0) {\texttt{vertices = [0, 1, 3]}\\[4pt]
+\texttt{path = [0, 4]}\\[4pt]
+\texttt{bottleneck = [4, 4, 2]}\\[4pt]
+\texttt{ptr[1] = 2}};
+\node[note,align=center] at (5,-2.4) {The last bottleneck is 2. Only now send 2 units along edge IDs 0 and 4.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+At the sink, read the last bottleneck and update every edge ID in `path`
+together with its reverse. Here ID 0's capacity becomes `4 - 2 = 2`, and
+ID 4's becomes `2 - 2 = 0`; reverse IDs 1 and 5 each gain 2. The unused
+branch through vertex 2 still carries no flow.
+
+```{=latex}
+\newpage
+```
+
+### After sending flow: a new search in the same phase
+
+Continue with the same four-vertex graph. We have just sent 2 units on
+`0 -> 1 -> 3`. The drawing below shows the residual capacities afterwards:
+
+```{=latex}
+% The same four-vertex graph after sending two units
+\Needspace{8cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!45,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=orange!20] (s) at (0,0) {0};
+\node[nd] (u) at (3.5,0) {1};
+\node[nd] (dead) at (7,1.5) {2};
+\node[nd,fill=green!20] (t) at (7,-1.5) {3};
+\draw[blue] (s) to[bend left=23] node[lab,above]{ID 0: 2}(u);
+\draw[undo] (u) to[bend left=23] node[lab,below]{ID 1: 2}(s);
+\draw[ar] (u)--node[lab,above]{ID 2: 3}(dead);
+\draw[muted] (u) to[bend left=13] node[lab,above]{ID 4: 0}(t);
+\draw[undo] (t) to[bend left=23] node[lab,below]{ID 5: 2}(u);
+\node[note] at (0,.9) {level 0};
+\node[note] at (3.5,.9) {level 1};
+\node[note] at (7,2.3) {level 2};
+\node[note] at (7,-2.3) {level 2};
+\node[note,align=center] at (3.5,-3.2)
+ {Current total: 2. Labels are edge ID: remaining residual capacity.\\
+  ID 4 is now empty. Reverse IDs 1 and 5 have capacity, but go to smaller levels.\\
+  The zero-capacity reverse ID 3 is omitted.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+Three kinds of state have different lifetimes:
+
+- **Capacities and the accumulated total stay.** They describe the flow
+  already sent. The total is 2.
+- **Current pointers stay for this phase.** In particular, `ptr[0] = 0` and
+  `ptr[1] = 2`. Vertex 1 has already discarded its first two outgoing entries.
+- **The candidate route starts over.** A new search creates `vertices = [0]`,
+  `path = []`, and `bottleneck = [4]`, using the same safe bound as before.
+
+Keeping a pointer does not mean keeping the old route. It means remembering
+which outgoing entries have already failed under these fixed levels.
+
+**We could reset the pointers after every completed path and still obtain
+the correct answer.** However, we would repeat searches already known to fail.
+Keeping the pointers avoids this repeated work.
+
+The reason this is safe is that **an impasse stays an impasse within the same
+phase**. The levels are fixed, and the residual capacities of arrows advancing
+one level can only decrease. Sending flow creates cancellation permissions
+in the opposite direction, towards smaller levels in this phase; these new permissions
+are not allowed in this phase. Thus no new allowed continuation can appear
+behind an entry we have already discarded.
+
+In our example, `adj[1] = [1,2,4]` and `ptr[1] = 2`. We already know that
+ID 1 goes to a smaller level and ID 2 leads to the dead end at vertex 2.
+Resetting `ptr[1]` to zero would merely check these two entries again.
+
+**Keeping a pointer does not skip an edge that is still useful.** After the
+successful push, `ptr[0]` is still zero, selecting ID 0, which still has
+capacity 2. The next search will try it again, as we now follow step by step.
+
+**Follow the next search.**
+
+1. At vertex 0, position `ptr[0] = 0` selects ID 0. It still has capacity 2
+   and advances from level 0 to level 1, so follow it to vertex 1.
+2. At vertex 1, resume at position `ptr[1] = 2`, selecting ID 4. Its capacity
+   is now zero, so advance `ptr[1]` to 3. But `adj[1] = [1,2,4]` has only
+   positions 0, 1, and 2: position 3 is past the end. No entry remains.
+3. Return from vertex 1 to vertex 0, removing vertex 1 and ID 0 from the
+   candidate route. Advance `ptr[0]` to 1. ID 0 still has capacity, but its
+   destination has no allowed way onward, so this branch cannot reach the sink.
+4. `adj[0] = [0]` has only position 0. The source's pointer is now past its
+   end too. The candidate route empties and this search returns 0.
+
+```{=latex}
+% Current pointers reach the ends of their outgoing lists
+\Needspace{8cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!45,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[note,anchor=east] at (-1.2,1) {adj[1]};
+\node[cell] at (0,1) {ID 1};
+\node[cell] at (2,1) {ID 2};
+\node[cell,fill=black!5] (a) at (4,1) {ID 4};
+\node[cell,dashed] (b) at (6,1) {end};
+\node[note] at (4,1.9) {position 2};
+\node[note] at (6,1.9) {position 3};
+\draw[blue] (a.south) to[bend right=30] node[lab,below]{ptr[1]: 2 to 3}(b.south);
+\node[note,anchor=east] at (-1.2,-1.9) {adj[0]};
+\node[cell] (c) at (0,-1.9) {ID 0};
+\node[cell,dashed] (d) at (2,-1.9) {end};
+\node[note] at (0,-1) {position 0};
+\node[note] at (2,-1) {position 1};
+\draw[blue] (c.south) to[bend right=30] node[lab,below]{ptr[0]: 0 to 1}(d.south);
+\node[note,anchor=west,text width=4cm] at (3.8,-1.9)
+ {ID 0 still has capacity 2.\\Its destination has no allowed continuation, so skip this branch.};
+\node[note,align=center] at (2.6,-3.5)
+ {The dashed end boxes are past the lists, not stored edges.\\
+  ptr[1] = len(adj[1]) and ptr[0] = len(adj[0]) mean there is no entry left to try.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+**Returning 0 here means no additional flow was found.** It does not erase
+the 2 units already sent. The inner loop ends because no route remains in
+these levels; Dinic then runs a new BFS on the updated residual graph.
+
+On this particular graph, the new BFS reaches vertices 0, 1, and 2, but not
+sink 3. The algorithm therefore stops and returns the accumulated value 2.
+There is no further phase in this example.
+
+**If the new BFS does reach the sink on another instance**, begin a new phase:
+keep the capacities and total, but reset all current pointers to zero. Entries
+rejected in the preceding phase may now belong to a new allowed route. The
+candidate-route lists also start over as usual.
+
+Resetting at a new phase is therefore different from resetting after every
+path: new levels can change which directions are allowed. Pointer reuse
+within a phase saves work without ruling out a valid route; the efficiency
+discussion below explains how this gives the running-time bound. The explicit lists
+carry out the exploration and backtracking without recursive calls.
+
+```{=latex}
+\newpage
+```
+
+## Why Dinic returns a maximum flow
+
+The running-time bound alone does not prove that the answer is optimal.
+Correctness needs three facts: the current flow stays valid, a blocked phase
+cannot cause a premature return, and the final failed BFS certifies optimality.
+
+### Each augmentation preserves a valid flow and its reported value
+
+The initial zero flow satisfies capacities and conservation. On a residual
+source-to-sink path, send its bottleneck `delta`. A forward residual step adds
+to its input edge's flow; a backward step subtracts from it. The bottleneck
+ensures that neither change crosses a capacity bound or makes an input flow
+negative.
+
+At every internal path vertex, the two incident changes balance: the net
+change in incoming minus outgoing flow is zero, including when a step cancels
+an earlier assignment. The source supplies `delta` more in net flow, and the
+sink absorbs `delta` more. Thus the resulting assignment is feasible, and
+adding `delta` to the stored total gives its actual flow value.
+
+### Restricting one phase to its levels does not discard future routes
+
+The restriction is temporary. Dinic retains the full residual graph; it only
+limits which arrows a path search may use during this phase.
+
+If BFS reaches the sink, a shortest residual route exists. Every arrow of
+that route advances one BFS level, so the new level graph contains a usable
+source-to-sink path. With current pointers reset, the search can find an
+augmentation; it is not prevented from starting by the level restriction.
+
+After a blocking flow, the inner search returns zero. Dinic does **not**
+return the accumulated total yet: BFS again examines all positive residual
+arrows, without using the old current pointers to skip entries. It may find
+a longer route or one using a cancellation arrow. If so, reset the pointers
+and begin another phase. Only a failed BFS of the full residual graph ends
+the algorithm.
+
+```{=latex}
+\newpage
+```
+
+### A failed full BFS proves that no larger feasible flow exists
+
+Run BFS from the source using **all positive residual arrows**, including
+cancellation arrows. Suppose it cannot reach the sink. Let `S` contain every
+vertex it did reach, not just the source. The sink lies outside `S`.
+
+The following network has a feasible flow of 5. Labels show input
+flow/capacity. The shaded region will be the set reached by the final BFS:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ cross/.style={->,very thick,draw=blue!65!black},
+ lab/.style={fill=white,inner sep=2pt,font=\small}]
+\fill[blue!6,rounded corners] (-.6,-1.7) rectangle (2.7,1.7);
+\node[nd,fill=orange!20] (s) at (0,0) {$s$};
+\node[nd] (a) at (2,1) {$a$};
+\node[nd] (b) at (2,-1) {$b$};
+\node[nd] (c) at (5,1) {$c$};
+\node[nd] (d) at (5,-1) {$d$};
+\node[nd,fill=green!20] (t) at (7,0) {$t$};
+\draw[ar] (s)--node[lab]{3/5}(a);
+\draw[ar] (s)--node[lab]{2/4}(b);
+\draw[cross] (a)--node[lab]{3/3}(c);
+\draw[cross] (b)--node[lab]{2/2}(d);
+\draw[ar] (c)--node[lab]{0/1}(b);
+\draw[ar] (c)--node[lab]{3/4}(t);
+\draw[ar] (d)--node[lab]{2/3}(t);
+\node at (1,2.1) {$S=\{s,a,b\}$};
+\node at (5.8,2.1) {Outside $S$};
+\node[font=\small] at (3.5,-2.2) {Input edges: flow/capacity. Blue edges leave $S$.};
+\end{tikzpicture}
+\end{center}
+```
+
+Now replace each input edge by its residual permissions. The next drawing
+shows **all positive residual arrows**; zero-capacity arrows are omitted:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ reach/.style={->,very thick,draw=blue!65!black},
+ lab/.style={fill=white,inner sep=1pt,font=\small}]
+\fill[blue!6,rounded corners] (-.6,-1.7) rectangle (2.7,1.7);
+\node[nd,fill=orange!20] (s) at (0,0) {$s$};
+\node[nd] (a) at (2,1) {$a$};
+\node[nd] (b) at (2,-1) {$b$};
+\node[nd] (c) at (5,1) {$c$};
+\node[nd] (d) at (5,-1) {$d$};
+\node[nd,fill=green!20] (t) at (7,0) {$t$};
+\draw[reach] (s) to[bend left=18] node[lab]{2}(a);
+\draw[ar] (a) to[bend left=18] node[lab]{3}(s);
+\draw[reach] (s) to[bend left=18] node[lab]{2}(b);
+\draw[ar] (b) to[bend left=18] node[lab]{2}(s);
+\draw[ar] (c)--node[lab]{3}(a);
+\draw[ar] (d)--node[lab]{2}(b);
+\draw[ar] (c)--node[lab]{1}(b);
+\draw[ar] (c) to[bend left=18] node[lab]{1}(t);
+\draw[ar] (t) to[bend left=18] node[lab]{3}(c);
+\draw[ar] (d) to[bend left=18] node[lab]{1}(t);
+\draw[ar] (t) to[bend left=18] node[lab]{2}(d);
+\node at (1,2.1) {BFS reaches $s,a,b$};
+\node at (5.8,2.1) {$c,d,t$ remain unreachable};
+\node[font=\small] at (3.5,-2.2) {Residual capacities. No positive arrow leaves the shaded region.};
+\end{tikzpicture}
+\end{center}
+```
+
+BFS reaches `a` and `b` from `s`, but has no residual arrow out of the shaded
+region. Arrows such as `c -> a` point **into** it, so they cannot help the
+search leave it. Why does this failure prove that 5 is optimal?
+
+```{=latex}
+\newpage
+```
+
+**First, every input edge leaving `S` must be full.** Here `a -> c` carries
+3 out of 3, and `b -> d` carries 2 out of 2. If either had spare capacity,
+BFS could cross to its outside endpoint. In general:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ lab/.style={fill=white,inner sep=2pt,font=\small}]
+\fill[blue!6,rounded corners] (-.7,-.7) rectangle (.7,.7);
+\node[nd] (u) at (0,0) {$u$};
+\node[nd] (v) at (4.5,0) {$v$};
+\draw[->,thick] (u)--node[lab,above]{input flow $f$, capacity $c$}(v);
+\node[font=\small] at (0,-1) {Inside $S$};
+\node[font=\small] at (4.5,-1) {Outside $S$};
+\node[align=left,text width=6cm,font=\small,anchor=west] at (6,0)
+ {Spare capacity $c-f>0$ would let BFS leave $S$.\\[4pt]
+  Since it cannot leave: $c-f=0$, so $f=c$.};
+\end{tikzpicture}
+\end{center}
+```
+
+**Second, every input edge entering `S` must carry zero flow.** This also
+matters: flow coming back into `S` would reduce its net delivery. In our
+example, the entering input edge `c -> b` carries zero. If it carried a
+positive amount, its cancellation arrow `b -> c` would let BFS leave `S`:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ lab/.style={fill=white,inner sep=2pt,font=\small}]
+\fill[blue!6,rounded corners] (-.7,-.7) rectangle (.7,.7);
+\node[nd] (u) at (0,0) {$u$};
+\node[nd] (v) at (4.5,0) {$v$};
+\draw[->,thick] (v) to[bend right=23] node[lab,above]{input flow $f$}(u);
+\draw[->,thick,dashed,orange!75!black] (u) to[bend right=23]
+ node[lab,below]{cancellation capacity $f$}(v);
+\node[font=\small] at (0,-1.3) {Inside $S$};
+\node[font=\small] at (4.5,-1.3) {Outside $S$};
+\node[align=left,text width=6cm,font=\small,anchor=west] at (6,0)
+ {If $f>0$, the orange residual arrow would let BFS leave $S$.\\[4pt]
+  Since it cannot leave: $f=0$.};
+\end{tikzpicture}
+\end{center}
+```
+
+**Finally, compare our delivery with the best any flow could deliver.**
+Add conservation over all vertices of `S` except the source. Internal
+transfers cancel: a unit sent from `s` to `a`, for instance, stays within
+`S`. Only transfers across its boundary count towards the net delivery:
+
+```text
+flow value = flow leaving S - flow entering S
+```
+
+In the example, the current value is `3 + 2 - 0 = 5`. No feasible flow can
+have a larger value: the only input edges leaving `S` have total capacity
+`3 + 2 = 5`. Reorganizing the flow inside either region cannot increase
+these capacities, and sending flow back into `S` can only reduce net delivery.
+
+In general, let `C` be the sum of the input capacities leaving `S`.
+The two facts above give:
+
+```text
+Our current flow:  value = C - 0 = C
+Any feasible flow: value <= C
+```
+
+Our feasible flow attains an upper bound valid for every feasible flow, so
+it is maximum. This is why a failed BFS of the full residual graph is a
+certificate of optimality, rather than just a failed local search.
+The next subsection proves that Dinic reaches this condition in finitely
+many phases. Chapter 4 develops this boundary argument as a minimum cut.
+
+```{=latex}
+\newpage
+```
+
+## Why Dinic finishes efficiently
+
+There are two separate questions: how many phases can occur, and how much
+work one phase can do. Write `V` for the number of vertices and `E` for the
+number of input edges. The representation stores `2E` residual entries;
+that factor of two does not change an asymptotic bound.
+
+### Each successful phase makes the shortest remaining route longer
+
+Consider this four-vertex network, starting with zero flow. The numbers
+on the arrows are input capacities. BFS assigns levels 0, 1, 1, and 2:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={font=\small,align=left}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.2) {2};
+\node[nd] (b) at (3,-1.2) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[ar] (s)--node[lab]{3}(a);
+\draw[ar] (s)--node[lab]{2}(b);
+\draw[ar] (a)--node[lab]{1}(b);
+\draw[ar] (a)--node[lab]{2}(t);
+\draw[ar] (b)--node[lab]{4}(t);
+\node[note] at (0,-.85) {level 0};
+\node[note] at (3,2) {level 1};
+\node[note] at (3,-2) {level 1};
+\node[note] at (6,-.85) {level 2};
+\node[note,anchor=west,text width=4.4cm] at (7.1,0)
+ {Start of phase 1.\\[4pt]
+  Source: vertex 1.\\
+  Sink: vertex 4.\\
+  Flow value: 0.\\
+  Shortest distance: 2.};
+\node[note] at (3,-2.7) {Input capacities before any flow is sent.};
+\end{tikzpicture}
+\end{center}
+```
+
+In phase 1, send 2 units along `1 -> 2 -> 4`, then 2 units along
+`1 -> 3 -> 4`. The total flow becomes 4. The arrows `2 -> 4` and `1 -> 3`
+now have zero forward residual capacity, blocking both two-arrow routes.
+
+The drawing below shows the forward residual capacities after these two
+pushes, keeping **the same levels as above**. The route `1 -> 2 -> 3 -> 4`
+still has capacity, but its middle arrow stays at level 1, so the phase's
+flow search cannot use it:
+
+```{=latex}
+% The next route is longer after the two short routes are blocked
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!45,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.2) {2};
+\node[nd] (b) at (3,-1.2) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[blue] (s)--node[lab]{1}(a);
+\draw[muted] (s)--node[lab]{0}(b);
+\draw[->,very thick,draw=red!70!black] (a)--node[lab]{1}(b);
+\draw[muted] (a)--node[lab]{0}(t);
+\draw[blue] (b)--node[lab]{2}(t);
+\node[note] at (0,-.85) {level 0};
+\node[note] at (3,2) {level 1};
+\node[note] at (3,-2) {level 1};
+\node[note] at (6,-.85) {level 2};
+\node[note,anchor=west,text width=4.4cm] at (7.1,0)
+ {After the first phase: total 4.\\[4pt]
+  At phase start: shortest routes have 2 arrows.\\
+  Blue: advances one level.\\
+  Red: same level, forbidden in this phase.};
+\node[note,align=center] at (3,-3)
+ {Forward residual capacities after phase 1. Positive reverse arrows are omitted here.\\
+  The residual route has levels $0,1,1,2$. Its red arrow prevents using it in this phase.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+Route `1 -> 2 -> 3 -> 4` takes three steps. Using the levels computed for
+this phase, its level sequence is `0,1,1,2`: crossing `2 -> 3` uses a step
+without increasing the level. **The flow search does not take this route in
+phase 1.**
+
+```{=latex}
+\Needspace{10cm}
+```
+
+After phase 1 ends, run BFS again on the full residual graph. It assigns
+levels 0, 1, 2, and 3 to vertices 1, 2, 3, and 4 respectively:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ allowed/.style={->,very thick,draw=blue!65!black},
+ other/.style={->,thick,draw=black!50},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={font=\small,align=left}]
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.2) {2};
+\node[nd] (b) at (3,-1.2) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[allowed] (s) to[bend left=18] node[lab]{1}(a);
+\draw[other] (a) to[bend left=18] node[lab]{2}(s);
+\draw[other] (b)--node[lab]{2}(s);
+\draw[allowed] (a)--node[lab]{1}(b);
+\draw[other] (t)--node[lab]{2}(a);
+\draw[allowed] (b) to[bend left=18] node[lab]{2}(t);
+\draw[other] (t) to[bend left=18] node[lab]{2}(b);
+\node[note] at (0,-.85) {level 0};
+\node[note] at (3,2.15) {level 1};
+\node[note] at (3,-2.15) {level 2};
+\node[note] at (6,-.85) {level 3};
+\node[note,anchor=west,text width=4.4cm] at (7.1,0)
+ {Start of phase 2.\\[4pt]
+  Flow value: still 4.\\
+  New shortest distance: 3.\\[4pt]
+  Blue: allowed in phase 2.\\
+  Gray: goes to a smaller level.};
+\node[note,align=center] at (3,-2.9)
+ {All positive residual arrows, with the new BFS levels.\\
+  Residual capacities have not changed: BFS only recomputed the levels.};
+\end{tikzpicture}
+\end{center}
+```
+
+The middle arrow `2 -> 3` now goes from level 1 to level 2. The whole blue
+route `1 -> 2 -> 3 -> 4` advances one level at every step, so phase 2 can
+send its bottleneck of 1. The sink's shortest distance has increased from
+2 to 3 between the starts of the two phases.
+
+To understand why this always happens, keep the BFS numbers from the start
+of the phase written beside the vertices, even after capacities change.
+Call these fixed numbers `L[v]`. The source has `L[s] = 0` and the sink has
+`L[t] = D`. We will compare routes using these same numbers; we are not
+running a new BFS yet.
+
+**Before the phase, one residual arrow can increase `L` by at most 1.**
+For example, suppose BFS assigns `L[u] = 2`. If a positive residual arrow
+`u -> v` exists, we can reach `v` in at most three steps: take a shortest
+two-step route to `u`, then that arrow. Thus BFS cannot assign `L[v] = 5`;
+it must assign `L[v] <= 3`. In general:
+
+```text
+L[v] <= L[u] + 1
+```
+
+An arrow may go to the next level (`L[v] = L[u] + 1`), stay at the same
+level, or go to a smaller level. It cannot increase the level by more than 1.
+
+This describes the **full residual graph**. The **flow search during this
+phase** follows only positive-capacity arrows satisfying `L[v] = L[u] + 1`.
+It cannot follow an arrow to the same level or to a smaller level, even if
+that arrow has positive residual capacity. The levels remain fixed throughout
+the phase; the next BFS will examine all positive residual arrows again.
+
+**Changing capacities during the phase preserves this limit.** Arrows that
+remain usable already satisfied it. An arrow that becomes usable because
+we sent flow is the reverse of an arrow used by this phase. We only sent
+flow from a level `d` to level `d+1`, so the newly available reverse goes
+from `d+1` to `d`. It also cannot skip forward over a level:
+
+```{=latex}
+% A new reverse arrow goes backward through this phase's levels
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!45,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd] (a) at (0,0) {$u$};
+\node[nd] (b) at (4.6,0) {$v$};
+\draw[blue] (a) to[bend left=27] node[lab,above]{used during this phase}(b);
+\draw[undo] (b) to[bend left=27] node[lab,below]{new cancellation permission}(a);
+\node[note] at (0,-1.3) {level $d$};
+\node[note] at (4.6,-1.3) {level $d+1$};
+\node[note,anchor=west,text width=4.8cm] at (6,0)
+ {Sending flow forward makes its reverse available.\\[4pt]
+  The reverse decreases the level by 1, so this phase cannot use it.};
+\node[note,align=center] at (4,-2.5)
+ {These are the levels computed by BFS for this phase. A later BFS may assign different ones.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+**Now ask whether a route of `D` arrows could remain after the phase.**
+It would have to start at level 0 and finish at level `D`. Since each arrow
+increases the level by at most 1, it would have to increase it by exactly 1
+on every step. There is no spare step for moving sideways or backward.
+
+For instance, with `D = 3`, compare these sequences of fixed level numbers:
+
+```{=latex}
+\Needspace{4cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ n/.style={circle,draw,minimum size=7mm,fill=white,font=\small},
+ note/.style={anchor=west,font=\small}]
+\foreach \x/\v in {0/0,1/1,2/2,3/3}
+  \node[n] (a\x) at (1.3*\x,0) {\v};
+\foreach \x/\y in {0/1,1/2,2/3}
+  \draw[->,thick,blue!65!black] (a\x)--(a\y);
+\node[note] at (6,0) {3 arrows: every step increases the level.};
+\foreach \x/\v in {0/0,1/1,2/1,3/2,4/3}
+  \node[n] (b\x) at (1.3*\x,-1.1) {\v};
+\foreach \x/\y in {0/1,1/2,2/3,3/4}
+  \draw[->,thick] (b\x)--(b\y);
+\node[note] at (6,-1.1) {4 arrows: one step stays at level 1.};
+\node[font=\small] at (5,-2)
+  {The circles show fixed BFS levels, not vertex IDs.};
+\end{tikzpicture}
+\end{center}
+```
+
+But the phase stopped precisely because **no positive-capacity source-to-sink
+route increasing the level at every step remained**. That is the definition
+of its blocking flow. So a route of `D` arrows cannot remain. A shorter one
+is also impossible: fewer than `D` increases of at most 1 cannot take us from
+0 to `D`.
+
+Consequently, any remaining route needs **more than `D` arrows**. Here is
+how this limits the number of phases.
+
+**Each new phase needs a larger sink distance.** At the start of a phase,
+BFS finds the shortest residual source-to-sink route; let its length be `D`.
+After that phase, no route of length `D` or less remains. The next BFS
+therefore either fails, ending the algorithm, or finds a distance of at
+least `D+1`. In the latter case, we begin another phase. Thus the distances
+at the starts of successive phases are strictly increasing integers.
+
+**A finite shortest distance cannot exceed `V-1`.** If a route visits a
+vertex twice, the part between those two visits is a cycle. Removing that
+part gives a shorter route with the same source and sink. So a shortest
+route never repeats a vertex: it visits at most `V` vertices and uses at
+most `V-1` arrows. This remains true when some arrows cancel earlier flow.
+
+For example, suppose the graph has `V = 6` vertices and the first BFS finds
+the sink at distance 2. The distances at the starts of later phases can
+only come from this list, in order:
+
+```text
+Possible phase-start distances:  2, 3, 4, 5
+An execution might use:          2,    4, 5, then no route
+```
+
+Some distances may be skipped, but none can be repeated. Distance 6 cannot
+occur: a shortest route of six arrows would need seven distinct vertices,
+and this graph has only six. After a phase starting at distance 5, the next
+BFS must therefore fail.
+
+In general, the possible distances are the `V-1` integers from 1 to `V-1`
+(the source and sink are distinct). Each phase uses a different one, so
+there are at most `V-1` phases, followed by one final unsuccessful BFS.
+This gives `O(V)` phases. We are counting whole blocking-flow phases here;
+one phase may send flow along several routes.
+
+### Bound the work inside one phase
+
+**Failed entries are not retried indefinitely.** Each `ptr[u]` only advances
+through `adj[u]`; it never moves backward during a phase. Across all vertices,
+there are `2E` entries to pass. Hence these advances and the dead branches
+they discard account for `O(E)` work.
+
+**Every successful push uses up at least one allowed edge.** We send the
+path's minimum residual capacity, so some edge on that path becomes empty.
+It stays empty for this phase: restoring its capacity would require using
+its reverse, which decreases the level and is forbidden in this phase. There are only
+`2E` residual entries, so there are at most `O(E)` successful pushes.
+
+**One successful route has at most `V-1` arrows.** Following and updating its
+path stacks costs `O(V)`. Several routes may share an edge that still has
+room; that repeated productive work is included in this `O(V)` per push.
+Together with the failed-entry work, one blocking phase costs `O(VE)`.
+
+```{=latex}
+% Multiply the two bounds to obtain Dinic general running time
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!45,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[draw,rounded corners,align=center,text width=4.7cm,inner sep=6pt]
+ (a) at (0,0) {At most $O(E)$ successful pushes\\in one phase};
+\node[draw,rounded corners,align=center,text width=4.7cm,inner sep=6pt]
+ (b) at (6.2,0) {At most $O(V)$ path work\\per successful push};
+\node[note] at (3.1,0) {times};
+\node[draw,rounded corners,align=center,fill=blue!7,text width=5cm,inner sep=6pt]
+ (c) at (3.1,-1.8) {$O(VE)$ work per phase};
+\draw[ar] (a.south)--(c.north west);
+\draw[ar] (b.south)--(c.north east);
+\node[note,align=center] at (3.1,-3.2)
+ {At most $O(V)$ phases\\[4pt]therefore total time $O(V^2E)$.};
+
+\end{tikzpicture}
+\end{center}
+```
+
+Multiplying `O(V)` phases by `O(VE)` work per phase gives Dinic's general
+`O(V^2*E)` time bound. BFS and pointer initialization cost `O(V+E)` per phase,
+which fit this bound for a nonempty graph. With no edges, one BFS immediately
+returns flow zero in `O(V)` time. The graph, levels, pointers, and path stacks
+use `O(V+E)` memory.
+
+The bound explains both implementation choices: sending a full bottleneck
+avoids one operation per unit of capacity, and retaining current pointers
+avoids repeating failed searches within a phase.
+
+# Minimum cut: its capacity equals the maximum flow
+
+A cut partitions vertices into `S` containing `s` and its complement `T`
+containing `t`. Its capacity is the sum of **input capacities** of edges
+pointing from `S` into `T`. Edges from `T` into `S` are not added.
+
+**Max-flow min-cut theorem.** The largest feasible flow value equals the
+smallest cut capacity. We will prove both directions: every cut bounds every
+flow from above, and the final residual search finds a cut whose capacity
+equals the flow we have already sent.
+
+
+```{=latex}
+% The source side and the minimum cut
+\Needspace{7cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\fill[blue!6,rounded corners] (-.7,-1.7) rectangle (.7,1.7);
+
+\node[nd,fill=orange!20] (s) at (0,0) {1};
+\node[nd] (a) at (3,1.2) {2};
+\node[nd] (b) at (3,-1.2) {3};
+\node[nd,fill=green!20] (t) at (6,0) {4};
+\draw[->,very thick,draw=orange!75!black] (s)--node[lab] {3/3} (a);
+\draw[->,very thick,draw=orange!75!black] (s)--node[lab] {2/2} (b);
+\draw[ar] (a)--node[lab] {1/1} (b);
+\draw[ar] (a)--node[lab] {2/2} (t);
+\draw[ar] (b)--node[lab] {3/4} (t);
+\draw[orange!75!black,dashed,thick] (1.2,-1.8)--(1.2,1.8);
+\node[note] at (0,2.2) {$S=\{1\}$};
+\node[note] at (4.5,2.2) {$T=\{2,3,4\}$};
+\node[note,anchor=west,text width=4.2cm] at (7.1,0)
+ {Crossing input capacities: $3+2=5$.\\[5pt]
+  Flow value: 5.\\
+  Edge $3\to4$ stays inside $T$ and does not count.};
+
+\node[note,align=center] at (3,-2.5) {Labels are input flow/capacity. The orange input edges leave the source side.};
+\end{tikzpicture}
+\end{center}
+```
+
+
+Conservation inside `S` cancels all internal flows. Hence the value of any
+feasible flow is
+
+```text
+flow value = flow from S to T - flow from T to S
+           <= capacity from S to T
+```
+
+Every cut is therefore an upper bound. After maximum flow, let `S` be all
+vertices reachable from `s` using positive residual edges. The sink is outside
+`S`, otherwise another augmentation would exist. Two facts now hold:
+
+1. Every input edge from `S` to `T` is saturated. Otherwise its forward
+   residual edge would make its destination reachable.
+2. Every input edge from `T` to `S` carries zero flow. Otherwise its backward
+   residual edge would make its other endpoint reachable.
+
+The next figure uses two distinct input edges, one in each direction.
+On the right, both residual arrows point from `S` to `T`, but have different
+roles: the solid gray arrow would add flow to the outgoing input edge;
+the dashed orange arrow would cancel flow on the incoming input edge.
+Their labels show why both have zero capacity here.
+
+
+```{=latex}
+% Why neither kind of residual crossing is available
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[note] at (1.6,1.9) {Input flows across the cut};
+\node[note] at (7.4,1.9) {Attempts to leave $S$ in the residual graph};
+\node[nd,fill=blue!8] (a) at (0,0) {$u$};
+\node[nd] (b) at (3.2,0) {$v$};
+\draw[ar] (a) to[bend left=30] node[lab,above] {$f=c$} (b);
+\draw[ar] (b) to[bend left=30] node[lab,below] {$f=0$} (a);
+\node[note] at (0,-1.4) {$u$ in $S$};
+\node[note] at (3.2,-1.4) {$v$ in $T$};
+\node[nd,fill=blue!8] (c) at (5.6,0) {$u$};
+\node[nd] (d) at (9.2,0) {$v$};
+\draw[ar] (c) to[bend left=30] node[lab,above] {$c-f=0$} (d);
+\draw[undo] (c) to[bend right=30] node[lab,below] {$f=0$} (d);
+\node[note,align=center] at (7.4,-1.6)
+ {Solid gray: forward permission, capacity 0.\\
+  Dashed orange: cancellation permission, capacity 0.};
+
+\node[note,align=center] at (4.6,-2.8) {Both zero-capacity residual attempts are unusable; neither makes $v$ reachable.};
+\end{tikzpicture}
+\end{center}
+```
+
+
+Substitute these facts into the displayed equality: the flow value equals
+this cut's capacity. This proves the **max-flow min-cut theorem**:
+
+```{=latex}
+\Needspace{4cm}
+\begin{center}
+\begin{tikzpicture}
+\node[draw=blue!65!black,very thick,rounded corners,fill=blue!6,
+      inner sep=12pt,align=center]
+ {\textbf{Max-flow min-cut theorem}\\[9pt]
+  $\displaystyle
+    \text{maximum flow value}=\text{minimum cut capacity}$};
+\end{tikzpicture}
+\end{center}
+```
+
+Why are both optimal? No feasible flow can exceed this cut's capacity, so
+our flow is maximum. No cut can have capacity below our flow's value, so
+this cut is minimum. The absence of incoming flow is needed as well as the
+saturation of outgoing edges to obtain the equality.
+
+For the opening example, `S = {1}` and `T = {2,3,4}`. The crossing input
+capacities are `3` and `2`, totaling `5`. Edge `3 -> 4` still has unused
+capacity, but both its endpoints are in `T`; that does not affect the cut.
+Thus **maximum flow value = minimum cut capacity = 5**.
+
+One BFS computes `S` in `O(V+E)` time. For its capacity, sum original capacities
+across the partition, rather than summing residual capacities (which are zero
+on the forward crossing edges). Minimum cuts need not be unique.
+
+
+# Dinic: complete reusable implementations
+
+Both versions use 0-based vertices and nonnegative integer capacities.
+`add_edge(u, v, c)` returns the forward residual ID. `max_flow(s, t)` mutates
+the residual graph and returns the **additional** flow sent by that call;
+a second call without graph changes returns `0`. `reachable(s)` returns a
+Boolean array for the current residual graph. Call it after maximum flow to
+extract a minimum cut.
+
+The C++ version uses `long long` for capacities and totals. Its caller must
+keep total capacities and answers within that type. The Python integers do
+not have this overflow limit. Neither version uses recursion.
+
+## C++
+
+```cpp
+{{< include implementations/dinic.hpp >}}
+```
+
+## Python
+
+```python
+{{< include implementations/dinic.py >}}
+```
+
+## Small API example
+
+This is a three-vertex network with a bottleneck of `2`. It illustrates the
+structure's operations without an exercise input/output wrapper.
+
+```cpp
+Dinic network(3);
+int edge = network.add_edge(0, 1, 4);
+network.add_edge(1, 2, 2);
+long long value = network.max_flow(0, 2);  // 2
+long long used = network.edges[edge ^ 1].cap;  // 2
+std::vector<bool> side = network.reachable(0);  // true, true, false
+```
+
+```python
+network = Dinic(3)
+edge = network.add_edge(0, 1, 4)
+network.add_edge(1, 2, 2)
+value = network.max_flow(0, 2)         # 2
+used = network.cap[edge ^ 1]           # 2
+side = network.reachable(0)           # [True, True, False]
+```
+
+
+```{=latex}
+% The Dinic API results on three vertices
+\Needspace{5cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\fill[blue!5,rounded corners] (-.7,-.9) rectangle (3.4,.9);
+\node[nd] (s) at (0,0) {0};
+\node[nd] (u) at (2.5,0) {1};
+\node[nd] (t) at (5,0) {2};
+\draw[ar] (s)--node[lab,above]{2/4}(u);
+\draw[blue] (u)--node[lab,above]{2/2}(t);
+\draw[orange!75!black,dashed,thick] (3.7,-1.1)--(3.7,1.1);
+\node[note,align=center] at (1.25,-1.6) {reachable: vertices 0 and 1};
+\node[note,anchor=west,text width=4cm] at (6.2,0)
+ {value = 2\\used on ID 0 = 2\\side = [true, true, false]};
+
+\node[note,align=center] at (2.5,-2.4) {Final input flow/capacity. The shaded vertices remain reachable through residual capacity.};
+\end{tikzpicture}
+\end{center}
+```
+
+
+# Matching: a concrete reassignment
+
+We now turn from routing amounts through a network to assigning individual
+resources. Suppose people request appointment slots. A person may accept
+several slots, but can receive at most one; each slot can serve at most one
+person. We want to accommodate as many people as possible. A locally valid
+assignment may prevent someone else from getting a slot, so we may need to
+reassign a person who was already accommodated.
+
+Represent the possibilities by a **bipartite graph**: people are the left
+vertices, slots are the right vertices, and an edge means that this person
+accepts this slot. Every edge joins the two different sides. The edges here
+describe compatibility; their drawing direction has no meaning.
+
+A **matching** is a selection of edges with no shared endpoint: no person
+or slot is used twice. Its size is the number of selected pairs. A **maximum
+matching** has the largest possible size; it need not match every vertex.
+A vertex is **free**, or **unmatched**, if no selected edge touches it.
+
+The connection with flow is the idea of a reversible choice. We can remove
+an existing assignment as part of a larger rearrangement that adds one more
+pair overall. Let us see exactly how this works before describing the
+search algorithm.
+
+Take two people, L1 and L2, and two slots, R1 and R2. L1 accepts either slot;
+L2 accepts only R1. Initially, assign R1 to L1:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=10mm,fill=white},
+ ar/.style={thick},mt/.style={very thick,blue!65!black}]
+\node[nd] (a) at (0,1) {L1};
+\node[nd] (b) at (0,-1) {L2};
+\node[nd] (c) at (4,1) {R1};
+\node[nd] (d) at (4,-1) {R2};
+\draw[mt] (a)--(c);
+\draw[ar] (a)--(d);
+\draw[ar] (b)--(c);
+\node[align=left,anchor=west] at (5,0)
+ {L1 can take R1 or R2.\\L2 can take only R1.\\Blue: first choose L1--R1.};
+\end{tikzpicture}
+\end{center}
+```
+
+The initial choice `L1--R1` blocks L2 if we refuse to change it. R2 is still
+free, but L2 cannot take it directly. We can nevertheless accommodate L2 by
+moving L1 to R2. To find that rearrangement, search this route:
+
+```text
+L2 -> R1 -> L1 -> R2
+```
+
+
+```{=latex}
+% An alternating path to a free right vertex
+\Needspace{4cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=blue!8] (a) at (0,0) {L2};
+\node[nd] (b) at (3,0) {R1};
+\node[nd] (c) at (6,0) {L1};
+\node[nd,fill=green!15] (d) at (9,0) {R2};
+\draw[blue] (a)--node[lab,above=4mm]{unused}(b);
+\draw[undo] (b)--node[lab,above=4mm]{matched: undo}(c);
+\draw[blue] (c)--node[lab,above=4mm]{unused}(d);
+\node[note] at (0,-.9) {free left};
+\node[note] at (9,-.9) {free right};
+
+\node[note,align=center] at (4.5,-1.8) {Follow unused edges left to right, and the occupied edge back to its owner.};
+\end{tikzpicture}
+\end{center}
+```
+
+
+Start at unmatched L2. Traverse an unused edge to R1, then its currently
+matched edge backward to L1, then an unused edge to unmatched R2. Flip the
+three edges: remove `L1--R1`, add `L2--R1` and `L1--R2`. The size rises from
+`1` to `2` and no vertex is used twice.
+
+
+```{=latex}
+% The two pairs after flipping the alternating path
+\Needspace{5cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd] (a) at (0,1) {L1};
+\node[nd] (b) at (0,-1) {L2};
+\node[nd] (c) at (4,1) {R1};
+\node[nd] (d) at (4,-1) {R2};
+\draw[thick,draw=black!40] (a)--(c);
+\draw[very thick,draw=green!40!black] (a)--(d);
+\draw[very thick,draw=green!40!black] (b)--(c);
+\node[note,anchor=west,text width=5cm] at (5.1,0)
+ {Remove L1--R1.\\[4pt]
+  Add L1--R2 and L2--R1.\\[4pt]
+  Both sides now use every vertex once.};
+
+\node[note,align=center] at (2,-2) {Green edges form the new matching of size 2.};
+\end{tikzpicture}
+\end{center}
+```
+
+
+This is an **augmenting alternating path**. Its edges alternate between
+unused and matched, starting and ending with unused edges. It connects a free
+left vertex to a free right vertex and increases the matching size by one.
+
+```{=latex}
+\Needspace{8cm}
+```
+
+## Search with owners and predecessors
+
+The search answers a concrete question: **can we accommodate one more person
+by moving some current assignments?** It has two separate stages. First find
+a possible rearrangement without changing any assignment. If it reaches a
+free slot, apply the complete rearrangement.
+
+### What the arrays and queue remember
+
+Continue with L1 assigned to R1 and L2 still free. Here is the complete
+starting state again:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=9mm,fill=white},
+ note/.style={font=\small,align=left}]
+\node[nd] (l1) at (0,1) {L1};
+\node[nd,fill=blue!8] (l2) at (0,-1) {L2};
+\node[nd] (r1) at (3.5,1) {R1};
+\node[nd,fill=green!15] (r2) at (3.5,-1) {R2};
+\draw[very thick,blue!65!black] (l1)--(r1);
+\draw[thick,black!60] (l1)--(r2);
+\draw[thick,black!60] (l2)--(r1);
+\node[note,anchor=west] at (5,0)
+ {Current partners:\\[4pt]
+  left[L1] = R1; left[L2] = -1.\\
+  right[R1] = L1; right[R2] = -1.\\[4pt]
+  Blue edge: assigned. Other edges: compatible.};
+\end{tikzpicture}
+\end{center}
+```
+
+`left[u]` is person `u`'s current slot. `right[v]` is slot `v`'s current
+owner. The value `-1` means no partner. The labels L1 and R1 name different
+vertices; in the implementation each side has its own 0-based IDs.
+
+For one search, we also need:
+
+- **`queue`: people whose possible slots still need inspection.** Initially
+  it contains only the free person L2. We may later add an occupied slot's
+  owner, to find out whether that person can move elsewhere.
+- **`previous[v]`: the person from whom we first reached slot `v`.** It
+  records a possible new owner, without assigning the slot yet. Initially
+  every entry is `-1`, meaning the slot has not been visited by this search.
+- **`seen[u]`: whether person `u` has already been enqueued.** This prevents
+  repeated exploration of the same person's options.
+
+In particular, `right[R1]` and `previous[R1]` answer different questions:
+**who owns R1 now**, and **who might take R1 in this rearrangement**.
+
+### Follow the example without changing the matching
+
+**Start:** `queue = [L2]`. All `previous` entries are `-1`.
+
+**Inspect L2:** remove L2 from the queue. Its only possible slot is R1.
+Record `previous[R1] = L2`. But `right[R1] = L1`: R1 is occupied. We cannot
+finish yet, so enqueue L1 to look for somewhere its current owner could move.
+Now `queue = [L1]`. The assignment L1--R1 is still unchanged.
+
+**Inspect L1:** remove L1 from the queue. R1 was already visited, so skip it.
+Its other possible slot is R2. Record `previous[R2] = L1`. Since
+`right[R2] = -1`, R2 is free: we have found an endpoint for the rearrangement.
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ lab/.style={font=\small,fill=white,inner sep=2pt}]
+\node[nd,fill=blue!8] (a) at (0,0) {L2};
+\node[nd] (b) at (3,0) {R1};
+\node[nd] (c) at (6,0) {L1};
+\node[nd,fill=green!15] (d) at (9,0) {R2};
+\draw[->,very thick,blue!65!black] (a)--node[lab,above=4mm]{possible new pair}(b);
+\draw[->,thick,dashed,orange!75!black] (b)--node[lab,above=4mm]{current owner}(c);
+\draw[->,very thick,blue!65!black] (c)--node[lab,above=4mm]{possible new pair}(d);
+\node[font=\small,align=center] at (4.5,-1)
+ {L2 could take R1 if L1 moves. L1 can move to free R2.\\
+  Discovery is complete; no assignment has changed yet.};
+\end{tikzpicture}
+\end{center}
+```
+
+### Apply the rearrangement from the free slot backward
+
+Start with the free slot R2. `previous[R2] = L1` tells us to give it to L1.
+Before doing that, remember L1's old slot, R1: that is the next slot whose
+new owner we must set. Then `previous[R1] = L2` tells us to give R1 to L2.
+L2 had no old slot, so we are finished.
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ lab/.style={font=\small,fill=white,inner sep=2pt}]
+\node[nd,fill=green!15] (a) at (0,0) {R2};
+\node[nd] (b) at (2.7,0) {L1};
+\node[nd] (c) at (5.4,0) {R1};
+\node[nd] (d) at (8.1,0) {L2};
+\node[draw,minimum width=10mm,minimum height=8mm] (e) at (10.8,0) {$-1$};
+\draw[->,thick,blue!65!black] (a)--node[lab,above=4mm]{previous}(b);
+\draw[->,thick] (b)--node[lab,above=4mm]{old slot}(c);
+\draw[->,thick,blue!65!black] (c)--node[lab,above=4mm]{previous}(d);
+\draw[->,thick] (d)--node[lab,above=4mm]{old slot}(e);
+\node[font=\small,align=center] at (5.4,-1)
+ {Give R2 to L1, then R1 to L2. Stop at the person who had no old slot.};
+\end{tikzpicture}
+\end{center}
+```
+
+These are exactly the reconstruction steps in the implementation:
+
+```text
+v = the free slot found by the search
+while v != -1:
+    u = previous[v]       # person who will take this slot
+    old = left[u]         # save that person's old slot first
+    left[u] = v
+    right[v] = u
+    v = old               # continue with the slot just released
+```
+
+After the whole flip:
+
+```text
+left[L1] = R2     right[R2] = L1
+left[L2] = R1     right[R1] = L2
+```
+
+Treat the complete flip as one operation. Between its individual assignments,
+partner arrays may temporarily disagree; after it finishes they agree again.
+The matching has gained one pair while keeping every previous person matched.
+
+### Two more pairs, found in two visual passes
+
+We will keep **the complete graph and the same vertex positions in every
+picture**. There are four people, A, B, C, D, and four slots. A can take
+R1, R3, or R4; B can take R2 or R3; C accepts only R1; D accepts only R2.
+
+Process A, B, C, D in that order. First assign A to R1 and B to R2. We now
+have two pairs. The next two searches, from C and then D, will find the two
+missing pairs. Here a **pass** means one search and its resulting
+rearrangement; it is not a Dinic phase.
+
+In each picture, gray edges show compatibility and **thick black edges
+show the current matching**. During a search, a **solid blue arrow proposes
+a new pair**; a **dashed orange arrow returns from an occupied slot to its
+current owner**. The orange vertex is the current search position. The
+matching changes only after reaching a free slot; the resulting pairs are
+then drawn in green.
+
+**Pass 1: start from C, keeping A--R1 and B--R2.**
+
+C needs R1. Follow R1 back to its owner A, then find another slot for A.
+Read the pictures left to right, then top to bottom:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex, nd/.style={circle,draw,minimum size=7mm,fill=white,font=\small}]
+\begin{scope}[shift={(0,0.0)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {1. C wants R1, but R1 is occupied.};
+\node[nd,fill=white] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=blue!8] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=orange!20] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=green!15] (R3) at (4,-1.8) {R3};
+\node[nd,fill=green!15] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,black!80] (A)--(R1);
+\draw[very thick,black!80] (B)--(R2);
+\draw[->,very thick,blue!65!black] (C)--(R1);
+\end{scope}
+\begin{scope}[shift={(7,0.0)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {2. R1 belongs to A. Explore A again.};
+\node[nd,fill=orange!20] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=blue!8] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=green!15] (R3) at (4,-1.8) {R3};
+\node[nd,fill=green!15] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,black!80] (B)--(R2);
+\draw[->,very thick,blue!65!black] (C)--(R1);
+\draw[->,very thick,dashed,orange!75!black] (R1)--(A);
+\end{scope}
+\begin{scope}[shift={(0,-4.8)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {3. A can take free R3. The path is complete.};
+\node[nd,fill=white] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=blue!8] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=orange!20] (R3) at (4,-1.8) {R3};
+\node[nd,fill=green!15] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,black!80] (B)--(R2);
+\draw[->,very thick,blue!65!black] (C)--(R1);
+\draw[->,very thick,dashed,orange!75!black] (R1)--(A);
+\draw[->,very thick,blue!65!black] (A)--(R3);
+\end{scope}
+\begin{scope}[shift={(7,-4.8)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {4. Apply the moves: A takes R3; C takes R1. Now 3 pairs.};
+\node[nd,fill=white] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=white] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=white] (R3) at (4,-1.8) {R3};
+\node[nd,fill=green!15] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,green!40!black] (A)--(R3);
+\draw[very thick,green!40!black] (B)--(R2);
+\draw[very thick,green!40!black] (C)--(R1);
+\end{scope}
+\end{tikzpicture}
+\end{center}
+```
+
+We removed A--R1 and added A--R3 and C--R1. B kept R2. Nobody lost their
+assignment, and C gained one. D remains free.
+
+```{=latex}
+\newpage
+```
+
+**Pass 2: start from D, keeping the three pairs just obtained.**
+
+D needs R2, owned by B. B could move to R3, owned by A. So the search must
+return to **both B and A**, even though their turns as starting vertices
+are already over. A can move to free R4:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex, nd/.style={circle,draw,minimum size=7mm,fill=white,font=\small}]
+\begin{scope}[shift={(0,0.0)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {1. D wants R2, but R2 is occupied.};
+\node[nd,fill=white] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=white] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=orange!20] (R2) at (4,-0.9) {R2};
+\node[nd,fill=white] (R3) at (4,-1.8) {R3};
+\node[nd,fill=green!15] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,black!80] (A)--(R3);
+\draw[very thick,black!80] (B)--(R2);
+\draw[very thick,black!80] (C)--(R1);
+\draw[->,very thick,blue!65!black] (D)--(R2);
+\end{scope}
+\begin{scope}[shift={(7,0.0)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {2. R2 belongs to B. Explore B again.};
+\node[nd,fill=white] (A) at (0,-0.0) {A};
+\node[nd,fill=orange!20] (B) at (0,-0.9) {B};
+\node[nd,fill=white] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=white] (R3) at (4,-1.8) {R3};
+\node[nd,fill=green!15] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,black!80] (A)--(R3);
+\draw[very thick,black!80] (C)--(R1);
+\draw[->,very thick,blue!65!black] (D)--(R2);
+\draw[->,very thick,dashed,orange!75!black] (R2)--(B);
+\end{scope}
+\begin{scope}[shift={(0,-4.8)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {3. B could take R3, but R3 is occupied.};
+\node[nd,fill=white] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=white] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=orange!20] (R3) at (4,-1.8) {R3};
+\node[nd,fill=green!15] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,black!80] (A)--(R3);
+\draw[very thick,black!80] (C)--(R1);
+\draw[->,very thick,blue!65!black] (D)--(R2);
+\draw[->,very thick,dashed,orange!75!black] (R2)--(B);
+\draw[->,very thick,blue!65!black] (B)--(R3);
+\end{scope}
+\begin{scope}[shift={(7,-4.8)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {4. R3 belongs to A. Explore A again.};
+\node[nd,fill=orange!20] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=white] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=white] (R3) at (4,-1.8) {R3};
+\node[nd,fill=green!15] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,black!80] (C)--(R1);
+\draw[->,very thick,blue!65!black] (D)--(R2);
+\draw[->,very thick,dashed,orange!75!black] (R2)--(B);
+\draw[->,very thick,blue!65!black] (B)--(R3);
+\draw[->,very thick,dashed,orange!75!black] (R3)--(A);
+\end{scope}
+\begin{scope}[shift={(0,-9.6)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {5. A can take free R4. The path is complete.};
+\node[nd,fill=white] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=white] (C) at (0,-1.8) {C};
+\node[nd,fill=blue!8] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=white] (R3) at (4,-1.8) {R3};
+\node[nd,fill=orange!20] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,black!80] (C)--(R1);
+\draw[->,very thick,blue!65!black] (D)--(R2);
+\draw[->,very thick,dashed,orange!75!black] (R2)--(B);
+\draw[->,very thick,blue!65!black] (B)--(R3);
+\draw[->,very thick,dashed,orange!75!black] (R3)--(A);
+\draw[->,very thick,blue!65!black] (A)--(R4);
+\end{scope}
+\begin{scope}[shift={(7,-9.6)}]
+\node[anchor=west,align=left,text width=5.6cm,font=\small] at (-.4,1) {6. Apply: A takes R4, B takes R3, D takes R2. Now 4 pairs.};
+\node[nd,fill=white] (A) at (0,-0.0) {A};
+\node[nd,fill=white] (B) at (0,-0.9) {B};
+\node[nd,fill=white] (C) at (0,-1.8) {C};
+\node[nd,fill=white] (D) at (0,-2.7) {D};
+\node[nd,fill=white] (R1) at (4,-0.0) {R1};
+\node[nd,fill=white] (R2) at (4,-0.9) {R2};
+\node[nd,fill=white] (R3) at (4,-1.8) {R3};
+\node[nd,fill=white] (R4) at (4,-2.7) {R4};
+\draw[black!30] (A)--(R1);
+\draw[black!30] (A)--(R3);
+\draw[black!30] (A)--(R4);
+\draw[black!30] (B)--(R2);
+\draw[black!30] (B)--(R3);
+\draw[black!30] (C)--(R1);
+\draw[black!30] (D)--(R2);
+\draw[very thick,green!40!black] (A)--(R4);
+\draw[very thick,green!40!black] (B)--(R3);
+\draw[very thick,green!40!black] (C)--(R1);
+\draw[very thick,green!40!black] (D)--(R2);
+\end{scope}
+\end{tikzpicture}
+\end{center}
+```
+
+C kept R1. Removing two pairs and adding three increased the size from 3
+to 4. This is optimal: all four people have different slots, and four
+people cannot form more than four pairs.
+
+```{=latex}
+\newpage
+```
+
+**Why does one turn per starting person suffice?**
+The searches may revisit earlier people to move their assignments, as we
+just saw with B and A. The real question is: **if someone's search fails,
+can a later rearrangement make it worth trying again?**
+
+Consider this different graph, processed in the order A, D, B, C.
+A, D, and B each accept only R1 or R2. C accepts R2 or R3. First assign
+A--R1 and D--R2.
+
+**1. B fails after exploring a closed region.** B tries both occupied
+slots, then all alternatives of their owners A and D:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex, nd/.style={circle,draw,minimum size=8mm,fill=white}, lab/.style={font=\small,fill=white,inner sep=2pt}]
+\fill[red!5,rounded corners] (-.65,-3.05) rectangle (4.65,.65);
+\draw[red!55!black,thick,rounded corners] (-.65,-3.05) rectangle (4.65,.65);
+\node[nd,fill=white] (A) at (0,0) {A};
+\node[nd,fill=white] (D) at (0,-1.2) {D};
+\node[nd,fill=red!15] (B) at (0,-2.4) {B};
+\node[nd,fill=white] (C) at (0,-4.2) {C};
+\node[nd,fill=white] (R1) at (4,0) {R1};
+\node[nd,fill=white] (R2) at (4,-1.5) {R2};
+\node[nd,fill=green!15] (R3) at (4,-4.2) {R3};
+\draw[black!35] (A)--(R1);
+\draw[black!35] (A)--(R2);
+\draw[black!35] (D)--(R1);
+\draw[black!35] (D)--(R2);
+\draw[black!35] (B)--(R1);
+\draw[black!35] (B)--(R2);
+\draw[black!35] (C)--(R2);
+\draw[black!35] (C)--(R3);
+\draw[->,very thick,blue!65!black] (B)--(R1);
+\draw[->,very thick,blue!65!black] (B)--(R2);
+\draw[->,very thick,dashed,orange!75!black] (R1)--(A);
+\draw[->,very thick,dashed,orange!75!black] (R2)--(D);
+\node[anchor=west,align=left,text width=5.5cm,font=\small] at (5.5,-1.9) {B's search reaches A, D, R1, R2.\\[5pt]
+R1 and R2 are occupied.\\
+A, D, B have no edge to R3.\\[5pt]
+No free slot can be reached.\\
+B remains unmatched.};
+\node[font=\small,align=center] at (2,-5.1) {Shaded region: the vertices reached by B\textquotesingle s failed search.\\Black lines: assigned pairs; orange arrows follow assignments backward.};
+\end{tikzpicture}
+\end{center}
+```
+
+The failure establishes two facts about the shaded region: **every slot
+inside is occupied**, and **none of its people accepts a slot outside**.
+Changing the assignments elsewhere cannot create a missing compatibility
+edge to R3.
+
+```{=latex}
+\newpage
+```
+
+**2. C may explore this region, but cannot succeed through it.** Trying R2
+leads to D, then possibly R1 and A. Once inside, the path cannot leave and
+cannot find a free slot:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex, nd/.style={circle,draw,minimum size=8mm,fill=white}, lab/.style={font=\small,fill=white,inner sep=2pt}]
+\fill[red!5,rounded corners] (-.65,-3.05) rectangle (4.65,.65);
+\draw[red!55!black,thick,rounded corners] (-.65,-3.05) rectangle (4.65,.65);
+\node[nd,fill=white] (A) at (0,0) {A};
+\node[nd,fill=white] (D) at (0,-1.2) {D};
+\node[nd,fill=red!15] (B) at (0,-2.4) {B};
+\node[nd,fill=white] (C) at (0,-4.2) {C};
+\node[nd,fill=white] (R1) at (4,0) {R1};
+\node[nd,fill=white] (R2) at (4,-1.5) {R2};
+\node[nd,fill=green!15] (R3) at (4,-4.2) {R3};
+\draw[black!35] (A)--(R1);
+\draw[black!35] (A)--(R2);
+\draw[black!35] (D)--(R1);
+\draw[black!35] (D)--(R2);
+\draw[black!35] (B)--(R1);
+\draw[black!35] (B)--(R2);
+\draw[black!35] (C)--(R2);
+\draw[black!35] (C)--(R3);
+\draw[->,very thick,blue!65!black] (C)--(R2);
+\draw[->,very thick,dashed,orange!75!black] (R2)--(D);
+\draw[->,very thick,blue!65!black] (D)--(R1);
+\draw[->,very thick,dashed,orange!75!black] (R1)--(A);
+\node[anchor=west,align=left,text width=5.5cm,font=\small] at (5.5,-1.9) {Try C--R2.\\[5pt]
+R2 leads to D, R1 leads to A, and A can only return to R1 or R2.\\[5pt]
+This branch cannot reach R3.\\
+No assignment changes.};
+\node[font=\small,align=center] at (2,-5.1) {Shaded region: the vertices reached by B\textquotesingle s failed search.\\Black lines: assigned pairs; orange arrows follow assignments backward.};
+\end{tikzpicture}
+\end{center}
+```
+
+**3. C succeeds outside, leaving B's region untouched.** The successful
+path is C--R3. Only this winning path changes the matching:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex, nd/.style={circle,draw,minimum size=8mm,fill=white}, lab/.style={font=\small,fill=white,inner sep=2pt}]
+\fill[red!5,rounded corners] (-.65,-3.05) rectangle (4.65,.65);
+\draw[red!55!black,thick,rounded corners] (-.65,-3.05) rectangle (4.65,.65);
+\node[nd,fill=white] (A) at (0,0) {A};
+\node[nd,fill=white] (D) at (0,-1.2) {D};
+\node[nd,fill=red!15] (B) at (0,-2.4) {B};
+\node[nd,fill=white] (C) at (0,-4.2) {C};
+\node[nd,fill=white] (R1) at (4,0) {R1};
+\node[nd,fill=white] (R2) at (4,-1.5) {R2};
+\node[nd,fill=white] (R3) at (4,-4.2) {R3};
+\draw[black!35] (A)--(R1);
+\draw[black!35] (A)--(R2);
+\draw[black!35] (D)--(R1);
+\draw[black!35] (D)--(R2);
+\draw[black!35] (B)--(R1);
+\draw[black!35] (B)--(R2);
+\draw[black!35] (C)--(R2);
+\draw[black!35] (C)--(R3);
+\draw[very thick,black!80] (A)--(R1);
+\draw[very thick,black!80] (D)--(R2);
+\draw[very thick,green!40!black] (C)--(R3);
+\node[anchor=west,align=left,text width=5.5cm,font=\small] at (5.5,-1.9) {C instead takes free R3.\\[5pt]
+A keeps R1.\\
+D keeps R2.\\
+B is still unmatched.\\[5pt]
+The closed region is unchanged.};
+\node[font=\small,align=center] at (2,-5.1) {Shaded region: the vertices reached by B\textquotesingle s failed search.\\Black lines: assigned pairs; orange arrows follow assignments backward.};
+\end{tikzpicture}
+\end{center}
+```
+
+This is the general reason we do not retry failed roots. After an exhaustive
+failure, the reached region has no free slot and no alternating exit. Any
+later successful augmenting path must avoid it, so its assignments stay
+unchanged. Repeating the failed search would meet the same obstruction.
+
+For a successful root, no retry is needed either: future augmentations may
+move that person to another slot, but never leave them unmatched. Thus we
+can start once from each person while still revisiting earlier matched
+people inside the searches.
+
+```{=latex}
+\newpage
+```
+
+## Why matching is a flow problem too
+
+Create a source, a sink, and distinct vertices for both sides. Add:
+
+| Edge family | Capacity |
+| --- | --- |
+| Source to every left vertex | 1 |
+| Each allowed left-right pair | 1 |
+| Every right vertex to sink | 1 |
+
+
+```{=latex}
+% The matching as a unit-capacity flow network
+\Needspace{6cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,draw=black!65},
+ blue/.style={->,very thick,draw=blue!65!black},
+ undo/.style={->,very thick,draw=orange!75!black,dashed},
+ muted/.style={->,thick,draw=black!40,dashed},
+ lab/.style={fill=white,inner sep=2pt,font=\small},
+ note/.style={align=left,font=\small},
+ cell/.style={draw,minimum width=14mm,minimum height=8mm,fill=white}]
+
+\node[nd,fill=orange!20] (s) at (0,0) {$s$};
+\node[nd] (a) at (2.3,1.2) {L1};
+\node[nd] (b) at (2.3,-1.2) {L2};
+\node[nd] (c) at (5,1.2) {R1};
+\node[nd] (d) at (5,-1.2) {R2};
+\node[nd,fill=green!20] (t) at (7.3,0) {$t$};
+\draw[blue] (s)--node[lab]{1}(a);
+\draw[blue] (s)--node[lab]{1}(b);
+\draw[ar] (a)--node[lab]{1}(c);
+\draw[blue] (a)--node[lab,pos=.65]{1}(d);
+\draw[blue] (b)--node[lab,pos=.65]{1}(c);
+\draw[blue] (c)--node[lab]{1}(t);
+\draw[blue] (d)--node[lab]{1}(t);
+\node[note,anchor=west,text width=3.7cm] at (8.4,0)
+ {Every capacity is 1.\\[5pt]
+  Blue routes send 2 units and select 2 pairs.};
+
+\node[note,align=center] at (3.65,-2.4) {Source and sink edges prevent either side from using one vertex twice.};
+\end{tikzpicture}
+\end{center}
+```
+
+
+**Why can a person receive at most one slot?** Take L1. Its only incoming
+input edge is `s -> L1`, of capacity 1. Conservation at L1 says that the
+sum sent to all its possible slots equals the amount received from `s`.
+So L1 can send at most 1 in total. It cannot send 1 to R1 and another 1 to
+R2: that would require receiving 2 through an edge of capacity 1.
+
+**Why can a slot serve at most one person?** Take R1. Its only outgoing
+input edge is `R1 -> t`, of capacity 1. Conservation at R1 says that the
+sum received from all people equals the amount sent to `t`. So R1 can
+receive at most 1 in total, even if several people accept it.
+
+```{=latex}
+\Needspace{5cm}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ ar/.style={->,thick,black!65},
+ boundedge/.style={->,very thick,blue!65!black},
+ lab/.style={font=\small,fill=white,inner sep=2pt}]
+\node[nd] (s) at (0,0) {$s$};
+\node[nd] (l) at (2,0) {L1};
+\node[nd] (r1) at (4,1) {R1};
+\node[nd] (r2) at (4,-1) {R2};
+\draw[boundedge] (s)--node[lab,above=4mm]{capacity 1}(l);
+\draw[ar] (l)--node[lab,above]{$x$}(r1);
+\draw[ar] (l)--node[lab,below]{$y$}(r2);
+\node[font=\small] at (2,-1.8) {L1: $x+y\leq 1$.};
+\node[nd] (l1) at (7,1) {L1};
+\node[nd] (l2) at (7,-1) {L2};
+\node[nd] (r) at (9,0) {R1};
+\node[nd] (t) at (11,0) {$t$};
+\draw[ar] (l1)--node[lab,above]{$x$}(r);
+\draw[ar] (l2)--node[lab,below]{$y$}(r);
+\draw[boundedge] (r)--node[lab,above=4mm]{capacity 1}(t);
+\node[font=\small] at (9,-1.8) {R1: $x+y\leq 1$.};
+\node[font=\small] at (5.5,-2.6)
+ {Two local views. Labels $x,y$ are flows; blue labels are capacities.};
+\end{tikzpicture}
+\end{center}
+```
+
+**Why do we get whole pairs rather than fractions?** Dinic starts with
+zero flow. All capacities here are integers, so every residual capacity and
+every path bottleneck is an integer. Adding or cancelling that amount keeps
+all input flows integral. Since every middle edge has capacity 1, its flow
+is therefore either 0 or 1. We select exactly the pairs whose middle edge
+carries 1. The two constraints above ensure that no person or slot belongs
+to two selected pairs. These pairs form a matching, and their count equals
+the flow value.
+
+**How does a matching give a flow in the other direction?** For each pair
+`L--R` in a matching, send one unit along `s -> L -> R -> t`. Because no
+person or slot is repeated, these routes never exceed any capacity.
+Conservation holds, and a matching of `k` pairs gives a feasible flow of
+value `k`. In the complete network at the start of this subsection, the
+two selected pairs give the routes
+`s -> L1 -> R2 -> t` and `s -> L2 -> R1 -> t`.
+
+Thus any matching can be turned into a flow of the same value, and the
+maximum integral flow returned by Dinic can be turned into a matching of
+the same size. Neither optimum can exceed the other:
+**maximum matching size = maximum flow value in this constructed network**.
+
+The matched step from R1 to L1 is exactly a reverse residual step. Our direct
+matching search leaves the source and sink implicit. It uses BFS augmenting
+paths without Dinic's blocking-flow phases; the two algorithms share the
+residual principle but organize their searches differently.
+
+# Matching: complete reusable implementations
+
+`add_edge(u, v)` adds a permitted pair, with 0-based IDs on each side.
+`maximum_matching()` returns `(left, right)` pairs and leaves both partner
+arrays available. The implementation uses an explicit queue and path flip,
+so Python does not need recursive calls. Calling the method again without
+adding edges preserves the matching.
+
+For `L` left vertices, `R` right vertices, and `E` allowed pairs, each search
+costs `O(E+L+R)`, including clearing its arrays. There are at most `L` searches,
+so total time is `O(L*(E+L+R))` and storage is `O(E+L+R)`. At the exercise's
+`L,R <= 500`, this direct approach is appropriate. For much larger bipartite
+graphs, Hopcroft-Karp batches shortest augmenting paths; it is a later tool.
+
+## C++
+
+```cpp
+{{< include implementations/bipartite_matching.hpp >}}
+```
+
+## Python
+
+```python
+{{< include implementations/bipartite_matching.py >}}
+```
+
+## Small API example
+
+```cpp
+BipartiteMatching matching(2, 2);
+matching.add_edge(0, 0);
+matching.add_edge(0, 1);
+matching.add_edge(1, 0);
+auto pairs = matching.maximum_matching();  // {(0, 1), (1, 0)}
+```
+
+```python
+matching = BipartiteMatching(2, 2)
+matching.add_edge(0, 0)
+matching.add_edge(0, 1)
+matching.add_edge(1, 0)
+pairs = matching.maximum_matching()       # [(0, 1), (1, 0)]
+```
+
+# Explore and test the algorithms
+
+Open [the standalone flow and matching page](flow_playground/index.html) in
+a browser. It works offline. Choose a preset or enter your own edges, then
+step through BFS, path searches, residual updates, and matching flips. The
+highlighted code, variable values, and graph describe the same execution.
+Use the cancellation preset to watch the odd residual edge ID on the second
+augmentation. The page and the reusable implementations both use 0-based vertex IDs,
+including in the custom graph input.
+
+## Recognize a suitable model
+
+Capacity restrictions, conserved quantities passing through junctions, and
+maximizing total delivery suggest flow. Choosing distinct pairs across two
+sides suggests matching. In both settings, a locally convenient choice can
+block later choices, and residual searches allow reassignment.
+
+A capacity limits an amount; it is not a cost or a distance. Ordinary maximum
+flow does not minimize travel cost. Before implementing, identify the source,
+the sink, the capacity of each edge, and the quantity one unit represents.
+For matching, identify both sides and which pairs are legal.
+
+## Useful checks and failure cases
+
+| Case | Property to check |
+| --- | --- |
+| Single edge of capacity 7 | Value is 7, not 1 |
+| Unreachable sink, or zero-capacity edges | Value is 0 |
+| Four-vertex opening network | Rebuild BFS; total is 5 |
+| Six-vertex cancellation network | Reverse residuals allow total 2 |
+| Parallel and opposite input edges | Every input edge keeps its own pair |
+| Many capacities of a billion | C++ totals use 64-bit integers |
+| A long directed chain | Explicit stack works without recursion |
+| Two left vertices competing for one right | Matching size is 1 |
+| L1 connects to R1/R2, L2 only to R1 | Reassignment finds size 2 |
+| No matching edges | Empty pair list |
+
+For small flow graphs, enumerate every source-side subset containing `s` but
+not `t`, compute its input cut capacity, and compare the minimum with Dinic.
+Also verify capacities, junction conservation, and the returned cut. For
+matching, use an exhaustive small search and validate every returned pair,
+its membership in the input, and endpoint uniqueness.
+
+Before submitting, check both residual updates, pointer resets per phase,
+positive-residual BFS, independent matching IDs, and output ordering required
+by the statement. Public `solve.*` files are stubs; keep personal attempts
+in the private submissions overlay.
 
 ```bash
 CP_TARGET=solution python3 sections/45_flows_and_matchings/check.py
+python3 sections/45_flows_and_matchings/implementations/check.py
+node sections/45_flows_and_matchings/flow_playground/tests/engine.test.mjs
 ```
 
 # Exercises
 
-Use A to get the edge-and-reverse storage right, because everything else in the
-section is built on it. Use B to see that the augmenting-path DFS is the same
-algorithm with the gadget left implicit, and test it on a case where a left
-vertex must give up its partner. Use C to notice that the cut costs one BFS
-after the flow and nothing more, and that `S` is defined by residual capacity,
-not by which edges look saturated. Use D as the blind synthesis problem: the
-rules are implications, profits may be negative, and the whole task is deciding
-what a cut should mean before any code is written. Test a single edge, an
-unreachable sink, parallel edges, and a matching instance with no edges at all.
+Attempt A-C after studying the corresponding operations. Each statement
+specifies its input numbering and output format. For D, read its README and
+make an independent attempt before opening the editorial.
 
-- A. Max Flow: Print the maximum flow from vertex `1` to vertex `n`.
-- B. Bipartite Matching: Print the size of a maximum matching between the two sides.
-- C. Min Cut Reachable Side: Print the flow value and the source side of a minimum cut.
-- D. Project Selection: Choose projects under "if a then b" rules to maximize total profit.
+- A. Max Flow: Compute maximum delivery from vertex `1` to vertex `n`.
+- B. Bipartite Matching: Find the maximum number of disjoint permitted pairs.
+- C. Min Cut Reachable Side: Return the maximum value and final residual source side.
+- D. Project Selection: Blind practice; use the standalone problem statement.

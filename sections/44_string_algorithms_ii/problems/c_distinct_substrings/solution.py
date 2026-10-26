@@ -1,18 +1,71 @@
 import sys
-def main():
-    s=sys.stdin.readline().strip(); next=[]; link=[]; length=[]
-    next.append({}); link.append(-1); length.append(0); last=0
-    for ch in s:
-        cur=len(next); next.append({}); length.append(length[last]+1); link.append(0); p=last
-        while p!=-1 and ch not in next[p]: next[p][ch]=cur; p=link[p]
-        if p==-1: link[cur]=0
+
+
+class SuffixAutomaton:
+    def __init__(self):
+        self.next = [{}]
+        self.link = [-1]
+        self.length = [0]
+        self.last = 0
+
+    def extend(self, ch):
+        # 1. Make a state for the new whole text and its new suffixes.
+        cur = len(self.next)
+        self.next.append({})
+        self.length.append(self.length[self.last] + 1)
+        self.link.append(0)
+        p = self.last
+
+        # 2. Visit old suffix groups that have no ch continuation.
+        while p != -1 and ch not in self.next[p]:
+            self.next[p][ch] = cur
+            p = self.link[p]
+
+        # 3. Find the next shorter group for cur.
+        if p == -1:
+            # Case 1: ch is new; only the empty suffix was known.
+            self.link[cur] = 0
         else:
-            q=next[p][ch]
-            if length[p]+1==length[q]: link[cur]=q
+            q = self.next[p][ch]
+            if self.length[p] + 1 == self.length[q]:
+                # Case 2: all of q is the next suffix group.
+                self.link[cur] = q
             else:
-                clone=len(next); next.append(next[q].copy()); length.append(length[p]+1); link.append(link[q])
-                while p!=-1 and next[p].get(ch)==q: next[p][ch]=clone; p=link[p]
-                link[q]=link[cur]=clone
-        last=cur
-    print(sum(length[v]-length[link[v]] for v in range(1,len(next))))
-if __name__=="__main__": main()
+                # Case 3: split q; clone keeps its shorter strings.
+                # Copy the dictionary so the two states are independent.
+                clone = len(self.next)
+                self.next.append(self.next[q].copy())
+                self.length.append(self.length[p] + 1)
+                self.link.append(self.link[q])
+
+                # Redirect only the shorter incoming contexts.
+                while p != -1:
+                    # Every shorter suffix also has a ch transition.
+                    assert ch in self.next[p]
+                    if self.next[p][ch] != q:
+                        break
+                    self.next[p][ch] = clone
+                    p = self.link[p]
+                # Both longer groups now have clone as suffix parent.
+                self.link[q] = clone
+                self.link[cur] = clone
+
+        self.last = cur
+
+    def count_distinct(self):
+        return sum(
+            self.length[v] - self.length[self.link[v]]
+            for v in range(1, len(self.next))
+        )
+
+
+def main():
+    s = sys.stdin.readline().strip()
+    sam = SuffixAutomaton()
+    for ch in s:
+        sam.extend(ch)
+    print(sam.count_distinct())
+
+
+if __name__ == "__main__":
+    main()

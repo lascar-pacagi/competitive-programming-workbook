@@ -57,9 +57,8 @@ public:
                 // Redirect only the shorter incoming contexts.
                 while (p != -1) {
                     auto it = states[p].next.find(ch);
-                    if (it == states[p].next.end()) {
-                        break;
-                    }
+                    // Every shorter suffix also has a ch transition.
+                    assert(it != states[p].next.end());
                     if (it->second != q) {
                         break;
                     }
