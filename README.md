@@ -86,6 +86,12 @@ problems to reconstruct how a solution is found: slow models, failed ideas,
 counterexamples, decisive observations, proofs, and validation. A rendered
 copy is available as [`HOW_TO_FIND_IT.pdf`](HOW_TO_FIND_IT.pdf).
 
+To rebuild only this manual, run `make discovery-pdf`. It requires Quarto,
+Chromium, and the Python `websocket-client` package. The build renders the
+HTML first, then prints it locally to preserve the SVG diagrams and formulas,
+with a clickable contents list and PDF bookmarks. `make pdf` uses the same
+route for the manual before rendering the section PDFs.
+
 Each completed section contains:
 
 - an illustrated Quarto lesson;

@@ -1,10 +1,12 @@
-.PHONY: pdf check reference audit public-check
+.PHONY: pdf discovery-pdf check reference audit public-check
 
 SECTIONS := $(shell find sections -maxdepth 1 -type d -name '[0-9][0-9]_*' | sort)
 APPENDICES := $(shell find appendices -mindepth 1 -maxdepth 1 -type d | sort)
 
-pdf:
-	quarto render HOW_TO_FIND_IT.qmd --to pdf
+discovery-pdf:
+	python3 tools/render_how_to_find_it_pdf.py
+
+pdf: discovery-pdf
 	@for section in $(SECTIONS); do \
 		if [ -f "$$section/lesson.qmd" ]; then quarto render "$$section/lesson.qmd" --to pdf; fi; \
 		if [ -f "$$section/editorial.qmd" ]; then quarto render "$$section/editorial.qmd" --to pdf; fi; \
