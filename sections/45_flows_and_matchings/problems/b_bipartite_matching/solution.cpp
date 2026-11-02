@@ -1,2 +1,75 @@
 #include <bits/stdc++.h>
-using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,e;if(!(cin>>n>>m>>e)) return 0;vector<vector<int>>g(n);while(e--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int> mt(m,-1);function<bool(int,vector<int>&)> dfs=[&](int u,vector<int>&vis){for(int v:g[u]) if(!vis[v]){vis[v]=1;if(mt[v]==-1||dfs(mt[v],vis)){mt[v]=u;return true;}}return false;};int ans=0;for(int u=0;u<n;u++){vector<int>vis(m);ans+=dfs(u,vis);}cout<<ans<<'\n';}
+using namespace std;
+
+#include <cassert>
+#include <queue>
+#include <utility>
+#include <vector>
+
+struct BipartiteMatching {
+    std::vector<std::vector<int>> adj;
+    std::vector<int> left, right;
+
+    BipartiteMatching(int left_count, int right_count)
+        : adj(left_count), left(left_count, -1), right(right_count, -1) {}
+
+    void add_edge(int u, int v) {
+        assert(0 <= u && u < static_cast<int>(left.size()));
+        assert(0 <= v && v < static_cast<int>(right.size()));
+        adj[u].push_back(v);
+    }
+
+    bool augment(int root) {
+        std::vector<int> previous(right.size(), -1);
+        std::vector<bool> seen(left.size(), false);
+        std::queue<int> queue;
+        seen[root] = true;
+        queue.push(root);
+        while (!queue.empty()) {
+            int u = queue.front();
+            queue.pop();
+            for (int v : adj[u]) {
+                if (previous[v] != -1) continue;
+                previous[v] = u;
+                int owner = right[v];
+                if (owner == -1) {
+                    while (v != -1) {
+                        u = previous[v];
+                        int old = left[u];
+                        left[u] = v;
+                        right[v] = u;
+                        v = old;
+                    }
+                    return true;
+                }
+                if (!seen[owner]) {
+                    seen[owner] = true;
+                    queue.push(owner);
+                }
+            }
+        }
+        return false;
+    }
+
+    std::vector<std::pair<int, int>> maximum_matching() {
+        for (int root = 0; root < static_cast<int>(left.size()); ++root)
+            if (left[root] == -1) augment(root);
+        std::vector<std::pair<int, int>> pairs;
+        for (int u = 0; u < static_cast<int>(left.size()); ++u)
+            if (left[u] != -1) pairs.push_back({u, left[u]});
+        return pairs;
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, m, e;
+    if (!(cin >> n >> m >> e)) return 0;
+    BipartiteMatching matching(n, m);
+    while (e--) {
+        int u, v; cin >> u >> v;
+        matching.add_edge(u - 1, v - 1);
+    }
+    cout << matching.maximum_matching().size() << '\n';
+}

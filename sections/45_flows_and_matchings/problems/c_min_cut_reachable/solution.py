@@ -1,43 +1,115 @@
 import sys
 from collections import deque
-def dinic(n,edges,s,t,cut=False):
-    g=[[] for _ in range(n)]
-    def add(u,v,c):
-        g[u].append([v,c,len(g[v])]); g[v].append([u,0,len(g[u])-1])
-    for u,v,c in edges: add(u,v,c)
-    flow=0
-    while True:
-        level=[-1]*n; level[s]=0; dq=deque([s])
-        while dq:
-            u=dq.popleft()
-            for v,c,rev in g[u]:
-                if c and level[v]<0: level[v]=level[u]+1; dq.append(v)
-        if level[t]<0: break
-        it=[0]*n
-        def dfs(u,f):
-            if u==t: return f
-            for i in range(it[u],len(g[u])):
-                it[u]=i; v,c,rev=g[u][i]
-                if c and level[v]==level[u]+1:
-                    ret=dfs(v,min(f,c))
-                    if ret: g[u][i][1]-=ret; g[v][rev][1]+=ret; return ret
-            return 0
-        while True:
-            pushed=dfs(s,10**18)
-            if not pushed: break
-            flow+=pushed
-    if cut:
-        seen=[False]*n; dq=deque([s]); seen[s]=True
-        while dq:
-            u=dq.popleft()
-            for v,c,rev in g[u]:
-                if c and not seen[v]: seen[v]=True; dq.append(v)
-        return flow,seen
-    return flow,None
+
+
+class Dinic:
+    """0-based vertices; integer capacities; paired residual edge IDs."""
+
+    def __init__(self, n):
+        self.n = n
+        self.adj = [[] for _ in range(n)]
+        self.to = []
+        self.cap = []
+
+    def add_edge(self, u, v, capacity):
+        assert 0 <= u < self.n and 0 <= v < self.n
+        assert capacity >= 0
+        edge = len(self.to)
+        self.adj[u].append(edge)
+        self.to.append(v)
+        self.cap.append(capacity)
+        self.adj[v].append(edge ^ 1)
+        self.to.append(u)
+        self.cap.append(0)
+        return edge
+
+    def _bfs(self, s, t):
+        self.level = [-1] * self.n
+        self.level[s] = 0
+        queue = deque([s])
+        while queue:
+            u = queue.popleft()
+            for edge in self.adj[u]:
+                v = self.to[edge]
+                if self.cap[edge] > 0 and self.level[v] == -1:
+                    self.level[v] = self.level[u] + 1
+                    queue.append(v)
+        return self.level[t] != -1
+
+    def _send(self, s, t, limit):
+        vertices = [s]
+        path = []
+        bottleneck = [limit]
+        while vertices:
+            u = vertices[-1]
+            if u == t:
+                delta = bottleneck[-1]
+                for edge in path:
+                    self.cap[edge] -= delta
+                    self.cap[edge ^ 1] += delta
+                return delta
+            while self.ptr[u] < len(self.adj[u]):
+                edge = self.adj[u][self.ptr[u]]
+                v = self.to[edge]
+                if (self.cap[edge] > 0
+                        and self.level[v] == self.level[u] + 1):
+                    break
+                self.ptr[u] += 1
+            if self.ptr[u] == len(self.adj[u]):
+                vertices.pop()
+                bottleneck.pop()
+                if path:
+                    path.pop()
+                    self.ptr[vertices[-1]] += 1
+            else:
+                edge = self.adj[u][self.ptr[u]]
+                path.append(edge)
+                vertices.append(self.to[edge])
+                bottleneck.append(min(bottleneck[-1], self.cap[edge]))
+        return 0
+
+    def max_flow(self, s, t):
+        assert 0 <= s < self.n and 0 <= t < self.n and s != t
+        added = 0
+        # A finite upper bound on every possible augmentation.
+        limit = sum(self.cap[edge] for edge in self.adj[s])
+        while self._bfs(s, t):
+            self.ptr = [0] * self.n
+            while True:
+                delta = self._send(s, t, limit)
+                if delta == 0:
+                    break
+                added += delta
+        return added
+
+    def reachable(self, s):
+        seen = [False] * self.n
+        seen[s] = True
+        queue = deque([s])
+        while queue:
+            u = queue.popleft()
+            for edge in self.adj[u]:
+                v = self.to[edge]
+                if self.cap[edge] > 0 and not seen[v]:
+                    seen[v] = True
+                    queue.append(v)
+        return seen
+
+
 def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,m=data[0],data[1]; idx=2; edges=[]
-    for _ in range(m): edges.append((data[idx]-1,data[idx+1]-1,data[idx+2])); idx+=3
-    flow,seen=dinic(n,edges,0,n-1,True); print(flow); print(' '.join(str(i+1) for i,x in enumerate(seen) if x))
-if __name__=="__main__": main()
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    if not data:
+        return
+    it = iter(data)
+    n, m = next(it), next(it)
+    flow = Dinic(n)
+    for _ in range(m):
+        u, v, capacity = next(it), next(it), next(it)
+        flow.add_edge(u - 1, v - 1, capacity)
+    print(flow.max_flow(0, n - 1))
+    seen = flow.reachable(0)
+    print(' '.join(str(v + 1) for v in range(n) if seen[v]))
+
+
+if __name__ == '__main__':
+    main()

@@ -19,373 +19,215 @@ format:
         \usepackage{microtype}
         \usepackage{amsmath}
         \usepackage{booktabs}
+        \usepackage{tikz}
+        \usetikzlibrary{arrows.meta}
+        \usepackage{needspace}
 execute:
   enabled: false
 ---
 
-# Editorial overview
+# How to use this editorial
 
-## Problem-specific proof map
+Attempt a problem from its standalone statement before reading its chapter.
+A-C practice the algorithms, D is the original blind exercise, and E-N are
+an increasing modeling progression. Difficulty estimates in the section index
+are teaching targets, not official ratings.
 
-**A. Max Flow.** Dinic augments only along residual paths, preserving capacity
-and flow conservation. When no residual `s`-to-`t` path remains, reachable
-residual vertices define a cut saturated by the flow, proving optimality.
+For every model below, identify what a vertex represents, what one unit or
+one side of a cut means, and prove the correspondence in both directions.
+Full C++ and Python solutions follow each explanation. The three introductory
+references and the extended references use the reusable iterative searches
+from the lesson; they do not depend on Python's recursion limit.
 
-**B. Bipartite Matching.** Unit-capacity source-left, compatibility, and
-right-sink edges make integral flow paths correspond one-for-one with matched
-pairs. Thus the maximum flow value is the maximum matching size.
+## Engine conventions
 
-**C. Min Cut Reachable Side.** After maximum flow, a residual BFS reaches
-exactly the source side of the minimum cut: any forward edge leaving it has
-zero residual capacity, while all reachable edges stay on that side.
+`Dinic.add_edge(u,v,c)` creates a forward residual entry of capacity `c` and
+a reverse entry of capacity zero. IDs are paired by `edge ^ 1`.
+`max_flow(s,t)` sends additional flow and mutates the residual capacities;
+`reachable(s)` then returns the positive-residual source side. Rebuild the
+network for independent binary-search candidates. With `V` vertices and `E`
+input edges, use the general `O(V^2 E)` time and `O(V+E)` space bounds.
+For an edgeless network, the final BFS costs `O(V)`.
 
-**D. Project Selection.** A source-side project is selected. Positive project
-values become source edges, negative values become sink edges, and each
-prerequisite becomes an infinite-capacity implication edge. The lost positive
-value plus selected negative cost is precisely a cut capacity.
+The direct matching class stores current partners in `left` and `right`,
+using `-1` for free vertices. Its iterative alternating BFS costs
+`O(L*(E+L+R))` in the stated implementation, including initialization of
+search arrays. Space is `O(E+L+R)`. Both classes use independent 0-based IDs;
+convert statement IDs on input. C++ capacities and accumulated answers are
+`long long`; Python integers are unbounded.
 
-## Detailed solution guide
-
-**A. Maximum Flow.** Dinic's algorithm works on the residual graph. A BFS builds
-levels using only edges with positive residual capacity. A DFS then sends flow
-only from level `d` to level `d+1`, which forms a blocking flow for the current
-level graph. When the sink is unreachable in BFS, there is no augmenting path
-left. By the max-flow min-cut theorem, the current flow is maximum. The reverse
-edge stores the option to cancel earlier choices, which is essential for
-correctness.
-
-**B. Bipartite Matching.** Model each left vertex as choosing at most one right
-vertex. The DFS tries to match a left vertex directly, and if the right vertex
-is already used, it recursively asks the previous owner to move elsewhere. A
-successful recursive move creates an augmenting path and increases the matching
-size by one. When no DFS from any unmatched left vertex succeeds, no augmenting
-path remains, so the matching is maximum.
-
-**C. Minimum Cut After Flow.** After computing max flow, run a reachability
-search from the source in the final residual graph. Let `S` be the reachable
-set. No residual edge of positive capacity crosses from `S` to `V \ S`;
-otherwise the endpoint would be reachable. Thus all original capacity across
-that cut is saturated, and its value equals the max flow. The printed cut is
-therefore a minimum cut.
-
-**Common pitfalls.** Always update reverse edges together with forward edges.
-For matching, reset the visited array for each DFS root. For min cut, use the
-residual graph after max flow, not the original graph.
-
-The three exercises are different views of augmenting paths.
-
-- A implements Dinic. BFS builds a residual level graph; DFS sends blocking
-  flow along increasing levels; reverse edges allow rerouting earlier choices.
-- B solves bipartite matching with augmenting DFS. A right vertex can be
-  reassigned if its current left partner can find another route.
-- C runs max flow, then explores the residual graph from the source. The
-  reachable set is the source side of a minimum cut.
-
-For max-flow correctness, the key terminal condition is: if the sink is not
-reachable in the residual graph, there is no augmenting path, so the current
-flow is maximum.
 
 # A. Max Flow
 
-## Restatement
+## Model, trace, and algorithm
 
-Given a directed capacitated graph from node 1 to node n, print the maximum flow.
+Each input edge already is a capacity constraint. Build the same network
+and run Dinic from vertex 1 to vertex `n`. BFS assigns residual distances;
+within a phase, send bottlenecks only along positive arrows advancing one
+level. Update the reverse permission with every push, and repeat full BFS
+until the sink becomes unreachable.
 
-## Observations and algorithm
+On the sample, phase 1 sends two units on 1-2-4 and two on 1-3-4. The next
+BFS permits 1-2-3-4, adding one more unit. The answer is 5, not 4: a blocked
+level graph ends only the phase.
 
-Dinic works on residual edges. BFS assigns shortest residual levels; DFS pushes
-only along positive edges from level d to d+1 until that level graph blocks all
-source-sink paths. Update the reverse residual edge whenever flow is pushed.
+## Correctness
 
-## Correctness proof
+Each residual augmentation preserves capacity bounds and conservation while
+increasing net source-to-sink flow by its bottleneck. At termination, no
+positive residual arrow leaves the source-reachable set. Outgoing input
+edges are full and incoming input edges carry zero flow, so current flow
+equals that cut's capacity. Every feasible flow is bounded by this capacity;
+the current flow is therefore maximum.
 
-Residual capacities preserve capacity and conservation. When BFS cannot reach
-sink, no augmenting path remains; max-flow/min-cut proves the flow maximum. QED.
+## Complexity and traps
 
-## Complexity
+`V=n`, `E=m`: `O(V^2 E)` time and `O(V+E)` space. Use 64-bit totals. Parallel
+and opposite input edges keep separate residual pairs; never merge an input
+edge with another edge's cancellation permission. Test zero edges, zero
+capacities, a long chain, rerouting, and source capacities whose sum exceeds
+32 bits.
 
-Dinic is `O(V^2 E)` in the general integral-capacity bound, with `O(V+E)` graph
-storage.
 
 ## Full C++ solution
 
 ```cpp
-#include <bits/stdc++.h>
-using namespace std; struct Dinic{struct E{int v,rev; long long c;};int n;vector<vector<E>>g;vector<int>level,it;Dinic(int n):n(n),g(n),level(n),it(n){}void add(int u,int v,long long c){E a{v,(int)g[v].size(),c},b{u,(int)g[u].size(),0};g[u].push_back(a);g[v].push_back(b);}bool bfs(int s,int t){fill(level.begin(),level.end(),-1);queue<int>q;level[s]=0;q.push(s);while(!q.empty()){int u=q.front();q.pop();for(auto&e:g[u])if(e.c&&level[e.v]<0){level[e.v]=level[u]+1;q.push(e.v);}}return level[t]>=0;}long long dfs(int u,int t,long long f){if(u==t)return f;for(int&i=it[u];i<(int)g[u].size();i++){E&e=g[u][i];if(e.c&&level[e.v]==level[u]+1){long long r=dfs(e.v,t,min(f,e.c));if(r){e.c-=r;g[e.v][e.rev].c+=r;return r;}}}return 0;}long long flow(int s,int t){long long ans=0,p;while(bfs(s,t)){fill(it.begin(),it.end(),0);while((p=dfs(s,t,4'000'000'000'000'000'000LL)))ans+=p;}return ans;}};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m)) return 0;Dinic d(n);while(m--){int u,v;long long c;cin>>u>>v>>c;d.add(u-1,v-1,c);}cout<<d.flow(0,n-1)<<'\n';}
+{{< include problems/a_max_flow/solution.cpp >}}
 ```
 
 ## Full Python solution
 
 ```python
-import sys
-from collections import deque
-def dinic(n,edges,s,t,cut=False):
-    g=[[] for _ in range(n)]
-    def add(u,v,c):
-        g[u].append([v,c,len(g[v])]); g[v].append([u,0,len(g[u])-1])
-    for u,v,c in edges: add(u,v,c)
-    flow=0
-    while True:
-        level=[-1]*n; level[s]=0; dq=deque([s])
-        while dq:
-            u=dq.popleft()
-            for v,c,rev in g[u]:
-                if c and level[v]<0: level[v]=level[u]+1; dq.append(v)
-        if level[t]<0: break
-        it=[0]*n
-        def dfs(u,f):
-            if u==t: return f
-            for i in range(it[u],len(g[u])):
-                it[u]=i; v,c,rev=g[u][i]
-                if c and level[v]==level[u]+1:
-                    ret=dfs(v,min(f,c))
-                    if ret: g[u][i][1]-=ret; g[v][rev][1]+=ret; return ret
-            return 0
-        while True:
-            pushed=dfs(s,10**18)
-            if not pushed: break
-            flow+=pushed
-    if cut:
-        seen=[False]*n; dq=deque([s]); seen[s]=True
-        while dq:
-            u=dq.popleft()
-            for v,c,rev in g[u]:
-                if c and not seen[v]: seen[v]=True; dq.append(v)
-        return flow,seen
-    return flow,None
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,m=data[0],data[1]; idx=2; edges=[]
-    for _ in range(m): edges.append((data[idx]-1,data[idx+1]-1,data[idx+2])); idx+=3
-    print(dinic(n,edges,0,n-1)[0])
-if __name__=="__main__": main()
+{{< include problems/a_max_flow/solution.py >}}
 ```
 
-## Tests that matter
-
-Test no path, parallel edges, a bottleneck, and a rerouting-required network.
 
 # B. Bipartite Matching
 
-## Restatement
+## Model, trace, and algorithm
 
-Given edges between left and right parts, print the maximum matching size.
+The two sides and allowed pairs are already given. For each free left root,
+explore unused pairs to right vertices and occupied pairs back to their
+owners. Reaching a free right vertex supplies an alternating path: flip it
+and gain one pair. If exploration fails, leave the matching unchanged.
 
-## Observations and algorithm
+On the sample, selecting 1-1, 2-2, and 3-3 accommodates all three left
+vertices. To test reassignment, instead use L1 adjacent to R1/R2 and L2
+adjacent only to R1: the second search moves L1 to R2 and gives R1 to L2.
 
-Use augmenting DFS. A right vertex is free, or its current left owner must first
-move through an alternate edge. The successful recursion chain is one augmenting
-path. For L1-R1,R2 and L2-R1, reroute L1 to R2 then match L2-R1.
+## Correctness
 
-## Correctness proof
+A flip adds one more unused pair than the matched pairs it removes, and
+preserves endpoint uniqueness. A larger matching compared with the current
+one contains an alternating path starting and ending at free vertices.
+The search explores every continuation from its root. One pass over roots
+suffices: successful roots stay matched; a failed search discovers a closed
+region with no free slot, untouched by later successful augmentations.
+Thus no augmenting path remains at the end, proving maximal size.
 
-Each success increases matching size by one. If every unmatched left root fails,
-there is no augmenting path, so the matching is maximum. QED.
+## Complexity and traps
 
-## Complexity
+The included BFS matcher takes `O(n*(e+n+m))` time and `O(e+n+m)` space.
+Reset search state per root while retaining partners. Do not confuse
+`previous[v]`, the potential new owner during exploration, with `right[v]`,
+the current owner. Test Hall-deficient groups, isolated vertices, unequal
+side sizes, and long alternating paths.
 
-The Kuhn DFS implementation is `O(L*E)` worst case and uses `O(L+R+E)` memory.
 
 ## Full C++ solution
 
 ```cpp
-#include <bits/stdc++.h>
-using namespace std; int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m,e;if(!(cin>>n>>m>>e)) return 0;vector<vector<int>>g(n);while(e--){int a,b;cin>>a>>b;g[a-1].push_back(b-1);}vector<int> mt(m,-1);function<bool(int,vector<int>&)> dfs=[&](int u,vector<int>&vis){for(int v:g[u]) if(!vis[v]){vis[v]=1;if(mt[v]==-1||dfs(mt[v],vis)){mt[v]=u;return true;}}return false;};int ans=0;for(int u=0;u<n;u++){vector<int>vis(m);ans+=dfs(u,vis);}cout<<ans<<'\n';}
+{{< include problems/b_bipartite_matching/solution.cpp >}}
 ```
 
 ## Full Python solution
 
 ```python
-import sys, collections
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,m,e=data[0],data[1],data[2]; adj=[[] for _ in range(n)]; idx=3
-    for _ in range(e): adj[data[idx]-1].append(data[idx+1]-1); idx+=2
-    match=[-1]*m
-    def dfs(u,vis):
-        for v in adj[u]:
-            if vis[v]: continue
-            vis[v]=1
-            if match[v]==-1 or dfs(match[v],vis): match[v]=u; return True
-        return False
-    ans=0
-    for u in range(n): ans+=dfs(u,[0]*m)
-    print(ans)
-if __name__=="__main__": main()
+{{< include problems/b_bipartite_matching/solution.py >}}
 ```
 
-## Tests that matter
-
-Reset visited-right per root. Test no edges, a reroute case, duplicates, and
-unequal part sizes.
 
 # C. Min Cut Reachable Side
 
-## Restatement
+## Model, trace, and algorithm
 
-After max flow from 1 to n, print the flow value and the source-side reachable vertices in the residual graph.
+Run Dinic on the input network. Then run one BFS from vertex 1 over all
+positive final residual arrows, including cancellation arrows. Print the
+flow and reached original vertex IDs in increasing order.
 
-## Observations and algorithm
+The sample has value 5. Both source edges are saturated, so the reached set
+is just vertex 1. An original edge with positive capacity may now be unusable;
+original-graph reachability would return the wrong set.
 
-After max flow, BFS from source through positive final residual edges. Print the
-reachable vertices as S together with the flow value.
+## Correctness
 
-## Correctness proof
+The final BFS's set `S` contains the source and excludes the sink. An input
+edge leaving `S` is full; an input edge entering `S` has zero flow, since
+otherwise its cancellation arrow would let the BFS leave. Consequently,
+flow value equals the input capacity leaving `S`. This is a minimum cut by
+max-flow/min-cut, and the printed set is exactly the requested residual
+reachable set. The final BFS adds `O(n+m)` time to Dinic.
 
-No residual forward edge leaves S, so every original edge from S is saturated.
-That cut has capacity equal to the maximum flow and is a minimum cut. QED.
+## Complexity and traps
 
-## Complexity
+Total time is `O(n^2*m)` with `O(n+m)` memory, plus the final linear BFS.
+The no-edge case is linear. Test zero flow, zero-capacity input edges,
+parallel edges, vertices reached only through cancellation, and output order.
 
-The extra residual BFS is `O(V+E)` after the max-flow computation.
 
 ## Full C++ solution
 
 ```cpp
-#include <bits/stdc++.h>
-using namespace std; struct Dinic{struct E{int v,rev; long long c;};int n;vector<vector<E>>g;vector<int>level,it;Dinic(int n):n(n),g(n),level(n),it(n){}void add(int u,int v,long long c){E a{v,(int)g[v].size(),c},b{u,(int)g[u].size(),0};g[u].push_back(a);g[v].push_back(b);}bool bfs(int s,int t){fill(level.begin(),level.end(),-1);queue<int>q;level[s]=0;q.push(s);while(!q.empty()){int u=q.front();q.pop();for(auto&e:g[u])if(e.c&&level[e.v]<0){level[e.v]=level[u]+1;q.push(e.v);}}return level[t]>=0;}long long dfs(int u,int t,long long f){if(u==t)return f;for(int&i=it[u];i<(int)g[u].size();i++){E&e=g[u][i];if(e.c&&level[e.v]==level[u]+1){long long r=dfs(e.v,t,min(f,e.c));if(r){e.c-=r;g[e.v][e.rev].c+=r;return r;}}}return 0;}long long flow(int s,int t){long long ans=0,p;while(bfs(s,t)){fill(it.begin(),it.end(),0);while((p=dfs(s,t,4'000'000'000'000'000'000LL)))ans+=p;}return ans;}};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m)) return 0;Dinic d(n);while(m--){int u,v;long long c;cin>>u>>v>>c;d.add(u-1,v-1,c);}long long f=d.flow(0,n-1); vector<int> seen(n); queue<int>q; q.push(0); seen[0]=1; while(!q.empty()){int u=q.front();q.pop(); for(auto &e:d.g[u]) if(e.c&&!seen[e.v]){seen[e.v]=1;q.push(e.v);}} cout<<f<<'\n'; bool first=true; for(int i=0;i<n;i++) if(seen[i]){if(!first) cout<<' '; first=false; cout<<i+1;} cout<<'\n';}
+{{< include problems/c_min_cut_reachable/solution.cpp >}}
 ```
 
 ## Full Python solution
 
 ```python
-import sys
-from collections import deque
-def dinic(n,edges,s,t,cut=False):
-    g=[[] for _ in range(n)]
-    def add(u,v,c):
-        g[u].append([v,c,len(g[v])]); g[v].append([u,0,len(g[u])-1])
-    for u,v,c in edges: add(u,v,c)
-    flow=0
-    while True:
-        level=[-1]*n; level[s]=0; dq=deque([s])
-        while dq:
-            u=dq.popleft()
-            for v,c,rev in g[u]:
-                if c and level[v]<0: level[v]=level[u]+1; dq.append(v)
-        if level[t]<0: break
-        it=[0]*n
-        def dfs(u,f):
-            if u==t: return f
-            for i in range(it[u],len(g[u])):
-                it[u]=i; v,c,rev=g[u][i]
-                if c and level[v]==level[u]+1:
-                    ret=dfs(v,min(f,c))
-                    if ret: g[u][i][1]-=ret; g[v][rev][1]+=ret; return ret
-            return 0
-        while True:
-            pushed=dfs(s,10**18)
-            if not pushed: break
-            flow+=pushed
-    if cut:
-        seen=[False]*n; dq=deque([s]); seen[s]=True
-        while dq:
-            u=dq.popleft()
-            for v,c,rev in g[u]:
-                if c and not seen[v]: seen[v]=True; dq.append(v)
-        return flow,seen
-    return flow,None
-def main():
-    data=list(map(int,sys.stdin.buffer.read().split()))
-    if not data: return
-    n,m=data[0],data[1]; idx=2; edges=[]
-    for _ in range(m): edges.append((data[idx]-1,data[idx+1]-1,data[idx+2])); idx+=3
-    flow,seen=dinic(n,edges,0,n-1,True); print(flow); print(' '.join(str(i+1) for i,x in enumerate(seen) if x))
-if __name__=="__main__": main()
+{{< include problems/c_min_cut_reachable/solution.py >}}
 ```
 
-## Tests that matter
-
-Test source-only reachability, zero flow, and parallel cut edges. Use the final
-residual graph, never the original graph.
 
 # D. Project Selection
 
-## Restatement and reduction target
+## Model and sample trace
 
-Each project has a possibly negative profit. A directed rule `a b` means that
-selecting project `a` requires selecting project `b`. Choose any feasible set
-of projects, including the empty set, with maximum total profit. There can be
-up to `200` projects and `1,000` rules, so enumerating all subsets is impossible.
+A project selected on the source side contributes its profit. Put a positive
+profit `w` on `s -> project` and a negative profit `w` on `project -> t` with
+capacity `-w`. If selecting `a` requires `b`, add `a -> b` with capacity
+`INF`. Let `P` be the sum of positive profits and use `INF=P+1`.
 
-This is a maximum-closure problem. A cut represents which projects are chosen:
-put a project on the source side exactly when it is selected. We will construct
-the network so that a finite cut is exactly a feasible choice, and its capacity
-is the profit lost by that choice.
+For profits `[9,-5,7,-3]` and rules 1->2, 3->4, 3->2, selecting all projects
+earns 8. Its cut pays negative costs `5+3=8`; `P=16`, so `P-cut=8`.
+Selecting only 1 and 2 earns 4: the cut loses positive profit 7 on project 3
+and pays cost 5 on project 2, giving `16-12=4`.
 
-## Network construction and trace
-
-Let `P` be the sum of all positive project profits. Build a source `s` and sink
-`t` around the project vertices:
-
-```text
-profit w > 0:  add s -> project with capacity w
-profit w < 0:  add project -> t with capacity -w
-rule a requires b: add a -> b with capacity INF
-```
-
-Choose `INF = P + 1`. No optimum cut can afford an `INF` edge because cutting
-every positive source edge costs at most `P`. Therefore a finite minimum cut
-never puts `a` on the source side while `b` is on the sink side: it obeys every
-requirement.
-
-For profits `[9,-5,7,-3]` with rules `1->2`, `3->4`, and `3->2`, selecting all
-projects earns `9-5+7-3=8`. In the corresponding cut, no positive source edge
-is cut and the two negative project-to-sink edges cost `5+3=8`. Since
-`P=16`, `P-cut=8`. Selecting only project 1 and its prerequisite 2 has profit
-4 and cuts source edge for project 3 (cost 7) plus project 2's sink edge
-(cost 5), again `16-12=4`.
-
-## Algorithm
+## Algorithm and correctness
 
 ```text
 P = sum of positive profits
-INF = P + 1
-build the stated flow network
-min_cut = maximum_flow(s, t)
-print P - min_cut
+add profit edges and implication edges of capacity P+1
+answer = P - max_flow(s,t)
 ```
 
-The max-flow/min-cut theorem supplies the minimum cut value. Use `long long`
-for `P`, `INF`, capacities, and the result.
+Any feasible selection gives a cut with capacity `P - selected_profit`:
+unselected positive projects lose their profit and selected negative ones
+pay their cost. Conversely, the cut selecting no projects costs `P`, so an
+optimal cut cannot cross an implication of capacity `P+1`. Its selected
+projects satisfy every prerequisite, and the same identity applies.
+Minimizing the cut therefore maximizes the profit. Empty selection, cycles
+of prerequisites, and zero profits are all handled without special graph
+preprocessing.
 
-## Correctness proof
+## Complexity and traps
 
-Consider any feasible selected set `S` and place exactly its projects with the
-source. No prerequisite edge crosses from source to sink because feasibility
-ensures every requirement of a selected project is also selected. The cut
-crosses `s -> v` for every unselected positive project, and `v -> t` for every
-selected negative project. Its capacity is therefore
+`V=n+2`, `E=n+m`, so time is `O(V^2 E)` and space `O(V+E)`. Use 64-bit
+profits and `INF`; a fixed small infinity may silently allow a forbidden
+selection. The original D reference uses recursive Dinic with the local
+`n<=200` bound; Python sets its recursion limit explicitly. Tests enumerate
+all small project subsets and include all-negative projects and prerequisites
+that make an attractive individual project unprofitable.
 
-```text
-sum(positive profits of unselected projects)
-+ sum(absolute negative profits of selected projects)
-= P - profit(S).
-```
-
-Conversely, a minimum cut cannot cross an `INF` edge: cutting all source edges
-has cost `P < INF`. Thus its source-side projects satisfy every prerequisite,
-so they form a feasible set, and the same equality shows their profit is
-`P - cut_capacity`. Minimizing cut capacity therefore maximizes feasible profit.
-By max-flow/min-cut, the computed maximum flow is that minimum capacity, so
-the algorithm prints the optimal profit. QED.
-
-## Complexity, implementation notes, and tests
-
-The network has `n+2` vertices and `n+m` forward edges. It uses `O(n+m)` memory.
-With arbitrary integral capacities, Dinic has worst-case `O(V^2 E)` time;
-the deliberately moderate local bound (`n <= 200`, `m <= 1000`) makes this
-implementation appropriate in both supplied languages. For substantially
-larger arbitrary-capacity maximum-closure networks, use a flow implementation
-and limits whose performance guarantee has been analyzed for that setting.
-`INF` must be strictly larger than the total positive profit, not a small magic
-constant. Test all-negative projects (answer zero), a profitable project whose
-requirements make it unprofitable, independent profitable projects, and rules
-forming a cycle.
 
 ## Full C++ solution
 
@@ -399,73 +241,833 @@ forming a cycle.
 {{< include problems/d_project_selection/solution.py >}}
 ```
 
-# What to carry forward
 
-Advanced algorithms become manageable when you state the invariant first, then code only the operations needed to preserve it.
+# E. Separated Light Marks
 
-<!-- Duplicate addendum hidden from the rendered editorial.
-# Complete upsolve notes
+## Restatement and key observation
 
-## A. Max Flow
+Choose floor cells so no two share an uninterrupted horizontal or vertical
+run. A partition splits a row or column into different runs, so whole-grid
+row IDs and column IDs are too coarse.
 
-Each added edge stores a forward residual capacity and a reverse edge initially
-of capacity zero. Pushing f along an edge subtracts f forward and adds f to the
-reverse edge; this preserves capacities and allows rerouting. Dinic BFS assigns
-shortest residual levels, then DFS only follows edges from level d to d+1 until
-the level graph is blocking. If BFS cannot reach sink, no residual augmenting
-path exists, hence max-flow/min-cut proves the accumulated flow maximum.
+Give each maximal horizontal floor run one left vertex, and each maximal
+vertical floor run one right vertex. A floor cell is the intersection of
+exactly one run of each kind; add their compatibility edge. Selecting that
+edge means putting a mark on that cell.
 
-On the sample, send two units through 1-2-4 and two through 1-3-4; the edge
-2-3 capacity one is not required, and the value is four. Pseudocode:
+## Trace and algorithm
+
+In the sample, every floor cell is an isolated run in both directions, so
+four disjoint edges can all be selected. More instructively, for the two
+rows `...` and `.#.`, there are three horizontal runs and three vertical
+runs. Put a mark in the top middle and in both bottom corners, giving three.
+Choosing the top left greedily would block one of the bottom marks.
 
 ```text
-while BFS(source) reaches sink:
-    reset current-edge pointers
-    while DFS(source, infinity) pushes f > 0: answer += f
+scan each row, starting a new run after every partition
+scan each column in the same way
+for every floor cell: connect its horizontal and vertical run IDs
+answer = maximum matching size
 ```
 
-The standard Dinic bound is `O(V^2 E)` for arbitrary integral capacities; it is
-comfortably adequate for the local exercises. Use `long long` for capacities and
-flow, and update the reverse edge at the same moment as the forward edge. Test
-no path, parallel edges, a bottleneck, and a case requiring a reverse residual
-edge to reroute earlier flow.
+## Correctness proof
 
-## B. Bipartite Matching
+Any noninterfering placement uses each horizontal and vertical run at most
+once, so its cell edges form a matching of the same size. Conversely, a
+matching selects floor cells with no shared run. Two such cells cannot
+exchange an uninterrupted horizontal or vertical signal, so the placement
+is valid. The correspondence preserves the number of marks; a maximum
+matching gives an optimal placement.
 
-`match_right[v]` is the left vertex currently owning right vertex v, or -1. A
-DFS from an unmatched left vertex explores right neighbors. An unused right
-matches immediately; an occupied right can be taken only if its owner finds an
-alternative recursively. This chain is an augmenting path, so each successful
-root DFS increases the matching by one. If every unmatched left root fails,
-there is no augmenting path and the matching is maximum.
+## Bounds, implementation notes, and tests
 
-For edges L1-R1,R2 and L2-R1, first match L1-R1; the L2 search reroutes L1 to
-R2 and then takes R1, yielding two pairs. Reset visited-right for each root.
-This Kuhn implementation costs `O(L*E)` in the worst case and is appropriate
-for the local small matching limits; use Hopcroft-Karp for larger instances.
-Test no edges, duplicate-looking choices, a reroute case, and unequal part
-sizes.
+For `C` floor cells, there are at most `C` vertices on either side and
+exactly `C` edges. The included matcher uses `O(C^2+h*w)` time and
+`O(h*w)` memory. In C++, run IDs start at -1 for partitions. In Python,
+input rows are bytes: `35` is `#` and `46` is `.`. Start a new ID only
+at the first floor cell or after a partition, not after every cell.
 
-## C. Min Cut Reachable Side
+The tiny oracle enumerates subsets of actual floor cells and checks direct
+visibility without run IDs or matching. Fixed tests include a greedy trap,
+all partitions, and one long run. Maximum-size tests use an open floor
+(answer 60) and a checkerboard of isolated cells (answer 1800).
 
-Run the same max-flow routine, then BFS from source using only final residual
-edges of positive capacity. Let S be reached vertices. If an original forward
-edge left S with residual capacity, BFS would cross it; therefore all such
-edges are saturated. Their capacity equals the maximum flow, so S is the source
-side of a minimum cut. On the max-flow sample, inspect the final residual graph
-rather than the original graph before printing vertices. The extra BFS costs
-`O(V+E)` after Dinic. Test source-only reachability, all vertices reachable
-when flow is zero, and parallel crossing edges.
 
--->
-# Testing discussion
+## Full C++ solution
 
-For tiny random networks, compare with a slow augmenting-path implementation;
-for matching, compare with brute force over small left vertices. Verify cut
-output by checking every residual-reachable edge and summing original capacities
-leaving the reached set. For D, enumerate small project subsets and reject ones
-that violate a prerequisite before comparing their total profit. Run:
+```cpp
+{{< include problems/e_separated_light_marks/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/e_separated_light_marks/solution.py >}}
+```
+
+
+# F. Crate Routing
+
+## Restatement and model
+
+A lane amount uses stock at one depot and capacity at one destination.
+Create one vertex per depot and destination. One unit of flow is one crate:
+
+| Edge | Capacity | Meaning |
+| --- | --- | --- |
+| `s -> depot i` | `a[i]` | Do not ship more than its stock |
+| `depot i -> destination j` | listed lane limit | Respect that direct lane |
+| `destination j -> t` | `b[j]` | Do not exceed its receiving limit |
+
+These are capacities, not compulsory amounts. Unused stock is allowed.
+
+## Sample trace and algorithm
+
+The sample's total stock and total receiving capacity are both 5, but depot
+2 can ship only to destination 1, whose limit is 2. Depot 1 can use destination
+2 for at most 2. Deliver 4 using those two lanes; a greedy shipment from depot
+1 to destination 1 must be rerouted to achieve it.
+
+```text
+build source/depot, lane, and destination/sink edges
+print maximum_flow(s,t)
+```
+
+## Correctness proof
+
+For any valid shipment, put each lane amount on its middle edge, put each
+depot's total on its source edge, and each destination's total on its sink
+edge. All capacities hold and conservation follows from the totals, giving
+a feasible flow of the same delivered value. Conversely, integral flow
+conservation makes middle-edge amounts a valid shipment. Source and sink
+capacities enforce both endpoint limits, and the middle capacities enforce
+lane limits. Dinic preserves integrality, so its maximum flow corresponds
+to a maximum integer shipment.
+
+## Bounds, implementation notes, and tests
+
+`V=n+m+2`, `E=n+m+e`: time `O(V^2 E)`, space `O(V+E)`. The answer can be
+`150*10^9`. Use `long long` for capacities and totals in C++; Python reads
+all integers before building the graph. There is no depot-to-depot routing.
+Do not omit lane limits or mistake a destination limit for an exact demand.
+
+The independent oracle enumerates lane amounts on tiny cases, checking
+original stocks and receiving limits. Tests cover zero stock, no lanes,
+a lane bottleneck, and rerouting. Dense 150-by-150 stress cases check large
+totals and the case where only one destination can receive anything.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/f_crate_routing/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/f_crate_routing/solution.py >}}
+```
+
+
+# G. Silent Rehearsal
+
+## Restatement and threshold model
+
+We minimize the largest chosen preparation time, not their sum. Fix a waiting
+time `T`. Keep exactly the performer-room pairs with time at most `T`.
+A matching of size `n` is precisely a complete assignment ready by `T`.
+
+Increasing `T` only adds edges, so feasibility is monotone. It changes only
+at a listed time. Sort and deduplicate the times, check the largest, then
+binary-search the first feasible listed value. If there are no edges, or
+even all edges cannot match every performer, print -1.
+
+## Sample trace and algorithm
+
+At time 2 in the sample, both performers can use only room 1. At time 4,
+performer 1 also gains room 2; the assignment (1,2), (2,1) becomes possible.
+The smallest waiting time is 4, even though the individually fastest pair
+for performer 1 would use room 1.
+
+```text
+if no full matching using all listed pairs: return -1
+binary-search distinct listed times T
+    build pairs whose preparation time <= T
+    test whether matching size is n
+return the first feasible T
+```
+
+## Correctness proof
+
+For a fixed `T`, an assignment with waiting time at most `T` selects `n`
+disjoint edges in the threshold graph. A size-`n` matching conversely gives
+such an assignment. If an assignment is feasible at one threshold, it
+remains feasible at every larger one. Any optimal assignment's maximum
+chosen time is one of the listed values. Binary search over those values
+therefore returns exactly the smallest possible waiting time.
+
+## Bounds, implementation notes, and tests
+
+There are `O(log(e+1))` matching calls. With the provided BFS matcher, time
+is `O(n*(e+n+m)*log(e+1) + e*log(e+1))`; memory is `O(e+n+m)`.
+Rebuild the matcher for each candidate so old assignments using forbidden
+edges cannot leak into a lower threshold. Zero times are valid. Having
+at least `n` rooms or one choice per performer is not enough: groups may
+compete for the same small set.
+
+The oracle enumerates injective assignments and minimizes their actual
+maximum time, without binary search. Stress tests include 62,500 distinct
+edge times: a linear scan rebuilding a matcher for every time is unsuitable.
+For times `u*(n+1)+v` with 0-based indices, the last performer needs at least
+`(n-1)*(n+1)=n^2-1`; give it room 0 and give earlier performers the other
+rooms to attain that bound. A second dense test has a zero-time diagonal.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/g_silent_rehearsal/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/g_silent_rehearsal/solution.py >}}
+```
+
+
+# H. Emergency Corridors
+
+## Restatement and modeling obstacle
+
+We pay for rooms, not for corridors. Giving each corridor the cost of its
+endpoint would charge multiple times for a room shared by several paths.
+Instead split each room `v` into `v_in` and `v_out`:
+
+```text
+v_in -> v_out: closure cost of v
+u_out -> v_in: INF for each input corridor u -> v
+s -> hazard_in: INF
+archive_out -> t: INF
+```
+
+Protected rooms receive `INF` on their internal edge. Choose
+`INF = 1 + sum of all nonnegative listed costs`. Closing every allowed
+nonterminal room costs less than `INF`, so any feasible finite optimum
+cannot afford a protected edge or corridor.
+
+## Trace and algorithm
+
+In the sample, one hazard-to-archive route passes through room 2, and the
+other through rooms 3 and 4. Delete room 2 for 4, then choose the cheaper
+of room 3 for 2 and room 4 for 7. The answer is 6. The internal edge for a
+room is shared by every route through it, so a closure is paid only once.
+
+```text
+split rooms and build the stated network
+value = maximum_flow(s,t)
+if value >= INF: print -1
+else: print value
+```
+
+## Correctness proof
+
+A valid closure set disconnects source and sink after the corresponding
+internal edges are removed. Let the source side be the vertices reachable
+without those edges. Its cut crosses only removed internal edges and costs
+at most the closure set. Thus minimum cut is no more expensive than any
+valid closure.
+
+Conversely, a cut costing less than `INF` crosses only internal edges of
+removable rooms. Close exactly those rooms. Any remaining hazard-to-archive
+path would induce a source-to-sink path in the split graph and would have
+to cross the cut without using a closed internal edge, which is impossible.
+These closures are valid and have the cut's cost. Therefore finite minimum
+cut equals minimum closure cost. If the minimum cut is at least `INF`, a
+valid closure set cannot exist, since all allowed closures together cost
+less than that bound.
+
+## Bounds, implementation notes, and tests
+
+`V=2n+2`, `E=n+m+k+q`: `O(V^2 E)` time and `O(V+E)` space. Input direction
+matters. Terminals are protected even if their listed costs are nonnegative.
+Zero-cost internal edges are meaningful and may produce answer zero.
+C++ stores the sum and `INF` in 64 bits; Python's explicit stack avoids
+recursion through the split graph.
+
+The oracle enumerates removable-room subsets and performs reachability in
+the original building. It does not enumerate cuts in the transformed graph.
+Stress tests force all routes through a common room, or add one completely
+protected route that makes the task impossible.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/h_emergency_corridors/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/h_emergency_corridors/solution.py >}}
+```
+
+
+# I. Directional Relay Modes
+
+## Restatement and cut convention
+
+We pay one unary cost per relay and a directional penalty for each listed
+0-to-1 pair. Interpret the source side as mode 0, and the sink side as mode 1.
+Then add:
+
+```text
+s -> i with capacity c1[i]
+i -> t with capacity c0[i]
+u -> v with capacity p for notice (u,v,p)
+```
+
+The reversed-looking unary capacities are intentional: putting `i` with the
+sink cuts its source edge and pays mode 1's cost; putting it with the source
+cuts its sink edge and pays mode 0's cost.
+
+## Truth table and sample
+
+| Mode of u | Mode of v | Does `u -> v` cross the cut? |
+| --- | --- | --- |
+| 0 | 0 | No |
+| 0 | 1 | Yes: pay p |
+| 1 | 0 | No |
+| 1 | 1 | No |
+
+The sample's independently cheapest modes (0,1) incur penalty 10. Switching
+the second relay to 0 gives cost 4 and no crossing notice. An undirected
+penalty would also charge the opposite mismatch, incorrectly changing the
+problem. Run one maximum flow and print its value.
+
+## Correctness proof
+
+Every assignment determines a cut. Exactly one unary edge per relay is
+cut, paying its chosen mode's running cost. Each notice edge crosses
+exactly in its triggering 0-to-1 case, so cut capacity equals total cost.
+Every cut conversely determines one mode per relay and obeys the same
+identity. Therefore minimizing cut capacity is precisely minimizing the
+stated objective, and max-flow/min-cut gives the answer.
+
+## Bounds, implementation notes, and tests
+
+`V=n+2`, `E=2n+m`: `O(V^2 E)` time and `O(V+E)` space. Use 64-bit totals.
+No infinite edges are needed, because notices are penalties rather than
+forbidden assignments. Opposite notices have separate meanings. Empty
+source-side or sink-side relay sets are allowed.
+
+The oracle enumerates all binary mode vectors and charges notices directly.
+A fixed case makes (1,0) optimal, catching accidental undirected penalties.
+Stress tests include a forced uniform choice where crossing any boundary
+costs a billion, but choosing all-zero or all-one costs only 125.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/i_directional_relay_modes/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/i_directional_relay_modes/solution.py >}}
+```
+
+
+# J. Exhibit Pacts
+
+## Restatement and why one auxiliary vertex helps
+
+The reward for a group is paid once when every member has the requested
+state. Pairwise edges alone would generally count a bonus several times.
+Use source-side exhibits for open, sink-side exhibits for closed. Let
+`P = sum of positive exhibit values + sum of every pact bonus`.
+The cut will measure reward lost from this optimistic baseline.
+
+Use ordinary profit edges for exhibit values: `s -> i` for positive value,
+`i -> t` for its absolute negative value. For each pact add one auxiliary
+vertex `a`, using `INF=P+1`:
+
+| Pact | Bonus edge | Requirement edges |
+| --- | --- | --- |
+| All open, bonus b | `s -> a`, capacity b | `a -> member`, capacity INF |
+| All closed, bonus b | `a -> t`, capacity b | `member -> a`, capacity INF |
+
+## What each auxiliary choice means
+
+For an all-open pact, placing `a` with the source claims its bonus: all
+members must also be with the source, or an infinite edge crosses. If any
+member is closed, `a` must be with the sink and the cut loses `b` once.
+For an all-closed pact, placing `a` with the sink claims the bonus. Any open
+member forces `a` to the source, losing `b` once. If all members are closed,
+placing `a` with the sink avoids that loss. All pacts get independent
+auxiliary vertices, so overlapping or repeated groups are handled naturally.
+
+## Sample trace and algorithm
+
+For opening only exhibit 1, baseline `P=4+2+6+5=17`. The cut loses exhibit
+3's positive value 2 and the unsatisfied all-open bonus 6, totaling 8.
+It retains the all-closed bonus 5, and `17-8=9`. Opening all exhibits would
+instead earn only 7.
+
+```text
+compute P and INF=P+1
+build exhibit profit edges and one gadget per pact
+print P - maximum_flow(s,t)
+```
+
+## Correctness proof
+
+A consistent exhibit selection can place each auxiliary vertex to claim
+exactly its satisfied pact bonuses. The cut then pays every unselected
+positive value, every selected negative cost, and every unsatisfied bonus:
+its capacity is `P - total_value`. Conversely, a cut of capacity at most
+`P` exists by taking any selection and the consistent auxiliaries. Hence
+no minimum cut crosses `INF`. Its finite auxiliary choices obey all stated
+requirements, and optimizing them for fixed exhibits loses exactly the
+unsatisfied bonuses. Minimizing the cut therefore maximizes total value.
+
+## Bounds, implementation notes, and tests
+
+With total membership count `z`, `V=n+g+2` and `E=O(n+g+z)`. Dinic takes
+`O(V^2 E)` time and `O(V+E)` memory. Store signed values and `P` in 64 bits
+in C++; Python needs no integer-size changes. Do not add infinite edges
+directly between all exhibit members: disagreement merely loses the bonus,
+it is not forbidden. A zero bonus still gives a valid harmless gadget.
+
+The oracle enumerates exhibit subsets and tests each original pact directly.
+Fixed tests include conflicting pacts on the same group and single-member
+pacts. Maximum-size all-open and all-closed cases test all 3000 memberships
+and answers exceeding 32-bit range.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/j_exhibit_pacts/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/j_exhibit_pacts/solution.py >}}
+```
+
+
+# K. Quota Manifests
+
+## Restatement and bounded network
+
+This is feasibility with compulsory minimums, not a maximum-delivery question.
+Use source `s`, depot vertices, destination vertices, and sink `t`:
+
+```text
+s -> depot i: [lo[i], hi[i]]
+depot i -> destination j: [0, lane_capacity]
+destination j -> t: [low[j], high[j]]
+t -> s: [K,K]
+```
+
+The last edge returns exactly the required delivery and turns the whole
+network into a circulation. It is an additional input edge, not a residual
+reverse entry. Every vertex, including `s` and `t`, must now conserve flow.
+
+## Convert lower bounds to ordinary flow
+
+For bounded edge `u -> v` with `[l,h]`, preassign `l`, add optional capacity
+`h-l`, subtract `l` from `balance[u]`, and add it to `balance[v]`.
+Positive balance means excess compulsory inflow that optional flow must
+send onward. Negative balance means missing inflow. Add auxiliary terminals:
+
+```text
+balance[v] > 0: SS -> v of capacity balance[v]
+balance[v] < 0: v -> TT of capacity -balance[v]
+required = sum of positive balances
+answer YES iff maximum_flow(SS,TT) == required
+```
+
+The lesson's bounded-circulation primer proves these signs. In particular,
+`SS -> v` forces extra original outflow, rather than describing an original
+external supply. Reversing the auxiliary directions is a common error.
+
+## Sample trace and correctness
+
+The sample can put one crate on each of its three lanes. Depot totals are
+2 and 1, destination totals are 2 and 1, and the return edge carries 3.
+All bounds and conservation hold, so every auxiliary demand can be met.
+
+Generally, any manifest extends to a bounded circulation by its endpoint
+totals and the fixed return amount. Conversely, any such circulation has
+exactly `K` on depot-to-destination lanes and satisfies all original quotas.
+Subtracting compulsory lower amounts from a valid circulation gives
+optional amounts within capacities that, together with saturated auxiliary
+edges, conserve at every vertex. Conversely, saturation of every auxiliary
+source edge repairs all balances; adding back lower amounts gives a valid
+circulation. The balances sum to zero, so meeting total positive demand
+also meets all negative demand. These equivalences prove the decision rule.
+
+## Bounds, implementation notes, and tests
+
+`V=n+m+4`, `E=O(n+m+e)` after auxiliaries. Time is `O(V^2 E)` and memory
+`O(V+E)`. The total may be `10^11`, so balances and `required` use 64-bit
+integers in C++. A zero-capacity optional edge is valid when `lo=hi`.
+No artificial infinity is required. Checking only sums of lower and upper
+bounds misses missing-lane obstructions; treating lower bounds as capacities
+misses compulsory deliveries.
+
+The independent oracle enumerates lane amounts, then checks all original
+row intervals, column intervals, and the total. Stress cases use fixed
+billion-unit quotas or a disconnected destination even though aggregate
+upper bounds seem sufficient.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/k_quota_manifests/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/k_quota_manifests/solution.py >}}
+```
+
+
+# L. Calendar Reinforcement
+
+## Restatement and monotonicity
+
+Choose a uniform extra daily staffing level. A fixed level `x` is feasible
+if all jobs can be scheduled, with at most one unit of each job per day.
+More staff cannot hurt. If `work > deadline-release` for any job, no amount
+of staff can help; print -1. Otherwise `n` extra workers suffice: reserve
+one extra worker for each job and choose any required days in its window.
+Binary-search `x` in `[0,n]`.
+
+## Compress equivalent days
+
+Enumerate all calendar boundaries and all job releases and deadlines. Between
+two consecutive boundaries, staff capacity is constant and the same jobs
+are available. Replace those integer days by one block of length `len`.
+For fixed `x`, create:
+
+```text
+s -> job i: work[i]
+job i -> contained block j: len[j]
+block j -> t: (base[j]+x)*len[j]
+```
+
+The middle capacity is **length**, not infinity. Even with many workers,
+one job can perform at most one unit per day. The sink capacity limits all
+jobs together. Feasibility means maximum flow equals total required work;
+source saturation then completes every job exactly.
+
+## Why aggregation does not invent an impossible schedule
+
+A real schedule gives integral amounts on job-to-block edges and respects
+both kinds of capacity, hence gives the required flow. For the reverse
+direction, consider one block of `len` days. Its flow assigns integer amounts
+`y[i]` with `0 <= y[i] <= len` and `sum y[i] <= staff*len`.
+
+These amounts always fit actual days. Number the days `0,...,len-1`, and
+write job 1's `y[1]` units on consecutive cyclic day positions, then continue
+from the next position for job 2, and so on. No job repeats a day because
+its amount is at most `len`. Across all jobs, each day receives at most
+`ceil(sum y[i]/len) <= staff` units. Every job is available throughout the
+block, so these placements are legal. Apply this separately to every block.
+Thus the compressed feasibility test is exact, including the per-job daily
+restriction.
+
+## Sample trace, algorithm, and correctness
+
+With `x=0`, the sample can process only two total units, below the required
+five. With `x=1`, daily capacities are 2,2,1,1. Jobs can use days (0,1),
+(2,3), and (0), respectively. The test becomes feasible, giving answer 1.
+
+```text
+reject any job with work > window length
+split the calendar at all calendar and job endpoints
+binary-search x in [0,n]
+    build a fresh job/block network
+    feasible iff max_flow equals total work
+```
+
+The schedule/flow correspondence proves every test. Feasibility is monotone
+and the upper bound is feasible, so binary search returns the smallest
+additional staff level.
+
+## Bounds, implementation notes, and tests
+
+There are at most `B=2n+p` blocks. Each test has `V=n+B+2` and
+`E=O(n*B+n+B)`; there are `O(log(n+1))` tests. General time is
+`O(log(n+1)*V^2 E)`, space `O(n*B+n+B)`.
+Use half-open windows and 64-bit lengths/products in C++. The largest raw
+block capacity is below `1.000001*10^18`; the reference also clamps it to
+total required work, since extra capacity beyond that cannot affect feasibility.
+Python uses the same clamping and iterative Dinic.
+
+Do not expand one vertex per day. Do not permit multiple workers to process
+the same job simultaneously. The oracle enumerates actual day subsets per
+job on calendars of at most five days, without compression or flow. Large
+stress cases force 80 simultaneous full-window jobs, and introduce nearly
+all possible distinct compression boundaries with billion-day windows.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/l_calendar_reinforcement/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/l_calendar_reinforcement/solution.py >}}
+```
+
+
+# M. Resilient Reservations
+
+## Restatement and the right adversarial condition
+
+An assignment can be recomputed after cancellation. Counting unused slots
+in one matching therefore does not measure resilience. Hall's theorem says
+all visitors can be assigned exactly when every visitor group `X` has
+at least `|X|` neighboring slots.
+
+For a nonempty `X`, an adversary can remove up to `k` slots from `N(X)`.
+Every deletion of at most `k` is survivable exactly when
+
+```text
+|N(X)| >= |X| + k for every nonempty visitor set X.
+```
+
+Sufficiency: any such deletion leaves at least `|X|` neighbors for every
+group, so Hall still holds. Necessity: if `|N(X)| < |X|+k`, either the
+original assignment already fails, or deleting `|N(X)|-|X|+1 <= k` of its
+neighbors makes that group deficient. Hence the answer is the minimum
+slack `|N(X)|-|X|` over nonempty sets, or -1 if this minimum is negative.
+
+## Find minimum slack without enumerating groups
+
+Build a cut network with source-to-visitor capacity 1, compatibility
+visitor-to-slot capacity `INF=n+m+1`, and slot-to-sink capacity 1.
+For a source-side visitor set `X`, a finite cut must put every slot of
+`N(X)` with the source too. Including any extra slot only increases cost,
+so the cheapest cut for that `X` has capacity
+
+```text
+(n - |X|) + |N(X)| = n + slack(X).
+```
+
+The empty set has slack zero and would hide positive resilience. To exclude
+it, try each visitor `r` as a mandatory member of `X`: add `s -> r` with
+capacity `INF`. A minimum cut cannot cross it, since putting all visitors
+and slots with the source costs only `m < INF`. Subtract `n` from that
+minimum cut value, and minimize over the `n` choices of `r`. Every nonempty
+set contains at least one possible forced visitor, so all are covered.
+
+## Sample trace and algorithm
+
+In the sample, group `{visitor 1}` has two neighbors, giving slack 1.
+Visitor 2 alone has slack 2, and both together have slack 2. The minimum
+is 1. In contrast, two visitors both accepting only slots 1 and 2 have
+slack zero together even though each individual has degree two. Checking
+minimum degree alone misses this collective obstruction.
+
+```text
+answer = m
+for each visitor r:
+    build the forced-r cut network
+    answer = min(answer, max_flow(s,t) - n)
+print -1 if answer < 0 else answer
+```
+
+The Hall argument characterizes resilience; the forced-cut identity computes
+exactly its minimum slack. Together they prove the result. Cancellation of
+slots accepted by nobody cannot worsen the guarantee.
+
+## Bounds, implementation notes, and tests
+
+There are `n` flow computations on `V=n+m+2`, `E=O(n+m+e)` networks.
+The general bound is `O(n*V^2 E)` and space is `O(n+m+e)`. Here each flow
+is at most `m`, since there are only `m` unit sink edges. Integral pushes
+and at most `m` successful phases also give the more informative bound
+`O(n*m*(V+E))` for these particular networks. The supplied limits keep
+rebuilding practical in both languages.
+
+Compatibility capacities must be `INF`, not 1: they enforce membership
+of every neighbor on the cut side, rather than represent one matched pair.
+Keep the ordinary capacity-1 source edges even for the forced visitor.
+Use an additional large source edge to impose its side. A negative slack
+means initial failure, not zero resilience.
+
+The independent oracle enumerates cancellation sets and injective
+assignments on the remaining slots. It uses neither Hall slack nor cuts.
+Dense stress cases have known resilience `m-n`, or one visitor with only
+one slot, forcing resilience zero despite many spare slots elsewhere.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/m_resilient_reservations/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/m_resilient_reservations/solution.py >}}
+```
+
+
+# N. Signal Concentration
+
+## Restatement and why total reward is insufficient
+
+We maximize internal link reward divided by chosen station weight. A set
+with greater total reward may have a worse ratio. The empty set has no
+defined ratio and is forbidden, while isolated stations can be omitted.
+Let `W=sum c[i]` and `R=sum link rewards`. If `R=0`, every nonempty choice
+has ratio zero; print `0 1`.
+
+## Turn a ratio threshold into an additive objective
+
+Choose integer scale `Q=W^2+1`. For an integer price `k`, ask whether some
+station set has
+
+```text
+Q * internal_reward - k * chosen_weight > 0.
+```
+
+This means its ratio strictly exceeds `k/Q`. Build an auxiliary node for
+each link of reward `w`. Its selection claims reward only when both
+endpoints are selected:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ lab/.style={fill=white,font=\small,inner sep=2pt}]
+\node[nd] (s) at (0,0) {$s$};
+\node[nd,fill=blue!8] (a) at (3,0) {link};
+\node[nd] (u) at (6,1.2) {$u$};
+\node[nd] (v) at (6,-1.2) {$v$};
+\node[nd] (t) at (10,0) {$t$};
+\draw[->,thick] (s)--node[lab,above]{$Qw$}(a);
+\draw[->,thick] (a)--node[lab,above]{INF}(u);
+\draw[->,thick] (a)--node[lab,below]{INF}(v);
+\draw[->,thick] (u)--node[lab,above]{$k c[u]$}(t);
+\draw[->,thick] (v)--node[lab,below]{$k c[v]$}(t);
+\end{tikzpicture}
+\end{center}
+```
+
+The station-to-sink edges are added **once per station**, not once per
+incident link. Choose `INF=Q*R+1`. With selected vertices on the source
+side, a finite cut may claim a link only if both endpoints are selected.
+For fixed stations it can claim every internal positive link, so
+
+```text
+maximum additive score = Q*R - minimum_cut_capacity.
+```
+
+The empty selection has score zero. Strict positivity therefore certifies
+a nonempty set without forcing an arbitrary station. An auxiliary node's
+infinite edges are logical requirements, not routing capacities from the
+original undirected graph.
+
+## Exact binary search and extraction
+
+The strict predicate is true at `k=0` when `R>0`, and false at
+`k=Q*R+1`, because any nonempty set has weight at least one and reward
+at most `R`. Binary-search the largest true integer `k`. Then
+
+```text
+k/Q < optimal_ratio <= (k+1)/Q.
+```
+
+Run the positive test at that final `k` again and extract its residual
+source side. Sum original station weights and original rewards with both
+endpoints selected. Reduce the resulting numerator and denominator by gcd.
+Do not print `k/Q`: it is a search boundary, not necessarily an actual ratio.
+
+## Why the extracted ratio is exactly optimal
+
+Every actual denominator is at most `W`. Unequal actual ratios differ by
+at least `1/W^2`, because the cross-multiplied numerator difference is a
+nonzero integer. But the search interval has width `1/Q < 1/W^2`.
+Any positive-score extracted set has ratio above `k/Q` and at most the
+optimum. If it were smaller than the optimum, their separation would be
+at least `1/W^2`, greater than the entire interval containing them. This
+is impossible. Thus every positive extracted choice at this price is
+optimal. Strict `>0` is essential, especially if `Q*optimal_ratio` itself
+is an integer: the last true price is then one less than that integer.
+
+On the sample, sets `{1,2}` and `{1,2,3}` both have ratio 2. The extracted
+cut may pick either; the original totals reduce to `2 1` in both cases.
+For a single link of reward 7 and endpoint weights 2 and 3, extraction
+instead returns the genuinely fractional answer `7 5`.
+
+## Bounds, implementation notes, and tests
+
+Each network has `V=n+m+2`, `E=n+3m`. There are
+`O(log(Q*R+2))` flow tests plus one extraction, giving general time
+`O(log(Q*R+2)*V^2 E)` and `O(n+m)` working memory. With `W<=1200`,
+`Q<=1440001`, and `R<=3*10^8`, the binary-search upper bound is below
+`4.321*10^14`; multiplying it by any station weight at most 20 remains
+below `8.642*10^15`. These values fit signed 64 bits. Python uses exact
+integers throughout. No floating-point tolerance is involved.
+
+The small oracle enumerates station subsets and compares exact `Fraction`
+values. Tests include all-zero rewards, isolated stations, noninteger
+answers, and a large low-density component that must be omitted. A maximum
+regular graph gives a known degree-based density bound. Another stress case
+has two 30-station components with ratios `599001/599` and `600001/600`,
+separated by less than `0.000003`; this checks exact recovery near a tie.
+
+
+## Full C++ solution
+
+```cpp
+{{< include problems/n_signal_concentration/solution.cpp >}}
+```
+
+## Full Python solution
+
+```python
+{{< include problems/n_signal_concentration/solution.py >}}
+```
+
+
+# Testing and what to carry forward
+
+Every E-N package contains fixed examples, an independent tiny oracle,
+random cases, and maximum-size stress cases. The oracles enumerate original
+choices: placements, shipments, assignments, closures, binary decisions,
+pact selections, lane amounts, actual working days, cancellations, or
+station subsets. They do not call a reference flow implementation to decide
+the expected answer.
 
 ```bash
-CP_TARGET=solution python3 sections/45_flows_and_matchings/check.py
+CP_TARGET=solution python3 sections/45_flows_and_matchings/check.py --keep-going
+CP_TARGET=solution python3 sections/45_flows_and_matchings/check.py --problem k,l,m,n
 ```
+
+Before implementing a new model, write down its interpretation of one unit,
+a chosen pair, or a cut side. Check that each original feasible choice gives
+a graph solution and each graph solution gives an original feasible choice.
+For binary search, prove monotonicity and rebuild the graph between tests.
+For infinite capacities, exhibit a finite cut cheaper than `INF`.
+For compressed time, prove that aggregate amounts can be realized on actual
+days. For exact ratios, bound the denominator and every integer product.
+These proofs catch modeling mistakes that a correct Dinic routine cannot fix.

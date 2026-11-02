@@ -3167,6 +3167,133 @@ matching.add_edge(1, 0)
 pairs = matching.maximum_matching()       # [(0, 1), (1, 0)]
 ```
 
+# Additional tools for modeling practice
+
+The extended exercises use the same matching and Dinic implementations. Three
+extra facts help turn more complicated constraints into these familiar
+operations. They are general tools; the problem-specific constructions belong
+to the editorial.
+
+## Hall's condition: enough choices for every group
+
+Suppose every left vertex must receive a distinct right partner. For a set
+`X` of left vertices, let `N(X)` contain all right vertices adjacent to at
+least one member of `X`. Those people can use only those slots. Necessarily,
+
+```text
+|N(X)| >= |X| for every set X of left vertices.
+```
+
+Hall's theorem says this condition is also sufficient. To see why, take a
+maximum matching and suppose a free left vertex remains. Explore all
+alternating continuations from it. If a free right vertex were reached, we
+could augment, contradicting maximal size. Thus every reached right vertex
+is matched, and its owner is also reached. Let `X` and `Y` be the reached
+left and right sets. Every neighbor of a reached left vertex was inspected,
+so `Y = N(X)`. Each right vertex in `Y` has a distinct owner in `X`; all
+left vertices of `X` except the starting free vertex were reached as owners.
+Hence `|X| = |Y| + 1`, violating the condition. If the condition holds for
+every group, no such failure is possible, so all left vertices are matched.
+
+Checking only each person's degree is insufficient. Three people may each
+accept two slots, but if they all accept the same two, one must remain free.
+The obstruction is the group of three, not an individual person.
+
+## Lower and upper bounds on an edge
+
+A usual flow edge permits any amount from zero to its capacity. A bounded
+edge instead requires `lo <= f <= hi`. Merely giving it capacity `hi` loses
+the compulsory minimum; merely subtracting `lo` loses conservation.
+
+First consider a **circulation**, where every vertex conserves flow and
+there is no net external source or sink. Write the bounded edge flow as
+`f = lo + x`, where `0 <= x <= hi-lo`. Preassign the lower bounds, then ask
+whether the optional amounts `x` can repair their imbalances.
+
+For each vertex, define
+
+```text
+balance[v] = incoming lower bounds - outgoing lower bounds
+```
+
+A positive balance means the preassigned amounts bring in too much: the
+optional flow must send that excess out. A negative balance means optional
+flow must bring in the missing amount. For example, an incoming compulsory
+3 and outgoing compulsory 1 leave a balance of +2:
+
+```{=latex}
+\begin{center}
+\begin{tikzpicture}[>=Latex,
+ nd/.style={circle,draw,minimum size=8mm,fill=white},
+ lab/.style={font=\small,fill=white,inner sep=2pt}]
+\node[nd] (a) at (0,0) {$a$};
+\node[nd,fill=blue!8] (v) at (3,0) {$v$};
+\node[nd] (b) at (6,0) {$b$};
+\draw[->,thick] (a)--node[lab,above=4mm]{lower bound 3}(v);
+\draw[->,thick] (v)--node[lab,above=4mm]{lower bound 1}(b);
+\node[font=\small,align=left,anchor=west,text width=4.5cm] at (7.3,0)
+ {Balance at $v$: $3-1=2$.\\
+  Optional flow must send 2 more out than it brings in.};
+\end{tikzpicture}
+\end{center}
+```
+
+Build an auxiliary ordinary-flow network with new terminals `SS`, `TT`:
+
+```text
+for every bounded edge u -> v with bounds [lo, hi]:
+    add u -> v with capacity hi - lo
+    balance[u] -= lo
+    balance[v] += lo
+for each vertex v:
+    if balance[v] > 0: add SS -> v with capacity balance[v]
+    if balance[v] < 0: add v -> TT with capacity -balance[v]
+required = sum of positive balances
+feasible exactly when max_flow(SS, TT) == required
+```
+
+Why are the signs correct? At a vertex with positive balance `b`, saturating
+`SS -> v` brings in `b` artificial units, forcing the optional original
+edges to send `b` more out than in. Adding back their preassigned lower
+bounds restores exact conservation. The negative case is symmetric.
+The balances sum to zero, so saturating every `SS` edge also saturates every
+edge into `TT`. This gives both directions of the feasibility equivalence.
+If desired, recover an original edge's flow as `lo + optional_flow`.
+
+To impose a source-to-sink total of exactly `K`, add the return edge
+`t -> s` with lower and upper bounds both `K`. This turns the routing into
+a circulation: the return edge brings exactly the delivered amount back to
+its source. Do not confuse this extra input edge with a residual reverse
+edge; it represents the total constraint itself. Use 64-bit balances and
+capacities. Rebuild the auxiliary network for each independent feasibility
+test.
+
+## Monotone feasibility and exact ratios
+
+If allowing a larger threshold only adds legal options, feasibility is
+monotone. Binary-search it with a fresh matching or flow computation per
+test. Establish the feasible end and the impossible-case output. If only
+listed values change the graph, search their sorted distinct values.
+
+For positive `B(S)`, a ratio `A(S)/B(S)` exceeds `p/q` exactly when
+`q*A(S) - p*B(S) > 0`. This exact integer comparison can turn a ratio into
+an additive objective.
+
+If all actual denominators are at most `W`, unequal ratios differ by at
+least `1/W^2`: the nonzero integer `ad-bc` has absolute value at least 1,
+and `bd <= W^2`. Choose an integer `Q > W^2`. Suppose a strict feasibility
+test locates consecutive grid points with
+
+```text
+k/Q < optimum <= (k+1)/Q.
+```
+
+Any real choice beating `k/Q` must then be optimal. Otherwise its ratio
+and the optimum would differ by at least `1/W^2`, greater than this entire
+interval. Extract a choice from that last positive test and calculate its
+ratio from the original data. Reduce by gcd; the grid boundary `k/Q` is
+not the answer itself. Check that all scaled products fit the integer type.
+
 # Explore and test the algorithms
 
 Open [the standalone flow and matching page](flow_playground/index.html) in
@@ -3231,3 +3358,28 @@ make an independent attempt before opening the editorial.
 - B. Bipartite Matching: Find the maximum number of disjoint permitted pairs.
 - C. Min Cut Reachable Side: Return the maximum value and final residual source side.
 - D. Project Selection: Blind practice; use the standalone problem statement.
+
+
+## Extended modeling track
+
+E-N are ten original problems with increasing modeling difficulty. Attempt
+these from their standalone statements, in order; the editorial contains the
+constructions and full C++/Python solutions. The approximate difficulty targets
+are pedagogical estimates, not official contest ratings.
+
+| Problem | Title | Target |
+| --- | --- | --- |
+| E | Separated Light Marks | 1400 |
+| F | Crate Routing | 1500 |
+| G | Silent Rehearsal | 1700 |
+| H | Emergency Corridors | 1800 |
+| I | Directional Relay Modes | 2000 |
+| J | Exhibit Pacts | 2100 |
+| K | Quota Manifests | 2200 |
+| L | Calendar Reinforcement | 2300 |
+| M | Resilient Reservations | 2400 |
+| N | Signal Concentration | 2500 |
+
+For each attempt, explain what one chosen edge or one unit of flow means,
+and prove the correspondence in both directions. Check each statement's
+constraints before choosing a representation.

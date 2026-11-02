@@ -1,5 +1,11 @@
 # Practice Queue
 
+For local modeling practice, attempt the ten original problems E-N in the
+[section progression](README.md), then consult their editorials. These form
+a separate progression from introductory implementation exercises A-C.
+
+The external queue below is additional practice.
+
 1. Codeforces 653D - Delivery Bears (flow-model construction)
    https://codeforces.com/problemset/problem/653/D
 2. AtCoder practice2_d - Maxflow (bipartite flow modeling)

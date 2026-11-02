@@ -18,6 +18,16 @@ PROBLEMS = [
     SECTION / "problems" / "b_bipartite_matching",
     SECTION / "problems" / "c_min_cut_reachable",
     SECTION / "problems" / "d_project_selection",
+    SECTION / "problems" / "e_separated_light_marks",
+    SECTION / "problems" / "f_crate_routing",
+    SECTION / "problems" / "g_silent_rehearsal",
+    SECTION / "problems" / "h_emergency_corridors",
+    SECTION / "problems" / "i_directional_relay_modes",
+    SECTION / "problems" / "j_exhibit_pacts",
+    SECTION / "problems" / "k_quota_manifests",
+    SECTION / "problems" / "l_calendar_reinforcement",
+    SECTION / "problems" / "m_resilient_reservations",
+    SECTION / "problems" / "n_signal_concentration",
 ]
 
 def main() -> int:

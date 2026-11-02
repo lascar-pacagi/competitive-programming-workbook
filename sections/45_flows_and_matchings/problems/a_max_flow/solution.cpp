@@ -1,3 +1,132 @@
 #include <bits/stdc++.h>
-using namespace std; struct Dinic{struct E{int v,rev; long long c;};int n;vector<vector<E>>g;vector<int>level,it;Dinic(int n):n(n),g(n),level(n),it(n){}void add(int u,int v,long long c){E a{v,(int)g[v].size(),c},b{u,(int)g[u].size(),0};g[u].push_back(a);g[v].push_back(b);}bool bfs(int s,int t){fill(level.begin(),level.end(),-1);queue<int>q;level[s]=0;q.push(s);while(!q.empty()){int u=q.front();q.pop();for(auto&e:g[u])if(e.c&&level[e.v]<0){level[e.v]=level[u]+1;q.push(e.v);}}return level[t]>=0;}long long dfs(int u,int t,long long f){if(u==t)return f;for(int&i=it[u];i<(int)g[u].size();i++){E&e=g[u][i];if(e.c&&level[e.v]==level[u]+1){long long r=dfs(e.v,t,min(f,e.c));if(r){e.c-=r;g[e.v][e.rev].c+=r;return r;}}}return 0;}long long flow(int s,int t){long long ans=0,p;while(bfs(s,t)){fill(it.begin(),it.end(),0);while((p=dfs(s,t,4'000'000'000'000'000'000LL)))ans+=p;}return ans;}};
-int main(){ios::sync_with_stdio(false);cin.tie(nullptr);int n,m;if(!(cin>>n>>m)) return 0;Dinic d(n);while(m--){int u,v;long long c;cin>>u>>v>>c;d.add(u-1,v-1,c);}cout<<d.flow(0,n-1)<<'\n';}
+using namespace std;
+
+#include <algorithm>
+#include <cassert>
+#include <queue>
+#include <vector>
+
+struct Dinic {
+    struct Edge {
+        int to;
+        long long cap;
+    };
+    int n;
+    std::vector<Edge> edges;
+    std::vector<std::vector<int>> adj;
+    std::vector<int> level, ptr;
+
+    explicit Dinic(int n) : n(n), adj(n) {}
+
+    int add_edge(int u, int v, long long capacity) {
+        assert(0 <= u && u < n && 0 <= v && v < n);
+        assert(capacity >= 0);
+        int edge = static_cast<int>(edges.size());
+        adj[u].push_back(edge);
+        edges.push_back({v, capacity});
+        adj[v].push_back(edge ^ 1);
+        edges.push_back({u, 0});
+        return edge;
+    }
+
+    bool bfs(int s, int t) {
+        level.assign(n, -1);
+        level[s] = 0;
+        std::queue<int> queue;
+        queue.push(s);
+        while (!queue.empty()) {
+            int u = queue.front();
+            queue.pop();
+            for (int edge : adj[u]) {
+                int v = edges[edge].to;
+                if (edges[edge].cap > 0 && level[v] == -1) {
+                    level[v] = level[u] + 1;
+                    queue.push(v);
+                }
+            }
+        }
+        return level[t] != -1;
+    }
+
+    long long send(int s, int t, long long limit) {
+        std::vector<int> vertices{s}, path;
+        std::vector<long long> bottleneck{limit};
+        while (!vertices.empty()) {
+            int u = vertices.back();
+            if (u == t) {
+                long long delta = bottleneck.back();
+                for (int edge : path) {
+                    edges[edge].cap -= delta;
+                    edges[edge ^ 1].cap += delta;
+                }
+                return delta;
+            }
+            while (ptr[u] < static_cast<int>(adj[u].size())) {
+                int edge = adj[u][ptr[u]];
+                int v = edges[edge].to;
+                if (edges[edge].cap > 0 && level[v] == level[u] + 1)
+                    break;
+                ++ptr[u];
+            }
+            if (ptr[u] == static_cast<int>(adj[u].size())) {
+                vertices.pop_back();
+                bottleneck.pop_back();
+                if (!path.empty()) {
+                    path.pop_back();
+                    ++ptr[vertices.back()];
+                }
+            } else {
+                int edge = adj[u][ptr[u]];
+                path.push_back(edge);
+                vertices.push_back(edges[edge].to);
+                bottleneck.push_back(
+                    std::min(bottleneck.back(), edges[edge].cap));
+            }
+        }
+        return 0;
+    }
+
+    long long max_flow(int s, int t) {
+        assert(0 <= s && s < n && 0 <= t && t < n && s != t);
+        long long added = 0, limit = 0;
+        for (int edge : adj[s]) limit += edges[edge].cap;
+        while (bfs(s, t)) {
+            ptr.assign(n, 0);
+            while (long long delta = send(s, t, limit)) added += delta;
+        }
+        return added;
+    }
+
+    std::vector<bool> reachable(int s) const {
+        std::vector<bool> seen(n, false);
+        seen[s] = true;
+        std::queue<int> queue;
+        queue.push(s);
+        while (!queue.empty()) {
+            int u = queue.front();
+            queue.pop();
+            for (int edge : adj[u]) {
+                int v = edges[edge].to;
+                if (edges[edge].cap > 0 && !seen[v]) {
+                    seen[v] = true;
+                    queue.push(v);
+                }
+            }
+        }
+        return seen;
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n, m;
+    if (!(cin >> n >> m)) return 0;
+    Dinic flow(n);
+    while (m--) {
+        int u, v; long long capacity;
+        cin >> u >> v >> capacity;
+        flow.add_edge(u - 1, v - 1, capacity);
+    }
+    cout << flow.max_flow(0, n - 1) << '\n';
+}
