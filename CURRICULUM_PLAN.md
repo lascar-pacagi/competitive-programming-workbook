@@ -329,19 +329,25 @@ Goal: learn the standard tools that appear in high blue, purple, and early red
 problems.
 
 43. **String Algorithms I**
-    - Prefix function.
-    - KMP.
-    - Z-function.
+    - Prefix functions and border chains.
+    - KMP pattern matching with overlapping occurrences.
+    - Periods and prefix-occurrence reasoning.
 
 44. **String Algorithms II**
-    - Rolling hash.
-    - Tries.
-    - Suffix array basics.
+    - Tries and prefix queries.
+    - Double rolling hashes and palindrome queries.
+    - Suffix automata, end-position classes, suffix links, and cloning.
+    - Interactive suffix-automaton construction and reusable C++/Python code.
+    - Suffix arrays and LCP receive their dedicated treatment in Section 76.
 
 45. **Flows And Matchings**
-    - Max flow.
-    - Min cut.
-    - Bipartite matching.
+    - Dinic with residual cancellation, levels, and blocking phases.
+    - Maximum-flow/minimum-cut equality and bipartite matching.
+    - Reusable iterative C++/Python code and an interactive visualizer.
+    - Four introductory problems plus ten original modeling problems E-N,
+      with indicative difficulty targets from 1400 to 2500.
+    - Additional primers on Hall's condition, bounded circulation, and exact
+      ratio comparisons for the advanced modeling track.
 
 46. **Rerooting And Advanced Tree DP**
     - Down/up values.
@@ -353,10 +359,10 @@ problems.
     - Sorting and matching halves.
     - Memory/time tradeoffs.
 
-48. **Divide And Conquer Optimization**
-    - DP transition monotonicity.
-    - Proof obligations.
-    - Implementation template.
+48. **Divide And Conquer, Deque, And Knuth DP**
+    - Monotone transition ranges and divide-and-conquer DP optimization.
+    - Sliding-window/deque optimization and Knuth optimization.
+    - Proof obligations, applicability conditions, and implementations.
 
 49. **Convex Hull Trick And Li Chao Tree**
     - Lines and minima.
@@ -364,7 +370,11 @@ problems.
     - Fully dynamic Li Chao tree.
 
 50. **Advanced Algorithms Mixed Contest**
-    - CF 2000-2400, AtCoder ARC, and ICPC regional/finals tasks.
+    - Nineteen original local problems, A-S.
+    - Two main representatives for each technical section 43--49.
+    - Earlier-topic review and one optional minimum-cost-flow extension.
+    - Intended progression toward CF 2000-2400 and ICPC-style modeling;
+      external practice remains linked separately.
 
 ## Phase 7: Red-Coder Training
 
@@ -426,18 +436,23 @@ harder mixed problems.
     - Scoreboard rules, time-boxing, and submission discipline.
     - One-keyboard team communication and handoffs.
     - A five-hour simulation protocol, postmortem, and targeted retraining.
+    - Twenty linked ICPC/Kattis rungs with original offline companions,
+      alongside four local workflow exercises.
 
 62. **Codeforces Course Ladder**
-    - An offline problem sheet with direct Codeforces links and original
-      restatements of selected tasks.
+    - Fifty linked Codeforces rungs with original concise offline briefs.
+    - Fifty original local companion packages with C++/Python references and
+      tests, plus a separate lettered local exercise.
     - A simple-to-hard progression across foundations, graphs, DP, math,
       data structures, strings, flows, geometry, and advanced optimization.
-    - Original pedagogical editorials that connect each task back to the
-      relevant course sections.
+    - Pedagogical editorials connecting each rung to the course; official
+      linked tasks are submitted on Codeforces, separately from companions.
 
 63. **AtCoder Difficulty Ladder**
-    - A 50-problem progression weighted toward intermediate through red tasks.
-    - Original local companion statements and course-specific editorials.
+    - Fifty linked tasks progressing from intermediate through red training.
+    - Fifty original local companions with C++/Python references, fixed and
+      randomized tests, and course-specific editorials.
+    - Difficulty estimates are ordering guides rather than official labels.
 
 ## Phase 8: Master+ Mathematics I
 
@@ -727,6 +742,24 @@ prove that forgotten information can no longer affect the future.
     - Progression from automaton digit counts through profile exponentiation
       to connectivity frontiers and treewidth-constrained optimization.
 
+## Phase 20: Grandmaster Finale
+
+Goal: combine the course's technique families in sustained Master-to-Grandmaster
+modeling practice. Difficulty targets are pedagogical estimates, not official
+contest ratings.
+
+100. **Grandmaster Finale**
+     - Sixty-five original local problems with standalone statements,
+       C++/Python references, tests, and editorial derivations.
+     - Problems 01--30 revisit time/versioned structures and trees,
+       optimization/flows/matching/cuts, and strings/sequences.
+     - Problems 31--49 develop algebra, number theory, geometry, grids,
+       and subsets; Problems 50--65 form the final synthesis gauntlet.
+     - The later rounds target roughly 2500--3300 difficulty.
+     - See the section's [coverage map](sections/100_grandmaster_finale/COVERAGE.md)
+       and [complexity audit](sections/100_grandmaster_finale/COMPLEXITY_AUDIT.md)
+       for problem-specific scope and measured evidence.
+
 ## Practice Queue Policy
 
 Every mature section should eventually include:
@@ -749,14 +782,29 @@ local_tested: yes | no
 notes:
 ```
 
-## Milestone Plan
+## Current Delivery And Maintenance
 
-The first committed milestone is intentionally small and complete:
+The original 60-section milestone has grown into a 100-section course. The
+current repository contains 689 local problem packages, including offline
+companions for external ladders. All sections have lesson/editorial sources,
+rendered PDFs, README and practice files, and a local checker.
 
-1. Repository scaffold.
-2. Shared local judge.
-3. Full 60-section plan.
-4. Complete Section 1 as the canonical template.
+The discovery manual covers the technical topics of Sections 1--57, excluding
+mixed checkpoints; it is a companion to the curriculum, not a replacement for
+the later sections. The [lazy-propagation appendix](appendices/lazy_propagation/README.md)
+belongs immediately after Section 37.
 
-After reviewing Section 1, future milestones can add sections in batches of
-three to five, preserving the same structure.
+For future additions:
+
+1. Keep each statement, implementation, editorial, and test contract aligned.
+2. Add independent small oracles and maximum-size adversarial workloads.
+3. Update the section index, checker, coverage map, and curriculum entries.
+4. Seed new private starter files with `python3 tools/manage_submissions.py seed`;
+   preserve every existing personal attempt.
+5. Rebuild changed teaching artifacts and run `make public-check` before commit.
+
+Maximum-limit evidence is recorded separately in the
+[Sections 64--99 audit](sections/MASTER_PLUS_COMPLEXITY_AUDIT.md) and the
+[Section 100 audit](sections/100_grandmaster_finale/COMPLEXITY_AUDIT.md).
+Package presence and small-case acceptance do not by themselves certify the
+published asymptotic or language-specific limits.

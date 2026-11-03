@@ -1,6 +1,7 @@
 .PHONY: pdf discovery-pdf check reference audit public-check
+.DEFAULT_GOAL := pdf
 
-SECTIONS := $(shell find sections -maxdepth 1 -type d -name '[0-9][0-9]_*' | sort)
+SECTIONS := $(shell find sections -maxdepth 1 -type d -name '[0-9]*_*' | sort -V)
 APPENDICES := $(shell find appendices -mindepth 1 -maxdepth 1 -type d | sort)
 
 discovery-pdf:

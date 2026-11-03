@@ -28,14 +28,20 @@ After the lesson, open your first problem:
 
 `sections/01_complexity_io_constraints/problems/a_sum_constraints/README.md`
 
-Choose one language and write your answer in the matching starter file:
+Create your private starter files from the repository root:
 
-- `sections/01_complexity_io_constraints/problems/a_sum_constraints/solve.cpp`
-- `sections/01_complexity_io_constraints/problems/a_sum_constraints/solve.py`
+```bash
+python3 tools/manage_submissions.py seed
+```
 
-The `solve.cpp` and `solve.py` files are starter files: the repository contains
-no completed learner submissions. Your work begins there. When you are ready,
-test that first problem from the repository root:
+Choose one language and write your answer in its private file:
+
+- `.submissions/sections/01_complexity_io_constraints/problems/a_sum_constraints/solve.cpp`
+- `.submissions/sections/01_complexity_io_constraints/problems/a_sum_constraints/solve.py`
+
+The seed command creates only missing files and preserves existing attempts.
+The checker automatically uses these private files; the public `solve.*`
+files remain untouched TODO stubs. When you are ready, test the first problem:
 
 ```bash
 python3 sections/01_complexity_io_constraints/check.py -p a --lang cpp
@@ -53,27 +59,28 @@ tools.
 ## Course Roadmap
 
 | Phase | Sections | Main topics |
-|---|---:|---|
-| Foundations | 1--14 | Complexity, arrays, sorting, greedy, stacks |
-| Graphs I | 15--21 | BFS, DFS, DSU, shortest paths |
-| Dynamic programming | 22--28 | Classical, grid, interval, tree, and bitmask DP |
-| Mathematics | 29--35 | Modular arithmetic, CRT, combinatorics, probability |
-| Data structures | 36--42 | Fenwick and segment trees, lifting, advanced queries |
-| Advanced algorithms | 43--50 | Strings, flows, tree DP, optimization |
-| Contest preparation | 51--63 | Hard techniques, workflow, and contest ladders |
-| Master+ mathematics I | 64--66 | Divisor transforms, NTT, and linear recurrences |
-| Master+ structures I | 67--69 | Persistence, rollback, and tree decompositions |
-| Master+ flow/convex I | 70--72 | Bounded flows, slope trick, and Lagrangian optimization |
-| Master+ geometry I | 73--75 | Convex boundaries, Minkowski sums, and geometric sweeps |
-| Master+ string structures I | 76--78 | Suffix arrays, automata, LCP, and palindromic trees |
-| Master+ graph decomposition | 79--81 | SCCs, Euler trails, low links, block-cut trees, and dominators |
-| Master+ dynamic structures | 82--84 | Wavelet matrices, beats, implicit treaps, and dynamic forests |
-| Master+ matching/matroids | 85--87 | Hungarian, blossom, cut trees, arborescences, and matroid intersection |
-| Master+ polynomial algebra | 88--90 | Formal series, product trees, interpolation, and subset transforms |
-| Master+ computational number theory | 91--93 | 64-bit factorization, discrete logarithms, and modular roots |
-| Master+ continuous geometry | 94--96 | Half-planes, circle geometry, enclosing disks, and Delaunay structure |
-| Master+ frontier DP | 97--99 | Digit automata, profiles, plug DP, Steiner subsets, and treewidth DP |
-| Grandmaster finale | 100 | Sixty-five Master-to-Grandmaster synthesis problems |
+| --- | ---: | --- |
+| [Contest foundations](CURRICULUM_PLAN.md#phase-0-contest-foundations) | 1--7 | Complexity, simulation, counting, prefix sums, sorting, two pointers |
+| [Core patterns](CURRICULUM_PLAN.md#phase-1-core-patterns) | 8--14 | Binary search, greedy proofs, sweeps, stacks, offline processing |
+| [Graphs I](CURRICULUM_PLAN.md#phase-2-graphs-i) | 15--21 | BFS, DFS, DAG DP, DSU/MST, Dijkstra, 0-1 BFS |
+| [Dynamic programming I](CURRICULUM_PLAN.md#phase-3-dynamic-programming-i) | 22--28 | Classical, knapsack, grid, interval, tree, and bitmask DP |
+| [Number theory and combinatorics](CURRICULUM_PLAN.md#phase-4-number-theory-and-combinatorics) | 29--35 | Modular arithmetic, GCD/LCM, primes, combinatorics, probability |
+| [Data structures](CURRICULUM_PLAN.md#phase-5-advanced-data-structures) | 36--42 | Fenwick/segment trees, static queries, heaps, Euler tours, LCA |
+| [Advanced algorithms](CURRICULUM_PLAN.md#phase-6-advanced-algorithms) | 43--50 | KMP, tries, rolling hash, suffix automata, flows, tree DP, optimization |
+| [Red-coder training](CURRICULUM_PLAN.md#phase-7-red-coder-training) | 51--63 | Invariants, games, geometry, modeling, contest workflow, external ladders |
+| [Master+ mathematics I](CURRICULUM_PLAN.md#phase-8-master-mathematics-i) | 64--66 | Divisor transforms, NTT, linear recurrences |
+| [Master+ structures and trees I](CURRICULUM_PLAN.md#phase-9-master-structures-and-trees-i) | 67--69 | Persistence, rollback, tree decompositions |
+| [Master+ flow and convex optimization I](CURRICULUM_PLAN.md#phase-10-master-flow-and-convex-optimization-i) | 70--72 | Bounded/min-cost flows, slope trick, Lagrangian optimization |
+| [Master+ geometry I](CURRICULUM_PLAN.md#phase-11-master-geometry-i) | 73--75 | Convex boundaries, Minkowski sums, geometric sweeps |
+| [Master+ string structures I](CURRICULUM_PLAN.md#phase-12-master-string-structures-i) | 76--78 | Suffix arrays/LCP, automata, palindromic trees |
+| [Master+ graph decomposition](CURRICULUM_PLAN.md#phase-13-master-graph-decomposition) | 79--81 | SCCs, Euler trails, low links, block-cut trees, dominators |
+| [Master+ dynamic structures](CURRICULUM_PLAN.md#phase-14-master-dynamic-data-structures) | 82--84 | Wavelet matrices, beats, implicit treaps, dynamic forests |
+| [Master+ matching and matroids](CURRICULUM_PLAN.md#phase-15-master-matching-cuts-and-matroids) | 85--87 | Hungarian, blossom, cut trees, arborescences, matroid intersection |
+| [Master+ polynomial algebra](CURRICULUM_PLAN.md#phase-16-master-polynomial-algebra) | 88--90 | Formal series, product trees, interpolation, subset transforms |
+| [Master+ computational number theory](CURRICULUM_PLAN.md#phase-17-master-computational-number-theory) | 91--93 | 64-bit factorization, discrete logarithms, modular roots |
+| [Master+ geometry II](CURRICULUM_PLAN.md#phase-18-master-geometry-ii) | 94--96 | Half-planes, circles, enclosing disks, Delaunay structure |
+| [Master+ frontier DP](CURRICULUM_PLAN.md#phase-19-master-frontier-dynamic-programming) | 97--99 | Digit/profile DP, plug DP, Steiner subsets, treewidth DP |
+| [Grandmaster finale](CURRICULUM_PLAN.md#phase-20-grandmaster-finale) | 100 | Sixty-five Master-to-Grandmaster synthesis problems |
 
 The approved long-term structure is in
 [`CURRICULUM_PLAN.md`](CURRICULUM_PLAN.md).
@@ -83,8 +90,10 @@ The approved depth and writing standard for lessons and editorials is in
 The root-level discovery manual
 [`HOW_TO_FIND_IT.qmd`](HOW_TO_FIND_IT.qmd) uses new, course-independent
 problems to reconstruct how a solution is found: slow models, failed ideas,
-counterexamples, decisive observations, proofs, and validation. A rendered
-copy is available as [`HOW_TO_FIND_IT.pdf`](HOW_TO_FIND_IT.pdf).
+counterexamples, decisive observations, proofs, and validation. It covers the
+technical topics of Sections 1--57, with mixed checkpoints omitted; the
+curriculum continues through Section 100. Read the illustrated
+[HTML manual](HOW_TO_FIND_IT.html) or the [PDF](HOW_TO_FIND_IT.pdf).
 
 To rebuild only this manual, run `make discovery-pdf`. It requires Quarto,
 Chromium, and the Python `websocket-client` package. The build renders the
@@ -92,7 +101,10 @@ HTML first, then prints it locally to preserve the SVG diagrams and formulas,
 with a clickable contents list and PDF bookmarks. `make pdf` uses the same
 route for the manual before rendering the section PDFs.
 
-Each completed section contains:
+Study the [lazy-propagation appendix](appendices/lazy_propagation/README.md)
+immediately after Section 37, before continuing with the later query sections.
+
+Each section contains:
 
 - an illustrated Quarto lesson;
 - an editorial PDF with detailed solutions and proofs;
@@ -101,11 +113,28 @@ Each completed section contains:
 - local online-judge tests;
 - a friendly section checker.
 
-The course currently has 100 sections. Section 61 is the ICPC readiness module,
-Sections 62--63 are the Codeforces and AtCoder ladders, and Sections 64--66
-begin the master+ extension with multiplicative transforms and polynomial
-algorithms. Sections 67--69 continue with persistence, rollback, heavy-light,
-centroid, virtual-tree, and small-to-large techniques. Sections 70--72 add
+The repository currently contains **100 sections and 689 local problem
+packages**, including original offline companions for external contest
+ladders. Every section has lesson/editorial sources and rendered PDFs.
+Sections 61--63 contain 20 ICPC, 50 Codeforces, and 50 AtCoder ladder rungs,
+respectively, alongside their local companions and any additional local tasks.
+The official linked tasks remain separate external submissions.
+
+Recent modeling and string practice includes:
+
+- [Section 44](sections/44_string_algorithms_ii/README.md): tries, double
+  rolling hashes, suffix automata, and an offline
+  [SAM construction visualizer](sections/44_string_algorithms_ii/sam_playground/index.html).
+- [Section 45](sections/45_flows_and_matchings/README.md): 14 local problems,
+  including ten modeling exercises E-N with indicative difficulty targets from
+  1400 to 2500, plus an offline
+  [flow/matching visualizer](sections/45_flows_and_matchings/flow_playground/index.html).
+- [Section 50](sections/50_advanced_algorithms_mixed_contest/README.md): 19 local
+  problems, with two main representatives for each technical section 43--49.
+
+Sections 64--66 begin the master+ extension with multiplicative transforms and
+polynomial algorithms. Sections 67--69 continue with persistence, rollback,
+heavy-light, centroid, virtual-tree, and small-to-large techniques. Sections 70--72 add
 bounded circulation, potential-based min-cost flow, slope trick, exact-count
 Lagrangian relaxation, and discrete convex allocation.
 Sections 73--75 continue with convex hull compression, rotating calipers,
@@ -148,15 +177,18 @@ It records adversarial invariants, measured C++/Python time and memory, and any
 constraint or support-limit failures; small random-oracle acceptance alone is
 not treated as complexity evidence. Section 100 has its own
 [`finale complexity audit`](sections/100_grandmaster_finale/COMPLEXITY_AUDIT.md),
-which distinguishes completed kernels from synthesis layers still awaiting
-implementation.
+which records the measured problem groups, language-specific limits, fixes,
+and performance-watch items. Consult the evidence recorded in these audits
+when assessing maximum-limit support.
 
 ## Requirements and optional setup
 
 - Python 3.11 or newer
 - `g++` with C++23 support
 - `gdb` (optional, for interactive C++ debugging)
-- Quarto and a LaTeX distribution only if you want to build PDFs yourself
+- Quarto and a LaTeX distribution with XeLaTeX to rebuild section PDFs
+- Chromium and Python `websocket-client`, in addition to Quarto, to rebuild
+  the HTML/SVG discovery manual as a PDF
 
 You do not need a virtual environment or extra packages to solve and test the
 first exercises. Contributors who want the development tools can install them
@@ -172,12 +204,12 @@ python -m pip install -e ".[dev]"
 
 ### Keep personal work outside the public course
 
-Maintainers can keep attempts in the ignored `.submissions/` overlay. Its
+Keep attempts in the ignored `.submissions/` overlay. Its
 directory structure mirrors the course, and the checker selects an overlay
 `solve.cpp` or `solve.py` automatically when it exists.
 
-For a new overlay, seed only files that are missing; this never replaces an
-existing attempt:
+Run the seed command on a fresh checkout and again after new problems are
+added. It copies only missing files and never replaces an existing attempt:
 
 ```bash
 python3 tools/manage_submissions.py seed
@@ -217,8 +249,8 @@ Read the lesson, solve the problems, then run the checker:
 python3 sections/01_complexity_io_constraints/check.py
 ```
 
-By default, a section checker tests C++ and Python and stops at the first
-failure. Use `--keep-going` (or `-k`) to test every remaining submission:
+Most section checkers test C++ and Python and stop at the first failure. Use
+`--keep-going` (or `-k`) to test every remaining submission:
 
 ```bash
 python3 sections/01_complexity_io_constraints/check.py --keep-going
@@ -293,6 +325,12 @@ python3 tools/judge.py sections/27_bitmask_dp/problems/c_inspection_route \
   --lang cpp --gdb --case sample1 --step
 ```
 
+Sections 61--63 have an additional inventory-validation mode: without
+`CP_TARGET=solution`, their checker validates the numbered companion packages.
+Use the direct `tools/judge.py` command above to test your own companion
+submission. Set `CP_TARGET=solution` on the section checker to run all of its
+numbered companion references.
+
 Validate supplied reference solutions:
 
 ```bash
@@ -314,8 +352,18 @@ python3 tools/audit_course.py
 
 ## Build PDFs
 
+Build all section and appendix PDFs, plus the illustrated discovery manual:
+
 ```bash
 make pdf
+```
+
+Build only the discovery manual with `make discovery-pdf`. To rebuild one
+section, render its lesson and editorial directly:
+
+```bash
+quarto render sections/45_flows_and_matchings/lesson.qmd --to pdf
+quarto render sections/45_flows_and_matchings/editorial.qmd --to pdf
 ```
 
 ## Contributing and licensing

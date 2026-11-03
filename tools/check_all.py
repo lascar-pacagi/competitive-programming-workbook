@@ -11,7 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    checkers = sorted((ROOT / "sections").glob("[0-9][0-9]_*/check.py"))
+    checkers = sorted(
+        (ROOT / "sections").glob("[0-9]*_*/check.py"),
+        key=lambda path: int(path.parent.name.split("_", 1)[0]),
+    )
     if not checkers:
         print("No section checkers were found.")
         return 1
